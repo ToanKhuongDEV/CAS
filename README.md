@@ -1,5 +1,6 @@
 # CAS Documentation
 
-- [Đề xuất Tech Stack và Kiến trúc hệ thống](./document/TECH_STACK.md)
+- [Tổng quan sản phẩm và hệ thống](./document/OVERALL.md)
+- [Thiết kế database cơ bản](./document/DATABASE_DESIGN.md)
 
-Tài liệu hiện tại mô tả kiến trúc mục tiêu, lựa chọn công nghệ, thiết kế QR order, nền tảng game AI động, tích hợp Zalo, bảo mật và lộ trình triển khai.
+MVP 1 tập trung hoàn thiện luồng quét QR tại bàn, gọi món và thanh toán chuyển khoản bằng VietQR do nhân viên xác nhận. Quản lý nhân viên, CRM/Zalo, game AI và các tính năng mở rộng sẽ được phát triển ở giai đoạn sau.
