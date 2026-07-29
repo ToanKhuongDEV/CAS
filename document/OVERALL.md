@@ -157,15 +157,20 @@ Giao diện vận hành ─────┘         │
 
 Các module được tổ chức trong cùng một backend ở MVP 1 và có thể tách hoặc mở rộng khi hệ thống phát triển.
 
-## 7. Công nghệ đề xuất
+## 7. Công nghệ
 
 | Thành phần | Công nghệ |
 |---|---|
 | Frontend | Next.js, React, TypeScript |
-| Backend | Java, Spring Boot |
+| Backend | Java 21, Spring Boot |
+| Build và quản lý dependency | Maven |
+| Truy cập dữ liệu | MyBatis |
 | Database | MySQL |
+| Cache và dữ liệu tạm thời | Redis |
+| Database migration | Flyway |
+| Hỗ trợ phát triển backend | Lombok, Jakarta Bean Validation |
 | Lưu trữ hình ảnh | Cloudinary hoặc dịch vụ tương đương |
-| Kiểm thử | JUnit, Vitest, Playwright |
+| Kiểm thử | JUnit 5, Mockito, Testcontainers, Vitest, Playwright |
 | Triển khai | Docker, GitHub Actions |
 
 ## 8. Dữ liệu tổng quan

@@ -57,7 +57,7 @@ Nhiều khách tại cùng bàn quét cùng QR.
 - Chỉ người đầu tiên mở session bàn cần nhập tên và số điện thoại.
 - Người quét QR sau trong cùng session không cần nhập lại thông tin.
 - Thông tin người đầu tiên được lưu trong `client_accounts` và gắn với session.
-- Khi tạo session cần chống race condition để một bàn chỉ có một session đang mở.
+- Khi tạo session cần chống race condition để một bàn không bao giờ có nhiều hơn một session `OPEN` tại cùng một thời điểm.
 
 ## 5.1. Khách đầu tiên không nhập tên hoặc số điện thoại
 
@@ -169,7 +169,8 @@ Session đã chuyển sang `PAYMENT_PENDING` nhưng khách muốn gọi thêm m�
 ### Cách xử lý
 
 - Không nhận thêm order vào session cũ.
-- Nếu khách tiếp tục gọi món, hệ thống tạo session mới.
+- Session `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới cho cùng bàn.
+- Nếu khách tiếp tục gọi món, hệ thống tạo session `OPEN` mới.
 - Order/payment của session mới không gộp với session cũ.
 
 ## 13. Người tạo QR khác người xác nhận thanh toán

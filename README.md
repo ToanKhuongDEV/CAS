@@ -4,6 +4,13 @@ CAS là ứng dụng giúp quán ăn, quán nước số hóa việc gọi món 
 
 Khách chỉ cần quét QR ở bàn, xem menu trên điện thoại, chọn món và gửi order. Nhân viên nhìn thấy order ở màn hình vận hành, xử lý món, tạo mã VietQR để khách chuyển khoản và xác nhận khi đã nhận đúng tiền.
 
+## Công nghệ
+
+- Backend: Java 21, Spring Boot và Maven.
+- Truy cập dữ liệu: MyBatis.
+- Dữ liệu và hạ tầng: MySQL, Redis và Flyway.
+- Hỗ trợ phát triển: Lombok và Jakarta Bean Validation.
+
 ## CAS giúp quán giải quyết gì?
 
 - Giảm việc ghi order bằng giấy hoặc nhập tay nhiều lần.

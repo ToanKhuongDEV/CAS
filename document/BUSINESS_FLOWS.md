@@ -88,7 +88,9 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 ### Quy tắc nghiệp vụ
 
 - Một bàn chỉ có một QR đang hoạt động tại một thời điểm.
-- Một bàn chỉ có một session hoạt động tại một thời điểm.
+- Chỉ session ở trạng thái `OPEN` mới được xem là đang chiếm dụng bàn.
+- Session ở trạng thái `PAYMENT_PENDING` không ngăn việc tạo một session `OPEN` mới cho cùng bàn.
+- Việc tạo session `OPEN` phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session `OPEN` tại cùng một thời điểm.
 - Người đầu tiên mở session bàn phải nhập tên và số điện thoại.
 - Tên và số điện thoại này được lưu trong `client_accounts`, tách riêng với `accounts` của nhân viên/admin.
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
@@ -219,7 +221,8 @@ Khách hàng báo muốn thanh toán toàn bộ các order trong phiên bàn.
 - MVP 1 chưa hỗ trợ tách hóa đơn.
 - `bill_snapshot` được tạo khi nhân viên tạo payment/VietQR.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
-- Nếu khách tiếp tục gọi món sau khi yêu cầu thanh toán, hệ thống tạo session mới, không gộp với session cũ.
+- Nếu khách tiếp tục gọi món sau khi yêu cầu thanh toán, hệ thống tạo session `OPEN` mới cho cùng bàn, không gộp với session cũ.
+- Session `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới.
 - `orders` không có trạng thái riêng trong MVP 1; trạng thái chờ thanh toán nằm ở `table_sessions.status`.
 
 ## 11. Luồng ghi nhận khách rời đi chưa thanh toán

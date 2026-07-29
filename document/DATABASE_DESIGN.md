@@ -16,6 +16,7 @@ Thiết kế này xác định các entity và quan hệ chính. Chi tiết migr
 ## 2. Nguyên tắc thiết kế
 
 - MySQL là nguồn dữ liệu chính của hệ thống.
+- Backend truy cập MySQL bằng MyBatis và SQL tường minh, không dựa trên cơ chế quản lý entity của JPA/Hibernate.
 - Dữ liệu tiền tệ sử dụng `DECIMAL`.
 - Thời gian được lưu theo UTC.
 - Các bảng nghiệp vụ có `created_at` và `updated_at` khi phù hợp.
@@ -23,7 +24,7 @@ Thiết kế này xác định các entity và quan hệ chính. Chi tiết migr
 - Thông tin order được lưu theo các cột nghiệp vụ.
 - Toàn bộ nội dung bill tại thời điểm yêu cầu thanh toán hoặc ghi nhận khách chưa thanh toán được lưu trong một JSON snapshot.
 - Các mã được sử dụng bên ngoài hệ thống không dùng ID tăng dần.
-- Thay đổi database được quản lý bằng migration.
+- Thay đổi database được quản lý bằng Flyway migration.
 
 ## 3. Quy ước và tên bảng
 
@@ -241,9 +242,9 @@ Trà sữa
 | `created_at` | Thời điểm phiên bắt đầu |
 | `updated_at` | Thời điểm cập nhật |
 
-Mỗi bàn chỉ có một table session đang hoạt động tại một thời điểm. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
+Chỉ table session ở trạng thái `OPEN` mới được xem là đang chiếm dụng bàn. Mỗi bàn chỉ được có tối đa một session `OPEN` tại cùng một thời điểm. Session ở trạng thái `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới cho cùng bàn. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session `OPEN`, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
 
-Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING` và không nhận thêm món. Nếu khách tiếp tục gọi món thì hệ thống tạo session mới, không gộp order hoặc payment với session cũ.
+Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING` và không nhận thêm món. Nếu khách tiếp tục gọi món thì hệ thống tạo session `OPEN` mới cho cùng bàn, không gộp order hoặc payment với session cũ.
 
 ### 5.4. Order
 
@@ -563,7 +564,7 @@ Các giá trị dưới đây chỉ là đề xuất ban đầu và cần đư�
 - `dining_tables`: unique `store_id + code`.
 - `table_qr_codes`: unique `token`.
 - Chỉ một QR hoạt động cho mỗi bàn.
-- Chỉ một table session đang mở cho mỗi bàn.
+- Mỗi bàn chỉ có tối đa một table session ở trạng thái `OPEN`; session `PAYMENT_PENDING` không thuộc ràng buộc độc quyền này.
 - `categories`: unique `store_id + name`.
 - `option_groups`: unique `menu_item_id + name`.
 - `option_values`: unique `option_group_id + name`.
@@ -577,7 +578,7 @@ Các giá trị dưới đây chỉ là đề xuất ban đầu và cần đư�
 - Index các khóa ngoại và các cột trạng thái thường được dùng để lọc.
 - Index thời gian tạo order, thời gian xác nhận payment và thời gian đánh dấu payment bỏ qua để phục vụ màn hình vận hành, thống kê và tra cứu.
 
-Cách áp dụng ràng buộc “chỉ một bản ghi đang hoạt động” trong MySQL sẽ được quyết định khi viết migration.
+Cách áp dụng ràng buộc “mỗi bàn chỉ có một session `OPEN`” trong MySQL sẽ được quyết định khi viết migration. Việc tạo session phải dùng constraint, lock, atomic update hoặc chiến lược tương đương để an toàn khi có xử lý đồng thời.
 
 ## 9. Các nội dung chưa thuộc MVP 1
 
@@ -615,7 +616,8 @@ Thiết kế hiện tại chưa bao gồm:
 - Payment `IGNORED` không bị xóa và được giữ lại để admin thống kê ở một màn hình riêng.
 - Nếu cần thu lại tiền từ payment `IGNORED`, admin tạo payment mới với mã chuyển khoản và VietQR mới.
 - Trường hợp khách rời đi trước khi tạo payment còn cần chốt cách đánh dấu phiên chưa thanh toán trong `EDGE_CASES.md`.
-- Một bàn chỉ có một session hoạt động tại một thời điểm.
+- Chỉ session `OPEN` chiếm dụng bàn; session `PAYMENT_PENDING` không ngăn việc tạo session `OPEN` mới cho cùng bàn.
+- Một bàn không bao giờ được có nhiều hơn một session `OPEN` tại cùng một thời điểm, kể cả khi có nhiều yêu cầu tạo session đồng thời.
 - Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng danh sách order.
 - Người đầu tiên mở session bàn cần nhập tên và số điện thoại; hệ thống tạo hoặc dùng lại `client_accounts`; người quét QR sau trong cùng session không cần nhập lại.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
