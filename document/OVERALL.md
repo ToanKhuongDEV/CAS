@@ -78,6 +78,7 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 #### Vận hành hệ thống
 
 - Đăng nhập khu vực vận hành.
+- Phân quyền đơn giản theo role gồm `ADMIN`, `USER` và `OPERATOR`.
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
@@ -85,7 +86,7 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 ### 4.2. Ngoài phạm vi MVP 1
 
 - Quản lý nhân viên, ca làm và chấm công.
-- Phân quyền chi tiết.
+- Phân quyền chi tiết ngoài ba role cơ bản.
 - Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
 - Khuyến mãi, voucher và chương trình thành viên.
@@ -110,17 +111,17 @@ Các chức năng này sẽ được xem xét trong những phiên bản sau d�
 
 1. Khách hàng tiếp tục truy cập menu tại bàn.
 2. Khách hàng chọn và gửi thêm món.
-3. Hệ thống bổ sung món vào order của phiên bàn.
+3. Hệ thống tạo order mới trong cùng phiên bàn.
 
 ### 5.3. Thanh toán
 
 1. Khách hàng yêu cầu thanh toán.
-2. Hệ thống chuyển order sang trạng thái chờ thanh toán và thông báo cho nhân viên.
+2. Hệ thống chuyển các order trong phiên bàn sang trạng thái chờ thanh toán và thông báo cho nhân viên.
 3. Nhân viên tạo VietQR trên web quản lý.
 4. Nhân viên đưa màn hình QR cho khách quét và chuyển khoản.
 5. Nhân viên kiểm tra ứng dụng ngân hàng.
 6. Nhân viên xác nhận khi đã nhận đúng số tiền và nội dung chuyển khoản.
-7. Hệ thống hoàn tất order và phiên sử dụng bàn.
+7. Hệ thống hoàn tất các order và phiên sử dụng bàn.
 
 ## 6. Kiến trúc tổng thể
 
@@ -163,7 +164,6 @@ Các module được tổ chức trong cùng một backend ở MVP 1 và có th�
 | Frontend | Next.js, React, TypeScript |
 | Backend | Java, Spring Boot |
 | Database | MySQL |
-| Quản lý database | Flyway |
 | Lưu trữ hình ảnh | Cloudinary hoặc dịch vụ tương đương |
 | Kiểm thử | JUnit, Vitest, Playwright |
 | Triển khai | Docker, GitHub Actions |
@@ -176,9 +176,9 @@ Các nhóm dữ liệu chính của MVP 1:
 Cửa hàng và bàn
 Menu và món
 Phiên sử dụng bàn
-Order và món trong order
+Các order và món trong order
 Thanh toán và giao dịch
-Dữ liệu vận hành cơ bản
+Tài khoản và dữ liệu vận hành cơ bản
 ```
 
 Thiết kế database, cấu trúc bảng và quy tắc lưu trữ sẽ được trình bày trong tài liệu chuyên biệt.
@@ -189,7 +189,7 @@ Hệ thống tạo VietQR chứa tài khoản ngân hàng của quán, số ti�
 
 VietQR chỉ hiển thị trên web hoặc thiết bị của nhân viên. Sau khi khách chuyển khoản, nhân viên kiểm tra ứng dụng ngân hàng và xác nhận thủ công.
 
-MVP 1 không nhận webhook hoặc tự động xác nhận giao dịch. Nếu chưa nhận đủ tiền hoặc nội dung không chính xác, order tiếp tục chờ thanh toán.
+MVP 1 không nhận webhook hoặc tự động xác nhận giao dịch. Nếu chưa nhận đủ tiền hoặc nội dung không chính xác, các order trong phiên bàn tiếp tục chờ thanh toán.
 
 ## 10. Yêu cầu hệ thống tổng quan
 
@@ -217,7 +217,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 
 - Cải thiện quy trình xử lý order.
 - Báo cáo vận hành cơ bản.
-- Bổ sung phân quyền theo nhu cầu.
+- Tinh chỉnh phạm vi thao tác theo ba role cơ bản nếu cần.
 - Tối ưu trải nghiệm và hiệu năng.
 
 ### Giai đoạn 3 — Mở rộng sản phẩm
@@ -241,6 +241,8 @@ document/
 ├── OVERALL.md
 ├── PRODUCT_REQUIREMENTS.md
 ├── FEATURES.md
+├── BUSINESS_FLOWS.md
+├── EDGE_CASES.md
 ├── ARCHITECTURE.md
 ├── DATABASE_DESIGN.md
 ├── API_GUIDELINES.md

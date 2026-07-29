@@ -9,7 +9,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho MVP 1 của CAS, bao g�
 - Phiên sử dụng bàn.
 - Gọi món và xử lý order.
 - Thanh toán chuyển khoản bằng VietQR và xác nhận thủ công.
-- Tài khoản vận hành và nhật ký cơ bản.
+- Tài khoản, phân quyền theo role và nhật ký cơ bản.
 
 Thiết kế này xác định các entity và quan hệ chính. Chi tiết migration, index, constraint và kiểu dữ liệu chính xác sẽ được hoàn thiện sau khi các câu hỏi nghiệp vụ ở cuối tài liệu được xác nhận.
 
@@ -21,7 +21,7 @@ Thiết kế này xác định các entity và quan hệ chính. Chi tiết migr
 - Các bảng nghiệp vụ có `created_at` và `updated_at` khi phù hợp.
 - Order và payment không bị xóa vật lý.
 - Thông tin order được lưu theo các cột nghiệp vụ.
-- Toàn bộ nội dung bill tại thời điểm nhân viên tạo VietQR được lưu trong một JSON snapshot.
+- Toàn bộ nội dung bill tại thời điểm yêu cầu thanh toán hoặc ghi nhận khách chưa thanh toán được lưu trong một JSON snapshot.
 - Các mã được sử dụng bên ngoài hệ thống không dùng ID tăng dần.
 - Thay đổi database được quản lý bằng migration.
 
@@ -48,14 +48,15 @@ Thiết kế này xác định các entity và quan hệ chính. Chi tiết migr
 | Menu | `option_groups` | Nhóm lựa chọn của món |
 | Menu | `option_values` | Các giá trị trong nhóm lựa chọn |
 | Phiên bàn | `table_sessions` | Lượt sử dụng bàn |
-| Order | `orders` | Order duy nhất của mỗi phiên bàn |
+| Order | `orders` | Các order thuộc mỗi phiên bàn |
 | Order | `order_items` | Các món trong order |
 | Order | `order_item_cancellation_requests` | Yêu cầu hủy món và kết quả xử lý |
 | Thanh toán | `payments` | VietQR, xác nhận thanh toán và JSON snapshot của bill |
-| Vận hành | `operator_accounts` | Tài khoản vận hành |
+| Tài khoản | `accounts` | Tài khoản đăng nhập hệ thống |
+| Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
 
-Các tên trên là tên vật lý dự kiến dùng trong MySQL và Flyway migration.
+Các tên trên là tên vật lý dự kiến dùng trong MySQL.
 
 ## 4. Sơ đồ quan hệ tổng quan
 
@@ -74,7 +75,8 @@ stores
   │            └── option_groups
   │                    └── option_values
   │
-  └── operator_accounts
+  ├── accounts
+  └── client_accounts
 
 audit_logs
 ```
@@ -94,11 +96,14 @@ Lưu thông tin cửa hàng.
 | `address` | Địa chỉ |
 | `phone` | Số điện thoại |
 | `timezone` | Múi giờ vận hành |
+| `bank_account_number` | Số tài khoản ngân hàng nhận tiền |
+| `bank_code` | Mã ngân hàng nhận tiền |
+| `bank_account_name` | Tên chủ tài khoản nhận tiền |
 | `status` | Trạng thái hoạt động |
 | `created_at` | Thời điểm tạo |
 | `updated_at` | Thời điểm cập nhật |
 
-MVP 1 chỉ vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng.
+MVP 1 chỉ vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Mỗi cửa hàng tạm thời dùng một tài khoản ngân hàng nhận tiền để tạo VietQR.
 
 #### `dining_tables`
 
@@ -227,20 +232,24 @@ Trà sữa
 | `id` | Định danh phiên |
 | `table_id` | Bàn |
 | `public_id` | Định danh dùng ở giao diện khách |
+| `client_account_id` | Tài khoản khách đầu tiên mở phiên bàn |
+| `opened_by_customer_name` | Tên khách đầu tiên mở phiên bàn |
+| `opened_by_customer_phone` | Số điện thoại khách đầu tiên mở phiên bàn |
 | `status` | Trạng thái phiên |
+| `is_paid` | Phiên bàn đã được thanh toán hay chưa, mặc định `false` khi mở phiên |
 | `closed_at` | Thời điểm đóng |
 | `created_at` | Thời điểm phiên bắt đầu |
 | `updated_at` | Thời điểm cập nhật |
 
-Mỗi bàn chỉ có một table session đang hoạt động tại một thời điểm. Nhiều điện thoại quét cùng QR sẽ dùng chung session và nhìn thấy cùng một order.
+Mỗi bàn chỉ có một table session đang hoạt động tại một thời điểm. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
 
-Khi khách yêu cầu thanh toán, order chuyển sang `PAYMENT_REQUESTED` và session hiện tại không nhận thêm món. Nếu khách tiếp tục gọi món thì hệ thống tạo session mới, không gộp order hoặc payment với session cũ.
+Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING` và không nhận thêm món. Nếu khách tiếp tục gọi món thì hệ thống tạo session mới, không gộp order hoặc payment với session cũ.
 
 ### 5.4. Order
 
 #### `orders`
 
-Lưu order của một table session. Khách có thể gọi món nhiều lần và các món mới được bổ sung vào cùng order cho đến khi yêu cầu thanh toán.
+Lưu một lần gửi món của một table session. Khách có thể gọi món nhiều lần trong cùng session; mỗi lần gửi tạo một order riêng cho đến khi yêu cầu thanh toán.
 
 | Cột | Ý nghĩa |
 |---|---|
@@ -248,14 +257,13 @@ Lưu order của một table session. Khách có thể gọi món nhiều lần 
 | `public_id` | Mã order dùng bên ngoài |
 | `table_session_id` | Phiên bàn |
 | `order_number` | Mã hiển thị cho cửa hàng |
-| `status` | Trạng thái order |
 | `subtotal_amount` | Tiền món |
 | `total_amount` | Tổng tiền |
 | `note` | Ghi chú chung |
 | `created_at` | Thời điểm tạo |
 | `updated_at` | Thời điểm cập nhật |
 
-`table_session_id` là duy nhất trong `orders`, tương ứng một session có tối đa một order.
+Một `table_session_id` có thể xuất hiện ở nhiều bản ghi trong `orders`, tương ứng một session có nhiều order theo từng lần khách gửi món.
 
 #### `order_items`
 
@@ -313,29 +321,34 @@ Khi yêu cầu được đồng ý, hệ thống cập nhật số lượng ho�
 
 #### `payments`
 
-Lưu VietQR và kết quả xác nhận thanh toán thủ công của table session.
+Lưu VietQR và kết quả xác nhận thanh toán thủ công của table session. Mỗi payment thanh toán toàn bộ các order thuộc session tại thời điểm tạo bill snapshot.
 
 | Cột | Ý nghĩa |
 |---|---|
 | `id` | Định danh payment |
 | `public_id` | Định danh dùng bên ngoài |
 | `table_session_id` | Phiên bàn |
-| `reference_code` | Nội dung chuyển khoản duy nhất |
+| `recreated_from_payment_id` | Payment `IGNORED` gốc nếu payment này được tạo lại |
+| `reference_code` | Nội dung chuyển khoản duy nhất, sinh theo dạng `CAS_` + UUID |
 | `bank_account_number` | Số tài khoản nhận tiền |
 | `bank_code` | Mã ngân hàng |
 | `bank_account_name` | Tên chủ tài khoản |
 | `amount` | Số tiền cần thanh toán |
 | `bill_snapshot` | JSON chứa toàn bộ nội dung bill tại thời điểm yêu cầu thanh toán |
 | `status` | Trạng thái thanh toán |
-| `qr_created_by` | Tài khoản nhân viên tạo QR |
+| `qr_created_by` | Tài khoản tạo QR |
 | `qr_created_at` | Thời điểm tạo QR |
-| `confirmed_by` | Tài khoản nhân viên xác nhận đã nhận tiền |
-| `confirmed_by_name` | Tên nhân viên xác nhận tại thời điểm thao tác |
+| `confirmed_by` | Tài khoản xác nhận đã nhận tiền, phải trùng với `qr_created_by` |
+| `confirmed_by_name` | Tên người xác nhận tại thời điểm thao tác |
 | `confirmed_at` | Thời điểm xác nhận đã nhận tiền |
+| `ignored_by` | Tài khoản đánh dấu bỏ qua payment |
+| `ignored_by_name` | Tên người đánh dấu bỏ qua tại thời điểm thao tác |
+| `ignored_reason` | Lý do bỏ qua payment, nếu có |
+| `ignored_at` | Thời điểm đánh dấu bỏ qua |
 | `created_at` | Thời điểm tạo |
 | `updated_at` | Thời điểm cập nhật |
 
-`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot được tạo khi nhân viên bấm tạo QR thanh toán và không thay đổi trong suốt vòng đời payment.
+`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom toàn bộ các order của session tại thời điểm nhân viên bấm tạo QR thanh toán và không thay đổi trong suốt vòng đời payment.
 
 Nội dung JSON cơ bản:
 
@@ -369,22 +382,41 @@ Nội dung JSON cơ bản:
 
 Snapshot chỉ chứa dữ liệu cần thiết của bill, không sao chép toàn bộ dữ liệu cửa hàng, menu hoặc dữ liệu kỹ thuật.
 
-VietQR được sinh động từ tài khoản ngân hàng của quán, số tiền chính xác và nội dung chuyển khoản duy nhất, ví dụ `CAS1025`. QR chỉ hiển thị trên web hoặc thiết bị của nhân viên, không hiển thị trực tiếp trên web khách hàng.
+VietQR được sinh động từ tài khoản ngân hàng của quán, số tiền chính xác và nội dung chuyển khoản duy nhất. `reference_code` được sinh theo dạng `CAS_` + UUID, ví dụ `CAS_550e8400-e29b-41d4-a716-446655440000`, và không tái sử dụng cho payment khác. QR chỉ hiển thị trên web hoặc thiết bị của nhân viên, không hiển thị trực tiếp trên web khách hàng.
 
-Sau khi khách báo đã chuyển khoản, nhân viên kiểm tra ứng dụng ngân hàng. Chỉ khi nhận đúng số tiền và nội dung, nhân viên mới xác nhận payment là `PAID`. Nếu chưa nhận được tiền hoặc khách chuyển thiếu, payment giữ nguyên `PENDING`.
+Sau khi khách báo đã chuyển khoản, nhân viên đã tạo QR kiểm tra ứng dụng ngân hàng. Chỉ khi nhận đúng số tiền và nội dung, chính tài khoản đã tạo QR mới được xác nhận payment là `PAID`. Nếu chưa nhận được tiền hoặc khách chuyển thiếu, payment giữ nguyên `PENDING`.
+
+Payment `PENDING` không tự hết hạn. Nhân viên không được hủy payment, chỉ được đánh dấu payment là `IGNORED` khi cần bỏ qua giao dịch này. Payment `IGNORED` vẫn được lưu lại để admin thống kê ở một màn hình riêng.
 
 Khi payment được xác nhận:
 
-- Lưu `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
-- Chuyển order sang `COMPLETED`.
-- Đóng table session.
+- Lưu `confirmed_by`, `confirmed_by_name` và `confirmed_at`, trong đó `confirmed_by` phải bằng `qr_created_by`.
+- Cập nhật table session: `is_paid = true`, `status = CLOSED` và lưu `closed_at`.
 - Ghi thao tác xác nhận vào `audit_logs`.
+
+Khi payment được đánh dấu bỏ qua:
+
+- Chuyển payment sang `IGNORED`.
+- Lưu `ignored_by`, `ignored_by_name`, `ignored_reason` và `ignored_at`.
+- Không xóa payment và không coi payment là đã thanh toán.
+- Payment `IGNORED` được giữ lại để admin thống kê các khoản chưa thanh toán hoặc giao dịch bị bỏ qua.
+- Ghi thao tác đánh dấu bỏ qua vào `audit_logs`.
+
+Nếu sau một vài ngày khách quay lại hoặc cửa hàng cần thu hồi khoản chưa thanh toán, admin tạo một payment mới từ payment `IGNORED` gốc:
+
+- Tạo bản ghi `payments` mới với `public_id`, `reference_code` và VietQR mới.
+- Gán `recreated_from_payment_id` trỏ tới payment `IGNORED` gốc.
+- Không sửa trạng thái payment `IGNORED` gốc.
+- Copy hoặc tạo lại `bill_snapshot` từ payment `IGNORED` gốc theo quyết định nghiệp vụ sẽ được chốt trong `EDGE_CASES.md`.
+- Khi payment mới được xác nhận `PAID`, hệ thống hoàn tất các order và đóng phiên bàn nếu phiên chưa đóng.
+
+Trường hợp khách rời đi trước khi yêu cầu thanh toán và chưa có payment nào được tạo được ghi nhận riêng trong `EDGE_CASES.md` vì còn cần chốt cách lưu trạng thái chưa thanh toán.
 
 ### 5.6. Vận hành
 
-#### `operator_accounts`
+#### `accounts`
 
-Lưu tài khoản truy cập khu vực vận hành.
+Lưu tài khoản đăng nhập hệ thống. Authentication của MVP 1 chỉ cần phân quyền theo role, chưa cần permission chi tiết.
 
 | Cột | Ý nghĩa |
 |---|---|
@@ -393,16 +425,45 @@ Lưu tài khoản truy cập khu vực vận hành.
 | `username` | Tên đăng nhập |
 | `password_hash` | Mật khẩu đã mã hóa |
 | `display_name` | Tên hiển thị |
+| `role` | Vai trò của tài khoản |
 | `status` | Trạng thái tài khoản |
 | `last_login_at` | Lần đăng nhập gần nhất |
 | `created_at` | Thời điểm tạo |
 | `updated_at` | Thời điểm cập nhật |
 
-MVP 1 chưa triển khai quản lý nhân viên và phân quyền chi tiết.
+Các role cơ bản:
+
+- `ADMIN`: quản trị cấu hình hệ thống và dữ liệu vận hành.
+- `OPERATOR`: xử lý order, tạo VietQR và xác nhận thanh toán.
+- `USER`: tài khoản sử dụng thông thường khi cần đăng nhập vào hệ thống.
+
+MVP 1 chưa triển khai permission chi tiết theo từng chức năng.
+
+#### `client_accounts`
+
+Lưu thông tin khách hàng mở phiên bàn. Bảng này tách riêng với `accounts` vì khách hàng không phải tài khoản vận hành nội bộ của quán.
+
+| Cột | Ý nghĩa |
+|---|---|
+| `id` | Định danh tài khoản khách |
+| `store_id` | Cửa hàng |
+| `phone` | Số điện thoại khách |
+| `display_name` | Tên khách |
+| `status` | Trạng thái tài khoản khách |
+| `last_opened_session_at` | Lần gần nhất khách mở phiên bàn |
+| `created_at` | Thời điểm tạo |
+| `updated_at` | Thời điểm cập nhật |
+
+Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
+
+- Nếu `phone` đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó và có thể cập nhật `display_name`.
+- Nếu `phone` chưa tồn tại, hệ thống tạo `client_accounts` mới.
+- `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
+- `opened_by_customer_name` và `opened_by_customer_phone` trong `table_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
 
 #### `audit_logs`
 
-Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán của món, duyệt hủy món hoặc xác nhận thanh toán thủ công.
+Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán của món, duyệt hủy món, xác nhận thanh toán thủ công hoặc đánh dấu payment bỏ qua.
 
 | Cột | Ý nghĩa |
 |---|---|
@@ -422,7 +483,7 @@ Trong đó:
 - `entity_type` có thể là `MENU_ITEM`, `ORDER`, `PAYMENT` hoặc `DINING_TABLE`.
 - `entity_id` liên kết logic tới dữ liệu gốc. Không tạo một foreign key chung vì audit log có thể tham chiếu nhiều loại bảng.
 - `entity_name` giúp nhận biết nhanh dữ liệu đã thay đổi, ví dụ `Cà phê sữa`.
-- `updated_by` lưu ID tài khoản vận hành.
+- `updated_by` lưu ID tài khoản thực hiện thao tác.
 - `updated_by_name` lưu tên người thực hiện tại thời điểm thao tác để lịch sử không đổi khi tài khoản được cập nhật.
 - `change_data` lưu toàn bộ thông tin cần thiết để xem lại thay đổi.
 
@@ -456,7 +517,7 @@ action          = UPDATE
 entity_type     = MENU_ITEM
 entity_id       = <menu_item_id>
 entity_name     = Cà phê sữa
-updated_by      = <operator_account_id>
+updated_by      = <account_id>
 updated_by_name = Nguyễn Văn A
 ```
 
@@ -473,11 +534,12 @@ Audit log chỉ được ghi cho các thao tác quan trọng cần truy vết, k
 | Category — Menu item | Một - nhiều |
 | Menu item — Option group | Một - nhiều |
 | Option group — Option value | Một - nhiều |
-| Table session — Order | Một - không hoặc một |
+| Table session — Order | Một - nhiều |
 | Order — Order item | Một - nhiều |
 | Order item — Cancellation request | Một - nhiều |
 | Table session — Payment | Một - nhiều |
-| Operator account — Audit log | Một - nhiều |
+| Account — Audit log | Một - nhiều |
+| Client account — Table session | Một - nhiều |
 
 ## 7. Trạng thái dữ liệu dự kiến
 
@@ -490,9 +552,11 @@ Các giá trị dưới đây chỉ là đề xuất ban đầu và cần đư�
 | QR code | `ACTIVE`, `REVOKED` |
 | Table session | `OPEN`, `PAYMENT_PENDING`, `CLOSED` |
 | Menu item | `AVAILABLE`, `SOLD_OUT`, `INACTIVE` |
-| Order | `OPEN`, `PAYMENT_REQUESTED`, `COMPLETED` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
-| Payment | `PENDING`, `PAID`, `CANCELLED` |
+| Payment | `PENDING`, `PAID`, `IGNORED` |
+| Account | `ACTIVE`, `INACTIVE` |
+| Account role | `ADMIN`, `USER`, `OPERATOR` |
+| Client account | `ACTIVE`, `INACTIVE` |
 
 ## 8. Ràng buộc và index cơ bản
 
@@ -504,11 +568,14 @@ Các giá trị dưới đây chỉ là đề xuất ban đầu và cần đư�
 - `option_groups`: unique `menu_item_id + name`.
 - `option_values`: unique `option_group_id + name`.
 - Mỗi `option_group` chỉ có tối đa một `option_value` mặc định.
-- `orders`: unique `public_id`, `order_number` và `table_session_id`.
+- `orders`: unique `public_id` và `order_number`.
 - `payments`: unique `public_id` và `reference_code`.
+- `payments`: khi xác nhận thanh toán, `confirmed_by` phải bằng `qr_created_by`.
+- `accounts`: unique `store_id + username`.
+- `client_accounts`: unique `store_id + phone`.
 - Index `audit_logs` theo `entity_type + entity_id`, `updated_by` và `created_at`.
 - Index các khóa ngoại và các cột trạng thái thường được dùng để lọc.
-- Index thời gian tạo order và thời gian xác nhận payment để phục vụ màn hình vận hành, tra cứu.
+- Index thời gian tạo order, thời gian xác nhận payment và thời gian đánh dấu payment bỏ qua để phục vụ màn hình vận hành, thống kê và tra cứu.
 
 Cách áp dụng ràng buộc “chỉ một bản ghi đang hoạt động” trong MySQL sẽ được quyết định khi viết migration.
 
@@ -517,7 +584,7 @@ Cách áp dụng ràng buộc “chỉ một bản ghi đang hoạt động” t
 Thiết kế hiện tại chưa bao gồm:
 
 - Hồ sơ và lịch sử nhân viên.
-- Role và permission chi tiết.
+- Permission chi tiết ngoài ba role cơ bản.
 - Kho và nguyên vật liệu.
 - Khuyến mãi, voucher và điểm thành viên.
 - Hồ sơ khách hàng và CRM.
@@ -529,9 +596,11 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
-- Mỗi table session chỉ có một order; khách có thể bổ sung món nhiều lần vào order đó.
-- Thanh toán toàn bộ order của bàn, chưa hỗ trợ tách hóa đơn.
-- Khi yêu cầu thanh toán, session cũ ngừng nhận món. Lượt gọi thêm thuộc một session và payment mới, không liên quan session cũ.
+- Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
+- Thanh toán toàn bộ các order của phiên bàn, chưa hỗ trợ tách hóa đơn.
+- Khi yêu cầu thanh toán, session cũ ngừng nhận món. Lượt gọi thêm sau đó thuộc một session và payment mới, không liên quan session cũ.
+- `orders` không có trạng thái riêng trong MVP 1; trạng thái xử lý được quản lý ở `table_sessions`.
+- `table_sessions.is_paid` mặc định là `false` khi mở phiên và chuyển thành `true` khi payment được xác nhận `PAID`.
 - Size có một giá trị mặc định được cấu hình theo món.
 - Topping không giới hạn số lựa chọn.
 - Không theo dõi trạng thái chế biến của order hoặc từng món.
@@ -539,22 +608,28 @@ Thiết kế hiện tại chưa bao gồm:
 - VietQR thanh toán tự sinh theo đúng số tiền và nội dung chuyển khoản duy nhất.
 - VietQR chỉ hiển thị trên web hoặc thiết bị của nhân viên.
 - Nhân viên kiểm tra ứng dụng ngân hàng và xác nhận thủ công khi nhận đúng số tiền, đúng nội dung.
+- Tài khoản tạo QR thanh toán phải là tài khoản xác nhận payment. Nhân viên khác không được xác nhận thay.
 - Nếu chưa nhận được tiền hoặc khách chuyển thiếu, payment tiếp tục ở trạng thái `PENDING`.
+- Payment `PENDING` không tự hết hạn.
+- Nhân viên không được hủy payment, chỉ được đánh dấu là `IGNORED`.
+- Payment `IGNORED` không bị xóa và được giữ lại để admin thống kê ở một màn hình riêng.
+- Nếu cần thu lại tiền từ payment `IGNORED`, admin tạo payment mới với mã chuyển khoản và VietQR mới.
+- Trường hợp khách rời đi trước khi tạo payment còn cần chốt cách đánh dấu phiên chưa thanh toán trong `EDGE_CASES.md`.
 - Một bàn chỉ có một session hoạt động tại một thời điểm.
-- Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng order.
+- Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng danh sách order.
+- Người đầu tiên mở session bàn cần nhập tên và số điện thoại; hệ thống tạo hoặc dùng lại `client_accounts`; người quét QR sau trong cùng session không cần nhập lại.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
 - MVP 1 không tách màn hình bếp và phục vụ.
 - Không lưu bảng lịch sử giá món riêng.
 - Mỗi món chỉ có một ảnh.
 - QR bàn là mã cố định được in và dán tại bàn; QR thanh toán được sinh động theo payment.
+- Tạm thời mỗi cửa hàng chỉ dùng một tài khoản ngân hàng nhận tiền. MVP 1 vận hành một cửa hàng.
+- Mã chuyển khoản của payment dùng `reference_code` sinh theo dạng `CAS_` + UUID và không tái sử dụng.
 
 ## 11. Câu hỏi còn cần xác nhận
 
-1. Hệ thống dùng một hay nhiều tài khoản ngân hàng nhận tiền?
-2. Mã chuyển khoản như `CAS1025` được tạo theo quy tắc nào và có cần tái sử dụng sau một khoảng thời gian không?
-3. Một nhân viên tạo QR nhưng nhân viên khác xác nhận thanh toán có được phép không?
-4. Payment `PENDING` có tự hết hạn hay chỉ được nhân viên hủy?
-5. Nếu payment bị hủy rồi tạo lại, hệ thống tạo bill snapshot và mã chuyển khoản mới hay giữ lại dữ liệu cũ?
+1. Khi khách rời đi trước khi tạo payment, hệ thống đánh dấu chưa thanh toán bằng trạng thái trên `table_sessions` hay dùng bảng riêng?
+2. Với payment tạo lại từ payment `IGNORED`, hệ thống copy `bill_snapshot` cũ hay tạo lại snapshot từ `orders/order_items`?
 
 ## 12. Bước tiếp theo
 
@@ -563,5 +638,5 @@ Sau khi xác nhận các thông tin thanh toán còn lại:
 1. Chốt ERD.
 2. Chốt danh sách trạng thái và quy tắc chuyển trạng thái.
 3. Xác định kiểu dữ liệu, khóa ngoại, constraint và index chi tiết.
-4. Tạo Flyway migration cho schema MVP 1.
+4. Tạo script khởi tạo schema MVP 1.
 5. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
