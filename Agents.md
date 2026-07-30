@@ -60,6 +60,9 @@ Do not organize the entire application into shared technical packages such as
 
 ## Conventions
 
+- Do not read files or directories listed in .gitignore.
+- Do not create a Git commit unless the user explicitly requests it.
+- If anything is unclear, ask for the user's approval before implementing it. Do not guess.
 - Use explicit MyBatis column lists; never use `SELECT *`. Use dedicated query
   DTOs or views for joined and aggregated results.
 - Use `DECIMAL` in MySQL and `BigDecimal` in Java for money. Never use `double`
@@ -68,3 +71,17 @@ Do not organize the entire application into shared technical packages such as
   totals, roles, identities, and ownership from trusted server-side data.
 - Flyway owns schema changes; never modify an applied migration. Redis must not
   be the source of truth for durable business data.
+- Do not create a Git commit, push, merge, or force-push unless the user explicitly requests it.
+- If any requirement is unclear, ask for clarification or approval before implementation. Do not guess.
+- Only modify files directly related to the requested task.
+- Do not refactor unrelated code or change the project architecture unless explicitly requested.
+- Always ask for the user's approval before adding, removing, or upgrading dependencies.
+- Reuse existing components, hooks, utilities, types, and project patterns whenever possible.
+- Read the relevant existing implementation before making changes.
+- Follow the current naming, formatting, folder structure, and coding conventions of the project.
+- Do not change API contracts, database schemas, environment variables, or configuration files without approval.
+- Do not manually edit generated files, including OpenAPI or code-generation outputs.
+- Do not delete existing files, code, comments, tests, or configurations unless explicitly required.
+- Keep changes minimal and focused. Do not format or modify unrelated files.
+- After completing the implementation, run the project's formatting command.
+- Clearly report assumptions, modified files, important decisions, and any remaining risks.

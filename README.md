@@ -10,6 +10,34 @@ Khách chỉ cần quét QR ở bàn, xem menu trên điện thoại, chọn mó
 - Truy cập dữ liệu: MyBatis.
 - Dữ liệu và hạ tầng: MySQL, Redis và Flyway.
 - Hỗ trợ phát triển: Lombok và Jakarta Bean Validation.
+- Frontend: Next.js, React và TypeScript.
+
+## Khởi chạy môi trường phát triển
+
+Khởi động MySQL và Redis:
+
+```bash
+docker compose up -d mysql redis
+```
+
+Chạy backend:
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Chạy frontend trong terminal khác:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- Frontend: `http://localhost:3000`
+- Backend status: `http://localhost:8080/api/v1/status`
+- Backend health: `http://localhost:8080/actuator/health`
 
 ## CAS giúp quán giải quyết gì?
 
@@ -48,7 +76,9 @@ Quán có thể quản lý:
 - Trạng thái còn món, hết món hoặc tạm ẩn.
 - Các lựa chọn như size, topping, độ ngọt.
 
-Giá món đã gọi sẽ được giữ lại theo thời điểm khách đặt. Nếu sau đó quán đổi giá menu, order cũ vẫn không bị thay đổi.
+Size, topping và các lựa chọn có tính tiền cũng được quản lý như `menu_items` thuộc category loại `OPTION`. Món chính liên kết tới các option được phép chọn thông qua nhóm lựa chọn.
+
+Giá gốc của món và giá từng option đã chọn được giữ lại theo thời điểm khách đặt. Nếu sau đó quán đổi giá menu, order cũ vẫn không bị thay đổi.
 
 ### Quản lý bàn và QR
 
@@ -58,15 +88,15 @@ Nếu nhiều người cùng bàn quét QR, tất cả vẫn dùng chung một p
 
 ### Xử lý order
 
-Nhân viên có thể xem các order khách gửi lên, biết món nào được gọi, số lượng bao nhiêu và ghi chú của khách.
+Nhân viên có thể xem các order khách gửi lên, biết món nào được gọi, số lượng bao nhiêu và ghi chú chung của lần gọi món.
 
-MVP hiện tại tập trung vào tiếp nhận order và thanh toán, chưa tách riêng màn hình bếp/phục vụ và chưa theo dõi trạng thái chế biến từng món.
+Phạm vi hiện tại tập trung vào tiếp nhận order và thanh toán; hệ thống chưa tách riêng màn hình bếp/phục vụ và chưa theo dõi trạng thái chế biến từng món.
 
 ### Yêu cầu hủy món
 
 Nếu khách muốn hủy món, hệ thống ghi nhận yêu cầu hủy. Nhân viên sẽ đồng ý hoặc từ chối.
 
-Nếu đồng ý, hệ thống tính lại tiền. Nếu từ chối, tổng tiền không thay đổi.
+Nếu đồng ý, hệ thống tính lại tiền từ số lượng còn lại nhưng không sửa hoặc xóa dòng món gốc. Nếu từ chối, tổng tiền không thay đổi.
 
 ### Thanh toán bằng VietQR
 
@@ -80,7 +110,15 @@ VietQR có:
 
 Khách chuyển khoản xong, nhân viên kiểm tra app ngân hàng. Chỉ khi đúng số tiền và đúng nội dung chuyển khoản, nhân viên mới xác nhận đã thanh toán.
 
-MVP chưa tự động nhận tiền qua ngân hàng và chưa dùng webhook. Việc xác nhận vẫn do nhân viên kiểm tra thủ công.
+Hệ thống chưa tự động nhận tiền qua ngân hàng và chưa dùng webhook. Việc xác nhận vẫn do nhân viên kiểm tra thủ công.
+
+## Tài liệu dự án
+
+- [Theo dõi tiến độ](document/PROJECT_PROGRESS.md)
+- [Tổng quan hệ thống](document/OVERALL.md)
+- [Luồng nghiệp vụ](document/BUSINESS_FLOWS.md)
+- [Thiết kế database](document/DATABASE_DESIGN.md)
+- [Các trường hợp biên](document/EDGE_CASES.md)
 
 ## Các tình huống đặc biệt
 
@@ -96,7 +134,7 @@ Khi đã yêu cầu thanh toán, phiên bàn cũ không nhận thêm món nữa.
 
 Nhân viên không xác nhận thanh toán. Payment vẫn ở trạng thái chờ xử lý.
 
-Nếu không tiếp tục xử lý payment đó, nhân viên chỉ được đánh dấu là bỏ qua. Dữ liệu vẫn được giữ lại để admin xem và thống kê.
+Nếu không tiếp tục xử lý payment đó, nhân viên đánh dấu payment là bỏ qua. Payment cũ được giữ lại như lịch sử của một lần thanh toán không thành công; khoản còn phải thu được quản lý duy nhất trong `unpaid_records`.
 
 ### Người tạo QR phải là người xác nhận
 
@@ -106,8 +144,8 @@ Nhân viên nào tạo QR thanh toán thì chính nhân viên đó phải xác n
 
 Nếu khách đã gọi món nhưng rời đi trước khi tạo mã thanh toán, hệ thống vẫn còn dữ liệu order và giá món đã gọi.
 
-Trường hợp này cần được đưa vào danh sách chưa thanh toán để admin xử lý sau. Khi cần thu lại tiền, admin có thể tạo payment mới từ các order cũ. Cách xử lý chi tiết đang được chốt trong tài liệu edge cases.
+Trường hợp này được lưu trong `unpaid_records` cùng tổng tiền và bill snapshot để admin xử lý sau. Khi cần thu lại tiền, admin tạo payment mới từ khoản chưa thanh toán đã chốt.
 
 ### Khách quay lại trả tiền sau khi payment bị bỏ qua
 
-Payment cũ vẫn được giữ lại để thống kê. Admin tạo payment mới với mã chuyển khoản mới để thu tiền. Không sửa payment cũ thành đã thanh toán.
+Payment `IGNORED` cũ vẫn được giữ lại để truy vết lần thanh toán không thành công. Khoản phải thu nằm trong `unpaid_records`; admin tạo payment mới với mã chuyển khoản mới từ khoản này. Không sửa payment cũ thành đã thanh toán và không cộng payment `IGNORED` riêng vào công nợ.

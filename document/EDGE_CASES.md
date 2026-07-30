@@ -2,7 +2,7 @@
 
 ## 1. Mục đích
 
-Tài liệu này lưu lại các trường hợp biên trong MVP 1 và hướng xử lý nghiệp vụ dự kiến.
+Tài liệu này lưu lại các trường hợp biên của hệ thống và hướng xử lý nghiệp vụ.
 
 Các trường hợp đã chốt sẽ được đánh dấu `Đã chốt`. Các trường hợp còn cần xác nhận sẽ được đánh dấu `Cần chốt` để tránh tự ý biến giả định thành thiết kế chính thức.
 
@@ -89,17 +89,22 @@ Khách gọi món lần đầu, sau đó gọi thêm.
 
 ## 7. Khách bấm gửi order lặp do mạng chậm
 
-**Trạng thái:** Cần chốt
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
 Khách bấm gửi order nhiều lần vì mạng chậm, hoặc frontend retry request.
 
-### Hướng xử lý đề xuất
+### Cách xử lý
 
-- Frontend gửi kèm một idempotency key cho mỗi lần submit.
-- Backend chỉ tạo một order cho cùng idempotency key trong cùng session.
-- Nếu request lặp lại, backend trả về order đã tạo trước đó.
+- Frontend bắt buộc gửi kèm một `idempotency_key` cho mỗi lần submit order.
+- Phạm vi duy nhất của key là trong cùng một table session.
+- Backend lưu `idempotency_key` bền vững trong `orders`; Redis không phải nguồn dữ liệu chính cho cơ chế này.
+- Backend chuẩn hóa payload order, tính SHA-256 và lưu kết quả vào `orders.request_fingerprint`; client không gửi fingerprint.
+- Database đặt unique constraint cho `table_session_id + idempotency_key` để chống tạo order trùng khi có request đồng thời.
+- Nếu request lặp lại với cùng key và cùng fingerprint, backend trả về order đã tạo trước đó.
+- Nếu request dùng lại cùng key nhưng fingerprint khác, backend từ chối với HTTP `409 Conflict`.
+- Key gắn với order và không cần TTL.
 
 ## 8. Món hết hàng sau khi khách đã mở menu
 
@@ -126,7 +131,7 @@ Admin đổi giá món sau khi khách đã đặt.
 ### Cách xử lý
 
 - Không cập nhật lại giá trong order cũ.
-- Bill/payment về sau dùng `unit_price`, `selected_options` và `total_amount` đã lưu trong `order_items`.
+- Bill/payment về sau dùng giá gốc và tổng tiền đã lưu trong `order_items`, cùng các snapshot option trong `order_item_options`.
 - Giá mới chỉ áp dụng cho order tạo sau thời điểm đổi giá.
 
 ## 10. Option không hợp lệ
@@ -140,6 +145,7 @@ Khách gửi option thiếu lựa chọn bắt buộc, vượt `max_select`, ho�
 ### Cách xử lý
 
 - Backend validate option khi submit order.
+- Backend kiểm tra `option_group_item_id` thuộc option group của đúng món chính, liên kết và menu item option đều đang hoạt động.
 - Nếu option không hợp lệ, không tạo order.
 - Frontend yêu cầu khách chọn lại.
 
@@ -154,9 +160,12 @@ Khách yêu cầu hủy số lượng lớn hơn số lượng còn lại của 
 ### Cách xử lý
 
 - Không tạo hoặc không duyệt yêu cầu hủy không hợp lệ.
-- Nếu yêu cầu hợp lệ, tạo `order_item_cancellation_requests`.
+- Nếu yêu cầu hợp lệ, tạo `order_item_cancellation_requests` với `public_id` và `idempotency_key`.
 - Nhân viên duyệt hoặc từ chối.
-- Khi duyệt, hệ thống tính lại tổng tiền order.
+- Khi duyệt, hệ thống giữ nguyên số lượng và thành tiền gốc trong `order_items`.
+- Số lượng đã hủy được tính từ tổng `requested_quantity` của các yêu cầu `APPROVED`; hệ thống dùng số lượng còn lại để tính lại tổng tiền order.
+- Việc kiểm tra và duyệt phải chạy trong transaction để tổng số lượng hủy đã duyệt không vượt quá `order_items.quantity` khi có xử lý đồng thời.
+- Chỉ tạo hoặc xử lý yêu cầu hủy khi session còn `OPEN`; không cho yêu cầu thanh toán nếu còn yêu cầu hủy `PENDING`.
 
 ## 12. Khách yêu cầu thanh toán rồi muốn gọi thêm
 
@@ -202,11 +211,13 @@ Payment đã tạo QR nhưng khách chưa chuyển tiền, chuyển thiếu ho�
 - Payment `PENDING` không tự hết hạn.
 - Nhân viên không được hủy payment.
 - Nhân viên chỉ được đánh dấu payment là `IGNORED`.
-- Payment `IGNORED` không bị xóa và được đưa vào màn hình thống kê cho admin.
+- Payment `IGNORED` không bị xóa và chỉ đại diện cho một lần thử thanh toán đã kết thúc.
+- Khi đánh dấu `IGNORED`, hệ thống tạo hoặc sử dụng một `unpaid_records` trạng thái `OPEN`, sao chép `amount` và `bill_snapshot` từ payment nếu khoản chưa thanh toán chưa tồn tại, rồi liên kết payment với khoản đó.
+- Báo cáo công nợ chỉ tính `unpaid_records`; không cộng riêng payment `IGNORED`.
 
 ## 15. Khách trốn về trước khi tạo payment
 
-**Trạng thái:** Cần chốt
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
@@ -220,27 +231,29 @@ Tuy nhiên, dữ liệu tính tiền vẫn còn trong `order_items`:
 
 - `item_name`
 - `unit_price`
-- `selected_options`
+- `options_amount`
 - `quantity`
 - `total_amount`
 
-### Hướng xử lý đề xuất cho MVP
+Chi tiết option của từng dòng món vẫn còn trong `order_item_options`.
 
-- Không bắt buộc tạo payment ngay khi phát hiện khách trốn.
-- Đánh dấu table session là chưa thanh toán, ví dụ thêm trạng thái `UNPAID`, hoặc tạo bảng riêng để theo dõi khoản chưa thanh toán.
-- Admin xem danh sách phiên/khoản chưa thanh toán ở màn hình riêng.
-- Khi cần thu tiền sau vài ngày, admin tạo payment mới từ `orders` và `order_items` cũ.
-- Tại thời điểm tạo payment muộn, hệ thống tạo `bill_snapshot` từ dữ liệu đã chốt trong `order_items`.
+### Cách xử lý đã chốt
+
+- Không bắt buộc tạo payment ngay khi phát hiện khách rời đi chưa thanh toán.
+- Tạo một bản ghi trong bảng `unpaid_records` liên kết duy nhất với table session.
+- Tạo `bill_snapshot` và ghi nhận tổng tiền trong `unpaid_records` từ dữ liệu đã chốt của `orders` và `order_items` tại thời điểm ghi nhận khách chưa thanh toán.
+- `bill_snapshot` trong `unpaid_records` là bất biến.
+- Đóng table session để giải phóng bàn với `status = CLOSED` và lưu `closed_at`.
+- Bản ghi `unpaid_records` bắt đầu ở trạng thái `OPEN` và được đưa vào màn hình theo dõi riêng cho admin.
+- Ghi người thực hiện, thời điểm, lý do và audit log khi ghi nhận khoản chưa thanh toán.
+- Khi cần thu tiền sau, admin tạo payment mới liên kết với `unpaid_records`; `amount` và `bill_snapshot` của payment được lấy từ bản ghi chưa thanh toán đã chốt.
+- Payment vẫn lưu `bill_snapshot` riêng để ghi nhận chính xác nội dung của lần tạo VietQR đó.
+- Khi payment mới được xác nhận `PAID`, chuyển `unpaid_records` sang `RESOLVED`; không lưu cờ thanh toán trong table session.
 - Không tính lại theo giá menu hiện tại.
-
-### Điểm cần chốt
-
-- Dùng trạng thái `UNPAID` trên `table_sessions`, hay tạo bảng riêng để theo dõi khoản chưa thanh toán?
-- Có cần tạo `bill_snapshot` ngay lúc đánh dấu khách trốn không, hay chỉ tạo khi admin tạo payment để thu tiền?
 
 ## 16. Tạo lại thanh toán sau khi payment bị ignored
 
-**Trạng thái:** Đã chốt một phần
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
@@ -249,14 +262,15 @@ Payment đã từng được tạo QR nhưng bị đánh dấu `IGNORED`. Sau đ
 ### Cách xử lý đã chốt
 
 - Không sửa payment `IGNORED` gốc.
-- Admin tạo payment mới.
+- Payment `IGNORED` chỉ là lịch sử của một lần thử thanh toán, không phải một khoản công nợ độc lập.
+- Payment `IGNORED` phải liên kết với một `unpaid_records` trạng thái `OPEN`.
+- Admin tạo payment mới từ `unpaid_records`, không tạo trực tiếp từ dữ liệu order hoặc coi payment cũ là nguồn công nợ.
 - Payment mới có `reference_code` mới theo dạng `CAS_` + UUID.
 - Payment mới có VietQR mới.
-- Payment mới cần liên kết được với payment `IGNORED` gốc để truy vết.
-
-### Điểm cần chốt
-
-- Nếu chưa tách bảng bill riêng, payment mới sẽ tạo `bill_snapshot` lại từ `orders/order_items` hay copy snapshot từ payment `IGNORED` gốc?
+- Payment mới sao chép `amount` và `bill_snapshot` bất biến từ `unpaid_records`.
+- Payment mới và các payment `IGNORED` cũ cùng liên kết với `unpaid_records`; lịch sử được sắp xếp theo `created_at`.
+- Khi payment mới được xác nhận `PAID`, hệ thống chuyển `unpaid_records` sang `RESOLVED`.
+- Báo cáo khoản còn phải thu chỉ dựa trên `unpaid_records` trạng thái `OPEN`.
 
 ## 17. Trùng reference code
 
@@ -304,13 +318,13 @@ Khách chuyển khoản thiếu so với số tiền trên payment.
 
 ## 20. Payment đã paid nhưng thao tác confirm bị bấm lại
 
-**Trạng thái:** Cần chốt
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
 Nhân viên bấm xác nhận nhiều lần hoặc request bị retry.
 
-### Hướng xử lý đề xuất
+### Cách xử lý
 
 - Confirm payment cần idempotent.
 - Nếu payment đã `PAID`, backend trả về trạng thái hiện tại, không tạo audit log trùng.

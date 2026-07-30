@@ -23,9 +23,9 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 | Bếp/quầy chế biến | Theo dõi và cập nhật quá trình chuẩn bị món |
 | Chủ cửa hàng | Quản lý menu, bàn và theo dõi hoạt động cơ bản |
 
-## 4. Phạm vi MVP 1
+## 4. Phạm vi chức năng
 
-MVP 1 tập trung hoàn thiện luồng:
+Hệ thống tập trung vào luồng:
 
 ```text
 Quét QR
@@ -83,7 +83,7 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
 
-### 4.2. Ngoài phạm vi MVP 1
+### 4.2. Ngoài phạm vi hiện tại
 
 - Quản lý nhân viên, ca làm và chấm công.
 - Phân quyền chi tiết ngoài ba role cơ bản.
@@ -125,7 +125,7 @@ Các chức năng này sẽ được xem xét trong những phiên bản sau d�
 
 ## 6. Kiến trúc tổng thể
 
-MVP 1 sử dụng kiến trúc modular monolith để đơn giản hóa quá trình phát triển, triển khai và vận hành.
+Hệ thống sử dụng kiến trúc modular monolith để đơn giản hóa quá trình phát triển, triển khai và vận hành.
 
 ```text
 Giao diện khách hàng ───┐
@@ -155,7 +155,7 @@ Giao diện vận hành ─────┘         │
 | Payment | Tạo VietQR và xác nhận thanh toán thủ công |
 | Operation | Hoạt động vận hành cơ bản |
 
-Các module được tổ chức trong cùng một backend ở MVP 1 và có thể tách hoặc mở rộng khi hệ thống phát triển.
+Các module được tổ chức trong cùng một backend và có thể tách hoặc mở rộng khi hệ thống phát triển.
 
 ## 7. Công nghệ
 
@@ -175,7 +175,7 @@ Các module được tổ chức trong cùng một backend ở MVP 1 và có th�
 
 ## 8. Dữ liệu tổng quan
 
-Các nhóm dữ liệu chính của MVP 1:
+Các nhóm dữ liệu chính:
 
 ```text
 Cửa hàng và bàn
@@ -194,7 +194,7 @@ Hệ thống tạo VietQR chứa tài khoản ngân hàng của quán, số ti�
 
 VietQR chỉ hiển thị trên web hoặc thiết bị của nhân viên. Sau khi khách chuyển khoản, nhân viên kiểm tra ứng dụng ngân hàng và xác nhận thủ công.
 
-MVP 1 không nhận webhook hoặc tự động xác nhận giao dịch. Nếu chưa nhận đủ tiền hoặc nội dung không chính xác, các order trong phiên bàn tiếp tục chờ thanh toán.
+Hệ thống không nhận webhook hoặc tự động xác nhận giao dịch. Nếu chưa nhận đủ tiền hoặc nội dung không chính xác, các order trong phiên bàn tiếp tục chờ thanh toán.
 
 ## 10. Yêu cầu hệ thống tổng quan
 
@@ -209,7 +209,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 
 ## 11. Lộ trình phát triển
 
-### Giai đoạn 1 — MVP 1
+### Giai đoạn 1 — Nền tảng cốt lõi
 
 - Nền tảng frontend, backend và database.
 - Quản lý menu, bàn và QR.
@@ -235,7 +235,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 - Game và tính năng AI.
 - Báo cáo nâng cao.
 
-Thứ tự triển khai sau MVP 1 sẽ được điều chỉnh theo phản hồi và nhu cầu thực tế.
+Thứ tự triển khai các giai đoạn tiếp theo sẽ được điều chỉnh theo phản hồi và nhu cầu thực tế.
 
 ## 12. Tài liệu chi tiết liên quan
 
@@ -256,12 +256,9 @@ document/
 ├── DEPLOYMENT.md
 └── ROADMAP.md
 ```
-
-`OVERALL.md` chỉ mô tả định hướng, phạm vi và cấu trúc tổng thể. Quy tắc nghiệp vụ, trạng thái, API, database và chi tiết tích hợp thuộc các tài liệu chuyên biệt.
-
 ## 13. Kết luận
 
-MVP 1 của CAS tập trung vào hai năng lực cốt lõi:
+CAS tập trung vào hai năng lực cốt lõi:
 
 1. Quét QR để gọi món tại bàn.
 2. Thanh toán chuyển khoản bằng VietQR do nhân viên xác nhận.

@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: cas-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cas}
+      MYSQL_USER: ${MYSQL_USER:-cas}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cas}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cas_root}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+07:00
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - cas_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: cas-redis
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - cas_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  cas_mysql_data:
+  cas_redis_data:
