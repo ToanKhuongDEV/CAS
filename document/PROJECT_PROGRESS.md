@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-07-30
+Ngày cập nhật gần nhất: 2026-07-31
 
 ## Quy ước
 
@@ -39,7 +39,23 @@ Ngày cập nhật gần nhất: 2026-07-30
 - [x] Người tạo VietQR phải là người xác nhận payment.
 - [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 
-## 3. Thiết kế database
+## 3. Các quyết định kỹ thuật đã chốt
+
+- [x] Backend sử dụng Java 21, Spring Boot, Maven, MyBatis, MySQL, Redis và Flyway.
+- [x] Frontend sử dụng Next.js, React, TypeScript và Tailwind CSS.
+- [x] Hình ảnh menu được lưu trên Cloudinary.
+- [x] CI/CD sử dụng GitHub Actions.
+- [x] Môi trường production được triển khai trên một VPS.
+- [x] Chốt frontend và backend chạy trong cùng Docker Compose network trên VPS.
+- [x] Chốt authentication dùng access JWT 15 phút, refresh JWT 10 ngày và BCrypt.
+- [x] Chốt JWT là cơ chế xác thực chính và không lưu token trong `localStorage`.
+- [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
+- [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
+- [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
+- [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
+- [x] Chốt CAS Backend gọi VietQR Generate API để sinh mã thanh toán.
+
+## 4. Thiết kế database
 
 - [x] Xác định danh sách 17 bảng nghiệp vụ.
 - [x] Mô tả quan hệ giữa các bảng.
@@ -47,14 +63,14 @@ Ngày cập nhật gần nhất: 2026-07-30
 - [x] Bổ sung kiểu dữ liệu MySQL cho toàn bộ các cột.
 - [x] Xác định `NULL`, `NOT NULL`, `DEFAULT` và `AUTO_INCREMENT` ở mức thiết kế.
 - [x] Xác định các unique constraint và index nghiệp vụ cơ bản.
-- [ ] Hoàn thiện ERD.
-- [ ] Chốt đầy đủ foreign key và chính sách `ON DELETE`/`ON UPDATE`.
-- [ ] Chốt toàn bộ `CHECK` constraint, default và index vật lý.
-- [ ] Xử lý chi tiết các unique constraint có điều kiện trên MySQL.
+- [x] Hoàn thiện mô hình 17 bảng và quan hệ tổng quan.
+- [x] Chốt đầy đủ foreign key với `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
+- [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
+- [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
 - [ ] Tạo Flyway migration khởi tạo schema.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
-## 4. Backend
+## 5. Backend
 
 - [x] Khởi tạo dự án Java 21, Spring Boot và Maven.
 - [x] Cấu hình MySQL, Redis, MyBatis và Flyway.
@@ -67,9 +83,10 @@ Ngày cập nhật gần nhất: 2026-07-30
 - [ ] Chuẩn hóa API error và validation.
 - [ ] Viết unit test và integration test.
 
-## 5. Frontend
+## 6. Frontend
 
 - [x] Khởi tạo Next.js, React và TypeScript.
+- [x] Tích hợp Tailwind CSS với PostCSS.
 - [ ] Xây dựng giao diện khách quét QR và mở phiên bàn.
 - [ ] Xây dựng giao diện menu và chọn option.
 - [ ] Xây dựng giao diện gửi order và gọi thêm món.
@@ -80,24 +97,27 @@ Ngày cập nhật gần nhất: 2026-07-30
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Viết component test và end-to-end test.
 
-## 6. Hạ tầng và triển khai
+## 7. Hạ tầng và triển khai
 
 - [x] Tạo cấu hình Docker cho môi trường phát triển.
+- [x] Chốt Cloudinary làm dịch vụ lưu trữ hình ảnh.
+- [x] Chốt GitHub Actions làm nền tảng CI/CD.
+- [x] Chốt triển khai production trên một VPS.
+- [ ] Tích hợp upload và quản lý hình ảnh với Cloudinary.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
-- [ ] Cấu hình môi trường triển khai.
+- [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
 - [ ] Cấu hình logging, theo dõi lỗi và health check.
 - [ ] Thiết lập sao lưu và khôi phục MySQL.
 - [ ] Kiểm thử triển khai thử nghiệm tại cửa hàng.
 
-## 7. Việc tiếp theo
+## 8. Việc tiếp theo
 
-1. Hoàn thiện ERD từ thiết kế database hiện tại.
-2. Chốt foreign key, constraint và index chi tiết.
-3. Tạo Flyway migration khởi tạo schema.
-4. Tạo dữ liệu mẫu.
-5. Khởi tạo backend và frontend.
+1. Tạo Flyway migration khởi tạo schema nghiệp vụ và dữ liệu mẫu.
+2. Chốt phạm vi thao tác của từng role và API contract.
+3. Hoàn thiện cách xử lý các edge case còn lại.
+4. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 
-## 8. Tài liệu liên quan
+## 9. Tài liệu liên quan
 
 - [Tổng quan hệ thống](OVERALL.md)
 - [Luồng nghiệp vụ](BUSINESS_FLOWS.md)

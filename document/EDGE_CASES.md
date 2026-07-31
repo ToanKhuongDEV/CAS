@@ -193,7 +193,7 @@ Nhân viên A tạo QR, nhân viên B muốn xác nhận payment.
 ### Cách xử lý
 
 - Không cho xác nhận thay.
-- Backend lấy account xác nhận từ token/session đăng nhập.
+- Backend lấy account xác nhận từ access JWT.
 - Khi confirm payment, `confirmed_by` phải bằng `qr_created_by`.
 - Nên có constraint hoặc check ở database: `confirmed_by IS NULL OR confirmed_by = qr_created_by`.
 

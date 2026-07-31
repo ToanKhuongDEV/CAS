@@ -78,7 +78,9 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 #### Vận hành hệ thống
 
 - Đăng nhập khu vực vận hành.
-- Phân quyền đơn giản theo role gồm `ADMIN`, `USER` và `OPERATOR`.
+- Client sử dụng giao diện khách hàng mà không cần tài khoản đăng nhập.
+- Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`; phạm vi thao tác chi tiết được chốt sau.
+- JWT là cơ chế xác thực chính cho tài khoản vận hành và không được lưu trong `localStorage`.
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
@@ -86,7 +88,7 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 ### 4.2. Ngoài phạm vi hiện tại
 
 - Quản lý nhân viên, ca làm và chấm công.
-- Phân quyền chi tiết ngoài ba role cơ bản.
+- Phân quyền chi tiết của hai role vận hành.
 - Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
 - Khuyến mãi, voucher và chương trình thành viên.
@@ -143,7 +145,16 @@ Giao diện vận hành ─────┘         │
 | Core Backend | Xử lý nghiệp vụ và tích hợp hệ thống |
 | Database | Lưu trữ dữ liệu nghiệp vụ |
 | VietQR | Tạo mã chuyển khoản theo tài khoản, số tiền và nội dung |
-| Dịch vụ lưu trữ ảnh | Lưu trữ hình ảnh menu |
+| Cloudinary | Lưu trữ hình ảnh menu |
+
+Giao diện khách hàng, giao diện nhân viên vận hành và giao diện admin được xây dựng trong cùng một ứng dụng Next.js, tổ chức thành ba khu vực route và layout riêng:
+
+```text
+CAS Frontend
+├── Customer — không đăng nhập
+├── Operation — JWT, role OPERATOR
+└── Admin — JWT, role ADMIN
+```
 
 ### 6.2. Các module nghiệp vụ
 
@@ -157,21 +168,97 @@ Giao diện vận hành ─────┘         │
 
 Các module được tổ chức trong cùng một backend và có thể tách hoặc mở rộng khi hệ thống phát triển.
 
-## 7. Công nghệ
+### 6.3. Giao tiếp và đồng bộ trạng thái
 
-| Thành phần | Công nghệ |
-|---|---|
-| Frontend | Next.js, React, TypeScript |
-| Backend | Java 21, Spring Boot |
-| Build và quản lý dependency | Maven |
-| Truy cập dữ liệu | MyBatis |
-| Database | MySQL |
-| Cache và dữ liệu tạm thời | Redis |
-| Database migration | Flyway |
-| Hỗ trợ phát triển backend | Lombok, Jakarta Bean Validation |
-| Lưu trữ hình ảnh | Cloudinary hoặc dịch vụ tương đương |
-| Kiểm thử | JUnit 5, Mockito, Testcontainers, Vitest, Playwright |
-| Triển khai | Docker, GitHub Actions |
+- Frontend gọi REST API để thực hiện các thao tác và nhận kết quả trực tiếp.
+- Các màn hình Customer, Operation và Admin dùng polling để lấy thay đổi phát sinh từ thiết bị khác, gồm order mới, yêu cầu hủy, yêu cầu thanh toán, trạng thái payment và khoản chưa thanh toán.
+- Menu không polling liên tục; backend luôn kiểm tra lại trạng thái món và option khi khách submit order.
+- Giai đoạn đầu không dùng SSE, WebSocket hoặc Redis Pub/Sub.
+- Chu kỳ polling là cấu hình kỹ thuật được xác định khi triển khai và kiểm thử thực tế.
+
+### 6.4. Tích hợp dịch vụ ngoài
+
+- Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary hoặc VietQR API.
+- Khi admin quản lý ảnh món, CAS Backend nhận file, kiểm tra quyền và upload ảnh lên Cloudinary bằng authenticated API. Backend lưu `image_url` và `image_storage_key` vào MySQL.
+- Khi nhân viên tạo QR thanh toán, CAS Backend lấy tài khoản ngân hàng, số tiền và `reference_code` từ dữ liệu tin cậy phía server rồi gọi VietQR Generate API.
+- VietQR API chỉ chịu trách nhiệm sinh mã QR, không phải nguồn xác nhận giao dịch.
+- Việc kiểm tra ứng dụng ngân hàng và xác nhận payment vẫn do nhân viên thực hiện thủ công.
+- Cloudinary và VietQR được cô lập trong infrastructure adapter; domain không phụ thuộc trực tiếp vào SDK hoặc provider.
+
+## 7. Công nghệ và thư viện
+
+Danh sách dưới đây phản ánh các công nghệ đã được chốt và các dependency trực tiếp đang được khai báo trong `backend/pom.xml`, `frontend/package.json` và `compose.yaml`. Phiên bản không ghi riêng được quản lý bởi Spring Boot hoặc tệp khóa dependency tương ứng. Công nghệ đã chốt nhưng chưa được cài đặt phải được ghi rõ trạng thái. Các dependency gián tiếp thuần nội bộ không được liệt kê riêng.
+
+### 7.1. Nền tảng và công cụ
+
+| Thành phần | Công nghệ/phiên bản | Mục đích |
+|---|---|---|
+| Backend runtime | Java 21 | Chạy ứng dụng backend |
+| Backend framework | Spring Boot 3.5.9 | Khởi tạo, cấu hình và vận hành backend |
+| Backend build | Maven, Spring Boot Maven Plugin | Build, kiểm thử và đóng gói backend |
+| Frontend runtime | Node.js >= 20.9.0 | Chạy công cụ phát triển và ứng dụng frontend |
+| Frontend framework | Next.js ^16.0.0 (App Router) | Xây dựng ứng dụng web và routing |
+| Giao diện | React ^19.2.0, React DOM ^19.2.0 | Xây dựng và render giao diện |
+| Styling frontend | Tailwind CSS ^4.3.3 | Xây dựng giao diện bằng utility class |
+| Ngôn ngữ frontend | TypeScript ^5.9.0 | Kiểm tra kiểu tĩnh cho frontend |
+| Quản lý package frontend | npm, package-lock v3 | Cài đặt và khóa phiên bản dependency |
+| Cơ sở dữ liệu | MySQL 8.4 | Lưu dữ liệu nghiệp vụ bền vững |
+| Cache/dữ liệu tạm thời | Redis 7.4 Alpine | Cache và dữ liệu tạm thời; không phải nguồn dữ liệu bền vững |
+| Môi trường phát triển | Docker Compose | Khởi chạy MySQL và Redis cục bộ |
+| Lưu trữ hình ảnh | Cloudinary (đã chốt, chưa cấu hình) | Lưu trữ hình ảnh menu |
+| CI/CD | GitHub Actions (đã chốt, chưa cấu hình workflow) | Tự động kiểm tra và triển khai ứng dụng |
+| Môi trường production | Một VPS, Docker Compose (đã chốt, chưa cấu hình) | Frontend và backend chạy trong cùng Docker Compose network |
+
+### 7.2. Thư viện backend
+
+| Dependency/thư viện | Phiên bản | Mục đích |
+|---|---|---|
+| `spring-boot-starter-web` | Theo Spring Boot 3.5.9 | REST API với Spring MVC, Jackson và embedded server |
+| `spring-boot-starter-validation` | Theo Spring Boot 3.5.9 | Jakarta Bean Validation tại biên API, dùng Hibernate Validator |
+| `spring-boot-starter-actuator` | Theo Spring Boot 3.5.9 | Health check và thông tin vận hành |
+| `spring-boot-starter-data-redis` | Theo Spring Boot 3.5.9 | Tích hợp Redis qua Spring Data Redis |
+| `mybatis-spring-boot-starter` | 3.0.5 | Truy cập MySQL bằng MyBatis và tích hợp với Spring Boot |
+| `flyway-core` | Theo Spring Boot 3.5.9 | Quản lý và chạy database migration |
+| `flyway-mysql` | Theo Spring Boot 3.5.9 | Hỗ trợ MySQL cho Flyway |
+| `mysql-connector-j` | Theo Spring Boot 3.5.9 | JDBC driver kết nối MySQL |
+| `lombok` | Theo Spring Boot 3.5.9 | Giảm mã lặp trong Java tại thời điểm biên dịch |
+| `spring-boot-configuration-processor` | Theo Spring Boot 3.5.9 | Sinh metadata cho cấu hình tùy chỉnh |
+| HikariCP | Do Spring Boot JDBC stack cung cấp | Connection pool cho MySQL |
+
+### 7.3. Thư viện frontend
+
+| Dependency/thư viện | Phiên bản khai báo | Mục đích |
+|---|---|---|
+| `next` | ^16.0.0 | Framework frontend |
+| `react` | ^19.2.0 | Xây dựng component giao diện |
+| `react-dom` | ^19.2.0 | Render React trên web |
+| `tailwindcss` | ^4.3.3 | Utility-first CSS framework |
+| `@tailwindcss/postcss` | ^4.3.3 | Tích hợp Tailwind CSS vào pipeline PostCSS |
+| `postcss` | ^8.5.18 | Chuyển đổi CSS bằng plugin trong quá trình build |
+| `typescript` | ^5.9.0 | Biên dịch và kiểm tra kiểu |
+| `@types/node` | ^22.0.0 | Kiểu TypeScript cho Node.js |
+| `@types/react` | ^19.2.0 | Kiểu TypeScript cho React |
+| `@types/react-dom` | ^19.2.0 | Kiểu TypeScript cho React DOM |
+| `eslint` | ^9.39.4 | Phân tích tĩnh mã nguồn |
+| `eslint-config-next` | ^16.0.0 | Bộ quy tắc ESLint dành cho Next.js |
+
+`package.json` đang khóa bổ sung các package `brace-expansion` ^5.0.8, `minimatch` ^10.2.4, `postcss` ^8.5.18 và `sharp` ^0.35.0 bằng `overrides`.
+
+### 7.4. Thư viện kiểm thử
+
+| Phạm vi | Dependency/thư viện | Phiên bản khai báo | Mục đích |
+|---|---|---|---|
+| Backend | `spring-boot-starter-test` | Theo Spring Boot 3.5.9 | Cung cấp Spring Test, JUnit Jupiter, AssertJ, Mockito và các tiện ích kiểm thử backend |
+| Backend | `org.testcontainers:junit-jupiter` | 1.21.4 | Tích hợp Testcontainers với JUnit Jupiter |
+| Backend | `org.testcontainers:mysql` | 1.21.4 | Chạy MySQL container cho integration test |
+| Frontend | `vitest` | ^3.2.0 | Test runner cho unit/component test |
+| Frontend | `@vitejs/plugin-react` | ^5.0.0 | Hỗ trợ React trong môi trường Vitest/Vite |
+| Frontend | `@testing-library/react` | ^16.3.0 | Kiểm thử component React theo hành vi người dùng |
+| Frontend | `@testing-library/jest-dom` | ^6.9.0 | Matcher DOM mở rộng cho test |
+| Frontend | `jsdom` | ^27.0.0 | Mô phỏng môi trường trình duyệt cho component test |
+| End-to-end | `@playwright/test` | ^1.55.0 | Kiểm thử luồng người dùng trên trình duyệt |
+
+Cloudinary, GitHub Actions và phương án triển khai production trên một VPS đã được chốt ở mức công nghệ. Frontend và backend được đóng gói thành các service trong cùng một Docker Compose network trên VPS. Repository hiện chưa có cấu hình tích hợp Cloudinary, workflow GitHub Actions hoặc cấu hình triển khai VPS. Reverse proxy, TLS, domain, quản lý secret, vị trí chạy database và chiến lược backup cần được xác nhận riêng trước khi triển khai.
 
 ## 8. Dữ liệu tổng quan
 
@@ -222,7 +309,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 
 - Cải thiện quy trình xử lý order.
 - Báo cáo vận hành cơ bản.
-- Tinh chỉnh phạm vi thao tác theo ba role cơ bản nếu cần.
+- Tinh chỉnh phạm vi thao tác của hai role vận hành nếu cần.
 - Tối ưu trải nghiệm và hiệu năng.
 
 ### Giai đoạn 3 — Mở rộng sản phẩm

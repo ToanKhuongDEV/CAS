@@ -24,7 +24,7 @@ Các luồng thuộc phạm vi hiện tại:
 
 Ngoài phạm vi hiện tại:
 
-- Phân quyền chi tiết ngoài ba role cơ bản.
+- Phân quyền chi tiết của hai role vận hành.
 - Tách hóa đơn.
 - Tự động xác nhận giao dịch qua webhook ngân hàng.
 - Tự động hết hạn payment đang chờ thanh toán.
@@ -38,11 +38,12 @@ Ngoài phạm vi hiện tại:
 | Khách hàng | Quét QR, xem menu, gửi order, yêu cầu hủy món và yêu cầu thanh toán |
 | `ADMIN` | Quản trị cấu hình hệ thống và dữ liệu vận hành |
 | `OPERATOR` | Xử lý order, tạo VietQR và xác nhận thanh toán |
-| `USER` | Tài khoản sử dụng thông thường khi cần đăng nhập vào hệ thống |
 
-Hệ thống phân quyền theo role `ADMIN`, `USER` và `OPERATOR`; chưa có permission chi tiết theo từng chức năng.
+Khách hàng không có tài khoản đăng nhập và không phải account role. Hệ thống phân quyền tài khoản vận hành theo role `ADMIN` và `OPERATOR`; phạm vi thao tác chi tiết của hai role sẽ được chốt sau.
 
 Tài khoản nội bộ của quán được lưu trong `accounts`. Thông tin khách hàng nhập khi mở bàn được lưu riêng trong `client_accounts`.
+
+Các giao diện đồng bộ thay đổi từ thiết bị khác bằng polling REST API. Thao tác do chính giao diện gửi đi được cập nhật ngay từ API response. Giai đoạn đầu không dùng SSE hoặc WebSocket.
 
 ## 4. Luồng đăng nhập khu vực vận hành
 
@@ -56,7 +57,7 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 2. Hệ thống kiểm tra tài khoản trong `accounts`.
 3. Hệ thống kiểm tra trạng thái tài khoản là `ACTIVE`.
 4. Hệ thống xác thực password.
-5. Hệ thống tạo phiên đăng nhập hoặc token truy cập.
+5. Hệ thống cấp access JWT có thời hạn 15 phút và refresh JWT có thời hạn 10 ngày.
 6. Hệ thống ghi nhận `last_login_at`.
 7. Người dùng được chuyển vào giao diện vận hành phù hợp với role.
 
@@ -64,7 +65,13 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 
 - Tài khoản `INACTIVE` không được đăng nhập.
 - Password luôn được lưu bằng `password_hash`, không lưu password thô.
+- Password phải dài hơn 8 ký tự, có ít nhất một chữ cái và một chữ số.
+- Password được băm bằng BCrypt.
 - Role được lấy từ backend theo tài khoản đăng nhập, client không được tự gửi role để quyết định quyền.
+- Chỉ `ADMIN` được tạo tài khoản vận hành.
+- Hệ thống không giới hạn số thiết bị đăng nhập và không quản lý cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
+- Access JWT và refresh JWT không được lưu trong `localStorage`; cơ chế vận chuyển và lưu token cụ thể sẽ được chốt trong API contract.
+- Phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` sẽ được chốt sau.
 
 ## 5. Luồng quét QR và mở phiên bàn
 
@@ -297,8 +304,9 @@ Nhân viên tạo QR thanh toán cho một phiên bàn với số tiền và n�
 5. Hệ thống lấy tài khoản ngân hàng nhận tiền từ `stores`.
 6. Hệ thống sinh `reference_code` theo dạng `CAS_` + UUID.
 7. Hệ thống tạo `payments` với trạng thái `PENDING`.
-8. Hệ thống lưu `qr_created_by`; `payments.created_at` là thời điểm tạo payment và VietQR.
-9. Hệ thống hiển thị VietQR trên web hoặc thiết bị của nhân viên.
+8. Backend gọi VietQR Generate API bằng tài khoản ngân hàng, số tiền và `reference_code` đã lấy từ dữ liệu server.
+9. Hệ thống lưu `qr_created_by`; `payments.created_at` là thời điểm tạo payment và VietQR.
+10. Hệ thống hiển thị VietQR trên web hoặc thiết bị của nhân viên.
 
 ### Quy tắc nghiệp vụ
 
@@ -309,6 +317,8 @@ Nhân viên tạo QR thanh toán cho một phiên bàn với số tiền và n�
 - `bill_snapshot` nằm trong payment và không thay đổi trong vòng đời payment đó.
 - `payments.amount` bằng tổng `orders.payable_amount` tại thời điểm tạo snapshot.
 - Payment `PENDING` không tự hết hạn.
+- Frontend không gọi trực tiếp VietQR API và không được cung cấp số tiền, tài khoản ngân hàng hoặc nội dung chuyển khoản để backend tin cậy.
+- VietQR API chỉ sinh mã QR; kết quả thanh toán vẫn được xác nhận thủ công.
 
 ## 13. Luồng xác nhận thanh toán thủ công
 
@@ -332,7 +342,7 @@ Nhân viên xác nhận payment sau khi kiểm tra giao dịch ngân hàng.
 ### Quy tắc nghiệp vụ
 
 - Nhân viên khác không được xác nhận thay người đã tạo QR.
-- Backend phải lấy tài khoản xác nhận từ phiên đăng nhập hoặc token, không nhận `confirmed_by` từ client.
+- Backend phải lấy tài khoản xác nhận từ access JWT, không nhận `confirmed_by` từ client.
 - Khi xác nhận thanh toán, `confirmed_by` phải bằng `qr_created_by`.
 - Confirm payment là idempotent: request lặp trên payment đã `PAID` trả trạng thái hiện tại, không đổi `confirmed_at` và không tạo audit log trùng.
 - Nếu chưa nhận được tiền, chuyển thiếu hoặc sai nội dung, payment giữ nguyên `PENDING`.
@@ -384,7 +394,7 @@ Khách rời đi hoặc chưa thanh toán sau một hoặc nhiều lần tạo Q
 3. Hệ thống tạo payment mới trong `payments`.
 4. Hệ thống gán `unpaid_record_id` và sao chép `amount`, `bill_snapshot` bất biến từ khoản chưa thanh toán.
 5. Hệ thống sinh `reference_code` mới theo dạng `CAS_` + UUID.
-6. Hệ thống tạo VietQR mới từ tài khoản ngân hàng của cửa hàng, số tiền cần thu và `reference_code` mới.
+6. Backend gọi VietQR Generate API để tạo QR mới từ tài khoản ngân hàng của cửa hàng, số tiền cần thu và `reference_code` mới.
 7. Admin đưa QR mới cho khách thanh toán.
 8. Nếu nhận đúng tiền và đúng nội dung chuyển khoản, admin xác nhận payment mới là `PAID`.
 9. Hệ thống chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` và lưu `resolved_at`.

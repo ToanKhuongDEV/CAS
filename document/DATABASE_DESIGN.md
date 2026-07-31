@@ -19,6 +19,8 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - Tất cả thời gian nghiệp vụ được lưu theo múi giờ Việt Nam `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 - Các bảng nghiệp vụ có `created_at` và `updated_at` khi phù hợp.
 - Order và payment không bị xóa vật lý.
+- Dữ liệu cha đang được tham chiếu không bị xóa vật lý; tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
+- Quy tắc nghiệp vụ được kiểm tra trong Java, không dùng MySQL `CHECK` constraint.
 - Thông tin order được lưu theo các cột nghiệp vụ.
 - Toàn bộ nội dung bill được lưu trong JSON snapshot khi ghi nhận khoản chưa thanh toán và khi tạo từng payment.
 - Các mã được sử dụng bên ngoài hệ thống không dùng ID tăng dần.
@@ -42,11 +44,21 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - Tiền tệ dùng `DECIMAL(15,2)`, không dùng `FLOAT` hoặc `DOUBLE`.
 - Thời gian dùng `DATETIME(3)` và mang ý nghĩa múi giờ `Asia/Ho_Chi_Minh`; ứng dụng phải cấu hình timezone nhất quán khi đọc và ghi.
 - Giá trị boolean dùng `BOOLEAN`, tương đương `TINYINT(1)` trong MySQL.
-- Trạng thái dùng `VARCHAR` kết hợp `CHECK` constraint hoặc kiểm tra tương đương trong migration, không dùng MySQL `ENUM` để dễ thay đổi.
+- Trạng thái dùng `VARCHAR`, không dùng MySQL `ENUM` hoặc `CHECK` constraint; Java chịu trách nhiệm kiểm tra giá trị hợp lệ và quy tắc chuyển trạng thái.
 - Các cột `NULL` và `NOT NULL` được ghi trực tiếp trong kiểu dữ liệu. Chỉ dùng `NULL` khi giá trị thực sự chưa tồn tại hoặc không áp dụng theo trạng thái nghiệp vụ.
 - Toàn bộ chuỗi dùng character set `utf8mb4`; collation được chốt ở cấp database và dùng nhất quán cho các bảng.
 
-### 3.3. Danh sách tên bảng
+### 3.3. Quy ước giá trị mặc định
+
+- `created_at` dùng `DEFAULT CURRENT_TIMESTAMP(3)`.
+- `updated_at` dùng `DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)`.
+- Các cột `display_order` dùng `DEFAULT 0`.
+- `option_group_items.is_default` dùng `DEFAULT FALSE`.
+- `stores`, `table_qr_codes`, `categories`, `option_groups`, `option_group_items` và `accounts` dùng trạng thái mặc định `ACTIVE`.
+- `menu_items.availability_status`, trạng thái session, cancellation request, unpaid record và payment phải được Java truyền rõ khi tạo, không dùng giá trị mặc định trong database.
+- `dining_tables` không có cột trạng thái.
+
+### 3.4. Danh sách tên bảng
 
 | Nhóm | Tên bảng | Nội dung |
 |---|---|---|
@@ -116,9 +128,9 @@ Lưu thông tin cửa hàng.
 | `bank_account_number` | `VARCHAR(34) NOT NULL` | Số tài khoản ngân hàng nhận tiền |
 | `bank_code` | `VARCHAR(20) NOT NULL` | Mã ngân hàng nhận tiền |
 | `bank_account_name` | `VARCHAR(150) NOT NULL` | Tên chủ tài khoản nhận tiền |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái hoạt động |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hoạt động |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Mỗi cửa hàng dùng một tài khoản ngân hàng nhận tiền để tạo VietQR. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
 
@@ -133,8 +145,8 @@ Lưu thông tin bàn.
 | `code` | `VARCHAR(50) NOT NULL` | Mã bàn |
 | `name` | `VARCHAR(100) NOT NULL` | Tên hiển thị |
 | `capacity` | `SMALLINT UNSIGNED NULL` | Số chỗ dự kiến |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Trạng thái bàn trống hay đang có khách được suy ra từ việc tồn tại một `table_sessions` trạng thái `OPEN`, không lưu trong `dining_tables`.
 
@@ -147,7 +159,7 @@ Lưu mã QR được gắn với bàn.
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bản ghi QR |
 | `table_id` | `BIGINT UNSIGNED NOT NULL` | Bàn tương ứng |
 | `token` | `CHAR(64) NOT NULL` | Token ngẫu nhiên dùng trong đường dẫn QR |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái sử dụng |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
 | `issued_at` | `DATETIME(3) NOT NULL` | Thời điểm phát hành |
 | `revoked_at` | `DATETIME(3) NULL` | Thời điểm thu hồi |
 
@@ -167,9 +179,9 @@ Lưu danh mục món.
 | `description` | `TEXT NULL` | Mô tả |
 | `category_type` | `VARCHAR(20) NOT NULL` | Loại danh mục `REGULAR` hoặc `OPTION` |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái hiển thị |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hiển thị |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 #### `menu_items`
 
@@ -186,8 +198,8 @@ Lưu thông tin món.
 | `image_storage_key` | `VARCHAR(512) NULL` | Khóa asset trên dịch vụ lưu trữ để thay thế hoặc xóa ảnh |
 | `availability_status` | `VARCHAR(20) NOT NULL` | Trạng thái còn hoặc hết món |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 #### `option_groups`
 
@@ -202,9 +214,9 @@ Lưu nhóm lựa chọn của món như kích thước, topping, độ ngọt ho
 | `min_select` | `SMALLINT UNSIGNED NOT NULL DEFAULT 0` | Số lựa chọn tối thiểu |
 | `max_select` | `SMALLINT UNSIGNED NULL` | Số lựa chọn tối đa; `NULL` nghĩa là không giới hạn |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái sử dụng |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Nhóm bắt buộc được xác định bằng `min_select > 0`, không lưu thêm `is_required`. Với nhóm size, hệ thống chọn một giá trị mặc định được cấu hình trong `option_group_items`. Với nhóm topping, `max_select` có thể để trống để biểu thị không giới hạn số lựa chọn.
 
@@ -219,9 +231,9 @@ Liên kết một nhóm lựa chọn với các `menu_items` thuộc category lo
 | `option_menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Menu item loại option được phép chọn |
 | `is_default` | `BOOLEAN NOT NULL DEFAULT FALSE` | Option mặc định của nhóm lựa chọn |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái sử dụng |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Ví dụ:
 
@@ -241,6 +253,8 @@ Trà sữa
 
 Category loại `OPTION` không hiển thị như danh mục món chính trên giao diện khách. Một option có thể được liên kết với nhiều nhóm của nhiều món. Menu item loại option không được có option group con.
 
+Ảnh món được quản lý qua CAS Backend. Backend nhận file từ giao diện admin, upload lên Cloudinary bằng authenticated API, sau đó lưu URL hiển thị vào `image_url` và khóa asset vào `image_storage_key`. Frontend không upload trực tiếp lên Cloudinary.
+
 ### 5.3. Phiên sử dụng bàn
 
 #### `table_sessions`
@@ -258,8 +272,8 @@ Category loại `OPTION` không hiển thị như danh mục món chính trên g
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái phiên |
 | `payment_requested_at` | `DATETIME(3) NULL` | Thời điểm khách yêu cầu thanh toán, để trống khi chưa yêu cầu |
 | `closed_at` | `DATETIME(3) NULL` | Thời điểm đóng |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm phiên bắt đầu |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phiên bắt đầu |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Chỉ table session ở trạng thái `OPEN` mới được xem là đang chiếm dụng bàn. Mỗi bàn chỉ được có tối đa một session `OPEN` tại cùng một thời điểm. Session ở trạng thái `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới cho cùng bàn. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session `OPEN`, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
 
@@ -284,8 +298,8 @@ Lưu một lần gửi món của một table session. Khách có thể gọi m�
 | `original_amount` | `DECIMAL(15,2) NOT NULL` | Tổng tiền order tại thời điểm khách gửi, bất biến |
 | `payable_amount` | `DECIMAL(15,2) NOT NULL` | Số tiền hiện còn phải trả sau các yêu cầu hủy được duyệt |
 | `note` | `VARCHAR(1000) NULL` | Ghi chú chung cho toàn bộ lần gọi món |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Một `table_session_id` có thể xuất hiện ở nhiều bản ghi trong `orders`, tương ứng một session có nhiều order theo từng lần khách gửi món.
 
@@ -306,8 +320,8 @@ Lưu các món thuộc order.
 | `options_amount` | `DECIMAL(15,2) NOT NULL DEFAULT 0` | Tổng giá option cho một đơn vị món tại thời điểm đặt |
 | `quantity` | `INT UNSIGNED NOT NULL` | Số lượng món có cùng cấu hình option |
 | `total_amount` | `DECIMAL(15,2) NOT NULL` | Thành tiền ban đầu: `(unit_price + options_amount) × quantity` |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 `item_name`, `unit_price`, `options_amount`, `quantity` và `total_amount` là nội dung order gốc đã được khách gửi. Các giá trị này không thay đổi khi menu được cập nhật hoặc khi yêu cầu hủy món được duyệt.
 
@@ -327,7 +341,7 @@ Lưu các option thực tế khách đã chọn cho một dòng món. Quan hệ 
 | `unit_price` | `DECIMAL(15,2) NOT NULL` | Giá option cho một đơn vị tại thời điểm đặt |
 | `quantity_per_item` | `INT UNSIGNED NOT NULL DEFAULT 1` | Số lượng option trên mỗi đơn vị món chính |
 | `total_amount` | `DECIMAL(15,2) NOT NULL` | `unit_price × quantity_per_item × order_items.quantity` tại thời điểm đặt |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 
 Các trường tên và giá trong `order_item_options` là snapshot, không thay đổi khi catalog được cập nhật. Mỗi option được chọn tối đa một lần trong một dòng món; nếu hỗ trợ “double topping”, số lượng được lưu trong `quantity_per_item`.
 
@@ -366,8 +380,8 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | `resolved_by` | `BIGINT UNSIGNED NULL` | Tài khoản xử lý |
 | `resolved_by_name` | `VARCHAR(150) NULL` | Tên người xử lý tại thời điểm thao tác |
 | `resolved_at` | `DATETIME(3) NULL` | Thời điểm xử lý |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm yêu cầu |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm yêu cầu |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Khi yêu cầu được đồng ý, hệ thống không cập nhật `order_items.quantity`, không cập nhật `order_items.total_amount` và không xóa dòng món. Số lượng đã hủy bằng tổng `requested_quantity` của các yêu cầu trạng thái `APPROVED`; số lượng còn tính tiền bằng số lượng ban đầu trừ số lượng đã hủy. Hệ thống dùng số lượng còn lại để cập nhật `orders.payable_amount`; `orders.original_amount` không thay đổi. Yêu cầu bị từ chối không làm thay đổi số tiền.
 
@@ -405,8 +419,8 @@ Lưu khoản còn phải thu, dù được ghi nhận trước khi có payment h
 | `reported_by_name` | `VARCHAR(150) NOT NULL` | Tên người ghi nhận tại thời điểm thao tác |
 | `resolution_payment_id` | `BIGINT UNSIGNED NULL` | Payment đã thu lại thành công, để trống khi chưa xử lý xong |
 | `resolved_at` | `DATETIME(3) NULL` | Thời điểm xử lý xong |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Nếu khách rời đi trước khi có payment, hệ thống tạo bản ghi `origin_type = LEFT_BEFORE_PAYMENT`, lấy `amount` từ tổng `orders.payable_amount` và tạo `bill_snapshot` từ dữ liệu đã chốt. Nếu một payment hiện có bị đánh dấu `IGNORED`, hệ thống tạo hoặc sử dụng `unpaid_records`, đặt `origin_type = PAYMENT_IGNORED` khi tạo mới và sao chép `amount`, `bill_snapshot` từ payment. Sau đó hệ thống liên kết payment với khoản chưa thanh toán.
 
@@ -439,8 +453,8 @@ Lưu VietQR và kết quả xác nhận thanh toán thủ công của table sess
 | `ignored_by_name` | `VARCHAR(150) NULL` | Tên người đánh dấu bỏ qua tại thời điểm thao tác |
 | `ignored_reason` | `VARCHAR(1000) NULL` | Lý do bỏ qua payment, nếu có |
 | `ignored_at` | `DATETIME(3) NULL` | Thời điểm đánh dấu bỏ qua |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo payment và VietQR |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo payment và VietQR |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 `bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom toàn bộ các order của session tại thời điểm nhân viên bấm tạo QR thanh toán và không thay đổi trong suốt vòng đời payment.
 
@@ -497,7 +511,7 @@ Snapshot chỉ chứa dữ liệu cần thiết của bill, không sao chép to�
 
 Snapshot của mỗi order cần chứa `orders.note`; các item không có trường ghi chú riêng.
 
-VietQR được sinh động từ tài khoản ngân hàng của quán, số tiền chính xác và nội dung chuyển khoản duy nhất. `reference_code` được sinh theo dạng `CAS_` + UUID, ví dụ `CAS_550e8400-e29b-41d4-a716-446655440000`, và không tái sử dụng cho payment khác. QR chỉ hiển thị trên web hoặc thiết bị của nhân viên, không hiển thị trực tiếp trên web khách hàng.
+CAS Backend gọi VietQR Generate API để sinh VietQR động từ tài khoản ngân hàng của quán, số tiền chính xác và nội dung chuyển khoản duy nhất. `reference_code` được sinh theo dạng `CAS_` + UUID, ví dụ `CAS_550e8400-e29b-41d4-a716-446655440000`, và không tái sử dụng cho payment khác. Frontend không gọi trực tiếp VietQR API. QR chỉ hiển thị trên web hoặc thiết bị của nhân viên, không hiển thị trực tiếp trên web khách hàng.
 
 Sau khi khách báo đã chuyển khoản, nhân viên đã tạo QR kiểm tra ứng dụng ngân hàng. Chỉ khi nhận đúng số tiền và nội dung, chính tài khoản đã tạo QR mới được xác nhận payment là `PAID`. Nếu chưa nhận được tiền hoặc khách chuyển thiếu, payment giữ nguyên `PENDING`.
 
@@ -544,18 +558,26 @@ Lưu tài khoản đăng nhập hệ thống. Authentication phân quyền theo 
 | `password_hash` | `VARCHAR(255) NOT NULL` | Mật khẩu đã băm |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên hiển thị |
 | `role` | `VARCHAR(20) NOT NULL` | Vai trò của tài khoản |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái tài khoản |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái tài khoản |
 | `last_login_at` | `DATETIME(3) NULL` | Lần đăng nhập gần nhất |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Các role cơ bản:
 
 - `ADMIN`: quản trị cấu hình hệ thống và dữ liệu vận hành.
 - `OPERATOR`: xử lý order, tạo VietQR và xác nhận thanh toán.
-- `USER`: tài khoản sử dụng thông thường khi cần đăng nhập vào hệ thống.
 
-Hệ thống chưa triển khai permission chi tiết theo từng chức năng.
+Khách hàng không có tài khoản đăng nhập và không phải một giá trị của `accounts.role`. Hệ thống chưa triển khai permission chi tiết cho `ADMIN` và `OPERATOR`.
+
+Authentication sử dụng JWT:
+
+- Access JWT có thời hạn 15 phút.
+- Refresh JWT có thời hạn 10 ngày.
+- Không giới hạn số thiết bị đăng nhập và không lưu cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
+- Password được băm bằng BCrypt; password đầu vào phải dài hơn 8 ký tự, có ít nhất một chữ cái và một chữ số.
+- Chỉ `ADMIN` được tạo tài khoản vận hành.
+- Phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` sẽ được chốt sau.
 
 #### `client_accounts`
 
@@ -567,8 +589,8 @@ Lưu thông tin khách hàng mở phiên bàn. Bảng này tách riêng với `a
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
 | `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại khách |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên khách |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL` | Thời điểm cập nhật |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 
@@ -594,7 +616,7 @@ Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi 
 | `actor_account_id` | `BIGINT UNSIGNED NOT NULL` | ID tài khoản thực hiện thao tác |
 | `actor_name` | `VARCHAR(150) NOT NULL` | Tên người thực hiện tại thời điểm thao tác |
 | `description` | `VARCHAR(1000) NULL` | Nội dung tóm tắt, nếu cần |
-| `created_at` | `DATETIME(3) NOT NULL` | Thời điểm thao tác |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm thao tác |
 
 Trong đó:
 
@@ -682,57 +704,83 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
 | Payment | `PENDING`, `PAID`, `IGNORED` |
 | Account | `ACTIVE`, `INACTIVE` |
-| Account role | `ADMIN`, `USER`, `OPERATOR` |
+| Account role | `ADMIN`, `OPERATOR` |
 
 ## 8. Ràng buộc và index cơ bản
 
+### 8.1. Khóa ngoại và chính sách xóa
+
+- Tất cả quan hệ trong mục 6 được tạo foreign key vật lý, ngoại trừ `audit_logs.entity_id` là liên kết logic tới nhiều loại entity.
+- Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
+- Mỗi foreign key có index với tên tường minh để MySQL không tự tạo index ẩn.
+- Dữ liệu đã được tham chiếu không bị xóa vật lý; các entity có trạng thái được chuyển sang `INACTIVE` hoặc `REVOKED`.
+
+### 8.2. Unique constraint và quy tắc nghiệp vụ
+
 - `dining_tables`: unique `store_id + code`.
 - `table_qr_codes`: unique `token`.
-- Chỉ một QR hoạt động cho mỗi bàn.
-- Mỗi bàn chỉ có tối đa một table session ở trạng thái `OPEN`; session `PAYMENT_PENDING` không thuộc ràng buộc độc quyền này.
 - `categories`: unique `store_id + name`.
-- `categories.category_type`: chỉ nhận `REGULAR` hoặc `OPTION`.
 - `option_groups`: unique `menu_item_id + name`.
-- `option_groups.menu_item_id` phải trỏ tới menu item thuộc category loại `REGULAR`; option không được có option group con.
-- `option_groups`: `min_select >= 0`; `max_select IS NULL OR max_select >= min_select`; nhóm `SINGLE` phải có `max_select = 1`.
 - `option_group_items`: unique `option_group_id + option_menu_item_id`.
-- `option_group_items.option_menu_item_id` phải trỏ tới menu item thuộc category loại `OPTION`.
-- Mỗi `option_group` chỉ có tối đa một `option_group_items.is_default = true`; option mặc định phải thuộc nhóm còn hoạt động.
 - `orders`: unique `public_id`, `order_number` và cặp `table_session_id + idempotency_key`.
 - `orders.request_fingerprint`: bắt buộc, do backend tạo từ SHA-256 của payload đã chuẩn hóa; không đặt unique constraint.
-- `orders`: `original_amount >= 0`, `payable_amount >= 0` và `payable_amount <= original_amount`.
-- `order_items`: unique `public_id`; `unit_price >= 0`, `options_amount >= 0`, `quantity > 0`, `total_amount >= 0`.
-- `order_item_options`: unique `order_item_id + option_group_item_id`; `unit_price >= 0`, `quantity_per_item > 0`, `total_amount >= 0`.
+- `order_items`: unique `public_id`.
+- `order_item_options`: unique `order_item_id + option_group_item_id`.
 - Catalog đã được tham chiếu bởi order chỉ được chuyển `INACTIVE`, không xóa vật lý; snapshot trong order vẫn là nguồn hiển thị lịch sử.
-- `order_item_cancellation_requests`: unique `public_id` và cặp `order_item_id + idempotency_key`; `requested_quantity > 0`.
+- `order_item_cancellation_requests`: unique `public_id` và cặp `order_item_id + idempotency_key`.
 - Tạo/resolve cancellation và chuyển session sang `PAYMENT_PENDING` phải khóa session hoặc dùng transaction tương đương để không phát sinh thay đổi sau khi bill bị khóa.
-- `unpaid_records`: unique `public_id`, `table_session_id` và `resolution_payment_id`; `amount > 0`; index `status`, `origin_type`, `created_at` và `resolved_at`.
-- `unpaid_records.amount` phải bằng `bill_snapshot.payableAmount`.
-- `unpaid_records`: trạng thái `OPEN` yêu cầu `resolution_payment_id IS NULL` và `resolved_at IS NULL`; trạng thái `RESOLVED` yêu cầu hai cột này khác `NULL`.
+- `unpaid_records`: unique `public_id`, `table_session_id` và `resolution_payment_id`.
 - `payments`: unique `public_id` và `reference_code`.
-- `payments.amount > 0`; nếu có `unpaid_record_id`, payment và unpaid record phải thuộc cùng `table_session_id`.
-- `payments.amount` phải bằng `bill_snapshot.payableAmount`; payment tạo từ unpaid record phải sao chép đúng `amount` và snapshot của unpaid record.
-- Payment `PENDING`: các cột confirm và ignore phải `NULL`.
-- Payment `PAID`: `confirmed_by`, `confirmed_by_name`, `confirmed_at` khác `NULL`; `confirmed_by = qr_created_by`; các cột ignore phải `NULL`.
-- Payment `IGNORED`: `ignored_by`, `ignored_by_name`, `ignored_at`, `unpaid_record_id` khác `NULL`; các cột confirm phải `NULL`.
-- Chỉ cho phép chuyển `PENDING → PAID` hoặc `PENDING → IGNORED`.
 - Confirm lặp trên payment đã `PAID` là thao tác đọc idempotent: không cập nhật dữ liệu và không tạo audit log mới.
-- Mỗi table session hoặc unpaid record chỉ có tối đa một payment `PENDING` tại cùng thời điểm. Việc tạo payment phải khóa scope tương ứng hoặc dùng chiến lược unique/generated column phù hợp với MySQL.
 - Mỗi unpaid record chỉ được giải quyết bởi một payment `PAID`; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
 - `accounts`: unique `store_id + username`.
 - `client_accounts`: unique `store_id + phone`.
-- Index `audit_logs` theo `store_id + created_at`, `entity_type + entity_id`, `actor_account_id`, `request_id` và `created_at`.
-- Index các khóa ngoại và các cột trạng thái thường được dùng để lọc.
-- Index thời gian tạo order, thời gian xác nhận payment và thời gian đánh dấu payment bỏ qua để phục vụ màn hình vận hành, thống kê và tra cứu.
 
-Các ràng buộc có điều kiện như “mỗi bàn chỉ có một session `OPEN`”, “mỗi scope chỉ có một payment `PENDING`” và “mỗi nhóm chỉ có một option mặc định” cần dùng generated column kết hợp unique index, lock, atomic update hoặc chiến lược tương đương phù hợp với MySQL.
+### 8.3. Quy tắc chỉ kiểm tra trong Java
+
+Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java phải kiểm tra trong application/domain layer trước khi ghi dữ liệu:
+
+- Giá trị hợp lệ và quy tắc chuyển đổi của tất cả trạng thái.
+- `categories.category_type` chỉ nhận `REGULAR` hoặc `OPTION`.
+- `option_groups.menu_item_id` phải trỏ tới menu item thuộc category loại `REGULAR`; option không được có option group con.
+- `option_groups.min_select >= 0`; `max_select IS NULL OR max_select >= min_select`; nhóm `SINGLE` có `max_select = 1`.
+- `option_group_items.option_menu_item_id` phải trỏ tới menu item thuộc category loại `OPTION`.
+- Mỗi option group có tối đa một option mặc định và option đó phải thuộc nhóm đang hoạt động. Quy tắc này không có unique constraint trong database.
+- Giá tiền không âm, số lượng lớn hơn 0 và `orders.payable_amount <= orders.original_amount`.
+- `unpaid_records.amount` bằng `bill_snapshot.payableAmount`; trạng thái `OPEN` không có thông tin resolve và trạng thái `RESOLVED` có đủ thông tin resolve.
+- Payment và unpaid record liên quan phải thuộc cùng table session; số tiền và bill snapshot phải khớp.
+- Các cột xác nhận hoặc bỏ qua payment phải phù hợp với trạng thái; `confirmed_by = qr_created_by`.
+- Payment chỉ chuyển từ `PENDING` sang `PAID` hoặc `IGNORED`.
+
+### 8.4. Unique constraint có điều kiện
+
+MySQL dùng generated column kết hợp unique index cho các quy tắc cần chống race condition:
+
+- `table_qr_codes.active_table_id`: nhận `table_id` khi `status = 'ACTIVE'`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một QR `ACTIVE`.
+- `table_sessions.open_table_id`: nhận `table_id` khi `status = 'OPEN'`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một session `OPEN`.
+- `payments.pending_table_session_id`: nhận `table_session_id` khi payment `PENDING` không gắn với unpaid record, ngược lại nhận `NULL`.
+- `payments.pending_unpaid_record_id`: nhận `unpaid_record_id` khi payment `PENDING` gắn với unpaid record, ngược lại nhận `NULL`.
+- Unique index trên hai generated column của payment bảo đảm mỗi session hoặc unpaid record chỉ có một payment `PENDING` trong đúng phạm vi tương ứng.
+
+Java vẫn phải dùng transaction và khóa scope tương ứng khi tạo QR, session hoặc payment; unique index là lớp bảo vệ cuối cùng khi có request đồng thời.
+
+### 8.5. Index phục vụ truy vấn menu
+
+Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng xem menu:
+
+- `categories(store_id, category_type, status, display_order)`.
+- `menu_items(category_id, availability_status, display_order)`.
+- `option_groups(menu_item_id, status, display_order)`.
+- `option_group_items(option_group_id, status, display_order)`.
+
+Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Index cho payment, unpaid record, order, cancellation request, audit log, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
 
 ## 9. Các nội dung ngoài phạm vi hiện tại
 
 Thiết kế hiện tại chưa bao gồm:
 
 - Hồ sơ và lịch sử nhân viên.
-- Permission chi tiết ngoài ba role cơ bản.
+- Permission chi tiết của hai role vận hành.
 - Kho và nguyên vật liệu.
 - Khuyến mãi, voucher và điểm thành viên.
 - Hồ sơ khách hàng và CRM.
@@ -744,6 +792,15 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
+- Giữ nguyên mô hình 17 bảng nghiệp vụ và các quan hệ tổng quan trong mục 4 và mục 6.
+- Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
+- Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
+- Generated column kết hợp unique index được dùng để bảo đảm một QR `ACTIVE` cho mỗi bàn, một session `OPEN` cho mỗi bàn và một payment `PENDING` cho mỗi session hoặc unpaid record.
+- Quy tắc mỗi option group có tối đa một option mặc định chỉ được kiểm tra trong Java, không có unique constraint trong database.
+- Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
+- Authentication dùng access JWT 15 phút và refresh JWT 10 ngày; không giới hạn số thiết bị và chưa có cơ chế chủ động thu hồi JWT.
+- Password được băm bằng BCrypt, dài hơn 8 ký tự và chứa ít nhất một chữ cái cùng một chữ số.
+- Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` được chốt sau.
 - Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
 - Tất cả trường thời gian nghiệp vụ được lưu theo `Asia/Ho_Chi_Minh` (`UTC+07:00`); giá trị thời gian trao đổi qua API phải kèm offset `+07:00`.
 - Mỗi order chỉ có một ghi chú chung trong `orders.note`; không lưu `note` trong `order_items`.
@@ -791,11 +848,10 @@ Thiết kế hiện tại chưa bao gồm:
 - QR bàn là mã cố định được in và dán tại bàn; QR thanh toán được sinh động theo payment.
 - Mỗi cửa hàng dùng một tài khoản ngân hàng nhận tiền. Hệ thống hiện vận hành một cửa hàng.
 - Mã chuyển khoản của payment dùng `reference_code` sinh theo dạng `CAS_` + UUID và không tái sử dụng.
+- Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
+- CAS Backend gọi VietQR Generate API để sinh mã; VietQR không tham gia xác nhận thanh toán.
 
 ## 11. Bước tiếp theo
 
-1. Chốt ERD.
-2. Chốt danh sách trạng thái và quy tắc chuyển trạng thái.
-3. Chốt khóa ngoại, `CHECK` constraint, default và index chi tiết dựa trên các kiểu dữ liệu đã xác định.
-4. Tạo script khởi tạo schema.
-5. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+1. Tạo Flyway migration khởi tạo schema nghiệp vụ theo các quyết định đã chốt.
+2. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.

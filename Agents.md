@@ -59,7 +59,7 @@ Do not organize the entire application into shared technical packages such as
 
 
 ## Conventions
-
+- Upon completing a task, you must update the PROJECT_PROGRESS.md file.
 - Do not read files or directories listed in .gitignore.
 - Do not create a Git commit unless the user explicitly requests it.
 - If anything is unclear, ask for the user's approval before implementing it. Do not guess.
