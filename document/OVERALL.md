@@ -156,6 +156,13 @@ CAS Frontend
 └── Admin — JWT, role ADMIN
 ```
 
+Định hướng giao diện theo từng khu vực:
+
+- Customer phát triển theo hướng mobile-first vì khách hàng thao tác chủ yếu trên điện thoại sau khi quét QR tại bàn.
+- Operation dành cho nhân viên cũng phát triển theo hướng mobile-first để phù hợp với thiết bị cầm tay trong quá trình phục vụ và xác nhận thanh toán.
+- Admin ưu tiên giao diện web trên desktop hoặc laptop để quản lý dữ liệu và thực hiện các tác vụ vận hành có mật độ thông tin cao.
+- Cả ba khu vực vẫn phải responsive; mobile-first hoặc desktop-first chỉ xác định kích thước ưu tiên khi thiết kế và triển khai.
+
 ### 6.2. Các module nghiệp vụ
 
 | Module | Phạm vi |
@@ -285,7 +292,9 @@ Hệ thống không nhận webhook hoặc tự động xác nhận giao dịch. 
 
 ## 10. Yêu cầu hệ thống tổng quan
 
-- Giao diện khách hàng phù hợp với thiết bị di động.
+- Giao diện Customer và Operation phát triển theo hướng mobile-first.
+- Giao diện Admin ưu tiên web trên desktop hoặc laptop.
+- Cả ba khu vực giao diện phải responsive trên các kích thước màn hình được hỗ trợ.
 - Menu và quá trình gọi món có tốc độ phản hồi tốt.
 - Trạng thái thanh toán được cập nhật kịp thời.
 - Dữ liệu order và thanh toán được lưu trữ an toàn.

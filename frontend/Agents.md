@@ -10,8 +10,9 @@ The frontend is responsible for:
 - Operator-facing order and payment screens.
 - Admin-facing configuration, catalog, table, account, audit, and unpaid-record screens.
 - Displaying current business state received from the backend.
-- Providing a mobile-first experience for customers.
-- Providing responsive tablet and desktop experiences for Operation and Admin.
+- Providing mobile-first experiences for Customer and Operation.
+- Providing a desktop-first web experience for Admin.
+- Keeping all three areas responsive across their supported screen sizes.
 - Keeping business rules in the backend unless they are purely presentational.
 
 Do not implement backend authorization, payment confirmation, pricing rules, or order-state transitions only in the frontend.
@@ -539,8 +540,10 @@ Use Tailwind CSS 4 and existing design tokens.
 
 ### 12.1. General rules
 
-- Mobile-first for customer flows.
-- Responsive for operator screens.
+- Mobile-first for Customer flows.
+- Mobile-first for Operation screens used by restaurant staff.
+- Desktop-first web layout for Admin screens.
+- Keep Customer, Operation, and Admin responsive beyond their primary target size.
 - Use consistent spacing, typography, radius, and control heights.
 - Reuse existing UI primitives.
 - Avoid arbitrary values when a token or standard utility works.
