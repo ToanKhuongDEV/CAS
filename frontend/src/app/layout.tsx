@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+
+import { GlobalDragScroll } from "../components/ui/global-drag-scroll";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CAS | Gọi món tại bàn",
-  description: "Nền tảng gọi món bằng QR và thanh toán VietQR cho cửa hàng.",
+  title: "CAS | Chào mừng bạn",
+  description:
+    "Khám phá mỳ cay, món ăn vặt, cà phê, trà sữa và gà rán ngay tại bàn.",
 };
 
 export default function RootLayout({
@@ -12,8 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body>{children}</body>
+    <html
+      className="scroll-smooth motion-reduce:scroll-auto"
+      lang="vi"
+      suppressHydrationWarning
+    >
+      <body className="min-h-screen min-w-80 bg-cas-surface font-sans text-cas-on-surface antialiased">
+        <GlobalDragScroll>{children}</GlobalDragScroll>
+      </body>
     </html>
   );
 }

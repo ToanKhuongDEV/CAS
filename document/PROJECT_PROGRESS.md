@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-07-31
+Ngày cập nhật gần nhất: 2026-08-03
 
 ## Quy ước
 
@@ -50,6 +50,7 @@ Ngày cập nhật gần nhất: 2026-07-31
 - [x] Chốt authentication dùng access JWT 15 phút, refresh JWT 10 ngày và BCrypt.
 - [x] Chốt JWT là cơ chế xác thực chính và không lưu token trong `localStorage`.
 - [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
+- [x] Chốt Customer và Operation theo hướng mobile-first; Admin ưu tiên web desktop.
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
 - [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
@@ -87,6 +88,11 @@ Ngày cập nhật gần nhất: 2026-07-31
 
 - [x] Khởi tạo Next.js, React và TypeScript.
 - [x] Tích hợp Tailwind CSS với PostCSS.
+- [x] Xây dựng trang chào mừng CAS cho quán ăn vặt/mỳ cay bằng Tailwind CSS theo thiết kế Stitch, có giao diện sáng/tối.
+- [x] Xây dựng UI màn thực đơn Customer mobile-first theo thiết kế Stitch, hiển thị 15 món trong danh sách dài theo từng nhóm, có divider và thanh category sticky hỗ trợ vuốt cảm ứng hoặc nhấn-giữ-kéo bằng chuột, liên kết đến từng nhóm.
+- [x] Bổ sung thao tác nhấn-giữ-kéo dọc bằng chuột và ẩn scrollbar ở cấp root cho toàn bộ các màn hình mobile-first.
+- [x] Đồng bộ cursor kéo dạng bàn tay: màu xám ở theme sáng và màu trắng ở theme tối.
+- [x] Tối ưu tải sớm ảnh LCP ở trang Welcome và Menu.
 - [ ] Xây dựng giao diện khách quét QR và mở phiên bàn.
 - [ ] Xây dựng giao diện menu và chọn option.
 - [ ] Xây dựng giao diện gửi order và gọi thêm món.
