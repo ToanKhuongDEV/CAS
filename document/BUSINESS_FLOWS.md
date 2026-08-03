@@ -18,16 +18,16 @@ Các luồng thuộc phạm vi hiện tại:
 - Yêu cầu hủy món.
 - Yêu cầu thanh toán.
 - Ghi nhận khách rời đi chưa thanh toán.
-- Nhân viên tạo VietQR.
-- Nhân viên xác nhận thanh toán thủ công.
+- Nhân viên xác nhận trạng thái thanh toán thủ công.
 - Đóng phiên bàn.
 
 Ngoài phạm vi hiện tại:
 
 - Phân quyền chi tiết của hai role vận hành.
 - Tách hóa đơn.
-- Tự động xác nhận giao dịch qua webhook ngân hàng.
-- Tự động hết hạn payment đang chờ thanh toán.
+- Tích hợp VietQR, ngân hàng, ví điện tử hoặc cổng thanh toán.
+- CAS tự động theo dõi, đối soát hoặc xác minh luồng tiền thực tế.
+- Tự động hết hạn payment đang chờ xác nhận.
 - Màn hình bếp/phục vụ riêng.
 - Theo dõi trạng thái chế biến từng món.
 
@@ -37,7 +37,7 @@ Ngoài phạm vi hiện tại:
 |---|---|
 | Khách hàng | Quét QR, xem menu, gửi order, yêu cầu hủy món và yêu cầu thanh toán |
 | `ADMIN` | Quản trị cấu hình hệ thống và dữ liệu vận hành |
-| `OPERATOR` | Xử lý order, tạo VietQR và xác nhận thanh toán |
+| `OPERATOR` | Xử lý order và xác nhận trạng thái thanh toán |
 
 Khách hàng không có tài khoản đăng nhập và không phải account role. Hệ thống phân quyền tài khoản vận hành theo role `ADMIN` và `OPERATOR`; phạm vi thao tác chi tiết của hai role sẽ được chốt sau.
 
@@ -95,10 +95,10 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 ### Quy tắc nghiệp vụ
 
 - Một bàn chỉ có một QR đang hoạt động tại một thời điểm.
-- Chỉ session ở trạng thái `OPEN` mới được xem là đang chiếm dụng bàn.
-- Trạng thái bàn trống hay đang có khách được suy ra từ session `OPEN`, không lưu trong `dining_tables`.
-- Session ở trạng thái `PAYMENT_PENDING` không ngăn việc tạo một session `OPEN` mới cho cùng bàn.
-- Việc tạo session `OPEN` phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session `OPEN` tại cùng một thời điểm.
+- Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là đang chiếm dụng bàn.
+- Trạng thái bàn trống hay đang có khách được suy ra từ session đang chiếm dụng, không lưu trong `dining_tables`.
+- Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` đều chiếm dụng bàn. Chỉ khi session `CLOSED` mới được tạo session mới cho cùng bàn.
+- Việc tạo session phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm.
 - Người đầu tiên mở session bàn phải nhập tên và số điện thoại.
 - Tên và số điện thoại này được lưu trong `client_accounts`, tách riêng với `accounts` của nhân viên/admin.
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
@@ -233,7 +233,7 @@ Khách hàng gửi yêu cầu hủy một phần hoặc toàn bộ số lượng
 
 ### Mục tiêu
 
-Khách hàng báo muốn thanh toán toàn bộ các order trong phiên bàn.
+Khách hàng gửi yêu cầu thanh toán cho toàn bộ các order trong phiên bàn.
 
 ### Luồng chính
 
@@ -241,174 +241,73 @@ Khách hàng báo muốn thanh toán toàn bộ các order trong phiên bàn.
 2. Hệ thống kiểm tra session đang `OPEN`.
 3. Hệ thống kiểm tra session có ít nhất một order cần thanh toán.
 4. Hệ thống kiểm tra không còn cancellation request `PENDING`.
-5. Hệ thống chuyển session sang `PAYMENT_PENDING` và lưu `payment_requested_at`.
-6. Hệ thống thông báo yêu cầu thanh toán cho giao diện vận hành.
+5. Backend tính `amount` bằng tổng `orders.payable_amount` của session và tạo `bill_snapshot` từ dữ liệu order đã chốt.
+6. Hệ thống tạo một payment trạng thái `PENDING`.
+7. Hệ thống chuyển session sang `PAYMENT_PENDING`, lưu `payment_requested_at` và thông báo cho giao diện vận hành.
+8. Giao diện thông báo khách bắt buộc ra gặp nhân viên để hoàn tất thanh toán.
 
 ### Quy tắc nghiệp vụ
 
 - Thanh toán áp dụng cho toàn bộ các order của phiên bàn.
 - Hệ thống chưa hỗ trợ tách hóa đơn.
-- `bill_snapshot` được tạo khi nhân viên tạo payment/VietQR.
+- Mỗi table session chỉ có một payment.
+- `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; client không được cung cấp hoặc ghi đè số tiền.
+- `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
-- Nếu khách tiếp tục gọi món sau khi yêu cầu thanh toán, hệ thống tạo session `OPEN` mới cho cùng bàn, không gộp với session cũ.
-- Session `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới.
+- Session `PAYMENT_PENDING` vẫn chiếm dụng bàn; không tạo session mới cho bàn cho đến khi session hiện tại được đóng.
 - `orders` không có trạng thái riêng; trạng thái chờ thanh toán nằm ở `table_sessions.status`.
+- Hệ thống không tạo QR thanh toán và không lưu thông tin ngân hàng hoặc giao dịch tài chính.
+- Khách không thể hoàn tất luồng thanh toán chỉ trên giao diện Customer; sau khi gửi yêu cầu, khách phải gặp nhân viên.
 
-## 11. Luồng ghi nhận khách rời đi chưa thanh toán
+## 11. Luồng nhân viên xác nhận thanh toán
 
 ### Mục tiêu
 
-Ghi nhận trường hợp khách rời đi trước khi yêu cầu thanh toán hoặc trước khi nhân viên tạo QR.
-
-### Tình huống điển hình
-
-Khách gọi món xong nhưng rời khỏi quán mà chưa bấm yêu cầu thanh toán. Vì chưa có payment, hệ thống chưa có `bill_snapshot`, nhưng vẫn còn dữ liệu tính tiền trong `orders` và `order_items`.
+Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”) rồi ghi nhận yêu cầu thanh toán đã hoàn tất trong CAS.
 
 ### Luồng chính
 
-1. Nhân viên hoặc admin mở session của bàn chưa thanh toán.
-2. Người dùng chọn ghi nhận khách chưa thanh toán.
-3. Hệ thống kiểm tra session chưa thanh toán và có order.
-4. Hệ thống tạo `bill_snapshot` và tổng tiền từ `orders` và `order_items` đã chốt.
-5. Hệ thống tạo một bản ghi `unpaid_records` trạng thái `OPEN`, liên kết duy nhất với session và lưu snapshot vừa tạo.
-6. Hệ thống đóng session với `status = CLOSED` và lưu `closed_at` để giải phóng bàn.
-7. Hệ thống ghi người thực hiện, thời điểm, lý do và audit log thao tác ghi nhận khách chưa thanh toán.
-8. Khoản chưa thanh toán được đưa vào màn hình theo dõi riêng cho admin.
+1. Nhân viên mở danh sách payment đang `PENDING`.
+2. Khách ra gặp nhân viên và thực hiện chuyển khoản.
+3. Nhân viên chỉ tiếp tục khi loa báo giao dịch phát tín hiệu “ting ting”, xác nhận chuyển khoản thành công.
+4. Nhân viên chọn đúng yêu cầu và bấm xác nhận thanh toán thành công.
+5. Backend lấy tài khoản xác nhận từ access JWT.
+6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển table session sang `CLOSED` và lưu `closed_at`.
+7. Nếu session có `unpaid_records` trạng thái `OPEN`, hệ thống chuyển bản ghi đó sang `RESOLVED`.
+8. Hệ thống ghi audit log xác nhận thanh toán.
 
 ### Quy tắc nghiệp vụ
 
-- Luồng này dùng khi chưa có payment/VietQR.
-- Khoản chưa thanh toán được quản lý trong bảng `unpaid_records`, không thêm trạng thái `UNPAID` vào `table_sessions`.
-- Mỗi table session chỉ có tối đa một `unpaid_records`.
-- `unpaid_records.amount` và `unpaid_records.bill_snapshot` được chốt tại thời điểm ghi nhận và không thay đổi.
-- Không cần tạo payment ngay nếu chưa thu được tiền.
-- Khi cần tạo payment sau này, hệ thống lấy số tiền và nội dung bill từ `unpaid_records`.
-- Payment thu lại phải liên kết với `unpaid_records`.
-- Payment thu lại vẫn lưu `bill_snapshot` riêng cho lần tạo VietQR đó.
-- Khi payment được xác nhận `PAID`, `unpaid_records` chuyển sang `RESOLVED`; trạng thái đã thanh toán được xác định từ payment và khoản chưa thanh toán, không lưu trong table session.
+- Backend phải lấy tài khoản xác nhận từ access JWT, không nhận `confirmed_by` từ client.
+- Nhân viên chỉ bấm xác nhận sau khi đã xác minh tín hiệu chuyển khoản thành công từ loa báo giao dịch.
+- Confirm payment là idempotent: request lặp trên payment đã `PAID` trả trạng thái hiện tại, không đổi `confirmed_at` và không tạo audit log trùng.
+- Payment `PENDING` không tự hết hạn.
+- CAS không kết nối với loa hoặc ngân hàng và không tự xác minh giao dịch; tín hiệu “ting ting” là bước kiểm tra thủ công bên ngoài hệ thống.
+
+## 12. Luồng ghi nhận chưa thanh toán
+
+### Mục tiêu
+
+Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa được nhân viên xác nhận `PAID`.
+
+### Luồng chính
+
+1. Nhân viên mở session có order nhưng chưa thanh toán.
+2. Nhân viên chọn ghi nhận chưa thanh toán và nhập lý do nếu cần.
+3. Nếu session chưa có payment, backend tạo payment `PENDING`; `amount` và `bill_snapshot` được lấy từ dữ liệu order đã chốt.
+4. Hệ thống tạo một `unpaid_records` trạng thái `OPEN`, liên kết duy nhất với session và sao chép `amount`, `bill_snapshot` từ payment.
+5. Hệ thống đóng session để giải phóng bàn và ghi audit log.
+
+### Quy tắc nghiệp vụ
+
+- Payment vẫn giữ `PENDING`, thể hiện chưa được xác nhận thanh toán thành công.
+- Mỗi table session có tối đa một payment và một `unpaid_records`.
+- `unpaid_records` chỉ là bản ghi trạng thái chưa thanh toán phục vụ vận hành; CAS không quản lý phương thức thu tiền, đối soát hoặc giao dịch tài chính.
+- Nếu payment được nhân viên xác nhận sau đó, payment chuyển sang `PAID` và `unpaid_records` chuyển sang `RESOLVED`.
 - Không tính lại theo giá menu hiện tại.
 
-## 12. Luồng nhân viên tạo VietQR
-
-### Mục tiêu
-
-Nhân viên tạo QR thanh toán cho một phiên bàn với số tiền và nội dung chuyển khoản duy nhất.
-
-### Luồng chính
-
-1. Nhân viên mở danh sách session đang `PAYMENT_PENDING`.
-2. Nhân viên chọn session cần thanh toán.
-3. Hệ thống gom toàn bộ order trong session.
-4. Hệ thống tính tiền từ `orders.payable_amount` và tạo `bill_snapshot` từ `orders`, `order_items`, `order_item_options` cùng các yêu cầu hủy `APPROVED`.
-5. Hệ thống lấy tài khoản ngân hàng nhận tiền từ `stores`.
-6. Hệ thống sinh `reference_code` theo dạng `CAS_` + UUID.
-7. Hệ thống tạo `payments` với trạng thái `PENDING`.
-8. Backend gọi VietQR Generate API bằng tài khoản ngân hàng, số tiền và `reference_code` đã lấy từ dữ liệu server.
-9. Hệ thống lưu `qr_created_by`; `payments.created_at` là thời điểm tạo payment và VietQR.
-10. Hệ thống hiển thị VietQR trên web hoặc thiết bị của nhân viên.
-
-### Quy tắc nghiệp vụ
-
-- VietQR chỉ hiển thị trên web hoặc thiết bị của nhân viên.
-- VietQR không hiển thị trực tiếp trên web khách hàng.
-- `reference_code` là duy nhất và không tái sử dụng cho payment khác.
-- Mỗi cửa hàng dùng một tài khoản ngân hàng nhận tiền.
-- `bill_snapshot` nằm trong payment và không thay đổi trong vòng đời payment đó.
-- `payments.amount` bằng tổng `orders.payable_amount` tại thời điểm tạo snapshot.
-- Payment `PENDING` không tự hết hạn.
-- Frontend không gọi trực tiếp VietQR API và không được cung cấp số tiền, tài khoản ngân hàng hoặc nội dung chuyển khoản để backend tin cậy.
-- VietQR API chỉ sinh mã QR; kết quả thanh toán vẫn được xác nhận thủ công.
-
-## 13. Luồng xác nhận thanh toán thủ công
-
-### Mục tiêu
-
-Nhân viên xác nhận payment sau khi kiểm tra giao dịch ngân hàng.
-
-### Luồng chính
-
-1. Khách hàng chuyển khoản theo VietQR.
-2. Khách hàng báo đã chuyển khoản.
-3. Tài khoản đã tạo QR kiểm tra ứng dụng ngân hàng.
-4. Nhân viên đối chiếu số tiền và nội dung chuyển khoản.
-5. Nếu đúng, nhân viên xác nhận đã nhận tiền.
-6. Hệ thống kiểm tra tài khoản đang xác nhận trùng với `qr_created_by`.
-7. Hệ thống cập nhật payment sang `PAID`.
-8. Hệ thống lưu `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
-9. Hệ thống cập nhật table session sang `CLOSED` và lưu `closed_at`.
-10. Hệ thống ghi audit log xác nhận thanh toán.
-
-### Quy tắc nghiệp vụ
-
-- Nhân viên khác không được xác nhận thay người đã tạo QR.
-- Backend phải lấy tài khoản xác nhận từ access JWT, không nhận `confirmed_by` từ client.
-- Khi xác nhận thanh toán, `confirmed_by` phải bằng `qr_created_by`.
-- Confirm payment là idempotent: request lặp trên payment đã `PAID` trả trạng thái hiện tại, không đổi `confirmed_at` và không tạo audit log trùng.
-- Nếu chưa nhận được tiền, chuyển thiếu hoặc sai nội dung, payment giữ nguyên `PENDING`.
-- Hệ thống không tự động xác nhận giao dịch qua webhook ngân hàng.
-
-## 14. Luồng đánh dấu payment bỏ qua
-
-### Mục tiêu
-
-Cho phép nhân viên kết thúc một lần thử thanh toán không còn được sử dụng, đồng thời bảo đảm khoản còn phải thu được quản lý trong `unpaid_records`.
-
-### Luồng chính
-
-1. Nhân viên mở payment đang `PENDING`.
-2. Nhân viên chọn đánh dấu bỏ qua.
-3. Nhân viên nhập lý do nếu cần.
-4. Hệ thống cập nhật payment sang `IGNORED`.
-5. Hệ thống lưu `ignored_by`, `ignored_by_name`, `ignored_reason` và `ignored_at`.
-6. Nếu payment chưa liên kết với `unpaid_records`, hệ thống tạo một khoản chưa thanh toán `OPEN` bằng cách sao chép `amount` và `bill_snapshot` của payment.
-7. Hệ thống liên kết payment `IGNORED` với khoản chưa thanh toán.
-8. Hệ thống đóng session với `status = CLOSED` nếu session chưa đóng.
-9. Hệ thống ghi audit log thao tác đánh dấu bỏ qua.
-
-### Quy tắc nghiệp vụ
-
-- Payment `PENDING` không tự hết hạn.
-- Nhân viên không được hủy payment.
-- Đánh dấu bỏ qua không xóa payment.
-- Payment `IGNORED` không được coi là đã thanh toán.
-- `IGNORED` chỉ là trạng thái kết thúc của một lần thử thanh toán, không đại diện cho một khoản công nợ độc lập.
-- `unpaid_records` là nguồn sự thật duy nhất để theo dõi và thống kê khoản còn phải thu.
-- Payment `IGNORED` có thể được tra cứu trong lịch sử/audit nhưng không được cộng riêng vào tổng công nợ.
-- Mỗi payment `IGNORED` phải liên kết với một `unpaid_records`.
-
-## 15. Luồng tạo lại thanh toán từ payment bỏ qua
-
-### Mục tiêu
-
-Cho phép admin tạo một lần thanh toán mới cho khoản chưa thanh toán đang `OPEN`.
-
-### Tình huống điển hình
-
-Khách rời đi hoặc chưa thanh toán sau một hoặc nhiều lần tạo QR. Các payment cũ có thể đã `IGNORED`, còn khoản phải thu vẫn nằm trong một `unpaid_records` trạng thái `OPEN`.
-
-### Luồng chính
-
-1. Admin mở màn hình khoản chưa thanh toán.
-2. Admin chọn `unpaid_records` trạng thái `OPEN` cần thu lại.
-3. Hệ thống tạo payment mới trong `payments`.
-4. Hệ thống gán `unpaid_record_id` và sao chép `amount`, `bill_snapshot` bất biến từ khoản chưa thanh toán.
-5. Hệ thống sinh `reference_code` mới theo dạng `CAS_` + UUID.
-6. Backend gọi VietQR Generate API để tạo QR mới từ tài khoản ngân hàng của cửa hàng, số tiền cần thu và `reference_code` mới.
-7. Admin đưa QR mới cho khách thanh toán.
-8. Nếu nhận đúng tiền và đúng nội dung chuyển khoản, admin xác nhận payment mới là `PAID`.
-9. Hệ thống chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` và lưu `resolved_at`.
-
-### Quy tắc nghiệp vụ
-
-- Không sửa lại payment `IGNORED` gốc.
-- Payment tạo lại luôn có mã chuyển khoản và QR mới.
-- Payment mới lấy `amount` và `bill_snapshot` từ `unpaid_records`, không dựng lại từ `orders/order_items`.
-- Các payment thuộc cùng khoản phải thu được liên kết bằng `unpaid_record_id` và sắp xếp theo `created_at`.
-- Người tạo QR mới phải là người xác nhận payment mới.
-- Một khoản chưa thanh toán có thể có nhiều payment theo lịch sử nhưng chỉ được `RESOLVED` bởi payment `PAID`.
-
-## 16. Luồng đóng phiên bàn
+## 13. Luồng đóng phiên bàn
 
 ### Mục tiêu
 
@@ -416,7 +315,7 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 
 ### Luồng chính
 
-1. Payment được xác nhận `PAID`.
+1. Payment được xác nhận `PAID`, hoặc nhân viên ghi nhận session là chưa thanh toán.
 2. Hệ thống chuyển `table_sessions` sang `CLOSED`.
 3. Hệ thống lưu `closed_at`.
 4. Bàn có thể nhận session mới ở lượt khách tiếp theo.
@@ -425,15 +324,15 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 
 - Order và payment không bị xóa vật lý.
 - Session đã `CLOSED` không nhận thêm order.
-- Table session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments` và `unpaid_records`.
+- Table session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments.status`, còn `unpaid_records` ghi nhận trường hợp đóng phiên khi payment vẫn `PENDING`.
 - QR bàn vẫn là QR cố định, lượt khách tiếp theo quét cùng QR sẽ tạo hoặc nhận session mới phù hợp.
 
-## 17. Trạng thái chính
+## 14. Trạng thái chính
 
 | Entity | Trạng thái |
 |---|---|
 | Table session | `OPEN`, `PAYMENT_PENDING`, `CLOSED` |
 | Unpaid record | `OPEN`, `RESOLVED` |
-| Payment | `PENDING`, `PAID`, `IGNORED` |
+| Payment | `PENDING`, `PAID` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
 | Account | `ACTIVE`, `INACTIVE` |

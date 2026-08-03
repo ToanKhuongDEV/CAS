@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 
-import { CustomerBottomNavigation } from "../../components/customer/customer-bottom-navigation";
-import { CustomerHeader } from "../../components/customer/customer-header";
-import { CasIcon } from "../../components/ui/cas-icon";
+import { ItemQuantityControl } from "../../../../components/customer/item-quantity-control";
+import { CasIcon } from "../../../../components/ui/cas-icon";
 import { CategoryNavigation } from "./category-navigation";
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ const menuItems = [
     imageAlt: "Tô mỳ cay đặc biệt với rau nấm và nhiều topping",
     price: "55.000đ",
     badges: ["Bán chạy", "Cực cay"],
-    quantity: 0,
+    quantity: 1,
   },
   {
     categoryId: "mon-noi-bat",
@@ -53,7 +53,7 @@ const menuItems = [
     imageAlt: "Phần gà rán vàng giòn dùng kèm sốt cay",
     price: "35.000đ",
     badges: [],
-    quantity: 0,
+    quantity: 2,
   },
   {
     categoryId: "my-cay",
@@ -192,8 +192,6 @@ const menuItems = [
 export default function MenuPage() {
   return (
     <div className="min-h-screen bg-cas-surface pb-44 text-cas-on-surface transition-colors duration-200 md:pb-32">
-      <CustomerHeader cartCount={2} tableName="Bàn 05" />
-
       <main className="mx-auto w-full max-w-[75rem] px-5 pt-20 md:px-10 md:pt-24">
         <section aria-labelledby="menu-heading">
           <h1 className="sr-only" id="menu-heading">
@@ -272,7 +270,7 @@ export default function MenuPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {categoryItems.map((item) => (
+                  {categoryItems.map((item, itemIndex) => (
                     <article
                       className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4"
                       key={item.name}
@@ -283,6 +281,11 @@ export default function MenuPage() {
                           src={item.imageSrc}
                           alt={item.imageAlt}
                           fill
+                          loading={
+                            category.id === "mon-noi-bat" && itemIndex === 0
+                              ? "eager"
+                              : "lazy"
+                          }
                           sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
                         />
                         {item.badges.length > 0 ? (
@@ -315,28 +318,10 @@ export default function MenuPage() {
                             {item.price}
                           </strong>
                           {item.quantity > 0 ? (
-                            <div
-                              className="flex items-center gap-2 rounded-full bg-cas-secondary-container/20 p-1"
-                              aria-label={`Số lượng ${item.name}: ${item.quantity}`}
-                            >
-                              <button
-                                className="grid size-7 place-items-center rounded-full text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
-                                type="button"
-                                aria-label={`Giảm số lượng ${item.name}`}
-                              >
-                                <CasIcon className="size-4" name="minus" />
-                              </button>
-                              <span className="min-w-3 text-center text-xs font-extrabold">
-                                {item.quantity}
-                              </span>
-                              <button
-                                className="grid size-7 place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                                type="button"
-                                aria-label={`Tăng số lượng ${item.name}`}
-                              >
-                                <CasIcon className="size-4" name="plus" />
-                              </button>
-                            </div>
+                            <ItemQuantityControl
+                              itemName={item.name}
+                              quantity={item.quantity}
+                            />
                           ) : (
                             <button
                               className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
@@ -358,9 +343,9 @@ export default function MenuPage() {
       </main>
 
       <div className="fixed inset-x-5 bottom-24 z-40 mx-auto max-w-[34rem] md:bottom-6">
-        <button
+        <Link
           className="flex min-h-15 w-full items-center justify-between rounded-2xl bg-cas-primary px-5 text-left text-cas-on-primary shadow-[0_12px_30px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
-          type="button"
+          href="/cart"
         >
           <span className="inline-flex items-center gap-3 font-extrabold">
             <span className="grid size-9 place-items-center rounded-full bg-white/15">
@@ -368,11 +353,10 @@ export default function MenuPage() {
             </span>
             Xem món đã chọn
           </span>
-          <span className="text-xs font-semibold">2 món • 100.000đ</span>
-        </button>
+          <span className="text-xs font-semibold">4 món • 170.000đ</span>
+        </Link>
       </div>
 
-      <CustomerBottomNavigation activeItem="menu" />
     </div>
   );
 }

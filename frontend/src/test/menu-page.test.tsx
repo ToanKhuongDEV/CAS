@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import MenuPage from "../app/menu/page";
+import OrderingLayout from "../app/(customer)/(ordering)/layout";
+import MenuPage from "../app/(customer)/(ordering)/menu/page";
 
 describe("MenuPage", () => {
   it("renders the mobile-first CAS menu UI", () => {
-    render(<MenuPage />);
+    render(
+      <OrderingLayout>
+        <MenuPage />
+      </OrderingLayout>,
+    );
 
     expect(
       screen.getByRole("searchbox", { name: "Tìm kiếm món ăn" }),
@@ -42,11 +47,11 @@ describe("MenuPage", () => {
       screen.getByRole("heading", { name: "Ăn vặt thập cẩm" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Giỏ hàng có 2 món" }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "Giỏ hàng có 4 món" }),
+    ).toHaveAttribute("href", "/cart");
     expect(
-      screen.getByRole("button", { name: /xem món đã chọn/i }),
-    ).toHaveTextContent("2 món • 100.000đ");
+      screen.getByRole("link", { name: /xem món đã chọn/i }),
+    ).toHaveTextContent("4 món • 170.000đ");
     expect(screen.queryByText(/món ốc|ốc hấp|ốc xào/i)).not.toBeInTheDocument();
   });
 });

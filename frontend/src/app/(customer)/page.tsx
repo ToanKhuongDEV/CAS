@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { CustomerBottomNavigation } from "../components/customer/customer-bottom-navigation";
-import { CustomerHeader } from "../components/customer/customer-header";
-import { CasIcon } from "../components/ui/cas-icon";
+import { CustomerBottomNavigation } from "../../components/customer/customer-bottom-navigation";
+import { CustomerHeader } from "../../components/customer/customer-header";
+import { CasIcon } from "../../components/ui/cas-icon";
 
 const quickStats = [
   { value: "4.9", label: "Đánh giá" },
@@ -15,7 +15,7 @@ const menuCategories = [
   {
     title: "Mỳ cay",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
-    imageAlt: "Tô mỳ cay nóng với tôm, mực và nấm",
+    imageAlt: "Tô mỳ cay nóng với rau nấm và nhiều topping",
   },
   {
     title: "Nước giải khát",
@@ -154,7 +154,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-            {menuCategories.map((category) => (
+            {menuCategories.map((category, index) => (
               <article
                 className="group relative min-h-52 overflow-hidden rounded-[1.15rem] shadow-[0_8px_24px_var(--cas-shadow-color)] last:col-span-2 last:min-h-44 md:min-h-[23rem] md:last:col-span-1 md:last:min-h-[23rem]"
                 key={category.title}
@@ -164,6 +164,7 @@ export default function Home() {
                   src={category.imageSrc}
                   alt={category.imageAlt}
                   fill
+                  loading={index === 0 ? "eager" : "lazy"}
                   sizes="(max-width: 767px) 46vw, 24vw"
                 />
                 <span className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent" />

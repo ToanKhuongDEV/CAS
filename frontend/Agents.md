@@ -8,7 +8,7 @@ The frontend is responsible for:
 
 - Customer-facing QR menu and ordering flows.
 - Operator-facing order and payment screens.
-- Admin-facing configuration, catalog, table, account, audit, and unpaid-record screens.
+- Admin-facing configuration, catalog, table, account, audit, and unpaid-status screens.
 - Displaying current business state received from the backend.
 - Providing mobile-first experiences for Customer and Operation.
 - Providing a desktop-first web experience for Admin.
@@ -36,7 +36,9 @@ Restaurant processes the order
     ↓
 Customer requests payment
     ↓
-Operator generates VietQR
+Customer must meet the operator
+    ↓
+Operator verifies the successful transfer through the external “ting ting” speaker
     ↓
 Operator manually confirms payment
     ↓
@@ -70,7 +72,7 @@ Customer is an actor, not an `accounts.role`. The current system has no kitchen/
 - Frontend communicates only with CAS Backend.
 - State created by another device is synchronized using REST polling.
 - SSE, WebSocket, and Redis Pub/Sub are not part of the initial frontend architecture.
-- Frontend never uploads directly to Cloudinary and never calls VietQR APIs directly.
+- Frontend never uploads directly to Cloudinary.
 
 Out of scope for the current frontend unless explicitly requested:
 
@@ -500,23 +502,27 @@ Polling rules:
 
 ### 11.4. Payment
 
-The current payment flow is manually confirmed by an operator.
+The current payment-status flow is manually confirmed by an operator.
 
 - The customer requests payment.
-- The operator generates VietQR.
-- VietQR is displayed on the operator device.
-- The operator verifies the bank transaction.
+- The backend creates a `PENDING` payment whose amount equals the session's authoritative order total.
+- The customer UI instructs the customer to meet an operator to finish payment.
+- The operator verifies the successful transfer through the external “ting ting” notification speaker.
 - The operator confirms payment.
+- The backend changes the payment to `PAID`.
 - The backend closes the table session.
 
 Frontend rules:
 
 - Do not show a “paid” state before backend confirmation.
 - Do not infer payment success from elapsed time.
-- Do not infer payment success from opening a banking application.
 - Do not automatically close a table session.
-- Show the exact amount and transfer content returned by the backend.
-- Display only VietQR data returned by CAS Backend. Frontend must not call VietQR Generate API or construct an authoritative VietQR payload.
+- Show the exact amount returned by the backend.
+- Never submit a client-calculated amount as authoritative payment data.
+- Do not display or collect bank account, bank name, account-holder, transfer-reference, QR-payment, or transaction data.
+- Clearly tell the customer that they must meet an operator after requesting payment.
+- The operator confirmation UI must state that confirmation is allowed only after the external speaker reports a successful transfer.
+- Do not imply that CAS reads or integrates with the speaker; verification is a manual action outside CAS.
 - Require an explicit confirmation action from the operator.
 - Protect confirmation from accidental double clicks.
 - Show who confirmed payment when that data is available.
@@ -700,12 +706,12 @@ Use Playwright for critical flows:
 - Submit an order
 - Add more items in the same table session
 - Request payment
-- Generate or display VietQR on the operator screen
+- Show the instruction requiring the customer to meet an operator
 - Confirm payment manually
 - Finish the table session
 - Reject unauthorized operational access
 
-E2E tests should use stable test data and should not depend on production services. Cloudinary and VietQR integrations must be stubbed or run against an explicitly approved non-production environment.
+E2E tests should use stable test data and should not depend on production services. Cloudinary integration must be stubbed or run against an explicitly approved non-production environment.
 
 ### 16.3. Regression rules
 
@@ -786,7 +792,7 @@ Feature flags
 Observability configuration
 ```
 
-Do not add Cloudinary credentials, upload presets, VietQR credentials, or provider endpoints to frontend environment variables. CAS Backend owns both integrations and returns finalized media or QR data.
+Do not add Cloudinary credentials or upload presets to frontend environment variables. CAS Backend owns the integration and returns finalized media data.
 
 ---
 
@@ -823,7 +829,7 @@ Treat all browser input and external data as untrusted.
 - Use CSRF protection according to the backend authentication model.
 - Do not log sensitive payment or authentication data.
 - Do not trust role, price, total, order status, or payment status supplied only by the browser.
-- Do not call Cloudinary or VietQR APIs directly from browser code.
+- Do not call Cloudinary APIs directly from browser code.
 
 ---
 

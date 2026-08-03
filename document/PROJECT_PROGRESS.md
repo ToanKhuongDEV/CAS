@@ -15,9 +15,9 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Mô tả luồng gọi thêm món.
 - [x] Mô tả luồng yêu cầu hủy món.
 - [x] Mô tả luồng yêu cầu thanh toán.
-- [x] Mô tả luồng tạo VietQR và xác nhận thanh toán thủ công.
+- [x] Mô tả luồng tạo payment và xác nhận trạng thái thanh toán thủ công.
 - [x] Mô tả luồng ghi nhận khách rời đi chưa thanh toán.
-- [x] Mô tả luồng tạo lại payment cho khoản còn phải thu.
+- [x] Mô tả luồng xác nhận payment sau khi đã ghi nhận chưa thanh toán.
 - [x] Tổng hợp các trường hợp biên nghiệp vụ.
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 
@@ -31,12 +31,14 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Dùng `option_groups`, `option_group_items` và `order_item_options` để liên kết size/topping với đúng món.
 - [x] Hai món có cấu hình option khác nhau được lưu thành hai `order_items` khác nhau.
 - [x] Yêu cầu hủy món không sửa hoặc xóa dữ liệu order gốc.
-- [x] Bàn đang có khách được suy ra từ `table_sessions` trạng thái `OPEN`.
+- [x] Bàn đang có khách được suy ra từ `table_sessions` trạng thái `OPEN` hoặc `PAYMENT_PENDING`.
 - [x] `dining_tables` không lưu cột trạng thái.
 - [x] Khoản chưa thanh toán được quản lý trong bảng riêng `unpaid_records`.
 - [x] `unpaid_records` và `payments` đều lưu `bill_snapshot`.
-- [x] Payment `IGNORED` chỉ lưu lịch sử lần thử thanh toán; `unpaid_records` là nguồn dữ liệu công nợ.
-- [x] Người tạo VietQR phải là người xác nhận payment.
+- [x] Mỗi table session có tối đa một payment với trạng thái `PENDING` hoặc `PAID`.
+- [x] Payment được tạo khi khách yêu cầu; số tiền do backend lấy từ tổng `orders.payable_amount`.
+- [x] CAS không tạo QR thanh toán, không lưu thông tin ngân hàng và không tự theo dõi luồng tiền thực tế.
+- [x] Sau khi gửi yêu cầu, khách bắt buộc gặp nhân viên; nhân viên xác minh chuyển khoản qua loa “ting ting” rồi mới xác nhận payment `PAID`.
 - [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 
 ## 3. Các quyết định kỹ thuật đã chốt
@@ -50,11 +52,13 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Chốt authentication dùng access JWT 15 phút, refresh JWT 10 ngày và BCrypt.
 - [x] Chốt JWT là cơ chế xác thực chính và không lưu token trong `localStorage`.
 - [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
+- [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
+- [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.
 - [x] Chốt Customer và Operation theo hướng mobile-first; Admin ưu tiên web desktop.
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
 - [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
-- [x] Chốt CAS Backend gọi VietQR Generate API để sinh mã thanh toán.
+- [x] Chốt CAS Backend chỉ quản lý yêu cầu và trạng thái thanh toán, không tích hợp VietQR/ngân hàng.
 
 ## 4. Thiết kế database
 
@@ -90,16 +94,18 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Tích hợp Tailwind CSS với PostCSS.
 - [x] Xây dựng trang chào mừng CAS cho quán ăn vặt/mỳ cay bằng Tailwind CSS theo thiết kế Stitch, có giao diện sáng/tối.
 - [x] Xây dựng UI màn thực đơn Customer mobile-first theo thiết kế Stitch, hiển thị 15 món trong danh sách dài theo từng nhóm, có divider và thanh category sticky hỗ trợ vuốt cảm ứng hoặc nhấn-giữ-kéo bằng chuột, liên kết đến từng nhóm.
+- [x] Xây dựng UI giỏ hàng Customer mobile-first theo thiết kế Stitch, gồm món đang chọn, option, số lượng, ghi chú chung và tổng tiền.
+- [x] Xây dựng UI nhập tên và số điện thoại tại route QR động `/table/[token]` cho khách đầu tiên mở bàn.
 - [x] Bổ sung thao tác nhấn-giữ-kéo dọc bằng chuột và ẩn scrollbar ở cấp root cho toàn bộ các màn hình mobile-first.
 - [x] Đồng bộ cursor kéo dạng bàn tay: màu xám ở theme sáng và màu trắng ở theme tối.
-- [x] Tối ưu tải sớm ảnh LCP ở trang Welcome và Menu.
+- [x] Tối ưu tải sớm toàn bộ ảnh có khả năng nằm trong viewport đầu ở Welcome, Menu, Cart và màn nhập thông tin; khai báo smooth-scroll route transition cho Next.js.
 - [ ] Xây dựng giao diện khách quét QR và mở phiên bàn.
 - [ ] Xây dựng giao diện menu và chọn option.
 - [ ] Xây dựng giao diện gửi order và gọi thêm món.
 - [ ] Xây dựng giao diện yêu cầu hủy món.
 - [ ] Xây dựng giao diện yêu cầu thanh toán.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
-- [ ] Xây dựng giao diện tạo và xác nhận VietQR.
+- [ ] Xây dựng giao diện danh sách yêu cầu và xác nhận thanh toán.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Viết component test và end-to-end test.
 

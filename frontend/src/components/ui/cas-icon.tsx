@@ -6,15 +6,20 @@ export type CasIconName =
   | "bill"
   | "cart"
   | "fire"
+  | "info"
   | "menu"
   | "minus"
   | "payment"
+  | "phone"
   | "plus"
   | "restaurant"
   | "search"
   | "settings"
   | "sparkle"
-  | "table";
+  | "table"
+  | "trash"
+  | "user"
+  | "users";
 
 type CasIconProps = SVGProps<SVGSVGElement> & {
   name: CasIconName;
@@ -44,6 +49,12 @@ const iconPaths: Record<CasIconName, ReactNode> = {
   fire: (
     <path d="M13.5 2.8c.5 3.2-1.8 4.2-1.8 6.4 0 1.1.8 1.9 1.8 1.9 1.7 0 2.8-1.7 2.5-4.1 2.1 1.8 3.4 4.2 3.4 6.7A7.4 7.4 0 0 1 12 21a7.4 7.4 0 0 1-7.4-7.3c0-3.7 2.2-7.2 5.6-9.5-.2 3.2 1 4.6 2 4.6 1.2 0 2.1-2 1.3-6Z" />
   ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </>
+  ),
   menu: (
     <>
       <path d="M5 4v7M3 4v4a2 2 0 0 0 4 0V4M5 11v9M11 4v16M11 4c4 0 6 2 6 5v2h-6" />
@@ -56,6 +67,9 @@ const iconPaths: Record<CasIconName, ReactNode> = {
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="M3 10h18M7 15h3" />
     </>
+  ),
+  phone: (
+    <path d="M6.6 3h3l1.4 4-2 1.4a15 15 0 0 0 6.6 6.6l1.4-2 4 1.4v3A3.6 3.6 0 0 1 17.4 21C9.4 20.5 3.5 14.6 3 6.6A3.6 3.6 0 0 1 6.6 3Z" />
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   restaurant: (
@@ -85,6 +99,24 @@ const iconPaths: Record<CasIconName, ReactNode> = {
   table: (
     <>
       <path d="M4 10h16M6 10v9M18 10v9M7 5h10l2 5H5l2-5Z" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16M9 3h6l1 4H8l1-4ZM7 7l1 14h8l1-14" />
+      <path d="M10 11v6M14 11v6" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 21a7 7 0 0 1 14 0" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="9" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0M16 7.5a3 3 0 0 1 0 5.5M16 15a5 5 0 0 1 5 5" />
     </>
   ),
 };

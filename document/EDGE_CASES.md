@@ -178,42 +178,40 @@ Session đã chuyển sang `PAYMENT_PENDING` nhưng khách muốn gọi thêm m�
 ### Cách xử lý
 
 - Không nhận thêm order vào session cũ.
-- Session `PAYMENT_PENDING` không chiếm dụng bàn và không ngăn việc tạo session `OPEN` mới cho cùng bàn.
-- Nếu khách tiếp tục gọi món, hệ thống tạo session `OPEN` mới.
-- Order/payment của session mới không gộp với session cũ.
+- Session `PAYMENT_PENDING` vẫn chiếm dụng bàn.
+- Không tạo session mới cho cùng bàn cho đến khi nhân viên xác nhận payment `PAID` hoặc ghi nhận phiên là chưa thanh toán và đóng session.
 
-## 13. Người tạo QR khác người xác nhận thanh toán
+## 13. Nhân viên khác người tiếp nhận yêu cầu xác nhận thanh toán
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Nhân viên A tạo QR, nhân viên B muốn xác nhận payment.
+Nhân viên A nhìn thấy yêu cầu trước, nhưng nhân viên B là người bấm xác nhận payment.
 
 ### Cách xử lý
 
-- Không cho xác nhận thay.
+- Cho phép tài khoản vận hành hợp lệ xác nhận.
 - Backend lấy account xác nhận từ access JWT.
-- Khi confirm payment, `confirmed_by` phải bằng `qr_created_by`.
-- Nên có constraint hoặc check ở database: `confirmed_by IS NULL OR confirmed_by = qr_created_by`.
+- Không nhận `confirmed_by` từ client.
+- Lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at` và audit log.
 
-## 14. Payment pending không được thanh toán
+## 14. Payment chưa được nhân viên xác nhận
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Payment đã tạo QR nhưng khách chưa chuyển tiền, chuyển thiếu hoặc sai nội dung.
+Khách đã tạo yêu cầu thanh toán nhưng nhân viên chưa bấm xác nhận.
 
 ### Cách xử lý
 
 - Payment giữ trạng thái `PENDING`.
 - Payment `PENDING` không tự hết hạn.
-- Nhân viên không được hủy payment.
-- Nhân viên chỉ được đánh dấu payment là `IGNORED`.
-- Payment `IGNORED` không bị xóa và chỉ đại diện cho một lần thử thanh toán đã kết thúc.
-- Khi đánh dấu `IGNORED`, hệ thống tạo hoặc sử dụng một `unpaid_records` trạng thái `OPEN`, sao chép `amount` và `bill_snapshot` từ payment nếu khoản chưa thanh toán chưa tồn tại, rồi liên kết payment với khoản đó.
-- Báo cáo công nợ chỉ tính `unpaid_records`; không cộng riêng payment `IGNORED`.
+- Session giữ `PAYMENT_PENDING` và vẫn chiếm dụng bàn.
+- Giao diện Customer tiếp tục hướng dẫn khách ra gặp nhân viên.
+- Nhân viên không xác nhận `PAID` nếu chưa nghe loa báo giao dịch (“ting ting”) xác nhận chuyển khoản thành công.
+- Nếu cần đóng bàn mà chưa xác nhận `PAID`, nhân viên dùng luồng ghi nhận chưa thanh toán; payment vẫn `PENDING` và hệ thống tạo `unpaid_records`.
 
 ## 15. Khách trốn về trước khi tạo payment
 
@@ -221,7 +219,7 @@ Payment đã tạo QR nhưng khách chưa chuyển tiền, chuyển thiếu ho�
 
 ### Tình huống
 
-Khách đã gọi món, hệ thống đã có `orders` và `order_items`, nhưng khách rời đi trước khi yêu cầu thanh toán hoặc trước khi nhân viên tạo VietQR.
+Khách đã gọi món, hệ thống đã có `orders` và `order_items`, nhưng khách rời đi trước khi yêu cầu thanh toán.
 
 ### Vấn đề
 
@@ -239,82 +237,88 @@ Chi tiết option của từng dòng món vẫn còn trong `order_item_options`.
 
 ### Cách xử lý đã chốt
 
-- Không bắt buộc tạo payment ngay khi phát hiện khách rời đi chưa thanh toán.
-- Tạo một bản ghi trong bảng `unpaid_records` liên kết duy nhất với table session.
-- Tạo `bill_snapshot` và ghi nhận tổng tiền trong `unpaid_records` từ dữ liệu đã chốt của `orders` và `order_items` tại thời điểm ghi nhận khách chưa thanh toán.
+- Backend tạo một payment `PENDING` liên kết duy nhất với table session.
+- `payments.amount` được lấy từ tổng `orders.payable_amount`; không nhận số tiền từ client.
+- Tạo `bill_snapshot` từ dữ liệu order đã chốt và lưu cùng payment.
+- Tạo một `unpaid_records` liên kết duy nhất với session, sao chép `amount` và `bill_snapshot` từ payment.
 - `bill_snapshot` trong `unpaid_records` là bất biến.
 - Đóng table session để giải phóng bàn với `status = CLOSED` và lưu `closed_at`.
 - Bản ghi `unpaid_records` bắt đầu ở trạng thái `OPEN` và được đưa vào màn hình theo dõi riêng cho admin.
 - Ghi người thực hiện, thời điểm, lý do và audit log khi ghi nhận khoản chưa thanh toán.
-- Khi cần thu tiền sau, admin tạo payment mới liên kết với `unpaid_records`; `amount` và `bill_snapshot` của payment được lấy từ bản ghi chưa thanh toán đã chốt.
-- Payment vẫn lưu `bill_snapshot` riêng để ghi nhận chính xác nội dung của lần tạo VietQR đó.
-- Khi payment mới được xác nhận `PAID`, chuyển `unpaid_records` sang `RESOLVED`; không lưu cờ thanh toán trong table session.
+- Nếu payment được xác nhận sau đó, dùng chính payment của session, không tạo payment mới; đồng thời chuyển `unpaid_records` sang `RESOLVED`.
 - Không tính lại theo giá menu hiện tại.
 
-## 16. Tạo lại thanh toán sau khi payment bị ignored
+## 16. Xác nhận payment sau khi đã ghi nhận chưa thanh toán
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Payment đã từng được tạo QR nhưng bị đánh dấu `IGNORED`. Sau đó khách quay lại hoặc cửa hàng liên hệ được khách để thu tiền.
+Session đã đóng và có `unpaid_records` trạng thái `OPEN`, sau đó nhân viên xác nhận payment.
 
 ### Cách xử lý đã chốt
 
-- Không sửa payment `IGNORED` gốc.
-- Payment `IGNORED` chỉ là lịch sử của một lần thử thanh toán, không phải một khoản công nợ độc lập.
-- Payment `IGNORED` phải liên kết với một `unpaid_records` trạng thái `OPEN`.
-- Admin tạo payment mới từ `unpaid_records`, không tạo trực tiếp từ dữ liệu order hoặc coi payment cũ là nguồn công nợ.
-- Payment mới có `reference_code` mới theo dạng `CAS_` + UUID.
-- Payment mới có VietQR mới.
-- Payment mới sao chép `amount` và `bill_snapshot` bất biến từ `unpaid_records`.
-- Payment mới và các payment `IGNORED` cũ cùng liên kết với `unpaid_records`; lịch sử được sắp xếp theo `created_at`.
-- Khi payment mới được xác nhận `PAID`, hệ thống chuyển `unpaid_records` sang `RESOLVED`.
-- Báo cáo khoản còn phải thu chỉ dựa trên `unpaid_records` trạng thái `OPEN`.
+- Không tạo payment mới.
+- Trong cùng transaction, chuyển payment `PENDING` sang `PAID`, lưu thông tin người xác nhận và chuyển `unpaid_records` sang `RESOLVED`.
+- Không mở lại session đã `CLOSED`.
+- Confirm lặp phải idempotent.
 
-## 17. Trùng reference code
+## 17. Client gửi số tiền khác tổng đơn hàng
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-UUID gần như không trùng, nhưng database vẫn cần bảo vệ.
+Client gửi thêm trường số tiền hoặc dữ liệu hiển thị phía client đã cũ.
 
 ### Cách xử lý
 
-- `payments.reference_code` có unique constraint.
-- Nếu insert bị trùng, backend sinh UUID mới và thử lại.
-- Không tái sử dụng `reference_code`.
+- Backend bỏ qua hoặc từ chối trường số tiền do client cung cấp.
+- `payments.amount` luôn được tính từ tổng `orders.payable_amount` trong transaction tạo payment.
+- Nếu dữ liệu cấu thành bill thay đổi đồng thời, khóa session hoặc dùng cơ chế transaction tương đương trước khi tạo snapshot.
 
-## 18. Khách chuyển khoản đúng tiền nhưng sai nội dung
+## 18. Hai nhân viên cùng xác nhận payment
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Khách chuyển đúng số tiền nhưng nội dung chuyển khoản không khớp `reference_code`.
+Hai nhân viên bấm xác nhận gần như đồng thời.
 
 ### Cách xử lý
 
-- Nhân viên không xác nhận payment là `PAID`.
-- Payment giữ `PENDING`.
-- Nhân viên xử lý ngoài hệ thống hoặc đánh dấu `IGNORED` nếu cần bỏ qua payment này.
-- Ghi audit log nếu có thao tác bỏ qua.
+- Chuyển trạng thái bằng transaction hoặc conditional update từ `PENDING` sang `PAID`.
+- Chỉ request thắng đầu tiên ghi `confirmed_by`, `confirmed_at` và audit log.
+- Request còn lại nhận trạng thái `PAID` hiện tại và không ghi đè người xác nhận.
 
-## 19. Khách chuyển thiếu tiền
+## 18.1. Khách báo đã chuyển khoản nhưng loa chưa báo
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Khách chuyển khoản thiếu so với số tiền trên payment.
+Khách cho biết đã chuyển khoản nhưng nhân viên chưa nghe loa báo giao dịch phát tín hiệu “ting ting”.
 
 ### Cách xử lý
 
-- Không xác nhận payment là `PAID`.
-- Payment giữ `PENDING`.
-- Nhân viên yêu cầu khách chuyển đủ với đúng nội dung.
-- Nếu không xử lý tiếp payment đó, đánh dấu `IGNORED`.
+- Nhân viên chưa bấm xác nhận thanh toán thành công.
+- Payment giữ trạng thái `PENDING`.
+- CAS không tự kiểm tra ngân hàng hoặc loa báo giao dịch.
+- Nhân viên xử lý việc xác minh ngoài CAS; chỉ xác nhận khi loa đã báo chuyển khoản thành công.
+
+## 19. Mất kết nối khi gửi yêu cầu thanh toán
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Client không nhận được response và gửi lại yêu cầu thanh toán.
+
+### Cách xử lý
+
+- `payments.table_session_id` là duy nhất nên mỗi session chỉ có một payment.
+- Request lặp trả lại payment hiện tại, không tạo bản ghi thứ hai.
+- Không tạo lại `bill_snapshot` hoặc thay đổi `amount` của payment đã tồn tại.
 
 ## 20. Payment đã paid nhưng thao tác confirm bị bấm lại
 
@@ -347,8 +351,7 @@ Khách hoặc lượt khách mới quét lại QR sau khi session cũ đã `CLOS
 ## 22. Các edge case cần bổ sung sau
 
 - Mất kết nối khi đang submit order.
-- Mất kết nối khi đang tạo QR.
 - Nhân viên đổi trạng thái món trong lúc khách đang chọn option.
-- Admin đổi thông tin tài khoản ngân hàng khi đang có payment `PENDING`.
 - Bàn bị chuyển sang `INACTIVE` khi đang có session mở.
-- Khách thanh toán nhầm sang nội dung của payment cũ.
+- Nhân viên ghi nhận chưa thanh toán đồng thời với một nhân viên khác đang xác nhận payment.
+- Loa báo giao dịch mất kết nối hoặc báo chậm.

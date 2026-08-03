@@ -1,6 +1,6 @@
 # Project: CAS Backend API
 
-CAS is the backend API for a restaurant table-ordering and payment-confirmation
+CAS is the backend API for a restaurant table-ordering and payment-status
 system, serving both the customer-facing and operations interfaces. The backend
 is a modular monolith built with Java 21, Spring Boot, and Maven. It uses MyBatis
 with MySQL, supported by Redis, Flyway, Lombok, and Jakarta Bean Validation.
@@ -26,7 +26,7 @@ com.cas
 ├── store       # Store, dining tables, and table QR codes
 ├── catalog     # Categories, menu items, and options
 ├── ordering    # Table sessions, orders, and cancellation requests
-├── payment     # Payments, VietQR, and payment confirmation
+├── payment     # Payment requests and manual status confirmation
 └── operation   # Operational accounts and audit logs
 ```
 

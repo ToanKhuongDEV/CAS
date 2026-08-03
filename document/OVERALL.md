@@ -4,14 +4,14 @@
 
 CAS là hệ thống hỗ trợ số hóa quy trình gọi món và thanh toán tại cửa hàng ăn uống.
 
-Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm gọi món tại bàn bằng mã QR và thanh toán chuyển khoản bằng VietQR do nhân viên xác nhận.
+Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm gọi món tại bàn bằng mã QR và luồng yêu cầu thanh toán do nhân viên xác nhận.
 
 ## 2. Mục tiêu sản phẩm
 
 - Giúp khách hàng gọi món nhanh chóng bằng điện thoại.
 - Giảm thời gian và sai sót trong quá trình tiếp nhận order.
 - Đồng bộ quá trình xử lý món giữa khách hàng và cửa hàng.
-- Hỗ trợ thanh toán và xác nhận giao dịch thuận tiện.
+- Hỗ trợ gửi yêu cầu và ghi nhận trạng thái thanh toán thuận tiện.
 - Tạo nền tảng để mở rộng các chức năng quản lý trong tương lai.
 
 ## 3. Đối tượng sử dụng
@@ -36,7 +36,7 @@ Cửa hàng tiếp nhận và xử lý order
     ↓
 Yêu cầu thanh toán
     ↓
-Nhân viên tạo VietQR và xác nhận giao dịch
+Nhân viên xác nhận kết quả thanh toán
 ```
 
 ### 4.1. Các chức năng cần có
@@ -66,13 +66,13 @@ Nhân viên tạo VietQR và xác nhận giao dịch
 - Xem thông tin món được gọi.
 - Hoàn thành hoặc hủy order.
 
-#### Thanh toán bằng VietQR
+#### Yêu cầu và xác nhận thanh toán
 
 - Tạo yêu cầu thanh toán.
 - Thông báo yêu cầu thanh toán cho nhân viên.
-- Tạo VietQR với tài khoản ngân hàng, số tiền và nội dung chuyển khoản.
-- Hiển thị VietQR trên web hoặc thiết bị của nhân viên.
-- Nhân viên kiểm tra giao dịch và xác nhận đã nhận tiền.
+- Tự động tạo payment `PENDING` với số tiền bằng tổng phải trả của các order trong phiên bàn.
+- Yêu cầu khách ra gặp nhân viên để hoàn tất thanh toán.
+- Sau khi xác minh chuyển khoản thành công qua loa báo giao dịch (“ting ting”), nhân viên xác nhận payment thành `PAID`.
 - Cập nhật kết quả thanh toán và kết thúc phiên bàn.
 
 #### Vận hành hệ thống
@@ -118,12 +118,14 @@ Các chức năng này sẽ được xem xét trong những phiên bản sau d�
 ### 5.3. Thanh toán
 
 1. Khách hàng yêu cầu thanh toán.
-2. Hệ thống chuyển các order trong phiên bàn sang trạng thái chờ thanh toán và thông báo cho nhân viên.
-3. Nhân viên tạo VietQR trên web quản lý.
-4. Nhân viên đưa màn hình QR cho khách quét và chuyển khoản.
-5. Nhân viên kiểm tra ứng dụng ngân hàng.
-6. Nhân viên xác nhận khi đã nhận đúng số tiền và nội dung chuyển khoản.
-7. Hệ thống hoàn tất các order và phiên sử dụng bàn.
+2. Hệ thống tính tổng phải trả từ `orders.payable_amount`, tạo payment `PENDING`, chuyển phiên bàn sang chờ thanh toán và thông báo cho nhân viên.
+3. Giao diện yêu cầu khách ra gặp nhân viên để hoàn tất thanh toán.
+4. Nhân viên mở yêu cầu thanh toán trên giao diện vận hành.
+5. Khách thực hiện chuyển khoản; nhân viên xác minh chuyển khoản thành công qua loa báo giao dịch (“ting ting”).
+6. Nhân viên bấm xác nhận thanh toán thành công.
+7. Hệ thống chuyển payment sang `PAID` và hoàn tất phiên sử dụng bàn.
+
+CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ thống không tạo QR thanh toán, không lưu thông tin ngân hàng và không tích hợp với loa báo giao dịch. Việc xác minh chuyển khoản diễn ra ngoài CAS và do nhân viên chịu trách nhiệm.
 
 ## 6. Kiến trúc tổng thể
 
@@ -132,8 +134,7 @@ Hệ thống sử dụng kiến trúc modular monolith để đơn giản hóa q
 ```text
 Giao diện khách hàng ───┐
                        ├── Core Backend ── Database
-Giao diện vận hành ─────┘         │
-                                  └── VietQR
+Giao diện vận hành ─────┘
 ```
 
 ### 6.1. Các thành phần chính
@@ -144,7 +145,6 @@ Giao diện vận hành ─────┘         │
 | Giao diện vận hành | Quản lý menu, bàn, order và thanh toán |
 | Core Backend | Xử lý nghiệp vụ và tích hợp hệ thống |
 | Database | Lưu trữ dữ liệu nghiệp vụ |
-| VietQR | Tạo mã chuyển khoản theo tài khoản, số tiền và nội dung |
 | Cloudinary | Lưu trữ hình ảnh menu |
 
 Giao diện khách hàng, giao diện nhân viên vận hành và giao diện admin được xây dựng trong cùng một ứng dụng Next.js, tổ chức thành ba khu vực route và layout riêng:
@@ -170,7 +170,7 @@ CAS Frontend
 | Store & Table | Cửa hàng, bàn và QR |
 | Catalog | Danh mục và món |
 | Ordering | Phiên bàn, order, gọi thêm và yêu cầu hủy món |
-| Payment | Tạo VietQR và xác nhận thanh toán thủ công |
+| Payment | Tạo yêu cầu và ghi nhận xác nhận thanh toán |
 | Operation | Hoạt động vận hành cơ bản |
 
 Các module được tổ chức trong cùng một backend và có thể tách hoặc mở rộng khi hệ thống phát triển.
@@ -185,12 +185,11 @@ Các module được tổ chức trong cùng một backend và có thể tách h
 
 ### 6.4. Tích hợp dịch vụ ngoài
 
-- Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary hoặc VietQR API.
+- Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary.
 - Khi admin quản lý ảnh món, CAS Backend nhận file, kiểm tra quyền và upload ảnh lên Cloudinary bằng authenticated API. Backend lưu `image_url` và `image_storage_key` vào MySQL.
-- Khi nhân viên tạo QR thanh toán, CAS Backend lấy tài khoản ngân hàng, số tiền và `reference_code` từ dữ liệu tin cậy phía server rồi gọi VietQR Generate API.
-- VietQR API chỉ chịu trách nhiệm sinh mã QR, không phải nguồn xác nhận giao dịch.
-- Việc kiểm tra ứng dụng ngân hàng và xác nhận payment vẫn do nhân viên thực hiện thủ công.
-- Cloudinary và VietQR được cô lập trong infrastructure adapter; domain không phụ thuộc trực tiếp vào SDK hoặc provider.
+- Số tiền của payment được CAS Backend tính từ tổng `orders.payable_amount`; frontend không được gửi một số tiền để backend tin cậy.
+- CAS không tích hợp VietQR, dịch vụ ngân hàng hoặc loa báo giao dịch. Nhân viên dùng tín hiệu “ting ting” bên ngoài CAS để xác minh chuyển khoản trước khi bấm xác nhận; CAS chỉ cập nhật trạng thái nghiệp vụ.
+- Cloudinary được cô lập trong infrastructure adapter; domain không phụ thuộc trực tiếp vào SDK hoặc provider.
 
 ## 7. Công nghệ và thư viện
 
@@ -276,19 +275,19 @@ Cửa hàng và bàn
 Menu và món
 Phiên sử dụng bàn
 Các order và món trong order
-Thanh toán và giao dịch
+Yêu cầu và trạng thái thanh toán
 Tài khoản và dữ liệu vận hành cơ bản
 ```
 
 Thiết kế database, cấu trúc bảng và quy tắc lưu trữ sẽ được trình bày trong tài liệu chuyên biệt.
 
-## 9. Thanh toán bằng VietQR
+## 9. Yêu cầu và xác nhận thanh toán
 
-Hệ thống tạo VietQR chứa tài khoản ngân hàng của quán, số tiền chính xác và nội dung chuyển khoản duy nhất.
+Khi khách yêu cầu thanh toán, CAS tạo một payment `PENDING` cho toàn bộ phiên bàn. `payments.amount` luôn được backend lấy từ tổng `orders.payable_amount` tại thời điểm yêu cầu; client không được nhập hoặc ghi đè số tiền này.
 
-VietQR chỉ hiển thị trên web hoặc thiết bị của nhân viên. Sau khi khách chuyển khoản, nhân viên kiểm tra ứng dụng ngân hàng và xác nhận thủ công.
+Sau khi gửi yêu cầu, khách bắt buộc ra gặp nhân viên. Khách thực hiện chuyển khoản và nhân viên xác minh tiền đã vào qua loa báo giao dịch (“ting ting”), sau đó nhân viên bấm xác nhận trên giao diện vận hành để chuyển payment sang `PAID` và đóng phiên bàn. Nếu chưa xác nhận, payment giữ trạng thái `PENDING`.
 
-Hệ thống không nhận webhook hoặc tự động xác nhận giao dịch. Nếu chưa nhận đủ tiền hoặc nội dung không chính xác, các order trong phiên bàn tiếp tục chờ thanh toán.
+CAS không tạo QR thanh toán, không lưu số tài khoản, tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hoặc dữ liệu giao dịch. CAS cũng không tích hợp với loa báo giao dịch; nhân viên xác minh chuyển khoản ngoài hệ thống và CAS chỉ ghi nhận kết quả phục vụ vận hành.
 
 ## 10. Yêu cầu hệ thống tổng quan
 
@@ -311,7 +310,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 - Quản lý menu, bàn và QR.
 - Quét QR và gọi món.
 - Màn hình tiếp nhận và xử lý order.
-- Thanh toán bằng VietQR và xác nhận thủ công.
+- Yêu cầu thanh toán và xác nhận thủ công bởi nhân viên.
 - Kiểm thử và triển khai thử nghiệm tại cửa hàng.
 
 ### Giai đoạn 2 — Hoàn thiện vận hành
@@ -347,7 +346,6 @@ document/
 ├── ARCHITECTURE.md
 ├── DATABASE_DESIGN.md
 ├── API_GUIDELINES.md
-├── PAYMENT_FLOW.md
 ├── SECURITY.md
 ├── DEPLOYMENT.md
 └── ROADMAP.md
@@ -357,6 +355,6 @@ document/
 CAS tập trung vào hai năng lực cốt lõi:
 
 1. Quét QR để gọi món tại bàn.
-2. Thanh toán chuyển khoản bằng VietQR do nhân viên xác nhận.
+2. Yêu cầu thanh toán và ghi nhận kết quả do nhân viên xác nhận.
 
 Các chức năng quản trị và mở rộng khác sẽ được phát triển sau khi luồng cốt lõi được hoàn thiện và đưa vào vận hành ổn định.

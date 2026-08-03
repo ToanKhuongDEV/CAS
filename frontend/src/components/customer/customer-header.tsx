@@ -33,16 +33,16 @@ export function CustomerHeader({
           </span>
           <ThemeToggle />
           {cartCount !== undefined ? (
-            <button
+            <Link
               className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-              type="button"
+              href="/cart"
               aria-label={`Giỏ hàng có ${cartCount} món`}
             >
               <CasIcon className="size-5.5" name="cart" />
               <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-primary text-[0.6rem] font-bold text-cas-on-primary">
                 {cartCount}
               </span>
-            </button>
+            </Link>
           ) : null}
         </div>
       </div>

@@ -83,6 +83,43 @@ test("shows the CAS menu page", async ({ page }) => {
     page.getByRole("heading", { name: "Ăn vặt", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /xem món đã chọn/i }),
-  ).toContainText("2 món");
+    page.getByRole("link", { name: /xem món đã chọn/i }),
+  ).toContainText("4 món");
+});
+
+test("shows the CAS cart page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/cart");
+
+  await expect(page).toHaveTitle(/Giỏ hàng \| CAS/);
+  await expect(
+    page.getByRole("heading", { name: "Giỏ hàng của bạn" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Mỳ cay đặc biệt 7 cấp độ" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: /ghi chú chung/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Gửi món xuống bếp" }),
+  ).toBeVisible();
+  await expect(page.getByText(/đang chuẩn bị/i)).toHaveCount(0);
+});
+
+test("shows the customer information page from a table QR token", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/table/demo-qr-token");
+
+  await expect(page).toHaveTitle(/Thông tin bàn \| CAS/);
+  await expect(
+    page.getByRole("heading", { name: "Thông tin bàn 05" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Tên của bạn")).toBeVisible();
+  await expect(page.getByLabel("Số điện thoại")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Vào thực đơn" }),
+  ).toBeVisible();
 });
