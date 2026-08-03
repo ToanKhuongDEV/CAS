@@ -174,13 +174,13 @@ export default function CartPage() {
               Chọn thêm món
             </Link>
           </div>
-          <button
+          <Link
             className="mt-2 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
-            type="button"
+            href="/orders"
           >
             <CasIcon className="size-5" name="restaurant" />
             Gửi món xuống bếp
-          </button>
+          </Link>
         </div>
       </div>
 

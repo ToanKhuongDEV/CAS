@@ -24,6 +24,7 @@ const categories = [
 const menuItems = [
   {
     categoryId: "mon-noi-bat",
+    detailSlug: "my-cay-dac-biet",
     name: "Mỳ cay đặc biệt 7 cấp độ",
     description:
       "Sợi mỳ dai ngon quyện cùng nước dùng chua cay đậm đà, rau nấm và topping hấp dẫn.",
@@ -35,6 +36,7 @@ const menuItems = [
   },
   {
     categoryId: "mon-noi-bat",
+    detailSlug: "tra-sua-tran-chau-duong-den",
     name: "Trà sữa Trân châu Đường đen",
     description:
       "Vị trà thơm dịu, sữa béo vừa phải cùng trân châu đường đen mềm dẻo.",
@@ -46,6 +48,7 @@ const menuItems = [
   },
   {
     categoryId: "mon-noi-bat",
+    detailSlug: undefined,
     name: "Gà rán giòn rụm",
     description:
       "Lớp vỏ vàng giòn, thịt gà mềm mọng, dùng kèm sốt cay đặc trưng của quán.",
@@ -57,6 +60,7 @@ const menuItems = [
   },
   {
     categoryId: "my-cay",
+    detailSlug: "my-cay-xuc-xich-pho-mai",
     name: "Mỳ cay xúc xích phô mai",
     description:
       "Mỳ cay thơm béo với xúc xích, phô mai tan chảy, rau nấm và nước dùng đậm vị.",
@@ -68,6 +72,7 @@ const menuItems = [
   },
   {
     categoryId: "my-cay",
+    detailSlug: "my-cay-nam-rau-cu",
     name: "Mỳ cay nấm rau củ",
     description:
       "Phiên bản thanh nhẹ với nhiều loại nấm, rau xanh và nước dùng chua cay vừa vị.",
@@ -79,6 +84,7 @@ const menuItems = [
   },
   {
     categoryId: "ga-ran",
+    detailSlug: undefined,
     name: "Gà sốt cay Hàn Quốc",
     description:
       "Gà rán giòn áo sốt cay ngọt, phủ mè rang thơm và hành lá.",
@@ -90,6 +96,7 @@ const menuItems = [
   },
   {
     categoryId: "ga-ran",
+    detailSlug: undefined,
     name: "Gà popcorn lắc phô mai",
     description:
       "Gà viên nhỏ giòn tan, phủ bột phô mai đậm đà, tiện dùng cùng bạn bè.",
@@ -101,6 +108,7 @@ const menuItems = [
   },
   {
     categoryId: "tra-sua",
+    detailSlug: "tra-sua-truyen-thong",
     name: "Trà sữa truyền thống",
     description:
       "Trà đậm thơm kết hợp cùng sữa béo nhẹ, vị ngọt hài hòa và dễ uống.",
@@ -112,6 +120,7 @@ const menuItems = [
   },
   {
     categoryId: "tra-sua",
+    detailSlug: "tra-sua-matcha",
     name: "Trà sữa matcha",
     description:
       "Matcha thơm dịu hòa cùng sữa tươi và lớp kem béo mịn.",
@@ -123,6 +132,7 @@ const menuItems = [
   },
   {
     categoryId: "ca-phe",
+    detailSlug: "ca-phe-sua-da",
     name: "Cà phê sữa đá",
     description:
       "Cà phê rang đậm pha cùng sữa đặc, phục vụ với đá mát lạnh.",
@@ -134,6 +144,7 @@ const menuItems = [
   },
   {
     categoryId: "ca-phe",
+    detailSlug: undefined,
     name: "Bạc xỉu",
     description:
       "Vị sữa thơm béo nổi bật, điểm thêm cà phê nhẹ nhàng và đá lạnh.",
@@ -145,6 +156,7 @@ const menuItems = [
   },
   {
     categoryId: "nuoc-giai-khat",
+    detailSlug: "matcha-latte",
     name: "Matcha latte",
     description:
       "Matcha thanh nhẹ kết hợp sữa tươi, tạo vị béo dịu và hậu vị thơm.",
@@ -156,6 +168,7 @@ const menuItems = [
   },
   {
     categoryId: "nuoc-giai-khat",
+    detailSlug: undefined,
     name: "Nước chanh dây",
     description:
       "Chanh dây chua ngọt, thơm mát, thích hợp dùng cùng các món cay.",
@@ -167,6 +180,7 @@ const menuItems = [
   },
   {
     categoryId: "nuoc-giai-khat",
+    detailSlug: undefined,
     name: "Soda dâu",
     description:
       "Soda mát lạnh hòa cùng vị dâu chua ngọt và hương thơm trái cây.",
@@ -178,6 +192,7 @@ const menuItems = [
   },
   {
     categoryId: "an-vat",
+    detailSlug: undefined,
     name: "Ăn vặt thập cẩm",
     description:
       "Phần ăn vặt gồm khoai tây chiên, cá viên và các món xiên chiên giòn.",
@@ -308,7 +323,16 @@ export default function MenuPage() {
 
                       <div className="flex min-w-0 flex-col">
                         <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
-                          {item.name}
+                          {item.detailSlug ? (
+                            <Link
+                              className="rounded-sm transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                              href={`/menu/${item.detailSlug}`}
+                            >
+                              {item.name}
+                            </Link>
+                          ) : (
+                            item.name
+                          )}
                         </h3>
                         <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
                           {item.description}
@@ -322,6 +346,14 @@ export default function MenuPage() {
                               itemName={item.name}
                               quantity={item.quantity}
                             />
+                          ) : item.detailSlug ? (
+                            <Link
+                              className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                              href={`/menu/${item.detailSlug}`}
+                              aria-label={`Chọn tùy chọn cho ${item.name}`}
+                            >
+                              <CasIcon className="size-5" name="plus" />
+                            </Link>
                           ) : (
                             <button
                               className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"

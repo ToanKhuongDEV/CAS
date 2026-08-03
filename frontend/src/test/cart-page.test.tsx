@@ -35,8 +35,8 @@ describe("CartPage", () => {
       screen.getByRole("link", { name: "Chọn thêm món" }),
     ).toHaveAttribute("href", "/menu");
     expect(
-      screen.getByRole("button", { name: "Gửi món xuống bếp" }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "Gửi món xuống bếp" }),
+    ).toHaveAttribute("href", "/orders");
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
   });
 });
