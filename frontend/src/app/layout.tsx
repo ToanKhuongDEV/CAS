@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { GlobalDragScroll } from "../components/ui/global-drag-scroll";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen min-w-80 bg-cas-surface font-sans text-cas-on-surface antialiased">
-        {children}
+        <GlobalDragScroll>{children}</GlobalDragScroll>
       </body>
     </html>
   );

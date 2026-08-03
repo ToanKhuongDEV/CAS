@@ -2,6 +2,38 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+[data-drag-scroll-root],
+[data-drag-scroll-axis="x"] {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V7a2 2 0 0 0-4 0v4V5a2 2 0 0 0-4 0v6V7a2 2 0 0 0-4 0v7l-1-1a2 2 0 0 0-3 2l2 3c1.5 2.5 4 4 7 4h1c5 0 8-3 8-8V9a2 2 0 0 0-2-2'%3E%3C/path%3E%3C/svg%3E")
+      12 12,
+    grab;
+}
+
+html[data-theme="dark"] [data-drag-scroll-root],
+html[data-theme="dark"] [data-drag-scroll-axis="x"] {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V7a2 2 0 0 0-4 0v4V5a2 2 0 0 0-4 0v6V7a2 2 0 0 0-4 0v7l-1-1a2 2 0 0 0-3 2l2 3c1.5 2.5 4 4 7 4h1c5 0 8-3 8-8V9a2 2 0 0 0-2-2'%3E%3C/path%3E%3C/svg%3E")
+      12 12,
+    grab;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 @theme inline {
   --color-cas-primary: var(--cas-primary);
   --color-cas-primary-hover: var(--cas-primary-hover);

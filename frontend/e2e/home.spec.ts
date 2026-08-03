@@ -17,4 +17,72 @@ test("shows the CAS welcome page", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("Mỳ cay", { exact: true })).toBeVisible();
   await expect(page.getByText("Gà rán", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("[data-drag-scroll-root]"),
+  ).toHaveAttribute("data-drag-scroll-ready", "true");
+
+  await page.mouse.move(10, 700);
+  await page.mouse.down();
+  await page.mouse.move(10, 300, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.scrollY > 0)).toBe(true);
+});
+
+test("shows the CAS menu page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/menu");
+
+  await expect(page).toHaveTitle(/Thực đơn \| CAS/);
+  await expect(
+    page.getByRole("searchbox", { name: "Tìm kiếm món ăn" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Mỳ cay đặc biệt 7 cấp độ" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Gà rán giòn rụm" }),
+  ).toBeVisible();
+  const categoryNavigation = page.getByRole("navigation", {
+    name: "Đi đến danh mục món",
+  });
+  await expect(categoryNavigation).toHaveCSS("position", "sticky");
+  const categoryScroller = categoryNavigation.locator("div");
+  await expect
+    .poll(() =>
+      categoryScroller.evaluate(
+        (element) => element.scrollWidth > element.clientWidth,
+      ),
+    )
+    .toBe(true);
+  const categoryScrollerBox = await categoryScroller.boundingBox();
+
+  if (!categoryScrollerBox) {
+    throw new Error("Không xác định được kích thước thanh category");
+  }
+
+  const categoryScrollerY =
+    categoryScrollerBox.y + categoryScrollerBox.height / 2;
+
+  await page.mouse.move(
+    categoryScrollerBox.x + categoryScrollerBox.width - 24,
+    categoryScrollerY,
+  );
+  await page.mouse.down();
+  await page.mouse.move(categoryScrollerBox.x + 40, categoryScrollerY, {
+    steps: 8,
+  });
+  await page.mouse.up();
+  await expect
+    .poll(() =>
+      categoryScroller.evaluate((element) => element.scrollLeft > 0),
+    )
+    .toBe(true);
+  await page.getByRole("link", { name: "Ăn vặt" }).click();
+  await expect(page).toHaveURL(/#an-vat$/);
+  await expect(
+    page.getByRole("heading", { name: "Ăn vặt", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /xem món đã chọn/i }),
+  ).toContainText("2 món");
 });

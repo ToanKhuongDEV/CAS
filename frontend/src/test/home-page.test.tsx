@@ -13,7 +13,7 @@ describe("Home", () => {
     expect(screen.getByText("Bàn 05")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /bắt đầu gọi món/i }),
-    ).toHaveAttribute("href", "#menu-preview");
+    ).toHaveAttribute("href", "/menu");
     expect(
       screen.getByRole("heading", { name: "Khám phá thực đơn" }),
     ).toBeInTheDocument();
