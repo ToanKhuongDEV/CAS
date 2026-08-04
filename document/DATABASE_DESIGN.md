@@ -54,7 +54,6 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - `updated_at` dùng `DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)`.
 - Các cột `display_order` dùng `DEFAULT 0`.
 - `option_group_items.is_default` dùng `DEFAULT FALSE`.
-- `tags` dùng trạng thái mặc định `ACTIVE`.
 - `stores`, `table_qr_codes`, `categories`, `option_groups`, `option_group_items` và `accounts` dùng trạng thái mặc định `ACTIVE`.
 - `menu_items.availability_status`, trạng thái session, cancellation request, unpaid record và payment phải được Java truyền rõ khi tạo, không dùng giá trị mặc định trong database.
 - `dining_tables` không có cột trạng thái.
@@ -211,7 +210,6 @@ Lưu các nhãn dùng chung trong phạm vi cửa hàng, ví dụ `Bán chạy` 
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nhãn |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu nhãn |
 | `name` | `VARCHAR(150) NOT NULL` | Tên nhãn |
-| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -236,15 +234,12 @@ Lưu nhóm lựa chọn của món như kích thước, topping, độ ngọt ho
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nhóm lựa chọn |
 | `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Món áp dụng |
 | `name` | `VARCHAR(150) NOT NULL` | Tên nhóm lựa chọn |
-| `selection_type` | `VARCHAR(20) NOT NULL` | Kiểu chọn `SINGLE` hoặc `MULTIPLE` |
-| `min_select` | `SMALLINT UNSIGNED NOT NULL DEFAULT 0` | Số lựa chọn tối thiểu |
 | `max_select` | `SMALLINT UNSIGNED NULL` | Số lựa chọn tối đa; `NULL` nghĩa là không giới hạn |
-| `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Nhóm bắt buộc được xác định bằng `min_select > 0`, không lưu thêm `is_required`. Với nhóm size, hệ thống chọn một giá trị mặc định được cấu hình trong `option_group_items`. Với nhóm topping, `max_select` có thể để trống để biểu thị không giới hạn số lựa chọn.
+Kiểu lựa chọn không được lưu trong database mà suy ra từ `max_select`: `max_select = 1` là `SINGLE`; mọi trường hợp còn lại, gồm `max_select > 1` hoặc `NULL`, là `MULTIPLE`. Backend trả trường suy ra `selectionType` cho frontend: `SINGLE` hiển thị radio, còn `MULTIPLE` hiển thị checkbox. Với nhóm size, hệ thống chọn một giá trị mặc định được cấu hình trong `option_group_items`. Với nhóm topping, `max_select` có thể để trống để biểu thị không giới hạn số lựa chọn.
 
 #### `option_group_items`
 
@@ -384,7 +379,7 @@ order_item_options.total_amount
 = unit_price × quantity_per_item × order_items.quantity
 ```
 
-Với nhóm `SINGLE`, một dòng món có đúng một option và `quantity_per_item = 1`. Với nhóm `MULTIPLE`, `min_select`/`max_select` được kiểm tra trên tổng `quantity_per_item` trong nhóm.
+Với nhóm `SINGLE`, tổng `quantity_per_item` trong một nhóm không vượt quá 1. Với nhóm `MULTIPLE`, `max_select` được kiểm tra trên tổng `quantity_per_item` trong nhóm khi giá trị này không phải `NULL`.
 
 Hệ thống không lưu ghi chú riêng trong `order_items` hoặc `order_item_options`. Ghi chú tự do của khách chỉ được lưu một lần tại `orders.note`.
 
@@ -694,7 +689,6 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Unpaid record | `OPEN`, `RESOLVED` |
 | Category | `ACTIVE`, `INACTIVE` |
 | Menu item | `AVAILABLE`, `SOLD_OUT`, `INACTIVE` |
-| Tag | `ACTIVE`, `INACTIVE` |
 | Option group | `ACTIVE`, `INACTIVE` |
 | Option group item | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
@@ -741,7 +735,7 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - Giá trị hợp lệ và quy tắc chuyển đổi của tất cả trạng thái.
 - `categories.category_type` chỉ nhận `REGULAR` hoặc `OPTION`.
 - `option_groups.menu_item_id` phải trỏ tới menu item thuộc category loại `REGULAR`; option không được có option group con.
-- `option_groups.min_select >= 0`; `max_select IS NULL OR max_select >= min_select`; nhóm `SINGLE` có `max_select = 1`.
+- `option_groups.max_select` phải là `NULL`, `1` hoặc lớn hơn `1`; `max_select = 1` được suy ra là nhóm `SINGLE`, các giá trị còn lại là `MULTIPLE`.
 - `option_group_items.option_menu_item_id` phải trỏ tới menu item thuộc category loại `OPTION`.
 - Mỗi option group có tối đa một option mặc định và option đó phải thuộc nhóm đang hoạt động. Quy tắc này không có unique constraint trong database.
 - Giá tiền không âm, số lượng lớn hơn 0 và `orders.payable_amount <= orders.original_amount`.
@@ -766,9 +760,9 @@ Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng
 
 - `categories(store_id, category_type, status, display_order)`.
 - `menu_items(category_id, availability_status, display_order)`.
-- `tags(store_id, status, name)`.
+- `tags(store_id, name)`.
 - `menu_item_tags` dùng primary key `(menu_item_id, tag_id)` và index `(tag_id)` để truy vấn hai chiều.
-- `option_groups(menu_item_id, status, display_order)`.
+- `option_groups(menu_item_id, status)`.
 - `option_group_items(option_group_id, status, display_order)`.
 
 Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Index cho payment, unpaid record, order, cancellation request, audit log, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
@@ -807,6 +801,7 @@ Thiết kế hiện tại chưa bao gồm:
 - `orders.original_amount` là tổng tiền ban đầu và bất biến; `orders.payable_amount` là số tiền còn phải trả sau các yêu cầu hủy `APPROVED`.
 - Option là `menu_items` thuộc category loại `OPTION`; không dùng bảng `option_values`.
 - `option_group_items` xác định option nào được phép chọn cho từng nhóm của món; `order_item_options` lưu option thực tế của từng dòng món.
+- `option_groups` không lưu `selection_type`; backend suy ra và trả `selectionType` từ `max_select`: `SINGLE` khi bằng `1`, ngược lại là `MULTIPLE`, để frontend hiển thị radio hoặc checkbox tương ứng.
 - Giá món chính nằm ở `order_items.unit_price`; giá option nằm ở `order_item_options.unit_price`; `order_items.options_amount` là tổng giá option trên một đơn vị món.
 - Hai món có cấu hình option khác nhau phải nằm ở hai `order_items` khác nhau.
 - Thanh toán toàn bộ các order của phiên bàn, chưa hỗ trợ tách hóa đơn.

@@ -28,20 +28,6 @@ Khách quét QR nhưng token không tồn tại, đã bị thu hồi hoặc khô
 - Hiển thị thông báo QR không hợp lệ.
 - Ghi log lỗi nếu cần theo dõi vận hành.
 
-## 4. Bàn bị inactive
-
-**Trạng thái:** Đã chốt
-
-### Tình huống
-
-QR hợp lệ nhưng bàn đang `INACTIVE`.
-
-### Cách xử lý
-
-- Không cho tạo session mới.
-- Hiển thị thông báo bàn tạm thời không phục vụ.
-- Chỉ admin được kích hoạt lại bàn nếu muốn nhận khách.
-
 ## 5. Nhiều thiết bị cùng quét một QR
 
 **Trạng thái:** Đã chốt
@@ -352,6 +338,5 @@ Khách hoặc lượt khách mới quét lại QR sau khi session cũ đã `CLOS
 
 - Mất kết nối khi đang submit order.
 - Nhân viên đổi trạng thái món trong lúc khách đang chọn option.
-- Bàn bị chuyển sang `INACTIVE` khi đang có session mở.
 - Nhân viên ghi nhận chưa thanh toán đồng thời với một nhân viên khác đang xác nhận payment.
 - Loa báo giao dịch mất kết nối hoặc báo chậm.

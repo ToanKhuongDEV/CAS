@@ -34,7 +34,7 @@ Ngày cập nhật gần nhất: 2026-08-04
 - [x] Hai món có cấu hình option khác nhau được lưu thành hai `order_items` khác nhau.
 - [x] Yêu cầu hủy món không sửa hoặc xóa dữ liệu order gốc.
 - [x] Bàn đang có khách được suy ra từ `table_sessions` trạng thái `OPEN` hoặc `PAYMENT_PENDING`.
-- [x] `dining_tables` không lưu cột trạng thái.
+- [x] `dining_tables` không lưu cột trạng thái; bàn không có trạng thái `ACTIVE` hoặc `INACTIVE`.
 - [x] Khoản chưa thanh toán được quản lý trong bảng riêng `unpaid_records`.
 - [x] `unpaid_records` và `payments` đều lưu `bill_snapshot`.
 - [x] Mỗi table session có tối đa một payment với trạng thái `PENDING` hoặc `PAID`.

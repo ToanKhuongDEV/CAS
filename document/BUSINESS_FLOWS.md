@@ -120,8 +120,9 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 2. Hệ thống lấy danh sách `categories` đang hiển thị.
 3. Hệ thống lấy danh sách `menu_items` thuộc category loại `REGULAR`.
 4. Với từng món, hệ thống lấy các `tags` qua `menu_item_tags`, các `option_groups`, `option_group_items` và các `menu_items` loại option được phép chọn.
-5. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món và các option nếu có.
-6. Khách hàng chọn món và tùy chọn.
+5. Hệ thống suy ra `selectionType` của từng option group từ `max_select`: `SINGLE` khi giá trị bằng `1`, ngược lại là `MULTIPLE`.
+6. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món, các option và `selectionType` nếu có.
+7. Khách hàng chọn món và tùy chọn.
 
 ### Quy tắc nghiệp vụ
 
@@ -129,6 +130,7 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 - Món `INACTIVE` không hiển thị cho khách.
 - Category loại `OPTION` và các menu item trong đó không hiển thị như món chính; chúng chỉ xuất hiện qua option group của món được liên kết.
 - Giá cộng thêm của option lấy từ `menu_items.price` của option.
+- Frontend hiển thị option group `SINGLE` bằng radio và `MULTIPLE` bằng checkbox, dựa trên `selectionType` do backend trả về.
 - Mỗi món chỉ có một ảnh.
 - Giá tại thời điểm khách gửi order sẽ được ghi lại vào `order_items`, không phụ thuộc vào giá menu thay đổi sau đó.
 
@@ -146,7 +148,7 @@ Khách hàng gửi một order mới trong session bàn.
 4. Khách hàng gửi order kèm một `idempotency_key` duy nhất cho lần submit đó.
 5. Hệ thống kiểm tra session còn `OPEN`.
 6. Hệ thống kiểm tra món chính còn bán; mọi liên kết option còn `ACTIVE`, thuộc option group của đúng món và menu item option còn `AVAILABLE`.
-7. Hệ thống kiểm tra số lựa chọn trong từng nhóm theo `selection_type`, `min_select` và `max_select`.
+7. Hệ thống kiểm tra số lựa chọn trong từng nhóm theo `max_select`; `max_select = 1` tương ứng `SINGLE`, các giá trị còn lại tương ứng `MULTIPLE`.
 8. Backend chuẩn hóa payload order và tính `request_fingerprint`.
 9. Hệ thống tạo một bản ghi `orders`, lưu `idempotency_key` và `request_fingerprint`.
 10. Hệ thống tạo các dòng `order_items`.
@@ -175,7 +177,7 @@ Khách hàng gửi một order mới trong session bàn.
 
 - Session không còn `OPEN`: không cho gửi order.
 - Món hết hàng hoặc không tồn tại: từ chối dòng món tương ứng.
-- Option bắt buộc chưa chọn hoặc vượt quá `max_select`: không cho gửi order.
+- Số option vượt quá `max_select`: không cho gửi order.
 - Option không liên kết với món qua `option_group_items`: không cho gửi order.
 
 ## 8. Luồng gọi thêm món
