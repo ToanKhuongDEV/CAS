@@ -81,6 +81,7 @@ Ngày cập nhật gần nhất: 2026-08-04
 ## 5. Backend
 
 - [x] Khởi tạo dự án Java 21, Spring Boot và Maven.
+- [x] Thêm Maven Wrapper cho backend.
 - [x] Cấu hình MySQL, Redis, MyBatis và Flyway.
 - [ ] Xây dựng module Store & Table.
 - [ ] Xây dựng module Catalog.
