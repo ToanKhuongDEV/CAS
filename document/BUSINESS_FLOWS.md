@@ -23,7 +23,7 @@ Các luồng thuộc phạm vi hiện tại:
 
 Ngoài phạm vi hiện tại:
 
-- Phân quyền chi tiết của hai role vận hành.
+- Ma trận phân quyền chi tiết theo từng API.
 - Tách hóa đơn.
 - Tích hợp VietQR, ngân hàng, ví điện tử hoặc cổng thanh toán.
 - CAS tự động theo dõi, đối soát hoặc xác minh luồng tiền thực tế.
@@ -36,10 +36,10 @@ Ngoài phạm vi hiện tại:
 | Tác nhân | Mô tả |
 |---|---|
 | Khách hàng | Quét QR, xem menu, gửi order, yêu cầu hủy món và yêu cầu thanh toán |
-| `ADMIN` | Quản trị cấu hình hệ thống và dữ liệu vận hành |
-| `OPERATOR` | Xử lý order và xác nhận trạng thái thanh toán |
+| `ADMIN` | Thực hiện toàn bộ chức năng quản trị cấu hình hệ thống và dữ liệu |
+| `OPERATOR` | Chỉ xử lý nghiệp vụ vận hành như order và xác nhận trạng thái thanh toán |
 
-Khách hàng không có tài khoản đăng nhập và không phải account role. Hệ thống phân quyền tài khoản vận hành theo role `ADMIN` và `OPERATOR`; phạm vi thao tác chi tiết của hai role sẽ được chốt sau.
+Khách hàng không có tài khoản đăng nhập và không phải account role. Mọi chức năng quản trị chỉ dành cho `ADMIN`. `OPERATOR` không được truy cập chức năng quản trị và chỉ được thực hiện các nghiệp vụ vận hành thuộc phạm vi được cấp.
 
 Tài khoản nội bộ của quán được lưu trong `accounts`. Thông tin khách hàng nhập khi mở bàn được lưu riêng trong `client_accounts`.
 
@@ -71,7 +71,7 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
 - Hệ thống không giới hạn số thiết bị đăng nhập và không quản lý cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
 - Access JWT và refresh JWT không được lưu trong `localStorage`; cơ chế vận chuyển và lưu token cụ thể sẽ được chốt trong API contract.
-- Phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` sẽ được chốt sau.
+- Backend phải kiểm tra role trên mọi API được bảo vệ: API quản trị chỉ cho phép `ADMIN`; API vận hành chỉ cho phép role có quyền vận hành theo API contract.
 
 ## 5. Luồng quét QR và mở phiên bàn
 
@@ -119,8 +119,8 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 1. Khách hàng mở menu từ session bàn.
 2. Hệ thống lấy danh sách `categories` đang hiển thị.
 3. Hệ thống lấy danh sách `menu_items` thuộc category loại `REGULAR`.
-4. Với từng món, hệ thống lấy `option_groups`, `option_group_items` và các `menu_items` loại option được phép chọn.
-5. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, trạng thái còn/hết món và các option nếu có.
+4. Với từng món, hệ thống lấy các `tags` qua `menu_item_tags`, các `option_groups`, `option_group_items` và các `menu_items` loại option được phép chọn.
+5. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món và các option nếu có.
 6. Khách hàng chọn món và tùy chọn.
 
 ### Quy tắc nghiệp vụ

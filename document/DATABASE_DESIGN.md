@@ -54,6 +54,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - `updated_at` dùng `DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)`.
 - Các cột `display_order` dùng `DEFAULT 0`.
 - `option_group_items.is_default` dùng `DEFAULT FALSE`.
+- `tags` dùng trạng thái mặc định `ACTIVE`.
 - `stores`, `table_qr_codes`, `categories`, `option_groups`, `option_group_items` và `accounts` dùng trạng thái mặc định `ACTIVE`.
 - `menu_items.availability_status`, trạng thái session, cancellation request, unpaid record và payment phải được Java truyền rõ khi tạo, không dùng giá trị mặc định trong database.
 - `dining_tables` không có cột trạng thái.
@@ -67,6 +68,8 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | QR | `table_qr_codes` | Mã QR của bàn |
 | Menu | `categories` | Danh mục món |
 | Menu | `menu_items` | Thông tin món |
+| Menu | `tags` | Nhãn có thể gắn cho món hoặc option |
+| Menu | `menu_item_tags` | Liên kết nhiều-nhiều giữa món và nhãn |
 | Menu | `option_groups` | Nhóm lựa chọn của món |
 | Menu | `option_group_items` | Liên kết nhóm lựa chọn với menu item loại option |
 | Phiên bàn | `table_sessions` | Lượt sử dụng bàn |
@@ -98,6 +101,8 @@ stores
   │
   ├── categories
   │     └── menu_items
+  │            └── menu_item_tags
+  │                    └── tags
   │
   │   menu_items (REGULAR)
   │     └── option_groups
@@ -139,8 +144,7 @@ Lưu thông tin bàn.
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bàn |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
-| `code` | `VARCHAR(50) NOT NULL` | Mã bàn |
-| `name` | `VARCHAR(100) NOT NULL` | Tên hiển thị |
+| `code` | `INT UNSIGNED NOT NULL` | Mã bàn |
 | `capacity` | `SMALLINT UNSIGNED NULL` | Số chỗ dự kiến |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
@@ -197,6 +201,31 @@ Lưu thông tin món.
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+#### `tags`
+
+Lưu các nhãn dùng chung trong phạm vi cửa hàng, ví dụ `Bán chạy` hoặc `Món mới`.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nhãn |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu nhãn |
+| `name` | `VARCHAR(150) NOT NULL` | Tên nhãn |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+#### `menu_item_tags`
+
+Liên kết nhiều-nhiều giữa `menu_items` và `tags`. Một menu item có thể có nhiều tag và một tag có thể được gắn cho nhiều menu item.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Menu item được gắn nhãn |
+| `tag_id` | `BIGINT UNSIGNED NOT NULL` | Nhãn được gắn |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm gắn nhãn |
+
+Hệ thống không giới hạn tag theo `category_type`; tag có thể gắn với bất kỳ bản ghi nào trong `menu_items`.
 
 #### `option_groups`
 
@@ -512,7 +541,7 @@ Nếu nhân viên cần đóng phiên khi payment chưa được xác nhận, h�
 
 #### `accounts`
 
-Lưu tài khoản đăng nhập hệ thống. Authentication phân quyền theo role, chưa có permission chi tiết.
+Lưu tài khoản đăng nhập hệ thống. Authentication và authorization được phân chia theo role.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -529,10 +558,10 @@ Lưu tài khoản đăng nhập hệ thống. Authentication phân quyền theo 
 
 Các role cơ bản:
 
-- `ADMIN`: quản trị cấu hình hệ thống và dữ liệu vận hành.
-- `OPERATOR`: xử lý order và xác nhận trạng thái thanh toán.
+- `ADMIN`: thực hiện toàn bộ chức năng quản trị cấu hình hệ thống và dữ liệu.
+- `OPERATOR`: chỉ xử lý nghiệp vụ vận hành như order và xác nhận trạng thái thanh toán.
 
-Khách hàng không có tài khoản đăng nhập và không phải một giá trị của `accounts.role`. Hệ thống chưa triển khai permission chi tiết cho `ADMIN` và `OPERATOR`.
+Khách hàng không có tài khoản đăng nhập và không phải một giá trị của `accounts.role`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập các chức năng này.
 
 Authentication sử dụng JWT:
 
@@ -541,7 +570,7 @@ Authentication sử dụng JWT:
 - Không giới hạn số thiết bị đăng nhập và không lưu cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
 - Password được băm bằng BCrypt; password đầu vào phải dài hơn 8 ký tự, có ít nhất một chữ cái và một chữ số.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
-- Phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` sẽ được chốt sau.
+- Backend phải kiểm tra role trên mọi API được bảo vệ; ma trận quyền chi tiết theo từng API được xác định trong API contract.
 
 #### `client_accounts`
 
@@ -637,6 +666,8 @@ Audit log chỉ được ghi cho các thao tác quan trọng cần truy vết, k
 | Dining table — Table session | Một - nhiều theo thời gian |
 | Store — Category | Một - nhiều |
 | Category — Menu item | Một - nhiều |
+| Store — Tag | Một - nhiều |
+| Menu item — Tag | Nhiều - nhiều qua `menu_item_tags` |
 | Menu item — Option group | Một - nhiều |
 | Option group — Option group item | Một - nhiều |
 | Option menu item — Option group item | Một - nhiều |
@@ -663,6 +694,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Unpaid record | `OPEN`, `RESOLVED` |
 | Category | `ACTIVE`, `INACTIVE` |
 | Menu item | `AVAILABLE`, `SOLD_OUT`, `INACTIVE` |
+| Tag | `ACTIVE`, `INACTIVE` |
 | Option group | `ACTIVE`, `INACTIVE` |
 | Option group item | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
@@ -681,9 +713,11 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 
 ### 8.2. Unique constraint và quy tắc nghiệp vụ
 
-- `dining_tables`: unique `store_id + code`.
+- `dining_tables`: unique `code`.
 - `table_qr_codes`: unique `token`.
 - `categories`: unique `store_id + name`.
+- `tags`: unique `store_id + name`.
+- `menu_item_tags`: unique `menu_item_id + tag_id`.
 - `option_groups`: unique `menu_item_id + name`.
 - `option_group_items`: unique `option_group_id + option_menu_item_id`.
 - `orders`: unique `public_id`, `order_number` và cặp `table_session_id + idempotency_key`.
@@ -732,6 +766,8 @@ Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng
 
 - `categories(store_id, category_type, status, display_order)`.
 - `menu_items(category_id, availability_status, display_order)`.
+- `tags(store_id, status, name)`.
+- `menu_item_tags` dùng primary key `(menu_item_id, tag_id)` và index `(tag_id)` để truy vấn hai chiều.
 - `option_groups(menu_item_id, status, display_order)`.
 - `option_group_items(option_group_id, status, display_order)`.
 
@@ -742,7 +778,7 @@ Primary key, unique index và index bắt buộc cho foreign key vẫn được 
 Thiết kế hiện tại chưa bao gồm:
 
 - Hồ sơ và lịch sử nhân viên.
-- Permission chi tiết của hai role vận hành.
+- Ma trận phân quyền chi tiết theo từng API.
 - Kho và nguyên vật liệu.
 - Khuyến mãi, voucher và điểm thành viên.
 - Hồ sơ khách hàng và CRM.
@@ -754,7 +790,7 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
-- Giữ nguyên mô hình 17 bảng nghiệp vụ và các quan hệ tổng quan trong mục 4 và mục 6.
+- Giữ nguyên mô hình 19 bảng nghiệp vụ và các quan hệ tổng quan trong mục 4 và mục 6.
 - Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
 - Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
 - Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
@@ -762,7 +798,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
 - Authentication dùng access JWT 15 phút và refresh JWT 10 ngày; không giới hạn số thiết bị và chưa có cơ chế chủ động thu hồi JWT.
 - Password được băm bằng BCrypt, dài hơn 8 ký tự và chứa ít nhất một chữ cái cùng một chữ số.
-- Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; phạm vi thao tác chi tiết của `ADMIN` và `OPERATOR` được chốt sau.
+- Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; mọi chức năng quản trị chỉ dành cho `ADMIN`, còn `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
 - Tất cả trường thời gian nghiệp vụ được lưu theo `Asia/Ho_Chi_Minh` (`UTC+07:00`); giá trị thời gian trao đổi qua API phải kèm offset `+07:00`.
 - Mỗi order chỉ có một ghi chú chung trong `orders.note`; không lưu `note` trong `order_items`.
@@ -800,6 +836,8 @@ Thiết kế hiện tại chưa bao gồm:
 - Không lưu bảng lịch sử giá món riêng.
 - Mỗi món chỉ có một ảnh.
 - `menu_items.image_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; `image_url` chỉ phục vụ hiển thị.
+- Nhãn của menu item được quản lý bằng `tags` và quan hệ nhiều-nhiều `menu_item_tags`; không lưu cờ nhãn riêng trong `menu_items`.
+- Tag có thể gắn với bất kỳ `menu_items`, không giới hạn theo loại category.
 - QR bàn là mã cố định được in và dán tại bàn; hệ thống không tạo QR thanh toán.
 - CAS không lưu số tài khoản, mã hoặc tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hay mã tham chiếu giao dịch.
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
@@ -807,5 +845,5 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 11. Bước tiếp theo
 
-1. Tạo Flyway migration khởi tạo schema nghiệp vụ theo các quyết định đã chốt.
-2. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+2. Kiểm tra migration trên MySQL 8.4 trong môi trường phát triển.

@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-03
+Ngày cập nhật gần nhất: 2026-08-04
 
 ## Quy ước
 
@@ -28,6 +28,8 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Order chỉ có ghi chú chung tại `orders.note`, không ghi chú theo từng món.
 - [x] Giá món chính và giá option được lưu riêng tại thời điểm đặt.
 - [x] Option được quản lý như `menu_items` thuộc category loại `OPTION`.
+- [x] Quản lý nhãn món bằng `tags` và bảng trung gian nhiều-nhiều `menu_item_tags`.
+- [x] `dining_tables` dùng `code` kiểu `INT UNSIGNED`, duy nhất toàn hệ thống và không còn lưu `name`.
 - [x] Dùng `option_groups`, `option_group_items` và `order_item_options` để liên kết size/topping với đúng món.
 - [x] Hai món có cấu hình option khác nhau được lưu thành hai `order_items` khác nhau.
 - [x] Yêu cầu hủy món không sửa hoặc xóa dữ liệu order gốc.
@@ -56,23 +58,24 @@ Ngày cập nhật gần nhất: 2026-08-03
 - [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.
 - [x] Chốt Customer và Operation theo hướng mobile-first; Admin ưu tiên web desktop.
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
+- [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
 - [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
 - [x] Chốt CAS Backend chỉ quản lý yêu cầu và trạng thái thanh toán, không tích hợp VietQR/ngân hàng.
 
 ## 4. Thiết kế database
 
-- [x] Xác định danh sách 17 bảng nghiệp vụ.
+- [x] Xác định danh sách 19 bảng nghiệp vụ.
 - [x] Mô tả quan hệ giữa các bảng.
 - [x] Xác định các trạng thái nghiệp vụ chính.
 - [x] Bổ sung kiểu dữ liệu MySQL cho toàn bộ các cột.
 - [x] Xác định `NULL`, `NOT NULL`, `DEFAULT` và `AUTO_INCREMENT` ở mức thiết kế.
 - [x] Xác định các unique constraint và index nghiệp vụ cơ bản.
-- [x] Hoàn thiện mô hình 17 bảng và quan hệ tổng quan.
+- [x] Hoàn thiện mô hình 19 bảng và quan hệ tổng quan.
 - [x] Chốt đầy đủ foreign key với `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
 - [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
 - [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
-- [ ] Tạo Flyway migration khởi tạo schema.
+- [x] Tạo Flyway migration khởi tạo schema.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend
@@ -127,8 +130,8 @@ Ngày cập nhật gần nhất: 2026-08-03
 
 ## 8. Việc tiếp theo
 
-1. Tạo Flyway migration khởi tạo schema nghiệp vụ và dữ liệu mẫu.
-2. Chốt phạm vi thao tác của từng role và API contract.
+1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
 3. Hoàn thiện cách xử lý các edge case còn lại.
 4. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 

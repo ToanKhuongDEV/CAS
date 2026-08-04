@@ -79,7 +79,7 @@ Nhân viên xác nhận kết quả thanh toán
 
 - Đăng nhập khu vực vận hành.
 - Client sử dụng giao diện khách hàng mà không cần tài khoản đăng nhập.
-- Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`; phạm vi thao tác chi tiết được chốt sau.
+- Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - JWT là cơ chế xác thực chính cho tài khoản vận hành và không được lưu trong `localStorage`.
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
@@ -88,7 +88,7 @@ Nhân viên xác nhận kết quả thanh toán
 ### 4.2. Ngoài phạm vi hiện tại
 
 - Quản lý nhân viên, ca làm và chấm công.
-- Phân quyền chi tiết của hai role vận hành.
+- Ma trận phân quyền chi tiết theo từng API.
 - Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
 - Khuyến mãi, voucher và chương trình thành viên.
@@ -317,7 +317,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 
 - Cải thiện quy trình xử lý order.
 - Báo cáo vận hành cơ bản.
-- Tinh chỉnh phạm vi thao tác của hai role vận hành nếu cần.
+- Tinh chỉnh ma trận phân quyền theo từng API nếu cần.
 - Tối ưu trải nghiệm và hiệu năng.
 
 ### Giai đoạn 3 — Mở rộng sản phẩm

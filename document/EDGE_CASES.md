@@ -40,7 +40,7 @@ QR hợp lệ nhưng bàn đang `INACTIVE`.
 
 - Không cho tạo session mới.
 - Hiển thị thông báo bàn tạm thời không phục vụ.
-- Admin/operator cần kích hoạt lại bàn nếu muốn nhận khách.
+- Chỉ admin được kích hoạt lại bàn nếu muốn nhận khách.
 
 ## 5. Nhiều thiết bị cùng quét một QR
 
