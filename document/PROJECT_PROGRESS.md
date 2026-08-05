@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-04
+Ngày cập nhật gần nhất: 2026-08-05
 
 ## Quy ước
 
@@ -20,6 +20,7 @@ Ngày cập nhật gần nhất: 2026-08-04
 - [x] Mô tả luồng xác nhận payment sau khi đã ghi nhận chưa thanh toán.
 - [x] Tổng hợp các trường hợp biên nghiệp vụ.
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
+- [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
 
 ## 2. Các quyết định nghiệp vụ đã chốt
 
@@ -103,6 +104,7 @@ Ngày cập nhật gần nhất: 2026-08-04
 - [x] Xây dựng UI giỏ hàng Customer mobile-first theo thiết kế Stitch, gồm món đang chọn, option, số lượng, ghi chú chung và tổng tiền.
 - [x] Xây dựng UI màn gửi món thành công tại `/orders` theo thiết kế Stitch, gồm xác nhận quán đã nhận món, thông tin bàn, thời gian gửi, chi tiết lần gọi và thao tác gọi thêm món.
 - [x] Xây dựng UI nhập tên và số điện thoại tại route QR động `/table/[token]` cho khách đầu tiên mở bàn.
+- [x] Hoàn thiện form mở phiên bàn với validation bắt buộc, thông báo lỗi accessible và điều hướng UI sang thực đơn.
 - [x] Bổ sung thao tác nhấn-giữ-kéo dọc bằng chuột và ẩn scrollbar ở cấp root cho toàn bộ các màn hình mobile-first.
 - [x] Đồng bộ cursor kéo dạng bàn tay: màu xám ở theme sáng và màu trắng ở theme tối.
 - [x] Kiểm tra regression đổi theme: xác nhận click, reload và chuyển route hoạt động trên `localhost`/production; ghi nhận dev server qua `127.0.0.1` không hydrate do WebSocket HMR bị từ chối.

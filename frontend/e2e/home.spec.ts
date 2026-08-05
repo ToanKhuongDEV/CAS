@@ -115,11 +115,21 @@ test("shows the customer information page from a table QR token", async ({
 
   await expect(page).toHaveTitle(/Thông tin bàn \| CAS/);
   await expect(
-    page.getByRole("heading", { name: "Thông tin bàn 05" }),
+    page.getByRole("heading", { name: "Mở phiên gọi món" }),
   ).toBeVisible();
   await expect(page.getByLabel("Tên của bạn")).toBeVisible();
   await expect(page.getByLabel("Số điện thoại")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Vào thực đơn" }),
-  ).toBeVisible();
+  const submitButton = page.getByRole("button", {
+    name: "Mở phiên và xem thực đơn",
+  });
+
+  await submitButton.click();
+  await expect(page.getByText("Vui lòng nhập tên của bạn.")).toBeVisible();
+  await expect(page.getByText("Vui lòng nhập số điện thoại.")).toBeVisible();
+
+  await page.getByLabel("Tên của bạn").fill("Nguyễn Văn A");
+  await page.getByLabel("Số điện thoại").fill("0901234567");
+  await submitButton.click();
+
+  await expect(page).toHaveURL(/\/menu$/);
 });

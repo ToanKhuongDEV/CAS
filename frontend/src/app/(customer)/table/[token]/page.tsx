@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { CustomerHeader } from "../../../../components/customer/customer-header";
 import { CasIcon } from "../../../../components/ui/cas-icon";
+import { CustomerInformationForm } from "./customer-information-form";
 
 export const metadata: Metadata = {
   title: "Thông tin bàn | CAS",
@@ -20,10 +21,11 @@ export default function CustomerInformationPage() {
             Chào mừng đến CAS
           </p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
-            Thông tin bàn 05
+            Mở phiên gọi món
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
-            Vui lòng cung cấp thông tin để tham gia gọi món cùng mọi người.
+            Bạn là người đầu tiên quét mã của bàn này. Vui lòng nhập thông tin
+            người đại diện để bắt đầu gọi món.
           </p>
         </header>
 
@@ -35,60 +37,13 @@ export default function CustomerInformationPage() {
             Thông tin khách hàng
           </h2>
 
-          <form>
-            <label className="block" htmlFor="customer-name">
-              <span className="text-xs font-bold">Tên của bạn</span>
-              <span className="relative mt-2 block">
-                <CasIcon
-                  className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cas-primary/60"
-                  name="user"
-                />
-                <input
-                  className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
-                  id="customer-name"
-                  name="customerName"
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  autoComplete="name"
-                  maxLength={150}
-                  required
-                  type="text"
-                />
-              </span>
-            </label>
+          <CustomerInformationForm />
 
-            <label className="mt-5 block" htmlFor="customer-phone">
-              <span className="text-xs font-bold">Số điện thoại</span>
-              <span className="relative mt-2 block">
-                <CasIcon
-                  className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cas-primary/60"
-                  name="phone"
-                />
-                <input
-                  className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
-                  id="customer-phone"
-                  name="customerPhone"
-                  placeholder="09xx xxx xxx"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  maxLength={20}
-                  required
-                  type="tel"
-                />
-              </span>
-            </label>
-
-            <button
-              className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
-              type="button"
-            >
-              Vào thực đơn
-              <CasIcon className="size-5" name="arrow" />
-            </button>
-          </form>
-
-          <div className="mt-6 flex items-center justify-center gap-2 border-t border-cas-outline-variant/45 pt-5 text-xs text-cas-on-surface-variant">
-            <CasIcon className="size-4" name="users" />
-            <span>3 người khác đang xem menu</span>
+          <div className="mt-6 flex items-start justify-center gap-2 border-t border-cas-outline-variant/45 pt-5 text-xs leading-relaxed text-cas-on-surface-variant">
+            <CasIcon className="mt-0.5 size-4 shrink-0" name="info" />
+            <span>
+              Thông tin này được dùng để xác định người đại diện mở phiên bàn.
+            </span>
           </div>
         </section>
 
