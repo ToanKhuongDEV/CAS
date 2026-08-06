@@ -19,6 +19,14 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Mỳ cay")).toBeInTheDocument();
     expect(screen.getByText("Gà rán")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute(
+      "href",
+      "/menu#my-cay",
+    );
+    expect(screen.getByRole("link", { name: "Gà rán" })).toHaveAttribute(
+      "href",
+      "/menu#ga-ran",
+    );
     expect(screen.queryByText(/các loại ốc/i)).not.toBeInTheDocument();
 
     fireEvent.click(

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
-import { ItemQuantityControl } from "../../../../components/customer/item-quantity-control";
+import {
+  AddToCartOptionDialog,
+  type MenuOptionGroup,
+} from "../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import { CategoryNavigation } from "./category-navigation";
 
@@ -21,6 +24,45 @@ const categories = [
   { id: "an-vat", label: "Ăn vặt" },
 ];
 
+const spiceLevels = Array.from({ length: 8 }, (_, level) => ({
+  id: `level-${level}`,
+  label: `Cấp ${level}`,
+  priceDelta: 0,
+}));
+
+const drinkOptionGroups: MenuOptionGroup[] = [
+  {
+    id: "size",
+    label: "Kích thước",
+    selectionType: "SINGLE",
+    options: [
+      { id: "size-m", label: "Size M", priceDelta: 0 },
+      { id: "size-l", label: "Size L", priceDelta: 10000 },
+    ],
+  },
+  {
+    id: "sweetness",
+    label: "Độ ngọt",
+    selectionType: "SINGLE",
+    options: [
+      { id: "sweetness-30", label: "30%", priceDelta: 0 },
+      { id: "sweetness-50", label: "50%", priceDelta: 0 },
+      { id: "sweetness-100", label: "100%", priceDelta: 0 },
+    ],
+  },
+  {
+    id: "toppings",
+    label: "Topping",
+    selectionType: "MULTIPLE",
+    options: [
+      { id: "black-pearl", label: "Trân châu đen", priceDelta: 8000 },
+      { id: "white-pearl", label: "Trân châu trắng", priceDelta: 8000 },
+      { id: "pudding", label: "Pudding trứng", priceDelta: 10000 },
+      { id: "cheese-jelly", label: "Thạch phô mai", priceDelta: 10000 },
+    ],
+  },
+];
+
 const menuItems = [
   {
     categoryId: "mon-noi-bat",
@@ -31,6 +73,15 @@ const menuItems = [
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay đặc biệt với rau nấm và nhiều topping",
     price: "55.000đ",
+    basePrice: 55000,
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ] satisfies MenuOptionGroup[],
     badges: ["Bán chạy", "Cực cay"],
     quantity: 1,
   },
@@ -43,6 +94,8 @@ const menuItems = [
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu đường đen mát lạnh",
     price: "45.000đ",
+    basePrice: 45000,
+    optionGroups: drinkOptionGroups,
     badges: [],
     quantity: 1,
   },
@@ -55,6 +108,7 @@ const menuItems = [
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Phần gà rán vàng giòn dùng kèm sốt cay",
     price: "35.000đ",
+    basePrice: 35000,
     badges: [],
     quantity: 2,
   },
@@ -67,6 +121,15 @@ const menuItems = [
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay xúc xích phủ phô mai",
     price: "49.000đ",
+    basePrice: 49000,
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ] satisfies MenuOptionGroup[],
     badges: ["Món mới"],
     quantity: 0,
   },
@@ -79,6 +142,15 @@ const menuItems = [
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay nấm và rau củ",
     price: "42.000đ",
+    basePrice: 42000,
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ] satisfies MenuOptionGroup[],
     badges: [],
     quantity: 0,
   },
@@ -91,6 +163,7 @@ const menuItems = [
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà rán phủ sốt cay và mè rang",
     price: "39.000đ",
+    basePrice: 39000,
     badges: ["Bán chạy"],
     quantity: 0,
   },
@@ -103,6 +176,7 @@ const menuItems = [
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà popcorn phủ bột phô mai",
     price: "32.000đ",
+    basePrice: 32000,
     badges: [],
     quantity: 0,
   },
@@ -115,6 +189,8 @@ const menuItems = [
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa truyền thống",
     price: "35.000đ",
+    basePrice: 35000,
+    optionGroups: drinkOptionGroups,
     badges: [],
     quantity: 0,
   },
@@ -127,6 +203,8 @@ const menuItems = [
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly trà sữa matcha xanh mát",
     price: "42.000đ",
+    basePrice: 42000,
+    optionGroups: drinkOptionGroups,
     badges: ["Món mới"],
     quantity: 0,
   },
@@ -139,6 +217,8 @@ const menuItems = [
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly cà phê sữa đá",
     price: "29.000đ",
+    basePrice: 29000,
+    optionGroups: drinkOptionGroups,
     badges: [],
     quantity: 0,
   },
@@ -151,6 +231,7 @@ const menuItems = [
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly bạc xỉu mát lạnh",
     price: "32.000đ",
+    basePrice: 32000,
     badges: [],
     quantity: 0,
   },
@@ -163,6 +244,8 @@ const menuItems = [
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly matcha latte",
     price: "39.000đ",
+    basePrice: 39000,
+    optionGroups: drinkOptionGroups,
     badges: [],
     quantity: 0,
   },
@@ -175,6 +258,7 @@ const menuItems = [
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly nước giải khát mát lạnh",
     price: "25.000đ",
+    basePrice: 25000,
     badges: [],
     quantity: 0,
   },
@@ -187,6 +271,7 @@ const menuItems = [
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly soda trái cây mát lạnh",
     price: "29.000đ",
+    basePrice: 29000,
     badges: [],
     quantity: 0,
   },
@@ -199,6 +284,7 @@ const menuItems = [
     imageSrc: "/images/welcome/street-snacks.jpg",
     imageAlt: "Phần ăn vặt thập cẩm với khoai tây và xiên chiên",
     price: "45.000đ",
+    basePrice: 45000,
     badges: ["Đề xuất"],
     quantity: 0,
   },
@@ -304,7 +390,7 @@ export default function MenuPage() {
                           sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
                         />
                         {item.badges.length > 0 ? (
-                          <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+                          <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
                             {item.badges.map((badge, index) => (
                               <span
                                 className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${
@@ -341,28 +427,12 @@ export default function MenuPage() {
                           <strong className="text-sm text-cas-primary md:text-base">
                             {item.price}
                           </strong>
-                          {item.quantity > 0 ? (
-                            <ItemQuantityControl
-                              itemName={item.name}
-                              quantity={item.quantity}
-                            />
-                          ) : item.detailSlug ? (
-                            <Link
-                              className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                              href={`/menu/${item.detailSlug}`}
-                              aria-label={`Chọn tùy chọn cho ${item.name}`}
-                            >
-                              <CasIcon className="size-5" name="plus" />
-                            </Link>
-                          ) : (
-                            <button
-                              className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                              type="button"
-                              aria-label={`Thêm ${item.name} vào giỏ hàng`}
-                            >
-                              <CasIcon className="size-5" name="plus" />
-                            </button>
-                          )}
+                          <AddToCartOptionDialog
+                            basePrice={item.basePrice}
+                            currentQuantity={item.quantity}
+                            itemName={item.name}
+                            optionGroups={item.optionGroups}
+                          />
                         </div>
                       </div>
                     </article>

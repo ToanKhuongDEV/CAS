@@ -63,23 +63,18 @@ export function ProductDetailForm({
             <p className="mt-1 text-xs text-cas-on-surface-variant">
               Chọn một cấp độ phù hợp với bạn.
             </p>
-            <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
+            <select
+              className="mt-4 h-12 w-full rounded-xl border border-cas-outline-variant/55 bg-cas-surface-container px-3 text-sm font-extrabold outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+              aria-label="Cấp độ cay"
+              value={selectedSpiceLevel}
+              onChange={(event) => setSelectedSpiceLevel(event.target.value)}
+            >
               {spiceLevels.map((level) => (
-                <label className="cursor-pointer" key={level.id}>
-                  <input
-                    className="peer sr-only"
-                    type="radio"
-                    name="spiceLevel"
-                    value={level.id}
-                    checked={selectedSpiceLevel === level.id}
-                    onChange={() => setSelectedSpiceLevel(level.id)}
-                  />
-                  <span className="grid min-h-12 place-items-center rounded-xl border border-cas-outline-variant/55 bg-cas-surface-container px-2 text-sm font-extrabold transition peer-checked:border-cas-primary peer-checked:bg-cas-primary peer-checked:text-cas-on-primary peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
-                    {level.label}
-                  </span>
-                </label>
+                <option key={level.id} value={level.id}>
+                  {level.label}
+                </option>
               ))}
-            </div>
+            </select>
           </fieldset>
         ) : null}
 
@@ -105,9 +100,7 @@ export function ProductDetailForm({
                   <span className="flex min-h-16 items-center justify-between rounded-2xl border border-cas-outline-variant/55 bg-cas-surface-container px-4 transition peer-checked:border-cas-primary peer-checked:bg-cas-primary/10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
                     <strong>{size.label}</strong>
                     <span className="text-xs font-bold text-cas-primary">
-                      {size.priceDelta === 0
-                        ? "Giá gốc"
-                        : `+${formatPrice(size.priceDelta)}`}
+                      +{formatPrice(size.priceDelta)}
                     </span>
                   </span>
                 </label>

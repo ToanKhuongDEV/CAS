@@ -7,20 +7,26 @@ import { CasIcon } from "../../../components/ui/cas-icon";
 const billItems = [
   {
     name: "Mỳ cay đặc biệt 7 cấp độ",
-    options: "Cấp độ 2, thêm xúc xích",
+    options: "Cấp độ 2",
     quantity: 1,
+    basePrice: "45.000đ",
+    toppings: [{ name: "Thêm xúc xích", price: "10.000đ" }],
     total: "55.000đ",
   },
   {
     name: "Gà rán giòn rụm",
     options: "Sốt cay, phần vừa",
     quantity: 2,
+    basePrice: "35.000đ × 2",
+    toppings: [],
     total: "70.000đ",
   },
   {
     name: "Trà sữa Trân châu Đường đen",
     options: "50% đường, ít đá",
     quantity: 1,
+    basePrice: "35.000đ",
+    toppings: [{ name: "Thêm trân châu", price: "10.000đ" }],
     total: "45.000đ",
   },
 ];
@@ -59,8 +65,22 @@ export function PaymentRequestPanel() {
                 <p className="mt-1 text-[0.68rem] leading-relaxed text-cas-on-surface-variant">
                   {item.options}
                 </p>
+                <div className="mt-2 space-y-1 text-[0.68rem] leading-relaxed text-cas-on-surface-variant">
+                  <p className="flex justify-between gap-3">
+                    <span>Giá món gốc</span>
+                    <span>{item.basePrice}</span>
+                  </p>
+                  {item.toppings.map((topping) => (
+                    <p className="flex justify-between gap-3" key={topping.name}>
+                      <span>+ {topping.name}</span>
+                      <span>+{topping.price}</span>
+                    </p>
+                  ))}
+                </div>
               </div>
-              <strong className="shrink-0 text-sm">{item.total}</strong>
+              <div className="shrink-0 text-right">
+                <strong className="text-sm text-cas-primary">{item.total}</strong>
+              </div>
             </li>
           ))}
         </ul>
@@ -81,36 +101,16 @@ export function PaymentRequestPanel() {
       </section>
 
       <section
-        className={`mt-4 rounded-2xl border p-4 ${
-          isPaymentPending
-            ? "border-cas-tertiary/25 bg-cas-tertiary-container/18"
-            : "border-cas-secondary/20 bg-cas-secondary-container/20"
-        }`}
-        aria-live="polite"
+        className="mt-4 rounded-2xl border border-cas-secondary/20 bg-cas-secondary-container/20 p-4"
       >
         <div className="flex items-start gap-3">
-          <span
-            className={`grid size-10 shrink-0 place-items-center rounded-full ${
-              isPaymentPending
-                ? "bg-cas-tertiary text-cas-on-primary"
-                : "bg-cas-secondary text-cas-on-primary"
-            }`}
-          >
-            <CasIcon
-              className="size-5"
-              name={isPaymentPending ? "clock" : "info"}
-            />
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-cas-secondary text-cas-on-primary">
+            <CasIcon className="size-5" name="info" />
           </span>
           <div>
-            <p className="text-sm font-extrabold">
-              {isPaymentPending
-                ? "Đang chờ nhân viên xác nhận"
-                : "Kiểm tra hóa đơn trước khi gửi"}
-            </p>
+            <p className="text-sm font-extrabold">Kiểm tra hóa đơn trước khi gửi</p>
             <p className="mt-1 text-xs leading-relaxed text-cas-on-surface-variant">
-              {isPaymentPending
-                ? "Vui lòng ra gặp nhân viên để hoàn tất thanh toán. CAS chỉ cập nhật kết quả sau khi nhân viên xác nhận."
-                : "Yêu cầu thanh toán áp dụng cho toàn bộ order trong phiên bàn và bạn sẽ không thể gọi thêm món sau khi gửi."}
+              Yêu cầu thanh toán áp dụng cho toàn bộ order trong phiên bàn và bạn sẽ không thể gọi thêm món sau khi gửi.
             </p>
           </div>
         </div>
@@ -135,6 +135,31 @@ export function PaymentRequestPanel() {
           Tổng tiền sẽ được hệ thống xác nhận lại khi gửi yêu cầu.
         </p>
       </div>
+
+      {isPaymentPending ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/55 px-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-pending-title"
+          aria-describedby="payment-pending-description"
+        >
+          <section className="w-full max-w-sm rounded-[1.4rem] bg-cas-surface-container p-6 text-center shadow-[0_16px_36px_var(--cas-shadow-color)]">
+            <span className="mx-auto grid size-14 place-items-center rounded-full bg-cas-tertiary text-cas-on-primary">
+              <CasIcon className="size-7" name="payment" />
+            </span>
+            <h2 className="mt-5 text-xl font-extrabold" id="payment-pending-title">
+              Yêu cầu thanh toán đã được gửi
+            </h2>
+            <p
+              className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant"
+              id="payment-pending-description"
+            >
+              Vui lòng đến quầy thu ngân để thanh toán và chờ nhân viên xác nhận.
+            </p>
+          </section>
+        </div>
+      ) : null}
     </>
   );
 }

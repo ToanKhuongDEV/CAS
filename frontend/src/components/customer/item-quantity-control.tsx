@@ -2,11 +2,13 @@ import { CasIcon } from "../ui/cas-icon";
 
 type ItemQuantityControlProps = {
   itemName: string;
+  onIncrease?: () => void;
   quantity: number;
 };
 
 export function ItemQuantityControl({
   itemName,
+  onIncrease,
   quantity,
 }: ItemQuantityControlProps) {
   return (
@@ -28,6 +30,7 @@ export function ItemQuantityControl({
         className="grid size-7 place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         type="button"
         aria-label={`Tăng số lượng ${itemName}`}
+        onClick={onIncrease}
       >
         <CasIcon className="size-4" name="plus" />
       </button>

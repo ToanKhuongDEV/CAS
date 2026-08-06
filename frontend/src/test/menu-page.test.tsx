@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
@@ -52,6 +52,26 @@ describe("MenuPage", () => {
     expect(
       screen.getByRole("link", { name: /xem món đã chọn/i }),
     ).toHaveTextContent("4 món • 170.000đ");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Tăng số lượng Mỳ cay đặc biệt 7 cấp độ",
+      }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Mỳ cay đặc biệt 7 cấp độ" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Cấp độ cay")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Cấp độ cay" }),
+    ).toHaveDisplayValue("Cấp 0");
+    fireEvent.click(screen.getByRole("button", { name: "Quay lại" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Chọn tùy chọn cho Trà sữa truyền thống",
+      }),
+    );
+    expect(screen.getByText("Độ ngọt")).toBeInTheDocument();
+    expect(screen.getByText("Topping")).toBeInTheDocument();
     expect(screen.queryByText(/món ốc|ốc hấp|ốc xào/i)).not.toBeInTheDocument();
   });
 });

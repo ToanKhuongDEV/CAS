@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { CustomerBottomNavigation } from "../../../components/customer/customer-bottom-navigation";
 import { CustomerHeader } from "../../../components/customer/customer-header";
+import { CancellationRequestControl } from "../../../components/customer/cancellation-request-control";
 import { CasIcon } from "../../../components/ui/cas-icon";
 
 export const metadata: Metadata = {
@@ -14,10 +15,12 @@ export const metadata: Metadata = {
 const submittedItems = [
   {
     name: "Mỳ cay đặc biệt 7 cấp độ",
-    options: "Cấp độ 2, thêm xúc xích",
+    options: "Cấp độ 2",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay đặc biệt vừa gửi",
-    price: "55.000đ",
+    basePrice: "45.000đ",
+    toppings: [{ name: "Thêm xúc xích", price: "10.000đ" }],
+    total: "55.000đ",
     quantity: 1,
   },
   {
@@ -25,7 +28,9 @@ const submittedItems = [
     options: "Sốt cay, phần vừa",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Phần gà rán giòn vừa gửi",
-    price: "70.000đ",
+    basePrice: "35.000đ × 2",
+    toppings: [],
+    total: "70.000đ",
     quantity: 2,
   },
   {
@@ -33,7 +38,9 @@ const submittedItems = [
     options: "50% đường, ít đá",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu đường đen vừa gửi",
-    price: "45.000đ",
+    basePrice: "35.000đ",
+    toppings: [{ name: "Thêm trân châu", price: "10.000đ" }],
+    total: "45.000đ",
     quantity: 1,
   },
 ];
@@ -100,7 +107,7 @@ export default function OrdersPage() {
 
             <ul className="divide-y divide-cas-outline-variant/35">
               {submittedItems.map((item, index) => (
-                <li className="flex items-center gap-3 py-4" key={item.name}>
+                <li className="flex items-start gap-3 py-4" key={item.name}>
                   <div className="relative size-15 shrink-0 overflow-hidden rounded-xl bg-cas-surface">
                     <Image
                       className="object-cover"
@@ -114,13 +121,36 @@ export default function OrdersPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="line-clamp-1 text-sm font-extrabold">
-                      {item.name}
+                      <Link
+                        className="rounded-sm transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                        href="/menu"
+                      >
+                        {item.name}
+                      </Link>
                     </h3>
                     <p className="mt-1 line-clamp-1 text-[0.68rem] text-cas-on-surface-variant">
                       x{item.quantity} · {item.options}
                     </p>
+                    <div className="mt-2 space-y-1 text-[0.68rem] leading-relaxed text-cas-on-surface-variant">
+                      <p className="flex justify-between gap-3">
+                        <span>Giá món gốc</span>
+                        <span>{item.basePrice}</span>
+                      </p>
+                      {item.toppings.map((topping) => (
+                        <p className="flex justify-between gap-3" key={topping.name}>
+                          <span>+ {topping.name}</span>
+                          <span>+{topping.price}</span>
+                        </p>
+                      ))}
+                    </div>
+                    <CancellationRequestControl
+                      itemName={item.name}
+                      quantity={item.quantity}
+                    />
                   </div>
-                  <strong className="shrink-0 text-sm">{item.price}</strong>
+                  <div className="shrink-0 text-right">
+                    <strong className="text-sm text-cas-primary">{item.total}</strong>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -138,20 +168,18 @@ export default function OrdersPage() {
             </div>
           </article>
 
-          <aside className="col-span-2 flex items-start gap-3 rounded-2xl border border-cas-secondary/20 bg-cas-secondary-container/20 p-4 text-cas-on-surface-variant md:col-span-2">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-cas-secondary text-cas-on-primary">
-              <CasIcon className="size-5" name="info" />
-            </span>
-            <p className="text-xs leading-relaxed md:text-sm">
-              CAS đã ghi nhận lần gọi món này. Hệ thống hiện không theo dõi
-              trạng thái chế biến của từng món.
-            </p>
-          </aside>
         </section>
 
-        <div className="mt-7 md:flex md:justify-center">
+        <div className="mt-7 grid gap-3 md:mx-auto md:max-w-sm">
           <Link
-            className="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring md:max-w-sm"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-cas-primary/30 bg-cas-surface-container px-5 font-extrabold text-cas-primary transition hover:bg-cas-primary/8 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+            href="/payment"
+          >
+            <CasIcon className="size-5" name="payment" />
+            Yêu cầu thanh toán
+          </Link>
+          <Link
+            className="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
             href="/menu"
           >
             <CasIcon className="size-5" name="plus" />

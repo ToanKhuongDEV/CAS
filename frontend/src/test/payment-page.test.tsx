@@ -15,6 +15,9 @@ describe("PaymentPage", () => {
       screen.getByRole("heading", { name: "Kiểm tra hóa đơn" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Mỳ cay đặc biệt 7 cấp độ")).toBeInTheDocument();
+    expect(screen.getAllByText("Giá món gốc")).toHaveLength(3);
+    expect(screen.getByText("+ Thêm xúc xích")).toBeInTheDocument();
+    expect(screen.queryByText("Tổng món")).not.toBeInTheDocument();
     expect(screen.getByText("Tổng cần thanh toán")).toBeInTheDocument();
     expect(screen.getByText("170.000đ")).toBeInTheDocument();
     expect(
@@ -27,7 +30,7 @@ describe("PaymentPage", () => {
     expect(screen.queryByRole("img", { name: /qr/i })).not.toBeInTheDocument();
   });
 
-  it("shows the pending state and meet-operator instruction after submit", () => {
+  it("blocks other activity with the cashier instruction after submit", () => {
     render(<PaymentPage />);
 
     fireEvent.click(
@@ -35,14 +38,16 @@ describe("PaymentPage", () => {
     );
 
     expect(
-      screen.getByText("Đang chờ nhân viên xác nhận"),
+      screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/vui lòng ra gặp nhân viên để hoàn tất thanh toán/i),
+      screen.getByText(
+        "Vui lòng đến quầy thu ngân để thanh toán và chờ nhân viên xác nhận.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Đã gửi yêu cầu thanh toán" }),
     ).toBeDisabled();
-    expect(screen.queryByText(/\bpaid\b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Đang chờ nhân viên xác nhận")).not.toBeInTheDocument();
   });
 });

@@ -14,26 +14,31 @@ const quickStats = [
 const menuCategories = [
   {
     title: "Mỳ cay",
+    href: "/menu#my-cay",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay nóng với rau nấm và nhiều topping",
   },
   {
     title: "Nước giải khát",
+    href: "/menu#nuoc-giai-khat",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly matcha mát lạnh",
   },
   {
     title: "Cà phê",
+    href: "/menu#ca-phe",
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly cà phê sữa đá Việt Nam",
   },
   {
     title: "Trà sữa",
+    href: "/menu#tra-sua",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu mát lạnh",
   },
   {
     title: "Gà rán",
+    href: "/menu#ga-ran",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà rán giòn phủ sốt cay và mè",
   },
@@ -155,9 +160,11 @@ export default function Home() {
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
             {menuCategories.map((category, index) => (
-              <article
+              <Link
                 className="group relative min-h-52 overflow-hidden rounded-[1.15rem] shadow-[0_8px_24px_var(--cas-shadow-color)] last:col-span-2 last:min-h-44 md:min-h-[23rem] md:last:col-span-1 md:last:min-h-[23rem]"
                 key={category.title}
+                href={category.href}
+                aria-label={category.title}
               >
                 <Image
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -171,7 +178,7 @@ export default function Home() {
                 <strong className="absolute right-4 bottom-4 left-4 z-10 text-sm font-bold text-white drop-shadow-md">
                   {category.title}
                 </strong>
-              </article>
+              </Link>
             ))}
           </div>
         </section>
