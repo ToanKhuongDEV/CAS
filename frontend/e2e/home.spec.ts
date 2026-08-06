@@ -133,3 +133,29 @@ test("shows the customer information page from a table QR token", async ({
 
   await expect(page).toHaveURL(/\/menu$/);
 });
+
+test("creates a customer payment request UI", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://localhost:3000/payment");
+
+  await expect(page).toHaveTitle(/Thanh toán \| CAS/);
+  await expect(
+    page.getByRole("heading", { name: "Kiểm tra hóa đơn" }),
+  ).toBeVisible();
+  await expect(page.getByText("Tổng cần thanh toán")).toBeVisible();
+  await expect(page.getByText(/ngân hàng|mb bank/i)).toHaveCount(0);
+
+  await page
+    .getByRole("button", { name: "Gửi yêu cầu thanh toán" })
+    .click();
+
+  await expect(
+    page.getByText("Đang chờ nhân viên xác nhận"),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/vui lòng ra gặp nhân viên để hoàn tất thanh toán/i),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Đã gửi yêu cầu thanh toán" }),
+  ).toBeDisabled();
+});

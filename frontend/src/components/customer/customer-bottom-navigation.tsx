@@ -17,7 +17,7 @@ type CustomerBottomNavigationProps = {
 const navigationItems: NavigationItem[] = [
   { id: "menu", label: "Menu", icon: "menu", href: "/menu" },
   { id: "orders", label: "Đơn hàng", icon: "bill", href: "/orders" },
-  { id: "payment", label: "Thanh toán", icon: "payment", href: "#" },
+  { id: "payment", label: "Thanh toán", icon: "payment", href: "/payment" },
   { id: "settings", label: "Cài đặt", icon: "settings", href: "#" },
 ];
 

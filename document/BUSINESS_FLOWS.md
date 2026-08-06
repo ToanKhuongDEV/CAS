@@ -90,7 +90,7 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 7. Hệ thống tìm `client_accounts` theo số điện thoại trong cửa hàng hiện tại.
 8. Nếu chưa có, hệ thống tạo `client_accounts` mới.
 9. Hệ thống tạo `table_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn.
-10. Khách hàng được chuyển tới màn hình menu của bàn.
+10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu`.
 
 ### Quy tắc nghiệp vụ
 
@@ -103,6 +103,13 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 - Tên và số điện thoại này được lưu trong `client_accounts`, tách riêng với `accounts` của nhân viên/admin.
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
 - QR bàn là mã cố định được in và dán tại bàn.
+- QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
+- Sau khi QR được xác minh và table session hợp lệ được tìm hoặc tạo, các màn
+  Customer tiếp tục dùng `/menu`, `/cart` và `/orders`; không đưa QR token,
+  table ID hoặc session ID vào các URL này.
+- Cơ chế vận chuyển và lưu ngữ cảnh table session cho các API Customer phải
+  được chốt trong API contract. Backend phải xác minh ngữ cảnh session ở mỗi
+  thao tác và không tin định danh bàn hoặc phiên do client tự suy diễn.
 
 ### Ngoại lệ
 

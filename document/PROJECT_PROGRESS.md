@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-05
+Ngày cập nhật gần nhất: 2026-08-06
 
 ## Quy ước
 
@@ -57,6 +57,7 @@ Ngày cập nhật gần nhất: 2026-08-05
 - [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
 - [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
 - [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.
+- [x] Chốt QR token chỉ dùng tại `/table/{qrToken}`; sau khi có session hợp lệ, Customer tiếp tục tại `/menu`, `/cart` và `/orders`.
 - [x] Chốt Customer và Operation theo hướng mobile-first; Admin ưu tiên web desktop.
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
 - [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
@@ -109,13 +110,14 @@ Ngày cập nhật gần nhất: 2026-08-05
 - [x] Đồng bộ cursor kéo dạng bàn tay: màu xám ở theme sáng và màu trắng ở theme tối.
 - [x] Kiểm tra regression đổi theme: xác nhận click, reload và chuyển route hoạt động trên `localhost`/production; ghi nhận dev server qua `127.0.0.1` không hydrate do WebSocket HMR bị từ chối.
 - [x] Dọn các file log tạm sinh ra khi kiểm tra dev server và production test server của frontend.
+- [x] Dọn các file cấu hình và lock pnpm phát sinh ngoài package manager chính thức của frontend.
 - [x] Bổ sung scroll-spy cho category bar của trang Menu: tự làm nổi bật category theo section đang đọc, tự đưa tab active vào vùng nhìn thấy và xử lý category cuối ngắn khi đã cuộn tới đáy trang.
 - [x] Tối ưu tải sớm toàn bộ ảnh có khả năng nằm trong viewport đầu ở Welcome, Menu, Cart và màn nhập thông tin; khai báo smooth-scroll route transition cho Next.js.
 - [ ] Xây dựng giao diện khách quét QR và mở phiên bàn.
 - [ ] Xây dựng giao diện menu và chọn option.
 - [ ] Xây dựng giao diện gửi order và gọi thêm món.
 - [ ] Xây dựng giao diện yêu cầu hủy món.
-- [ ] Xây dựng giao diện yêu cầu thanh toán.
+- [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING` và hướng dẫn gặp nhân viên.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [ ] Xây dựng giao diện danh sách yêu cầu và xác nhận thanh toán.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.

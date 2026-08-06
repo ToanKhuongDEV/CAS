@@ -156,6 +156,13 @@ CAS Frontend
 └── Admin — JWT, role ADMIN
 ```
 
+Luồng route Customer bắt đầu tại `/table/{qrToken}` khi khách quét QR. Route
+này chỉ dùng để backend xác minh QR, xác định bàn và tìm hoặc mở table session.
+Sau khi có session hợp lệ, frontend chuyển sang các route ngắn `/menu`, `/cart`
+và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ chế vận chuyển và
+lưu ngữ cảnh session giữa frontend và backend phải được chốt trong API contract.
+Backend không được tin table ID hoặc session ID do client tự suy diễn.
+
 Định hướng giao diện theo từng khu vực:
 
 - Customer phát triển theo hướng mobile-first vì khách hàng thao tác chủ yếu trên điện thoại sau khi quét QR tại bàn.
