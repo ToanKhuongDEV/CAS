@@ -58,7 +58,7 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
 - [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.
 - [x] Chốt QR token chỉ dùng tại `/table/{qrToken}`; sau khi có session hợp lệ, Customer tiếp tục tại `/menu`, `/cart` và `/orders`.
-- [x] Chốt Customer và Operation theo hướng mobile-first; Admin ưu tiên web desktop.
+- [x] Chốt Customer theo hướng mobile-first; Operation và Admin ưu tiên web desktop, đồng thời responsive cho mobile.
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
 - [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
@@ -122,7 +122,9 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
 - [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING`, hướng dẫn đến quầy thu ngân và lớp thông báo chặn thao tác khác.
 - [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
+- [x] Xây dựng UI dashboard nhân viên tại `/operator`, ưu tiên web desktop và responsive mobile với menu đáy trên mobile; phần thống kê xếp hàng ngang trên desktop, ba dòng trên mobile; hiển thị dữ liệu mẫu cho payment chờ xác nhận, yêu cầu hủy món và khoản chưa thanh toán.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
+- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator` khi nhập hợp lệ.
 - [ ] Xây dựng giao diện danh sách yêu cầu và xác nhận thanh toán.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Viết component test và end-to-end test.

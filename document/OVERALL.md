@@ -166,7 +166,7 @@ Backend không được tin table ID hoặc session ID do client tự suy diễn
 Định hướng giao diện theo từng khu vực:
 
 - Customer phát triển theo hướng mobile-first vì khách hàng thao tác chủ yếu trên điện thoại sau khi quét QR tại bàn.
-- Operation dành cho nhân viên cũng phát triển theo hướng mobile-first để phù hợp với thiết bị cầm tay trong quá trình phục vụ và xác nhận thanh toán.
+- Operation dành cho nhân viên ưu tiên giao diện web trên desktop hoặc laptop để xử lý thông tin vận hành; giao diện vẫn phải responsive cho thiết bị di động.
 - Admin ưu tiên giao diện web trên desktop hoặc laptop để quản lý dữ liệu và thực hiện các tác vụ vận hành có mật độ thông tin cao.
 - Cả ba khu vực vẫn phải responsive; mobile-first hoặc desktop-first chỉ xác định kích thước ưu tiên khi thiết kế và triển khai.
 
@@ -298,8 +298,8 @@ CAS không tạo QR thanh toán, không lưu số tài khoản, tên ngân hàng
 
 ## 10. Yêu cầu hệ thống tổng quan
 
-- Giao diện Customer và Operation phát triển theo hướng mobile-first.
-- Giao diện Admin ưu tiên web trên desktop hoặc laptop.
+- Giao diện Customer phát triển theo hướng mobile-first.
+- Giao diện Operation và Admin ưu tiên web trên desktop hoặc laptop; cả hai vẫn phải responsive trên thiết bị di động.
 - Cả ba khu vực giao diện phải responsive trên các kích thước màn hình được hỗ trợ.
 - Menu và quá trình gọi món có tốc độ phản hồi tốt.
 - Trạng thái thanh toán được cập nhật kịp thời.
