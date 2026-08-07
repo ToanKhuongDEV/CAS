@@ -292,8 +292,8 @@ const menuItems = [
 
 export default function MenuPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-44 text-cas-on-surface transition-colors duration-200 md:pb-32">
-      <main className="mx-auto w-full max-w-[75rem] px-5 pt-20 md:px-10 md:pt-24">
+    <>
+      <main className="w-full">
         <section aria-labelledby="menu-heading">
           <h1 className="sr-only" id="menu-heading">
             Thực đơn CAS
@@ -458,7 +458,6 @@ export default function MenuPage() {
           <span className="text-xs font-semibold">4 món • 170.000đ</span>
         </Link>
       </div>
-
-    </div>
+    </>
   );
 }

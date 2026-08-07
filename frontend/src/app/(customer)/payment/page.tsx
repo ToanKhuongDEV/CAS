@@ -12,31 +12,33 @@ export const metadata: Metadata = {
 
 export default function PaymentPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-12 md:pl-56">
+    <div className="min-h-screen bg-cas-surface text-cas-on-surface transition-colors duration-200">
       <CustomerHeader tableName="Bàn 05" />
 
-      <main className="mx-auto w-full max-w-[34rem] px-5 pt-24 md:px-10 md:pt-28">
-        <header className="text-center">
-          <span className="mx-auto grid size-20 place-items-center rounded-[1.4rem] border border-cas-primary/20 bg-cas-primary/8 text-cas-primary shadow-[0_10px_26px_var(--cas-shadow-color)]">
-            <CasIcon className="size-10" name="bill" />
-          </span>
-          <p className="mt-6 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-            Yêu cầu thanh toán
-          </p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
-            Kiểm tra hóa đơn
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-cas-on-surface-variant">
-            Xem lại toàn bộ món đã gọi trước khi gửi yêu cầu cho nhân viên.
-          </p>
-        </header>
+      <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
+        <CustomerBottomNavigation activeItem="payment" />
 
-        <div className="mt-7">
-          <PaymentRequestPanel />
-        </div>
-      </main>
+        <main className="mx-auto w-full max-w-[38rem] min-w-0 flex-1">
+          <header className="text-center">
+            <span className="mx-auto grid size-20 place-items-center rounded-[1.4rem] border border-cas-primary/20 bg-cas-primary/8 text-cas-primary shadow-[0_10px_26px_var(--cas-shadow-color)]">
+              <CasIcon className="size-10" name="bill" />
+            </span>
+            <p className="mt-6 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Yêu cầu thanh toán
+            </p>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
+              Kiểm tra hóa đơn
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-cas-on-surface-variant">
+              Xem lại toàn bộ món đã gọi trước khi gửi yêu cầu cho nhân viên.
+            </p>
+          </header>
 
-      <CustomerBottomNavigation activeItem="payment" />
+          <div className="mt-7">
+            <PaymentRequestPanel />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

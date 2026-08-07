@@ -16,7 +16,7 @@ export function CustomerHeader({
 }: CustomerHeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-16 bg-cas-header shadow-[0_2px_12px_var(--cas-shadow-color)] backdrop-blur-xl">
-      <div className="mx-auto flex h-full w-full max-w-[75rem] items-center justify-between px-5 md:px-10">
+      <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between px-4 md:px-8">
         <Link
           className="inline-flex items-center gap-3 text-xl font-bold text-cas-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"

@@ -46,11 +46,14 @@ const menuCategories = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-hidden bg-cas-surface pb-22 text-cas-on-surface transition-colors duration-200 [background-image:linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] [background-size:30px_30px] md:pb-0 md:pl-56">
+    <div className="min-h-screen overflow-hidden bg-cas-surface text-cas-on-surface transition-colors duration-200 [background-image:linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] [background-size:30px_30px]">
       <CustomerHeader tableName="Bàn 05" />
 
-      <main>
-        <section className="mx-auto grid w-full max-w-[75rem] px-5 pt-28 pb-10 md:min-h-[47rem] md:grid-cols-[5fr_7fr] md:items-center md:gap-12 md:px-10 md:pt-24 md:pb-12">
+      <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
+        <CustomerBottomNavigation activeItem="home" />
+
+        <main className="min-w-0 flex-1">
+          <section className="grid w-full pb-10 md:min-h-[44rem] md:grid-cols-[5fr_7fr] md:items-center md:gap-10 md:pt-4 md:pb-12">
           <div className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-cas-secondary-container/30 px-4 py-2 text-[0.72rem] font-semibold tracking-[0.1em] text-cas-secondary uppercase">
               <CasIcon className="size-4.5" name="sparkle" />
@@ -137,7 +140,7 @@ export default function Home() {
         </section>
 
         <section
-          className="mx-auto w-full max-w-[75rem] px-5 py-6 pb-11 md:px-10 md:py-12 md:pb-16"
+          className="w-full py-6 pb-11 md:py-10 md:pb-14"
           id="menu-preview"
         >
           <div className="mb-6 flex items-end justify-between gap-4">
@@ -183,8 +186,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-
-      <CustomerBottomNavigation activeItem="home" />
+      </div>
     </div>
   );
 }

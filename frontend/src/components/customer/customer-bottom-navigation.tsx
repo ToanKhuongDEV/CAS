@@ -40,7 +40,7 @@ export function CustomerBottomNavigation({
 
   return (
     <nav
-      className={`fixed inset-x-0 bottom-0 z-50 grid min-h-20 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:inset-x-auto md:top-16 md:left-0 md:w-56 md:grid-cols-1 md:content-start md:gap-3 md:border-0 md:bg-transparent md:px-4 md:py-6 md:shadow-none md:backdrop-blur-none ${
+      className={`fixed inset-x-0 bottom-0 z-50 grid min-h-20 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:sticky md:top-24 md:z-20 md:w-52 lg:w-56 md:shrink-0 md:grid-cols-1 md:content-start md:gap-2.5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none ${
         activeItem === "payment" ? "grid-cols-5" : "grid-cols-4"
       }`}
       aria-label="Điều hướng chính"
@@ -50,7 +50,7 @@ export function CustomerBottomNavigation({
 
         return (
           <Link
-            className={`flex flex-col items-center justify-center gap-1 rounded-xl text-[0.62rem] font-semibold focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring md:min-h-14 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:border md:border-cas-outline-variant/45 md:bg-cas-surface-container md:px-4 md:text-sm md:shadow-[0_6px_18px_var(--cas-shadow-color)] md:transition md:hover:-translate-y-0.5 md:hover:border-cas-primary/45 ${
+            className={`flex flex-col items-center justify-center gap-1 rounded-xl text-[0.62rem] font-semibold focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring md:min-h-13 md:flex-row md:justify-start md:gap-3.5 md:rounded-2xl md:border md:border-cas-outline-variant/35 md:bg-cas-surface-container md:px-4 md:text-sm md:font-bold md:shadow-[0_4px_14px_var(--cas-shadow-color)] md:transition md:hover:-translate-y-0.5 md:hover:border-cas-primary/45 ${
               isActive
                 ? "bg-cas-secondary-container/20 text-cas-primary md:border-cas-primary/50 md:bg-cas-primary/10"
                 : "text-cas-on-surface-variant"

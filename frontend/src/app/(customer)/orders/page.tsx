@@ -47,11 +47,14 @@ const submittedItems = [
 
 export default function OrdersPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-16 md:pl-56">
+    <div className="min-h-screen bg-cas-surface text-cas-on-surface transition-colors duration-200">
       <CustomerHeader tableName="Bàn 05" />
 
-      <main className="mx-auto w-full max-w-[75rem] px-5 pt-24 md:px-10 md:pt-28">
-        <section className="text-center" aria-labelledby="order-success-title">
+      <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
+        <CustomerBottomNavigation activeItem="orders" />
+
+        <main className="min-w-0 flex-1">
+          <section className="text-center" aria-labelledby="order-success-title">
           <div className="relative mx-auto grid size-24 place-items-center rounded-full border-4 border-cas-primary bg-cas-primary/8 text-cas-primary shadow-[0_12px_30px_var(--cas-shadow-color)]">
             <span className="absolute inset-2 rounded-full border border-cas-primary/25" />
             <CasIcon className="relative size-12" name="check" />
@@ -186,8 +189,7 @@ export default function OrdersPage() {
           </Link>
         </div>
       </main>
-
-      <CustomerBottomNavigation activeItem="orders" />
+      </div>
     </div>
   );
 }

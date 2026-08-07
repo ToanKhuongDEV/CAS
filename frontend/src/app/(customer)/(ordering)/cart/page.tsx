@@ -39,8 +39,8 @@ const cartItems = [
 
 export default function CartPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-64 text-cas-on-surface transition-colors duration-200 md:pb-48">
-      <main className="mx-auto w-full max-w-[75rem] px-5 pt-24 md:px-10 md:pt-28">
+    <>
+      <main className="w-full">
         <header className="mb-6">
           <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
             Món đang chọn
@@ -183,7 +183,6 @@ export default function CartPage() {
           </Link>
         </div>
       </div>
-
-    </div>
+    </>
   );
 }

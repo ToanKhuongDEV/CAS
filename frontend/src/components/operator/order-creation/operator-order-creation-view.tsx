@@ -295,49 +295,54 @@ const menuItems: MenuItemData[] = [
 
 const mockActiveTables: TableOption[] = [
   {
-    tableId: "table-01",
-    code: 1,
+    id: "table-01",
+    code: "01",
     label: "Bàn 01",
-    sessionStatus: "OPEN",
+    status: "OPEN",
     customerName: "Minh Anh",
     customerPhone: "0912***456",
-    activeOrderCount: 1,
+    activeOrdersCount: 1,
+    openedAt: "18:30",
   },
   {
-    tableId: "table-02",
-    code: 2,
+    id: "table-02",
+    code: "02",
     label: "Bàn 02",
-    sessionStatus: "OPEN",
+    status: "OPEN",
     customerName: "Hoàng Nam",
     customerPhone: "0988***123",
-    activeOrderCount: 2,
+    activeOrdersCount: 2,
+    openedAt: "18:45",
   },
   {
-    tableId: "table-05",
-    code: 5,
+    id: "table-05",
+    code: "05",
     label: "Bàn 05",
-    sessionStatus: "OPEN",
+    status: "OPEN",
     customerName: "Khách lẻ",
     customerPhone: "0905***789",
-    activeOrderCount: 0,
+    activeOrdersCount: 0,
+    openedAt: "19:00",
   },
   {
-    tableId: "table-07",
-    code: 7,
+    id: "table-07",
+    code: "07",
     label: "Bàn 07",
-    sessionStatus: "OPEN",
+    status: "OPEN",
     customerName: "Thu Hà",
     customerPhone: "0934***678",
-    activeOrderCount: 1,
+    activeOrdersCount: 1,
+    openedAt: "19:15",
   },
   {
-    tableId: "table-09",
-    code: 9,
+    id: "table-09",
+    code: "09",
     label: "Bàn 09",
-    sessionStatus: "OPEN",
+    status: "OPEN",
     customerName: "Văn Hùng",
     customerPhone: "0971***999",
-    activeOrderCount: 3,
+    activeOrdersCount: 3,
+    openedAt: "19:20",
   },
 ];
 
@@ -361,7 +366,7 @@ export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
   const [selectedTable, setSelectedTable] = useState<TableOption>(() => {
-    const found = mockActiveTables.find((t) => t.tableId === defaultTableId);
+    const found = mockActiveTables.find((t) => t.id === defaultTableId);
     return found ?? mockActiveTables[2];
   });
 
@@ -701,8 +706,7 @@ export function OperatorOrderCreationView({
       {/* Table Selector Modal */}
       <OperatorTableSelectModal
         isOpen={isTableModalOpen}
-        tables={mockActiveTables}
-        currentTableId={selectedTable.tableId}
+        selectedTableId={selectedTable.id}
         onClose={() => setIsTableModalOpen(false)}
         onSelectTable={(table) => {
           setSelectedTable(table);
@@ -720,7 +724,7 @@ export function OperatorOrderCreationView({
           <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-6 shadow-2xl">
             <div className="flex flex-col items-center text-center">
               <span className="grid size-14 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                <CasIcon className="size-8" name="checked" />
+                <CasIcon className="size-8" name="check" />
               </span>
               <h3 className="mt-4 text-xl font-extrabold text-cas-on-surface">
                 Tạo order thành công!

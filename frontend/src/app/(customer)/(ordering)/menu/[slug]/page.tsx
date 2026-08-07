@@ -154,9 +154,8 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-cas-surface pb-44 text-cas-on-surface transition-colors duration-200 md:pb-32">
-      <main className="mx-auto w-full max-w-[75rem] pt-16 md:px-10 md:pt-20">
-        <div className="relative aspect-[4/3] w-full overflow-hidden md:aspect-[21/9] md:rounded-[1.6rem]">
+    <main className="w-full">
+      <div className="relative aspect-[4/3] w-full overflow-hidden md:aspect-[21/9] md:rounded-[1.6rem]">
           <Image
             className="object-cover"
             src={product.imageSrc}
@@ -211,6 +210,5 @@ export default async function ProductDetailPage({
           </div>
         </section>
       </main>
-    </div>
   );
 }
