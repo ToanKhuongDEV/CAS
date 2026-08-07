@@ -42,3 +42,4 @@ frontend/storybook-static/
 .DS_Store
 Thumbs.db
 Desktop.ini
+mcp_config.json
