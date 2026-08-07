@@ -199,6 +199,34 @@ Khách đã tạo yêu cầu thanh toán nhưng nhân viên chưa bấm xác nh�
 - Nhân viên không xác nhận `PAID` nếu chưa nghe loa báo giao dịch (“ting ting”) xác nhận chuyển khoản thành công.
 - Nếu cần đóng bàn mà chưa xác nhận `PAID`, nhân viên dùng luồng ghi nhận chưa thanh toán; payment vẫn `PENDING` và hệ thống tạo `unpaid_records`.
 
+## 14.1. Customer đang chờ khi payment được xác nhận
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Customer đang mở màn chờ nhân viên xác nhận trên một hoặc nhiều thiết bị. Nhân
+viên xác nhận payment `PAID` và table session được đóng.
+
+### Cách xử lý
+
+- Customer tiếp tục hiển thị trạng thái chờ cho đến khi polling nhận payment
+  `PAID` từ backend.
+- Khi nhận `PAID`, giao diện thay toàn bộ trạng thái chờ bằng màn “Thanh toán
+  thành công”.
+- Màn hoàn tất hiển thị bàn, số tiền backend đã xác nhận, `confirmed_at`, lời
+  cảm ơn và nút “Tiếp tục tạo đơn mới”; không hiển thị nhãn hoặc thông báo bàn
+  đã đóng.
+- Nút tiếp tục dùng lại QR token cố định của chính bàn để trở về màn nhập thông
+  tin tại `/table/{qrToken}` như một khách mới, không tái sử dụng session cũ.
+- Không cho gọi thêm món, yêu cầu hủy hoặc gửi lại yêu cầu thanh toán sau khi
+  session đã `CLOSED`.
+- Tất cả thiết bị đang mở cùng session cập nhật theo cùng quy tắc.
+- Nếu polling lỗi hoặc thiết bị mất kết nối, giữ trạng thái chờ gần nhất và thử
+  đồng bộ lại; không tự chuyển sang thành công.
+- Không hiển thị thông tin ngân hàng, mã giao dịch, QR thanh toán hoặc dữ liệu
+  từ loa báo giao dịch.
+
 ## 15. Khách trốn về trước khi tạo payment
 
 **Trạng thái:** Đã chốt

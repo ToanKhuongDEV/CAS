@@ -32,7 +32,10 @@ export default function PaymentPage() {
         </header>
 
         <div className="mt-7">
-          <PaymentRequestPanel />
+          <PaymentRequestPanel
+            paymentStatus="PAID"
+            tableQrToken="preview"
+          />
         </div>
       </main>
 

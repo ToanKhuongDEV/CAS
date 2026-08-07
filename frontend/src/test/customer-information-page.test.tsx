@@ -6,12 +6,14 @@ import CustomerInformationPage from "../app/(customer)/table/[token]/page";
 const push = vi.fn();
 
 vi.mock("next/navigation", () => ({
+  useParams: () => ({ token: "qr-ban-05" }),
   useRouter: () => ({ push }),
 }));
 
 describe("CustomerInformationPage", () => {
   beforeEach(() => {
     push.mockClear();
+    window.sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -38,6 +40,7 @@ describe("CustomerInformationPage", () => {
         "Thông tin này được dùng để xác định người đại diện mở phiên bàn.",
       ),
     ).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr-ban-05");
   });
 
   it("shows field errors and focuses the first invalid input", () => {

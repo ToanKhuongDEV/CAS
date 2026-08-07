@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import { OperatorTabNavigation } from "../components/operator/operator-tab-navigation";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/operator/orders",
+  usePathname: () => "/operator/orders/ORD-0819",
 }));
 
 describe("OperatorTabNavigation", () => {
-  it("renders five separate operator routes and marks the current tab", () => {
+  it("renders five separate routes and keeps the parent tab active on order detail", () => {
     render(<OperatorTabNavigation />);
 
     const expectedTabs = [

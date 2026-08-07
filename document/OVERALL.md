@@ -165,6 +165,12 @@ Các chức năng này sẽ được xem xét trong những phiên bản sau d�
 5. Khách thực hiện chuyển khoản; nhân viên xác minh chuyển khoản thành công qua loa báo giao dịch (“ting ting”).
 6. Nhân viên bấm xác nhận thanh toán thành công.
 7. Hệ thống chuyển payment sang `PAID` và hoàn tất phiên sử dụng bàn.
+8. Giao diện Customer nhận trạng thái `PAID` qua polling và chuyển sang màn
+   “Thanh toán thành công”.
+9. Màn hoàn tất hiển thị bàn, tổng tiền đã xác nhận, thời gian hoàn tất, lời cảm
+   ơn và thao tác tiếp tục tạo đơn mới. Thao tác này dùng lại QR token cố định
+   của chính bàn đó để trở về màn nhập thông tin như một khách mới; Customer
+   không còn thao tác trên session vừa đóng.
 
 CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ thống không tạo QR thanh toán, không lưu thông tin ngân hàng và không tích hợp với loa báo giao dịch. Việc xác minh chuyển khoản diễn ra ngoài CAS và do nhân viên chịu trách nhiệm.
 

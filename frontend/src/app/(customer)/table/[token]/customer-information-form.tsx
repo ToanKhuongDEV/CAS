@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { FormEvent, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { CasIcon } from "../../../../components/ui/cas-icon";
 
@@ -12,11 +12,18 @@ type CustomerInformationErrors = {
 
 export function CustomerInformationForm() {
   const router = useRouter();
+  const params = useParams<{ token: string }>();
   const customerNameInputRef = useRef<HTMLInputElement>(null);
   const customerPhoneInputRef = useRef<HTMLInputElement>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [errors, setErrors] = useState<CustomerInformationErrors>({});
+
+  useEffect(() => {
+    if (typeof params.token === "string") {
+      window.sessionStorage.setItem("cas.tableQrToken", params.token);
+    }
+  }, [params.token]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

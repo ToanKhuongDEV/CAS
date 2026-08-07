@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CasIcon } from "../../../components/ui/cas-icon";
@@ -31,8 +32,91 @@ const billItems = [
   },
 ];
 
-export function PaymentRequestPanel() {
+type PaymentRequestPanelProps = {
+  confirmedAt?: string;
+  paymentStatus?: "NONE" | "PENDING" | "PAID";
+  tableQrToken?: string;
+};
+
+export function PaymentRequestPanel({
+  confirmedAt = "20:05",
+  paymentStatus = "NONE",
+  tableQrToken,
+}: PaymentRequestPanelProps) {
+  const router = useRouter();
   const [isPaymentPending, setIsPaymentPending] = useState(false);
+  const isWaitingForConfirmation =
+    isPaymentPending || paymentStatus === "PENDING";
+
+  const handleCreateNewOrder = () => {
+    const activeTableQrToken =
+      tableQrToken ?? window.sessionStorage.getItem("cas.tableQrToken");
+
+    router.push(
+      activeTableQrToken
+        ? `/table/${encodeURIComponent(activeTableQrToken)}`
+        : "/",
+    );
+  };
+
+  if (paymentStatus === "PAID") {
+    return (
+      <div className="fixed inset-0 z-100 overflow-y-auto bg-cas-surface text-cas-on-surface">
+        <main className="grid min-h-full place-items-center px-5 py-10">
+          <section
+            className="w-full max-w-md text-center"
+            aria-labelledby="payment-success-title"
+          >
+            <span className="mx-auto grid size-24 place-items-center rounded-full border-4 border-cas-secondary bg-cas-secondary-container/25 text-cas-secondary shadow-[0_12px_30px_var(--cas-shadow-color)]">
+              <CasIcon className="size-12" name="check" />
+            </span>
+
+            <p className="mt-7 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Đã hoàn tất
+            </p>
+            <h1
+              className="mt-2 text-3xl font-extrabold tracking-tight"
+              id="payment-success-title"
+            >
+              Thanh toán thành công
+            </h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-cas-on-surface-variant">
+              Cảm ơn bạn đã sử dụng dịch vụ tại CAS.
+            </p>
+
+            <dl className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass text-left shadow-[0_8px_24px_var(--cas-shadow-color)]">
+              <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
+                <dt className="text-sm text-cas-on-surface-variant">Bàn</dt>
+                <dd className="font-extrabold">Bàn 05</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
+                <dt className="text-sm text-cas-on-surface-variant">
+                  Tổng thanh toán
+                </dt>
+                <dd className="text-lg font-extrabold text-cas-primary">
+                  170.000đ
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-5 py-4">
+                <dt className="text-sm text-cas-on-surface-variant">
+                  Hoàn tất lúc
+                </dt>
+                <dd className="font-extrabold">{confirmedAt}</dd>
+              </div>
+            </dl>
+
+            <button
+              className="mt-6 flex min-h-13 w-full items-center justify-center rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+              type="button"
+              onClick={handleCreateNewOrder}
+            >
+              Tiếp tục tạo đơn mới
+            </button>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -120,14 +204,14 @@ export function PaymentRequestPanel() {
         <button
           className="flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover disabled:cursor-not-allowed disabled:bg-cas-on-surface-variant/25 disabled:text-cas-on-surface-variant focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           type="button"
-          disabled={isPaymentPending}
+          disabled={isWaitingForConfirmation}
           onClick={() => setIsPaymentPending(true)}
         >
           <CasIcon
             className="size-5"
-            name={isPaymentPending ? "clock" : "payment"}
+            name={isWaitingForConfirmation ? "clock" : "payment"}
           />
-          {isPaymentPending
+          {isWaitingForConfirmation
             ? "Đã gửi yêu cầu thanh toán"
             : "Gửi yêu cầu thanh toán"}
         </button>
@@ -136,7 +220,7 @@ export function PaymentRequestPanel() {
         </p>
       </div>
 
-      {isPaymentPending ? (
+      {isWaitingForConfirmation ? (
         <div
           className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/55 px-5 backdrop-blur-sm"
           role="dialog"

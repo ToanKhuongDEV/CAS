@@ -30,7 +30,8 @@ export function OperatorTabNavigation() {
     >
       <div className="mx-auto flex min-w-max max-w-7xl gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-5">
         {operatorTabs.map((tab) => {
-          const isActive = pathname === tab.href;
+          const isActive =
+            pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
           return (
             <Link

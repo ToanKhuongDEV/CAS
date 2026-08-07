@@ -131,15 +131,37 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] Bổ sung popup chọn option khi thêm món từ danh sách thực đơn, gồm dropdown cấp độ cay, kích thước, độ ngọt và topping tùy theo món.
 - [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
 - [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING`, hướng dẫn đến quầy thu ngân và lớp thông báo chặn thao tác khác.
+- [x] Bổ sung màn Customer “Thanh toán thành công” khi trạng thái payment chuyển
+  từ `PENDING` sang `PAID`, hiển thị bàn, tổng tiền, thời gian hoàn tất, lời cảm
+  ơn và nút tiếp tục tạo đơn mới bằng QR token của chính bàn để trở về màn nhập
+  thông tin khách mới; không hiển thị nhãn hoặc thông báo bàn đã đóng.
 - [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
-- [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn để tiết kiệm không gian; bổ sung cảnh báo bàn chờ lâu tính từ order cũ nhất còn món chưa làm xong với ngưỡng UI tạm thời `25` phút, hoạt động gần đây và sơ đồ bàn mini bằng dữ liệu mẫu đúng phạm vi CAS.
+- [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch
+  “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive
+  mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt
+  gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn;
+  bổ sung cảnh báo bàn chờ lâu với ngưỡng UI `25` phút, danh sách khiếu nại rút
+  gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
+  động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
 - [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
-- [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món và cấu hình option, hiển thị phân bổ theo bàn theo FIFO bằng dữ liệu mẫu.
+- [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món
+  và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
+  phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có
+  thể xổ/đóng danh sách bàn và không dùng icon trang trí trong từng nhánh.
+- [x] Chia màn `/operator/orders` thành hai cột: tổng hợp số lượng theo món ở
+  bên trái và cây món còn cần làm theo từng bàn ở bên phải; hai cột cập nhật
+  đồng thời khi nhân viên ghi nhận số phần hoàn thành.
+- [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
+  thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
+  lượng đã làm/còn lại cùng tổng tiền của một order.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [ ] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
   món và tạo/gọi thêm order hộ khách.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
-- [ ] Xây dựng giao diện danh sách yêu cầu và xác nhận thanh toán.
+- [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
+  `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
+  phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
+  giao dịch thành công.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Xây dựng giao diện Admin xem danh sách `report`; loại report, dữ liệu hiển thị, trạng thái, bộ lọc, phân trang, API contract và mô hình dữ liệu vẫn `Cần chốt`.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
