@@ -49,6 +49,7 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] Sau khi gửi yêu cầu, khách bắt buộc gặp nhân viên; nhân viên xác minh chuyển khoản qua loa “ting ting” rồi mới xác nhận payment `PAID`.
 - [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 - [x] Thời gian chờ của bàn trên dashboard Operation được tính từ `orders.created_at` của order cũ nhất còn ít nhất một phần chưa làm xong trong table session; bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình. UI tạm dùng `25` phút.
+- [x] Hệ thống **không có chức năng đổi bàn, chuyển bàn hoặc gộp bàn** trong phạm vi hiện tại; mỗi table session gắn cố định với một bàn từ khi `OPEN` đến khi `CLOSED`.
 
 ## 3. Các quyết định kỹ thuật đã chốt
 
@@ -160,8 +161,8 @@ Ngày cập nhật gần nhất: 2026-08-07
   thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
   lượng đã làm/còn lại cùng tổng tiền của một order.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
-- [ ] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
-  món và tạo/gọi thêm order hộ khách.
+- [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
+  món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
   `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và

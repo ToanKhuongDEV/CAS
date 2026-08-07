@@ -499,6 +499,20 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 - Có cần hiển thị nguồn “Khách tự gọi” hoặc “Nhân viên tạo hộ” trong lịch sử hay
   không; nếu cần truy vấn trực tiếp thì phải chốt thay đổi mô hình dữ liệu.
 
+## 21.1. Khách yêu cầu đổi bàn hoặc gộp bàn
+
+**Trạng thái:** Đã chốt — Ngoài phạm vi hiện tại
+
+### Tình huống
+
+Khách đang ngồi ở bàn hiện tại và muốn chuyển sang bàn khác hoặc gộp hai bàn lại.
+
+### Quy tắc đã chốt
+
+- Hệ thống CAS **không có chức năng đổi bàn, chuyển bàn hoặc gộp bàn** trong phạm vi hiện tại.
+- Mỗi `table_sessions` gắn cố định với duy nhất một `dining_tables` từ lúc `OPEN` đến khi `CLOSED`.
+- Nếu khách đổi chỗ thực tế, nhân viên và khách tiếp tục phục vụ theo session của bàn ban đầu cho đến khi hoàn tất thanh toán, hoặc đóng session cũ và mở session mới theo quy trình thủ công.
+
 ## 22. Các edge case cần bổ sung sau
 
 - Mất kết nối khi đang submit order.

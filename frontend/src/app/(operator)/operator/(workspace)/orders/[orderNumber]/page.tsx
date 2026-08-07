@@ -213,9 +213,6 @@ export default async function OperatorOrderDetailPage({
       </div>
 
       <header className="mt-6">
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-          Chi tiết đơn gọi món
-        </p>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Đơn của {order.table}

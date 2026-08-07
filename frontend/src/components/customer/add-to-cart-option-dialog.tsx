@@ -18,11 +18,19 @@ export type MenuOptionGroup = {
   options: MenuOption[];
 };
 
+export type AddToCartPayload = {
+  optionsSummary: string;
+  extraPrice: number;
+  totalUnitPrice: number;
+  selectedOptionIds: Record<string, string[]>;
+};
+
 type AddToCartOptionDialogProps = {
   basePrice: number;
   currentQuantity?: number;
   itemName: string;
   optionGroups?: MenuOptionGroup[];
+  onAddToCart?: (payload: AddToCartPayload) => void;
 };
 
 const formatPrice = (value: number) =>
@@ -33,6 +41,7 @@ export function AddToCartOptionDialog({
   currentQuantity,
   itemName,
   optionGroups = [],
+  onAddToCart,
 }: AddToCartOptionDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>(
@@ -74,6 +83,42 @@ export function AddToCartOptionDialog({
     });
   }
 
+  function handleConfirm() {
+    if (onAddToCart) {
+      const summaryParts: string[] = [];
+      for (const group of optionGroups) {
+        const chosen = group.options.filter((option) =>
+          selectedOptions[group.id]?.includes(option.id),
+        );
+        if (chosen.length > 0) {
+          summaryParts.push(chosen.map((c) => c.label).join(", "));
+        }
+      }
+
+      onAddToCart({
+        optionsSummary: summaryParts.join(" • ") || "Món tiêu chuẩn",
+        extraPrice: selectedOptionPrice,
+        totalUnitPrice: basePrice + selectedOptionPrice,
+        selectedOptionIds: selectedOptions,
+      });
+    }
+
+    setIsOpen(false);
+  }
+
+  function handleTriggerClick() {
+    if (optionGroups.length === 0 && onAddToCart) {
+      onAddToCart({
+        optionsSummary: "Món tiêu chuẩn",
+        extraPrice: 0,
+        totalUnitPrice: basePrice,
+        selectedOptionIds: {},
+      });
+      return;
+    }
+    setIsOpen(true);
+  }
+
   return (
     <>
       {currentQuantity && currentQuantity > 0 ? (
@@ -87,7 +132,7 @@ export function AddToCartOptionDialog({
           className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
           type="button"
           aria-label={`Chọn tùy chọn cho ${itemName}`}
-          onClick={() => setIsOpen(true)}
+          onClick={handleTriggerClick}
         >
           <CasIcon className="size-5" name="plus" />
         </button>
@@ -195,7 +240,7 @@ export function AddToCartOptionDialog({
               <button
                 className="min-h-12 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleConfirm}
               >
                 Thêm vào giỏ · {formatPrice(basePrice + selectedOptionPrice)}
               </button>

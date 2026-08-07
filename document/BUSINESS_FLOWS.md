@@ -23,6 +23,7 @@ Các luồng thuộc phạm vi hiện tại:
 
 Ngoài phạm vi hiện tại:
 
+- Đổi bàn, chuyển bàn hoặc gộp bàn giữa các phiên bàn.
 - Ma trận phân quyền chi tiết theo từng API.
 - Tách hóa đơn.
 - Tích hợp VietQR, ngân hàng, ví điện tử hoặc cổng thanh toán.

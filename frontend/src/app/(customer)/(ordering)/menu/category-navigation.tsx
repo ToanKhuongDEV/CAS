@@ -15,10 +15,12 @@ type Category = {
 
 type CategoryNavigationProps = {
   categories: Category[];
+  className?: string;
 };
 
 export function CategoryNavigation({
   categories,
+  className,
 }: CategoryNavigationProps) {
   const navigationRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -203,13 +205,15 @@ export function CategoryNavigation({
   return (
     <nav
       ref={navigationRef}
-      className="sticky top-16 z-40 -mx-5 mt-6 border-y border-cas-outline-variant/30 bg-cas-surface/95 py-3 shadow-[0_8px_18px_var(--cas-shadow-color)] backdrop-blur-xl md:-mx-10 md:px-10"
+      className={`sticky top-16 z-30 border-y border-cas-outline-variant/30 bg-cas-surface/95 py-3 shadow-[0_8px_18px_var(--cas-shadow-color)] backdrop-blur-xl ${
+        className ? className : "-mx-5 mt-6 md:-mx-10 md:px-10"
+      }`}
       aria-label="Đi đến danh mục món"
     >
       <div
-        className={`flex w-full max-w-full touch-pan-x snap-x snap-proximity select-none gap-2 overflow-x-auto overscroll-x-contain px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-0 ${
-          isDragging ? "snap-none" : ""
-        }`}
+        className={`flex w-full max-w-full touch-pan-x snap-x snap-proximity select-none gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          className ? "px-2" : "px-5 md:px-0"
+        } ${isDragging ? "snap-none" : ""}`}
         data-drag-scroll-axis="x"
         ref={scrollerRef}
         onClickCapture={handleClickCapture}

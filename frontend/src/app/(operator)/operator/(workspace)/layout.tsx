@@ -12,17 +12,16 @@ export default function OperatorWorkspaceLayout({
 }: OperatorWorkspaceLayoutProps) {
   return (
     <main className="min-h-screen bg-cas-surface text-cas-on-surface">
-      <header className="bg-cas-header px-5 py-4 backdrop-blur-xl sm:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+      <header className="bg-cas-header px-4 py-4 backdrop-blur-xl sm:px-8 xl:px-12">
+        <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-xl bg-cas-primary text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)]">
               <CasIcon className="size-5.5" name="restaurant" />
             </span>
-            <div>
-              <p className="font-extrabold text-cas-primary">CAS</p>
-              <p className="text-xs text-cas-on-surface-variant">
-                Khu vực vận hành
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-black tracking-tight text-cas-primary">
+                CAS
+              </span>
             </div>
           </div>
 
@@ -42,7 +41,7 @@ export default function OperatorWorkspaceLayout({
 
       <OperatorTabNavigation />
 
-      <div className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-9">
+      <div className="mx-auto max-w-[100rem] px-4 py-7 sm:px-8 sm:py-9 xl:px-12">
         {children}
       </div>
     </main>

@@ -5,9 +5,9 @@ import { OperatorComplaintsPanel } from "../../../../../components/operator/oper
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 
 export const metadata: Metadata = {
-  title: "Tổng quan vận hành | CAS",
+  title: "Tổng quan | CAS",
   description:
-    "Theo dõi tổng quan vận hành, bàn chờ lâu và khiếu nại tại CAS.",
+    "Theo dõi tổng quan, bàn chờ lâu và khiếu nại tại CAS.",
 };
 
 type SummaryCard = {
@@ -85,16 +85,25 @@ const tableToneClasses = {
 export default function OperatorDashboardPage() {
   return (
     <>
-      <header>
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-          Bảng điều khiển nhân viên
-        </p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Tổng quan
-        </h1>
-        <p className="mt-2 text-sm text-cas-on-surface-variant">
-          Theo dõi nhanh hoạt động và các bàn cần chú ý trong ca.
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Tổng quan
+          </h1>
+          <p className="mt-2 text-sm text-cas-on-surface-variant">
+            Theo dõi nhanh hoạt động và các bàn cần chú ý trong ca.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/operator/orders/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-cas-primary px-4 py-2.5 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-2 focus-visible:outline-cas-focus-ring sm:text-sm"
+          >
+            <CasIcon className="size-4" name="plus" />
+            <span>+ Tạo order hộ</span>
+          </Link>
+        </div>
       </header>
 
       <section

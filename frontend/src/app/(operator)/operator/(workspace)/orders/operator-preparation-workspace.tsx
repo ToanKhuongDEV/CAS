@@ -299,21 +299,28 @@ export function OperatorPreparationWorkspace() {
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-            Vận hành món
-          </p>
-          <h1 className="mt-1 text-3xl font-extrabold">Đơn gọi món</h1>
+          <h1 className="text-3xl font-extrabold">Đơn gọi món</h1>
           <p className="mt-2 max-w-3xl text-sm text-cas-on-surface-variant">
             Theo dõi món cần làm theo món hoặc theo từng bàn.
           </p>
         </div>
-        <div className="rounded-xl border border-cas-outline-variant/25 bg-cas-glass px-4 py-3 text-right">
-          <p className="text-xs font-bold text-cas-on-surface-variant">
-            Tổng còn cần làm
-          </p>
-          <p className="mt-0.5 text-xl font-extrabold text-cas-primary">
-            {totalRemainingQuantity} phần
-          </p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/operator/orders/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-cas-primary px-4 py-3 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-2 focus-visible:outline-cas-focus-ring sm:text-sm"
+          >
+            <CasIcon className="size-4" name="plus" />
+            <span>+ Tạo order hộ</span>
+          </Link>
+
+          <div className="rounded-xl border border-cas-outline-variant/25 bg-cas-glass px-4 py-2.5 text-right">
+            <p className="text-xs font-bold text-cas-on-surface-variant">
+              Tổng còn cần làm
+            </p>
+            <p className="mt-0.5 text-lg font-extrabold text-cas-primary">
+              {totalRemainingQuantity} phần
+            </p>
+          </div>
         </div>
       </header>
 

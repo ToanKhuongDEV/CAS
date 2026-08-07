@@ -127,6 +127,7 @@ khi chưa có quyết định tiếp theo.
 
 ### 4.2. Ngoài phạm vi hiện tại
 
+- Đổi bàn, chuyển bàn hoặc gộp bàn giữa các phiên bàn.
 - Quản lý nhân viên, ca làm và chấm công.
 - Ma trận phân quyền chi tiết theo từng API.
 - Quản lý nhiều chi nhánh.

@@ -23,16 +23,13 @@ export default function OperatorCancellationsPage() {
   return (
     <>
       <header>
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-          Vận hành
-        </p>
-        <h1 className="mt-1 text-3xl font-extrabold">Yêu cầu hủy món</h1>
+        <h1 className="text-3xl font-extrabold">Yêu cầu hủy món</h1>
         <p className="mt-2 text-sm text-cas-on-surface-variant">
           Xem các yêu cầu đang chờ nhân viên đồng ý hoặc từ chối.
         </p>
       </header>
 
-      <ul className="mt-7 grid gap-4 lg:grid-cols-2">
+      <ul className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {requests.map((request) => (
           <li
             className="rounded-2xl border border-cas-outline-variant/25 bg-cas-glass p-5 shadow-[0_5px_18px_var(--cas-shadow-color)]"

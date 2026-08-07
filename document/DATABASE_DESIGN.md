@@ -812,6 +812,7 @@ Primary key, unique index và index bắt buộc cho foreign key vẫn được 
 
 Thiết kế hiện tại chưa bao gồm:
 
+- Đổi bàn, chuyển bàn, tách bàn hoặc gộp bàn giữa các table session.
 - Hồ sơ và lịch sử nhân viên.
 - Ma trận phân quyền chi tiết theo từng API.
 - Kho và nguyên vật liệu.

@@ -77,10 +77,7 @@ export function OperatorPaymentConfirmationList() {
   return (
     <>
       <header>
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-          Vận hành
-        </p>
-        <h1 className="mt-1 text-3xl font-extrabold">
+        <h1 className="text-3xl font-extrabold">
           Thanh toán chờ xác nhận
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-cas-on-surface-variant">
