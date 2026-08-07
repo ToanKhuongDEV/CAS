@@ -73,6 +73,41 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 - Access JWT và refresh JWT không được lưu trong `localStorage`; cơ chế vận chuyển và lưu token cụ thể sẽ được chốt trong API contract.
 - Backend phải kiểm tra role trên mọi API được bảo vệ: API quản trị chỉ cho phép `ADMIN`; API vận hành chỉ cho phép role có quyền vận hành theo API contract.
 
+## 4.1. Luồng Admin xem danh sách report
+
+**Trạng thái:** Cần chốt chi tiết
+
+### Mục tiêu
+
+Cho phép tài khoản có role `ADMIN` truy cập màn hình và xem danh sách `report`
+của hệ thống.
+
+### Luồng khung đã chốt
+
+1. `ADMIN` đăng nhập khu vực quản trị.
+2. `ADMIN` mở chức năng danh sách `report`.
+3. Frontend yêu cầu dữ liệu từ CAS Backend.
+4. Backend xác thực tài khoản và kiểm tra role `ADMIN`.
+5. Backend trả danh sách `report` theo API contract sẽ được chốt.
+6. Frontend hiển thị kết quả, trạng thái tải, danh sách trống và lỗi phù hợp.
+
+### Quy tắc đã chốt
+
+- Chức năng này chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập.
+- Backend là nơi bắt buộc kiểm tra quyền, frontend chỉ hỗ trợ trải nghiệm.
+- Đây là chức năng xem danh sách, chưa bao gồm tạo, sửa, xóa, duyệt hoặc thay
+  đổi trạng thái report.
+- Không coi đây là chức năng báo cáo và phân tích nâng cao.
+
+### Nội dung cần chốt
+
+- Khái niệm và các loại `report` trong phạm vi CAS.
+- Tác nhân hoặc quy trình tạo report.
+- Trường dữ liệu và trạng thái của report.
+- Bộ lọc, tìm kiếm, sắp xếp và phân trang.
+- Quyền xem chi tiết và các thao tác xử lý sau khi mở report.
+- API contract và nhu cầu bổ sung mô hình dữ liệu.
+
 ## 5. Luồng quét QR và mở phiên bàn
 
 ### Mục tiêu
@@ -161,12 +196,19 @@ Khách hàng gửi một order mới trong session bàn.
 10. Hệ thống tạo các dòng `order_items`.
 11. Hệ thống tạo các dòng `order_item_options` liên kết với đúng `order_item_id`.
 12. Hệ thống tính `original_amount` và `payable_amount`.
-13. Hệ thống trả về order đã tạo và cập nhật danh sách order của session.
+13. Order mới được xếp vào hàng ưu tiên lên món theo `created_at`.
+14. Hệ thống trả về order đã tạo và cập nhật danh sách order của session.
 
 ### Quy tắc nghiệp vụ
 
 - Mỗi lần khách gửi món tạo một order riêng.
 - Một session có thể có nhiều order.
+- Các order được ưu tiên theo FIFO: `created_at` sớm hơn được xếp lên món trước.
+- Nếu nhiều order có cùng `created_at`, thứ tự giữa các order đó không cần được
+  bảo đảm; order nào hiển thị trước cũng được chấp nhận.
+- FIFO là thứ tự ưu tiên hiển thị và xử lý thủ công; CAS theo dõi số lượng đã
+  làm xong bằng `order_items.prepared_quantity`, nhưng không tự xác nhận món đã
+  được lên.
 - `idempotency_key` là bắt buộc khi tạo order và chỉ duy nhất trong phạm vi một table session.
 - `request_fingerprint` do backend tính từ payload đã chuẩn hóa; client không được cung cấp hoặc quyết định giá trị này.
 - Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo, không tạo order mới.
@@ -177,7 +219,9 @@ Khách hàng gửi một order mới trong session bàn.
 - `order_items.unit_price` là giá gốc của món; giá option được lưu riêng trong `order_item_options`.
 - `order_items.total_amount = (unit_price + options_amount) × quantity`.
 - Hai món chỉ được gộp cùng một dòng khi có cấu hình option giống nhau.
-- Hệ thống không theo dõi trạng thái chế biến của order hoặc từng món.
+- Hệ thống không lưu trạng thái enum cho order. Tiến độ làm món được lưu bằng
+  `order_items.prepared_quantity`; trạng thái hoàn thành của dòng món và order
+  được suy ra từ số lượng.
 - Tên và giá trong `order_items`, `order_item_options` là dữ liệu đã chốt tại thời điểm khách gửi order.
 
 ### Ngoại lệ
@@ -186,6 +230,64 @@ Khách hàng gửi một order mới trong session bàn.
 - Món hết hàng hoặc không tồn tại: từ chối dòng món tương ứng.
 - Số option vượt quá `max_select`: không cho gửi order.
 - Option không liên kết với món qua `option_group_items`: không cho gửi order.
+
+## 7.1. Luồng nhân viên tạo order hộ khách
+
+### Mục tiêu
+
+Cho phép `OPERATOR` tiếp nhận yêu cầu gọi món trực tiếp tại bàn và tạo order hộ
+khách bằng cùng khả năng chọn món của giao diện Customer.
+
+### Luồng chính
+
+1. `OPERATOR` đăng nhập khu vực vận hành.
+2. Nhân viên mở chức năng tạo order hộ và chọn bàn cần phục vụ.
+3. Backend xác thực tài khoản `OPERATOR`, phạm vi cửa hàng và tìm table session
+   `OPEN` đang chiếm dụng bàn.
+4. Nhân viên xem menu hiện hành, chọn món, số lượng và các option hợp lệ.
+5. Nhân viên quản lý giỏ món và nhập ghi chú chung cho order nếu khách yêu cầu.
+6. Giao diện tạo `idempotency_key` mới và gửi order cho table session đã chọn.
+7. Backend thực hiện toàn bộ kiểm tra menu, option, session, giá và
+   `request_fingerprint` giống luồng gọi món của Customer.
+8. Hệ thống tạo `orders`, `order_items` và `order_item_options` trong cùng
+   transaction.
+9. Hệ thống ghi `audit_logs` cho order được tạo hộ, với
+   `actor_account_id` là tài khoản nhân viên đang đăng nhập.
+10. Order mới tham gia hàng FIFO theo `orders.created_at` và xuất hiện trong
+    danh sách order chung của table session.
+
+### Quy tắc nghiệp vụ
+
+- Phạm vi “chức năng như Customer” trong luồng này gồm xem menu, chọn món và
+  option, giỏ món, ghi chú chung, gửi order và gọi thêm món; không mặc nhiên cấp
+  cho `OPERATOR` các thao tác chỉ dành cho Customer ngoài mục đích tạo order hộ.
+- Chỉ tạo order hộ vào table session đang `OPEN`; session
+  `PAYMENT_PENDING` hoặc `CLOSED` không được nhận thêm món.
+- Nhân viên không được ghi đè giá món, giá option, tổng tiền, store, danh tính
+  tài khoản thực hiện hoặc thứ tự FIFO.
+- Backend phải tải menu, giá, quyền, table session và quan hệ cửa hàng từ dữ
+  liệu đáng tin cậy.
+- Mỗi lần nhân viên gửi món tạo một order mới; gọi thêm không sửa order cũ.
+- Order do nhân viên tạo hộ và order do Customer tạo được xử lý giống nhau trong
+  tổng tiền, hủy món, tổng hợp chế biến, cảnh báo chờ lâu và thanh toán.
+- Retry tuân theo cùng quy tắc `idempotency_key` và `request_fingerprint` của
+  luồng gọi món.
+- Việc tạo order hộ là thao tác vận hành quan trọng và phải có audit log.
+
+### Ngoại lệ
+
+- Bàn không tồn tại, không thuộc cửa hàng của tài khoản hoặc không có session
+  `OPEN`: không tạo order.
+- Dữ liệu menu thay đổi trong lúc nhân viên chọn món: backend kiểm tra lại tại
+  thời điểm submit và từ chối dữ liệu không còn hợp lệ.
+- Tài khoản không có role hoặc trạng thái hợp lệ: từ chối thao tác.
+
+### Nội dung cần chốt
+
+- Khi bàn chưa có session `OPEN`, nhân viên có được mở session hộ hay không.
+- Nếu được mở session hộ, nhân viên phải thu thập tên/số điện thoại khách hay
+  hệ thống cho phép một loại session không có `client_account_id`.
+- API contract và route UI cụ thể cho thao tác chọn bàn, tạo order hộ.
 
 ## 8. Luồng gọi thêm món
 
@@ -200,13 +302,110 @@ Khách hàng gọi thêm món trong cùng phiên bàn trước khi yêu cầu th
 3. Khách hàng chọn thêm món.
 4. Khách hàng gửi order.
 5. Hệ thống tạo một `orders` mới trong cùng `table_sessions`.
-6. Hệ thống cập nhật danh sách order của phiên bàn.
+6. Order gọi thêm được xếp sau các order có `created_at` sớm hơn trong hàng ưu
+   tiên lên món.
+7. Hệ thống cập nhật danh sách order của phiên bàn.
 
 ### Quy tắc nghiệp vụ
 
 - Gọi thêm không cộng dòng món vào order cũ.
 - Gọi thêm luôn tạo order mới trong cùng session.
+- Order gọi thêm không được chen trước order đã tạo trước đó.
 - Nếu session đã chuyển sang chờ thanh toán, hệ thống không nhận thêm món vào session đó.
+
+## 8.1. Luồng tổng hợp và hoàn thành món theo mẻ
+
+### Mục tiêu
+
+Giúp nhân viên tổng hợp số phần của các món giống nhau từ nhiều order để chế
+biến cùng lúc, sau đó phân bổ số lượng đã làm xong về các bàn theo FIFO.
+
+### Luồng chính
+
+1. Hệ thống lấy các `order_items` còn số lượng cần làm.
+2. Hệ thống trừ tổng số lượng hủy `APPROVED` khỏi `order_items.quantity`.
+3. Hệ thống trừ tiếp `order_items.prepared_quantity` để xác định số phần còn
+   cần làm.
+4. Các dòng món có cùng `menu_item_id` và cùng toàn bộ cấu hình option được gộp
+   thành một nhóm chế biến.
+5. Giao diện hiển thị tổng số phần còn cần làm của từng nhóm, ví dụ `Bò: 19
+   phần`, `Gà: 5 phần`.
+6. Nhân viên mở một nhóm để xem phân bổ theo bàn và order, sắp xếp theo
+   `orders.created_at ASC`.
+7. Nhân viên nhập số phần vừa làm xong và gửi thao tác hoàn thành theo mẻ.
+8. Backend khóa các dòng liên quan hoặc dùng cơ chế transaction tương đương,
+   kiểm tra lại số lượng còn cần làm và phân bổ số phần hoàn thành theo FIFO.
+9. Backend tăng `order_items.prepared_quantity` trên các dòng được phân bổ và
+   ghi audit log.
+10. Backend trả kết quả phân bổ mới nhất; frontend cập nhật tổng hợp và chi tiết
+    theo bàn.
+
+### Quy tắc nghiệp vụ
+
+- `order_items.prepared_quantity` mặc định bằng `0`.
+- Số lượng hiệu lực của dòng món bằng `quantity` trừ tổng số lượng hủy
+  `APPROVED`.
+- Số lượng còn cần làm bằng số lượng hiệu lực trừ `prepared_quantity`.
+- `prepared_quantity` không được âm và không được lớn hơn số lượng hiệu lực.
+- Chỉ gộp các dòng có cùng món chính và cùng chính xác toàn bộ cấu hình option;
+  khác size, cấp độ cay, topping hoặc option ảnh hưởng chế biến phải là nhóm
+  riêng.
+- Phân bổ hoàn thành theo `orders.created_at ASC`. Các order trùng `created_at`
+  có thể được phân bổ theo bất kỳ thứ tự nào.
+- Order gọi thêm tham gia hàng FIFO tại thời điểm order đó được tạo.
+- Một dòng món hoàn thành khi số lượng còn cần làm bằng `0`.
+- Một order hoàn thành theo giá trị suy ra khi mọi dòng món còn hiệu lực đều có
+  số lượng còn cần làm bằng `0`; không lưu `orders.is_completed`.
+- Thao tác hoàn thành theo mẻ phải được backend xử lý trong transaction và có
+  cơ chế idempotency bền vững trước khi mở API ghi dữ liệu.
+- Trong phạm vi hiện tại, “đã làm xong” là mốc hoàn thành vận hành của món; hệ
+  thống chưa tách riêng trạng thái bếp làm xong và nhân viên đã mang tới bàn.
+
+### Ngoại lệ
+
+- Số lượng nhân viên nhập lớn hơn tổng số phần còn cần làm: từ chối và trả dữ
+  liệu mới nhất.
+- Dữ liệu đã thay đổi do yêu cầu hủy được duyệt hoặc nhân viên khác vừa hoàn
+  thành một mẻ: backend tính lại trong transaction, không cho vượt số lượng hiệu
+  lực.
+- Retry cùng thao tác hoàn thành không được cộng `prepared_quantity` hai lần.
+
+## 8.2. Luồng cảnh báo bàn chờ lâu cho nhân viên
+
+### Mục tiêu
+
+Giúp `OPERATOR` nhận biết các bàn có order cũ còn món chưa làm xong để
+chủ động kiểm tra và hỗ trợ.
+
+### Luồng chính
+
+1. Hệ thống lấy các table session đang `OPEN`.
+2. Với mỗi session, hệ thống tìm order cũ nhất còn ít nhất một
+   `order_items` có số lượng còn cần làm lớn hơn `0`.
+3. Hệ thống tính thời gian chờ từ `orders.created_at` của order chưa hoàn thành
+   cũ nhất đến thời điểm hiện tại.
+4. Backend lấy ngưỡng cảnh báo do `ADMIN` cấu hình.
+5. Các bàn có thời gian chờ lớn hơn hoặc bằng ngưỡng được trả về cho dashboard
+   Operation.
+6. Giao diện hiển thị bàn, order cũ nhất chưa hoàn thành, thời điểm gửi, thời
+   gian đã chờ và ngưỡng cảnh báo đang áp dụng.
+7. Dashboard dùng REST polling để cập nhật danh sách từ backend.
+
+### Quy tắc nghiệp vụ
+
+- Mốc tính thời gian chờ là `created_at` của order cũ nhất còn món chưa làm xong
+  trong table session, không phải thời điểm mở session hoặc order mới nhất.
+- Order không còn phần cần làm không tham gia tính cảnh báo.
+- Bàn chưa có order không được tính thời gian chờ theo luồng này.
+- Frontend chỉ hiển thị kết quả do backend cung cấp, không tự quyết định bàn nào
+  thuộc diện cảnh báo.
+- Cảnh báo không tạo trạng thái riêng cho `orders` hoặc `table_sessions`; kết
+  quả được suy ra từ `order_items.prepared_quantity`.
+- Ngưỡng thời gian cảnh báo do `ADMIN` cấu hình.
+- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng.
+- UI dùng tạm ngưỡng `25` phút cho đến khi API cấu hình Admin được tích hợp.
+- Backend phải dùng giá trị cấu hình đáng tin cậy; client Operation không được
+  gửi hoặc ghi đè ngưỡng khi truy vấn danh sách cảnh báo.
 
 ## 9. Luồng yêu cầu hủy món
 

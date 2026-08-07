@@ -64,7 +64,39 @@ Nhân viên xác nhận kết quả thanh toán
 
 - Tiếp nhận order.
 - Xem thông tin món được gọi.
-- Hoàn thành hoặc hủy order.
+- Cho phép `OPERATOR` dùng các chức năng chọn món của giao diện Customer để tạo
+  order hộ khách tại bàn khi khách yêu cầu gọi món trực tiếp, gồm xem menu, chọn
+  option, quản lý giỏ món, nhập ghi chú chung, gửi order và gọi thêm món.
+- Danh sách đơn gọi món ưu tiên theo nguyên tắc gọi trước lên món trước: order có
+  `created_at` sớm hơn được xếp trước.
+- Tổng hợp số phần còn cần làm của các món có cùng món chính và cùng cấu hình
+  option để nhân viên có thể chế biến nhiều order theo mẻ.
+- Cho phép nhân viên ghi nhận số phần đã làm xong; hệ thống tự phân bổ số lượng
+  hoàn thành về các dòng món theo FIFO.
+- Cảnh báo cho nhân viên về các bàn có order cũ còn món chưa làm xong.
+- Ghi nhận số lượng món đã làm xong và xử lý yêu cầu hủy món.
+
+Mỗi lần gọi món là một order riêng trong hàng ưu tiên chung. Khi khách gọi thêm,
+order mới được xếp sau các order đã được tạo trước đó. CAS sắp xếp thứ tự ưu
+tiên FIFO và theo dõi số lượng đã làm xong, nhưng không lưu enum trạng thái chế
+biến hay tự xác nhận món đã được lên. Nếu nhiều order có cùng `created_at`, thứ
+tự giữa các order đó không cần được bảo đảm.
+
+Mức hoàn thành được lưu bằng `order_items.prepared_quantity`, không dùng boolean
+hoàn thành ở `orders`. Số phần còn cần làm của một dòng món bằng số lượng gốc
+trừ số lượng hủy đã được duyệt và số lượng đã làm xong. Một order được xem là
+hoàn thành theo giá trị suy ra khi mọi dòng món còn hiệu lực đều không còn phần
+cần làm.
+
+Thời gian chờ của một bàn được tính từ `orders.created_at` của order cũ nhất vẫn
+còn ít nhất một phần chưa làm xong trong table session đang phục vụ. Một bàn
+được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình.
+Trong giai đoạn UI chưa kết nối cấu hình backend, giá trị tạm thời là `25` phút.
+
+Order do `OPERATOR` tạo hộ vẫn thuộc đúng table session của khách và tuân theo
+cùng quy tắc giá, kiểm tra món/option, idempotency và FIFO như order do Customer
+gửi. Backend không tin giá hoặc tổng tiền từ giao diện vận hành. Thao tác tạo hộ
+phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 
 #### Yêu cầu và xác nhận thanh toán
 
@@ -80,10 +112,18 @@ Nhân viên xác nhận kết quả thanh toán
 - Đăng nhập khu vực vận hành.
 - Client sử dụng giao diện khách hàng mà không cần tài khoản đăng nhập.
 - Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
+- `ADMIN` có chức năng xem danh sách `report`.
+- `ADMIN` cấu hình ngưỡng số phút dùng để cảnh báo bàn chờ lâu.
 - JWT là cơ chế xác thực chính cho tài khoản vận hành và không được lưu trong `localStorage`.
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
+
+Chức năng danh sách `report` hiện mới được chốt ở mức phạm vi và quyền truy
+cập. Loại report, nguồn tạo report, dữ liệu hiển thị, trạng thái, bộ lọc, phân
+trang và thao tác xử lý là các nội dung `Cần chốt`. Chưa được suy diễn chức năng
+này thành báo cáo phân tích nâng cao, chưa bổ sung endpoint hoặc mô hình dữ liệu
+khi chưa có quyết định tiếp theo.
 
 ### 4.2. Ngoài phạm vi hiện tại
 
@@ -96,7 +136,8 @@ Nhân viên xác nhận kết quả thanh toán
 - Tích hợp Zalo.
 - Game và các tính năng AI.
 - Kế toán và hóa đơn điện tử.
-- Báo cáo và phân tích nâng cao.
+- Báo cáo và phân tích nâng cao ngoài chức năng Admin xem danh sách `report` đã
+  được ghi nhận ở phạm vi hiện tại.
 
 Các chức năng này sẽ được xem xét trong những phiên bản sau dựa trên nhu cầu vận hành thực tế.
 
@@ -186,6 +227,7 @@ Các module được tổ chức trong cùng một backend và có thể tách h
 
 - Frontend gọi REST API để thực hiện các thao tác và nhận kết quả trực tiếp.
 - Các màn hình Customer, Operation và Admin dùng polling để lấy thay đổi phát sinh từ thiết bị khác, gồm order mới, yêu cầu hủy, yêu cầu thanh toán, trạng thái payment và khoản chưa thanh toán.
+- Dashboard Operation dùng polling để cập nhật danh sách bàn chờ lâu; thời gian chờ được backend tính từ `orders.created_at` của order cũ nhất còn món chưa làm xong trong session bàn.
 - Menu không polling liên tục; backend luôn kiểm tra lại trạng thái món và option khi khách submit order.
 - Giai đoạn đầu không dùng SSE, WebSocket hoặc Redis Pub/Sub.
 - Chu kỳ polling là cấu hình kỹ thuật được xác định khi triển khai và kiểm thử thực tế.

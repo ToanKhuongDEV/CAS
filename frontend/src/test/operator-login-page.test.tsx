@@ -50,6 +50,6 @@ describe("OperatorLoginPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
 
-    expect(push).toHaveBeenCalledWith("/operator");
+    expect(push).toHaveBeenCalledWith("/operator/dashboard");
   });
 });

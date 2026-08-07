@@ -306,7 +306,9 @@ Table session không lưu `is_paid`. Kết quả thanh toán được xác đị
 
 #### `orders`
 
-Lưu một lần gửi món của một table session. Khách có thể gọi món nhiều lần trong cùng session; mỗi lần gửi tạo một order riêng cho đến khi yêu cầu thanh toán.
+Lưu một lần gửi món của một table session. Khách hoặc `OPERATOR` tạo order hộ có
+thể gửi món nhiều lần trong cùng session; mỗi lần gửi tạo một order riêng cho
+đến khi yêu cầu thanh toán.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -324,7 +326,30 @@ Lưu một lần gửi món của một table session. Khách có thể gọi m�
 
 Một `table_session_id` có thể xuất hiện ở nhiều bản ghi trong `orders`, tương ứng một session có nhiều order theo từng lần khách gửi món.
 
+Danh sách đơn gọi món của Operation được sắp xếp FIFO theo
+`orders.created_at ASC`: order được tạo trước được ưu tiên lên món trước. Order
+gọi thêm là bản ghi mới nên nằm sau các order có `created_at` sớm hơn. Quy tắc
+này không bổ sung trạng thái chế biến vào `orders`; CAS chỉ cung cấp thứ tự ưu
+tiên cho nhân viên xử lý. Nếu hai hoặc nhiều order có cùng `created_at` đến độ
+chính xác millisecond, thứ tự giữa chúng không cần được bảo đảm và không cần
+khóa sắp xếp phụ.
+
+Dashboard Operation xác định order có `created_at` sớm nhất trong từng
+`table_session_id` mà vẫn còn ít nhất một phần chưa làm xong. Thời điểm của
+order đó là mốc tính thời gian chờ của bàn; order gọi thêm không làm đặt lại mốc
+nếu order cũ hơn vẫn còn món cần làm. Chức năng cảnh báo này dùng dữ liệu hiện
+có, không bổ sung cột trạng thái hoặc cột thời gian chờ vào database; ngưỡng
+cảnh báo do `ADMIN` cấu hình và được backend áp dụng. Vị trí lưu cấu hình, ràng
+buộc giá trị và migration tương ứng vẫn `Cần chốt`; không tự bổ sung cột hoặc
+bảng trước khi có thiết kế được duyệt. UI dùng tạm giá trị `25` phút.
+
 `idempotency_key` do frontend tạo mới cho mỗi lần submit order và được lưu bền vững cùng order. Backend chuẩn hóa payload, tính SHA-256 và lưu vào `request_fingerprint`; client không được gửi hoặc quyết định fingerprint. Cặp `table_session_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo; nếu fingerprint khác, backend trả HTTP `409 Conflict`. Key không cần TTL và fingerprint không cần unique constraint.
+
+Order do `OPERATOR` tạo hộ dùng cùng cấu trúc dữ liệu và quy tắc tính tiền với
+order do Customer gửi. Việc truy vết nhân viên thực hiện được ghi trong
+`audit_logs` với `entity_type = ORDER`, `entity_id` là order vừa tạo và
+`actor_account_id` là tài khoản đăng nhập; không lấy danh tính nhân viên từ
+payload client. Thiết kế hiện tại chưa bổ sung cột nguồn tạo vào `orders`.
 
 #### `order_items`
 
@@ -340,6 +365,7 @@ Lưu các món thuộc order.
 | `unit_price` | `DECIMAL(15,2) NOT NULL` | Giá gốc của một đơn vị món tại thời điểm đặt |
 | `options_amount` | `DECIMAL(15,2) NOT NULL DEFAULT 0` | Tổng giá option cho một đơn vị món tại thời điểm đặt |
 | `quantity` | `INT UNSIGNED NOT NULL` | Số lượng món có cùng cấu hình option |
+| `prepared_quantity` | `INT UNSIGNED NOT NULL DEFAULT 0` | Số phần đã được nhân viên ghi nhận làm xong |
 | `total_amount` | `DECIMAL(15,2) NOT NULL` | Thành tiền ban đầu: `(unit_price + options_amount) × quantity` |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
@@ -383,7 +409,17 @@ Với nhóm `SINGLE`, tổng `quantity_per_item` trong một nhóm không vượ
 
 Hệ thống không lưu ghi chú riêng trong `order_items` hoặc `order_item_options`. Ghi chú tự do của khách chỉ được lưu một lần tại `orders.note`.
 
-Hệ thống không theo dõi trạng thái chế biến của order hoặc từng món.
+`prepared_quantity` mặc định bằng `0` và chỉ tăng khi nhân viên ghi nhận số phần
+đã làm xong. Số lượng hiệu lực bằng `quantity` trừ tổng số lượng hủy
+`APPROVED`; số lượng còn cần làm bằng số lượng hiệu lực trừ
+`prepared_quantity`. Java phải bảo đảm `prepared_quantity` không vượt số lượng
+hiệu lực. Order không lưu boolean hoặc status hoàn thành; trạng thái hoàn thành
+được suy ra khi mọi dòng món còn hiệu lực đều không còn số lượng cần làm.
+
+Màn tổng hợp chế biến gộp các dòng theo `menu_item_id` và tập cấu hình option
+thực tế trong `order_item_options`. Chỉ các tập option giống hoàn toàn mới được
+gộp chung. Khi nhân viên hoàn thành một mẻ, backend phân bổ số lượng về các
+`order_items` theo `orders.created_at ASC` trong một transaction.
 
 #### `order_item_cancellation_requests`
 
@@ -589,7 +625,9 @@ Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 
 #### `audit_logs`
 
-Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán của món, duyệt hủy món, xác nhận thanh toán thủ công hoặc ghi nhận chưa thanh toán.
+Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán
+của món, nhân viên tạo order hộ khách, duyệt hủy món, xác nhận thanh toán thủ
+công hoặc ghi nhận chưa thanh toán.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -739,6 +777,9 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - `option_group_items.option_menu_item_id` phải trỏ tới menu item thuộc category loại `OPTION`.
 - Mỗi option group có tối đa một option mặc định và option đó phải thuộc nhóm đang hoạt động. Quy tắc này không có unique constraint trong database.
 - Giá tiền không âm, số lượng lớn hơn 0 và `orders.payable_amount <= orders.original_amount`.
+- `order_items.prepared_quantity` không lớn hơn `quantity` trừ tổng số lượng hủy
+  `APPROVED`; cập nhật hoàn thành theo mẻ phải khóa và kiểm tra lại các dòng liên
+  quan trong cùng transaction.
 - `unpaid_records.amount` bằng `bill_snapshot.payableAmount`; trạng thái `OPEN` không có thông tin resolve và trạng thái `RESOLVED` có đủ thông tin resolve.
 - Payment và unpaid record liên quan phải thuộc cùng table session; số tiền và bill snapshot phải khớp.
 - `payments.amount` bằng tổng `orders.payable_amount` của table session tại thời điểm tạo payment.
@@ -794,6 +835,9 @@ Thiết kế hiện tại chưa bao gồm:
 - Password được băm bằng BCrypt, dài hơn 8 ký tự và chứa ít nhất một chữ cái cùng một chữ số.
 - Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; mọi chức năng quản trị chỉ dành cho `ADMIN`, còn `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
+- `OPERATOR` được tạo order hộ vào table session `OPEN`; order này dùng cùng dữ
+  liệu, validation, tính tiền, idempotency và FIFO với order do Customer gửi,
+  đồng thời phải ghi audit log theo tài khoản nhân viên.
 - Tất cả trường thời gian nghiệp vụ được lưu theo `Asia/Ho_Chi_Minh` (`UTC+07:00`); giá trị thời gian trao đổi qua API phải kèm offset `+07:00`.
 - Mỗi order chỉ có một ghi chú chung trong `orders.note`; không lưu `note` trong `order_items`.
 - Tạo order bắt buộc có `idempotency_key`; key duy nhất trong cùng table session, được lưu trong `orders` và được bảo vệ bằng unique constraint `table_session_id + idempotency_key`.
@@ -807,11 +851,14 @@ Thiết kế hiện tại chưa bao gồm:
 - Thanh toán toàn bộ các order của phiên bàn, chưa hỗ trợ tách hóa đơn.
 - Khi yêu cầu thanh toán, session ngừng nhận món và tiếp tục chiếm dụng bàn cho đến khi được đóng.
 - `orders` không có trạng thái riêng; trạng thái xử lý được quản lý ở `table_sessions`.
+- `orders` không lưu `is_completed`; hoàn thành order được suy ra từ số lượng
+  còn cần làm của các `order_items`.
 - `table_sessions` không lưu `is_paid`; `payments.status` là nguồn xác định kết quả thanh toán, còn `unpaid_records` ghi nhận phiên đã đóng khi payment vẫn `PENDING`.
 - `table_sessions.payment_requested_at` được lưu khi session chuyển từ `OPEN` sang `PAYMENT_PENDING`.
 - Size có một giá trị mặc định được cấu hình theo món.
 - Topping không giới hạn số lựa chọn.
-- Không theo dõi trạng thái chế biến của order hoặc từng món.
+- Theo dõi số phần đã làm xong bằng `order_items.prepared_quantity`; không dùng
+  enum trạng thái chế biến và chưa tách riêng mốc làm xong với mốc mang tới bàn.
 - Yêu cầu hủy món phải được nhân viên đồng ý hoặc từ chối. Khi đồng ý, hệ thống tính lại tổng tiền.
 - Duyệt hủy món không sửa hoặc xóa dữ liệu gốc trong `order_items`; số lượng đã hủy được tính từ các yêu cầu `APPROVED`.
 - `dining_tables` không lưu trạng thái; bàn đang có khách được suy ra từ session `OPEN` hoặc `PAYMENT_PENDING`.

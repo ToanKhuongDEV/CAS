@@ -32,7 +32,7 @@ export function OperatorLoginForm() {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length === 0) {
-      router.push("/operator");
+      router.push("/operator/dashboard");
     }
   }
 

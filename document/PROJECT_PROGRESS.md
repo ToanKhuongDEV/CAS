@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-06
+Ngày cập nhật gần nhất: 2026-08-07
 
 ## Quy ước
 
@@ -25,6 +25,11 @@ Ngày cập nhật gần nhất: 2026-08-06
 ## 2. Các quyết định nghiệp vụ đã chốt
 
 - [x] Mỗi lần gửi món tạo một `orders` riêng trong cùng `table_sessions`.
+- [x] `OPERATOR` được dùng luồng chọn món của Customer để tạo order hộ khách vào
+  table session `OPEN`; order dùng cùng validation, giá, idempotency, FIFO và
+  phải ghi audit log theo tài khoản nhân viên.
+- [x] Danh sách đơn gọi món ưu tiên theo FIFO: order có `created_at` sớm hơn được xếp lên món trước; order gọi thêm xếp sau các order đã tạo trước. Các order trùng `created_at` không cần bảo đảm thứ tự và không cần khóa sắp xếp phụ.
+- [x] Tiến độ làm món được quản lý bằng `order_items.prepared_quantity`; không lưu `orders.is_completed`. Nhân viên hoàn thành số lượng theo mẻ, backend phân bổ về các dòng món theo FIFO và trạng thái hoàn thành order được suy ra.
 - [x] Chống gửi order trùng bằng `idempotency_key` và `request_fingerprint`.
 - [x] Order chỉ có ghi chú chung tại `orders.note`, không ghi chú theo từng món.
 - [x] Giá món chính và giá option được lưu riêng tại thời điểm đặt.
@@ -43,6 +48,7 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [x] CAS không tạo QR thanh toán, không lưu thông tin ngân hàng và không tự theo dõi luồng tiền thực tế.
 - [x] Sau khi gửi yêu cầu, khách bắt buộc gặp nhân viên; nhân viên xác minh chuyển khoản qua loa “ting ting” rồi mới xác nhận payment `PAID`.
 - [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
+- [x] Thời gian chờ của bàn trên dashboard Operation được tính từ `orders.created_at` của order cũ nhất còn ít nhất một phần chưa làm xong trong table session; bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình. UI tạm dùng `25` phút.
 
 ## 3. Các quyết định kỹ thuật đã chốt
 
@@ -78,6 +84,7 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
 - [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
 - [x] Tạo Flyway migration khởi tạo schema.
+- [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend
@@ -88,6 +95,9 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [ ] Xây dựng module Store & Table.
 - [ ] Xây dựng module Catalog.
 - [ ] Xây dựng module Ordering.
+- [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
+  quy tắc tạo order hiện có và ghi audit log.
+- [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
 - [ ] Xây dựng module Payment.
 - [ ] Xây dựng authentication và phân quyền theo role.
 - [ ] Xây dựng audit log.
@@ -122,11 +132,17 @@ Ngày cập nhật gần nhất: 2026-08-06
 - [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
 - [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING`, hướng dẫn đến quầy thu ngân và lớp thông báo chặn thao tác khác.
 - [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
-- [x] Xây dựng UI dashboard nhân viên tại `/operator`, ưu tiên web desktop và responsive mobile với menu đáy trên mobile; phần thống kê xếp hàng ngang trên desktop, ba dòng trên mobile; hiển thị dữ liệu mẫu cho payment chờ xác nhận, yêu cầu hủy món và khoản chưa thanh toán.
+- [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn để tiết kiệm không gian; bổ sung cảnh báo bàn chờ lâu tính từ order cũ nhất còn món chưa làm xong với ngưỡng UI tạm thời `25` phút, hoạt động gần đây và sơ đồ bàn mini bằng dữ liệu mẫu đúng phạm vi CAS.
+- [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
+- [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món và cấu hình option, hiển thị phân bổ theo bàn theo FIFO bằng dữ liệu mẫu.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
-- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator` khi nhập hợp lệ.
+- [ ] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
+  món và tạo/gọi thêm order hộ khách.
+- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
 - [ ] Xây dựng giao diện danh sách yêu cầu và xác nhận thanh toán.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
+- [ ] Xây dựng giao diện Admin xem danh sách `report`; loại report, dữ liệu hiển thị, trạng thái, bộ lọc, phân trang, API contract và mô hình dữ liệu vẫn `Cần chốt`.
+- [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
 - [ ] Viết component test và end-to-end test.
 
 ## 7. Hạ tầng và triển khai
@@ -147,7 +163,8 @@ Ngày cập nhật gần nhất: 2026-08-06
 1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
 3. Hoàn thiện cách xử lý các edge case còn lại.
-4. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
+4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report`.
+5. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 
 ## 9. Tài liệu liên quan
 

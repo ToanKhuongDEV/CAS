@@ -334,6 +334,143 @@ Khách hoặc lượt khách mới quét lại QR sau khi session cũ đã `CLOS
 - Nếu bàn không có session `OPEN`, hệ thống tạo session mới.
 - QR bàn vẫn là QR cố định.
 
+## 21.1. Cảnh báo bàn chờ lâu từ order cũ nhất chưa hoàn thành
+
+**Trạng thái:** Đã chốt một phần
+
+### Tình huống
+
+Dashboard Operation cần cảnh báo các bàn đã chờ lâu. Một table session có thể
+có nhiều order và mỗi order có thể đã hoàn thành một phần hoặc toàn bộ số lượng.
+
+### Cách xử lý đã chốt
+
+- Chỉ xét table session đang `OPEN` và đã có ít nhất một order.
+- Mốc tính thời gian chờ là `created_at` của order cũ nhất còn ít nhất một phần
+  chưa làm xong trong session.
+- Order đã hết số lượng cần làm không tham gia tính cảnh báo.
+- Kết quả hoàn thành được suy ra từ `order_items.prepared_quantity`, không lưu
+  trạng thái riêng trong `orders`.
+- Frontend không tự phân loại bàn chờ lâu; backend là nguồn quyết định.
+- Ngưỡng cảnh báo do `ADMIN` cấu hình.
+- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng.
+- UI dùng tạm ngưỡng `25` phút cho đến khi tích hợp cấu hình từ backend.
+
+### Nội dung cần chốt
+
+- Vị trí lưu bền vững giá trị cấu hình và API contract quản lý cấu hình.
+- Giá trị nhỏ nhất, lớn nhất và cách validation khi `ADMIN` cập nhật ngưỡng.
+- Hành vi khi cấu hình chưa tồn tại hoặc không đọc được; giá trị fallback phía
+  backend chưa được chốt.
+
+## 21.2. Admin xem danh sách report
+
+**Trạng thái:** Cần chốt
+
+### Tình huống
+
+`ADMIN` cần xem danh sách `report`, nhưng định nghĩa report và vòng đời dữ liệu
+chưa được xác định.
+
+### Nội dung đã chốt
+
+- Chỉ `ADMIN` được truy cập chức năng.
+- Phạm vi hiện tại chỉ yêu cầu xem danh sách.
+- `OPERATOR` không được truy cập.
+- Chưa bao gồm báo cáo phân tích nâng cao.
+
+### Nội dung cần chốt
+
+- Report đại diện cho nội dung gì và được tạo từ đâu.
+- Các trạng thái, trường bắt buộc và dữ liệu nhạy cảm cần che giấu.
+- Cách xử lý report trùng lặp, đã mất nguồn tham chiếu hoặc người dùng không còn
+  quyền xem.
+- Hành vi khi danh sách trống, dữ liệu lớn hoặc report không còn tồn tại.
+- Có cần bảng dữ liệu mới hay chỉ là kết quả tổng hợp từ dữ liệu hiện có.
+
+## 21.3. Hai order có cùng thời điểm trong hàng ưu tiên lên món
+
+**Trạng thái:** Đã chốt một phần
+
+### Tình huống
+
+Hai bàn hoặc hai thiết bị có thể tạo order với cùng giá trị `created_at` đến độ
+chính xác millisecond.
+
+### Cách xử lý đã chốt
+
+- Nguyên tắc chung là FIFO: order có `created_at` sớm hơn được ưu tiên lên món
+  trước.
+- Order gọi thêm được tạo sau và không được chen trước các order có
+  `created_at` sớm hơn.
+- Nếu nhiều order có cùng `created_at`, hệ thống không cần bảo đảm order nào
+  đứng trước; mọi thứ tự giữa các order đồng thời đều được chấp nhận.
+- Không cần khóa sắp xếp phụ chỉ để phân định các order có cùng `created_at`.
+- CAS chỉ hiển thị thứ tự ưu tiên cho nhân viên; chưa theo dõi trạng thái chế
+  biến dạng enum; số lượng đã làm xong nằm ở `order_items.prepared_quantity`.
+
+### Nội dung cần chốt
+
+- Có cho phép nhân viên ưu tiên ngoại lệ hay không và trường hợp nào được phép.
+- Nếu có ngoại lệ, hệ thống có cần ghi audit log cho việc đổi thứ tự hay không.
+
+## 21.4. Hoàn thành món theo mẻ đồng thời với hủy món
+
+**Trạng thái:** Cần chốt một phần
+
+### Tình huống
+
+Một nhân viên ghi nhận hoàn thành một mẻ trong khi nhân viên khác đang duyệt yêu
+cầu hủy của một dòng món thuộc cùng nhóm chế biến.
+
+### Cách xử lý đã chốt
+
+- Hoàn thành theo mẻ và duyệt hủy phải khóa các dòng order liên quan hoặc dùng
+  transaction tương đương.
+- Backend luôn tính lại số lượng hiệu lực và số lượng còn cần làm trước khi ghi.
+- Không cho `prepared_quantity` vượt số lượng hiệu lực.
+- Retry thao tác hoàn thành không được cộng số lượng hai lần.
+- Nếu dữ liệu đã thay đổi, backend từ chối thao tác không còn hợp lệ và trả dữ
+  liệu mới nhất để nhân viên kiểm tra lại.
+
+### Nội dung cần chốt
+
+- Có cho duyệt hủy khi một phần hoặc toàn bộ số lượng yêu cầu hủy đã được ghi
+  nhận làm xong hay không.
+- Cơ chế lưu idempotency bền vững cho thao tác hoàn thành theo mẻ.
+
+## 21.5. Nhân viên tạo order hộ khách
+
+**Trạng thái:** Đã chốt một phần
+
+### Tình huống
+
+Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên điện thoại.
+`OPERATOR` cần chọn bàn và tạo order hộ khách.
+
+### Cách xử lý đã chốt
+
+- `OPERATOR` được dùng các chức năng xem menu, chọn món/option, giỏ món, ghi chú
+  chung, gửi order và gọi thêm món để tạo order hộ.
+- Chỉ cho phép tạo order khi bàn thuộc đúng cửa hàng và có table session
+  `OPEN`.
+- Backend áp dụng cùng validation menu, option, giá, idempotency và FIFO như
+  order do Customer gửi.
+- Order tạo hộ xuất hiện trong cùng danh sách order và hóa đơn của table
+  session; không tạo luồng tính tiền riêng.
+- Backend lấy danh tính nhân viên từ JWT và ghi audit log; không nhận
+  `actor_account_id` từ request.
+- Nếu Customer và nhân viên đồng thời gửi hai order hợp lệ, hệ thống tạo hai
+  order riêng; thứ tự FIFO dựa trên `created_at`.
+
+### Nội dung cần chốt
+
+- Nhân viên có được mở table session hộ khi bàn chưa có session `OPEN` hay
+  không.
+- Nếu có, yêu cầu thông tin khách và cách gắn `client_account_id`.
+- Có cần hiển thị nguồn “Khách tự gọi” hoặc “Nhân viên tạo hộ” trong lịch sử hay
+  không; nếu cần truy vấn trực tiếp thì phải chốt thay đổi mô hình dữ liệu.
+
 ## 22. Các edge case cần bổ sung sau
 
 - Mất kết nối khi đang submit order.
