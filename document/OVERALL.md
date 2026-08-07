@@ -210,6 +210,14 @@ và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ chế v
 lưu ngữ cảnh session giữa frontend và backend phải được chốt trong API contract.
 Backend không được tin table ID hoặc session ID do client tự suy diễn.
 
+Thanh điều hướng Customer mặc định gồm bốn tab theo thứ tự: Trang chủ, Thực đơn,
+Đơn hàng và Cài đặt. Thanh toán không phải tab truy cập thường trực; Customer chỉ
+đi vào `/payment` bằng thao tác “Yêu cầu thanh toán” tại trang Đơn hàng. Trong
+luồng này, tab Thanh toán được hiển thị để phản ánh màn hiện tại. Cùng một cấu
+trúc điều hướng được hiển thị dạng thanh tab dưới trên mobile. Trên web, các tab
+được đặt bên trái thành những khối chữ nhật có border và khoảng cách riêng, nổi
+trực tiếp trên nền trang thay vì nằm trong một thanh sidebar liền khối.
+
 Định hướng giao diện theo từng khu vực:
 
 - Customer phát triển theo hướng mobile-first vì khách hàng thao tác chủ yếu trên điện thoại sau khi quét QR tại bàn.

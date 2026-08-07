@@ -47,7 +47,7 @@ const submittedItems = [
 
 export default function OrdersPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-10">
+    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-10 md:pl-56">
       <CustomerHeader tableName="Bàn 05" />
 
       <main className="mx-auto w-full max-w-[36rem] px-5 pt-24 md:max-w-[75rem] md:px-10 md:pt-28">

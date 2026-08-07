@@ -34,6 +34,9 @@ describe("PaymentPage", () => {
     expect(
       screen.getByRole("link", { name: "Thanh toán" }),
     ).toHaveAttribute("href", "/payment");
+    expect(
+      screen.getByRole("link", { name: "Trang chủ" }),
+    ).toHaveAttribute("href", "/");
     expect(screen.queryByText(/ngân hàng|mb bank|chuyển khoản/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /qr/i })).not.toBeInTheDocument();
   });

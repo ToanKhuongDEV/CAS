@@ -10,8 +10,10 @@ type OrderingLayoutProps = {
 export default function OrderingLayout({ children }: OrderingLayoutProps) {
   return (
     <>
-      <CustomerHeader cartCount={4} tableName="Bàn 05" />
-      {children}
+      <div className="md:pl-56">
+        <CustomerHeader cartCount={4} tableName="Bàn 05" />
+        {children}
+      </div>
       <CustomerBottomNavigation activeItem="menu" />
     </>
   );

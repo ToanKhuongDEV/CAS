@@ -5,11 +5,13 @@ import { ThemeToggle } from "../ui/theme-toggle";
 
 type CustomerHeaderProps = {
   cartCount?: number;
+  showThemeToggle?: boolean;
   tableName: string;
 };
 
 export function CustomerHeader({
   cartCount,
+  showThemeToggle = true,
   tableName,
 }: CustomerHeaderProps) {
   return (
@@ -31,7 +33,7 @@ export function CustomerHeader({
             <CasIcon className="size-4" name="table" />
             {tableName}
           </span>
-          <ThemeToggle />
+          {showThemeToggle ? <ThemeToggle /> : null}
           {cartCount !== undefined ? (
             <Link
               className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"

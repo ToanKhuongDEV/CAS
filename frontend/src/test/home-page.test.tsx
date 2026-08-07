@@ -28,6 +28,21 @@ describe("Home", () => {
       "/menu#ga-ran",
     );
     expect(screen.queryByText(/các loại ốc/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Trang chủ" }),
+    ).toHaveAttribute("href", "/");
+    expect(
+      screen.getByRole("link", { name: "Thực đơn" }),
+    ).toHaveAttribute("href", "/menu");
+    expect(
+      screen.getByRole("link", { name: "Đơn hàng" }),
+    ).toHaveAttribute("href", "/orders");
+    expect(
+      screen.getByRole("link", { name: "Cài đặt" }),
+    ).toHaveAttribute("href", "/settings");
+    expect(
+      screen.queryByRole("link", { name: "Thanh toán" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", {

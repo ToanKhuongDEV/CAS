@@ -446,6 +446,8 @@ Khách hàng gửi yêu cầu thanh toán cho toàn bộ các order trong phiên
 ### Luồng chính
 
 1. Khách hàng bấm yêu cầu thanh toán.
+   Thao tác này nằm trong trang Đơn hàng; Thanh toán không xuất hiện như một tab
+   thường trực trên thanh điều hướng Customer.
 2. Hệ thống kiểm tra session đang `OPEN`.
 3. Hệ thống kiểm tra session có ít nhất một order cần thanh toán.
 4. Hệ thống kiểm tra không còn cancellation request `PENDING`.

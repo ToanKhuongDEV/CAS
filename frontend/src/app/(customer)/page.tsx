@@ -46,7 +46,7 @@ const menuCategories = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-hidden bg-cas-surface pb-22 text-cas-on-surface transition-colors duration-200 [background-image:linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] [background-size:30px_30px] md:pb-0">
+    <div className="min-h-screen overflow-hidden bg-cas-surface pb-22 text-cas-on-surface transition-colors duration-200 [background-image:linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] [background-size:30px_30px] md:pb-0 md:pl-56">
       <CustomerHeader tableName="Bàn 05" />
 
       <main>
@@ -184,7 +184,7 @@ export default function Home() {
         </section>
       </main>
 
-      <CustomerBottomNavigation activeItem="menu" />
+      <CustomerBottomNavigation activeItem="home" />
     </div>
   );
 }

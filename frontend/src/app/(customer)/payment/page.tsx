@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function PaymentPage() {
   return (
-    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-12">
+    <div className="min-h-screen bg-cas-surface pb-28 text-cas-on-surface transition-colors duration-200 md:pb-12 md:pl-56">
       <CustomerHeader tableName="Bàn 05" />
 
       <main className="mx-auto w-full max-w-[34rem] px-5 pt-24 md:px-10 md:pt-28">
@@ -32,10 +32,7 @@ export default function PaymentPage() {
         </header>
 
         <div className="mt-7">
-          <PaymentRequestPanel
-            paymentStatus="PAID"
-            tableQrToken="preview"
-          />
+          <PaymentRequestPanel />
         </div>
       </main>
 

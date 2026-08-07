@@ -135,6 +135,11 @@ Ngày cập nhật gần nhất: 2026-08-07
   từ `PENDING` sang `PAID`, hiển thị bàn, tổng tiền, thời gian hoàn tất, lời cảm
   ơn và nút tiếp tục tạo đơn mới bằng QR token của chính bàn để trở về màn nhập
   thông tin khách mới; không hiển thị nhãn hoặc thông báo bàn đã đóng.
+- [x] Điều chỉnh thanh tab Customer mặc định theo thứ tự Trang chủ, Thực đơn,
+  Đơn hàng, Cài đặt; bỏ tab Thanh toán thường trực và chỉ hiển thị tab này khi
+  Customer đi từ thao tác yêu cầu thanh toán trong Đơn hàng; bổ sung trang Cài
+  đặt giao diện tại `/settings`; hiển thị dạng thanh dưới trên mobile và các khối
+  tab chữ nhật có border, tách rời bên trái trên web.
 - [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
 - [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch
   “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive
