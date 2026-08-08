@@ -14,14 +14,37 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 - Hỗ trợ gửi yêu cầu và ghi nhận trạng thái thanh toán thuận tiện.
 - Tạo nền tảng để mở rộng các chức năng quản lý trong tương lai.
 
-## 3. Đối tượng sử dụng
+## 3. Đối tượng sử dụng và Phân quyền (Roles)
 
-| Đối tượng | Nhu cầu chính |
-|---|---|
-| Khách hàng | Xem menu, gọi món và thanh toán |
-| Nhân viên vận hành | Tiếp nhận và xử lý order |
-| Bếp/quầy chế biến | Theo dõi và cập nhật quá trình chuẩn bị món |
-| Chủ cửa hàng | Quản lý menu, bàn và theo dõi hoạt động cơ bản |
+Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình, với các quyền hạn tính năng tách biệt:
+
+### 3.1. Khách hàng (CLIENT / GUEST)
+_Không có tài khoản đăng nhập nội bộ hệ thống, danh tính gắn với phiên bàn qua token QR._
+- **Mở bàn:** Quét mã QR, điền tên và số điện thoại để khởi tạo phiên bàn. (Các thiết bị quét sau vào chung phiên).
+- **Xem menu:** Xem danh sách danh mục, món ăn, giá tiền, hình ảnh và gợi ý option.
+- **Gọi món:** Thêm món vào giỏ hàng và gửi order xuống bếp (có thể gọi thêm nhiều lần, cùng lúc qua nhiều thiết bị).
+- **Hủy phiên bàn:** Được quyền đóng phiên bàn ngay lập tức nếu chưa gửi bất kỳ món nào xuống bếp.
+- **Yêu cầu hủy món:** Tạo request yêu cầu hủy (cần được nhân viên duyệt).
+- **Theo dõi tiến độ:** Xem trạng thái món (chờ làm, đã nhận/đang làm, đã phục vụ) và số tiền hiện tại.
+- **Thanh toán:** Ấn nút yêu cầu thanh toán (gửi yêu cầu đến thu ngân để chốt sổ).
+
+### 3.2. Nhân viên vận hành (OPERATOR)
+_Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được xác thực qua Firebase nhưng không có quyền vào trang cấu hình quán._
+- **Giám sát toàn cảnh:** Xem trạng thái sơ đồ tất cả các bàn (trống, đang phục vụ, có cảnh báo chờ lâu, chờ thanh toán).
+- **Nghiệp vụ gọi món:** Xem chi tiết order từng bàn, gọi món hộ khách, hoặc đóng phiên bàn (chưa có món).
+- **Duyệt/Chủ động Hủy món:** Xác nhận hoặc từ chối yêu cầu hủy của khách. Quyền chủ động hủy món kèm lý do, bao gồm phương án **Làm lại món** (hủy lưu cờ `is_remade = TRUE` và tự động sinh order bồi thường) để xử lý món lỗi bể/vỡ.
+- **Điều phối chế biến:** Ghi nhận và cập nhật số lượng món đã làm xong (`prepared_quantity`) để trả đồ cho khách.
+- **Nghiệp vụ thanh toán:** Kiểm tra hóa đơn, đối chiếu tiền mặt/chuyển khoản và ấn **Xác nhận thanh toán thủ công (PAID)**. (Đã bấm là không được hoàn tác).
+- **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới.
+
+### 3.3. Quản lý / Quản trị viên (ADMIN)
+_Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền hạn hệ thống kể cả quyền của OPERATOR._
+- **Quản lý Cửa hàng & Bàn:** Tạo mã bàn, sinh Token khởi tạo thẻ QR cố định/di động cho bàn.
+- **Quản lý Thực đơn (Catalog):** Thêm, sửa, xóa, ẩn Hiện Danh mục, Menu, Option (Size, Topping, Độ ngọt). Đánh dấu món hết hàng (`SOLD_OUT`).
+- **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
+- **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
+- **Báo cáo (Report):** Xem tổng hợp doanh thu, tra cứu hóa đơn, lịch sử order. Nhìn thấy các số liệu báo cáo hao hụt rạch ròi bằng cách đánh giá các order có `is_remade = TRUE`.
+- **Audit Logs:** Xem lại toàn bộ lịch sử thao tác quan trọng của hệ thống (ai xác nhận tiền, ai hủy món, ai xóa giá) để quy trách nhiệm.
 
 ## 4. Phạm vi chức năng
 
@@ -110,11 +133,7 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 #### Vận hành hệ thống
 
 - Đăng nhập khu vực vận hành.
-- Client sử dụng giao diện khách hàng mà không cần tài khoản đăng nhập.
-- Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
-- `ADMIN` có chức năng xem danh sách `report`.
-- `ADMIN` cấu hình ngưỡng số phút dùng để cảnh báo bàn chờ lâu.
-- Firebase Authentication là cơ chế xác thực chính cho tài khoản vận hành (`ADMIN` và `OPERATOR`); Backend xác thực Firebase ID Token do Client gửi lên.
+- Cơ chế phân quyền dựa trên Firebase Authentication (Role `ADMIN` và `OPERATOR`).
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.

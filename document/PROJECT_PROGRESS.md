@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-07
+Ngày cập nhật gần nhất: 2026-08-08
 
 ## Quy ước
 
@@ -26,8 +26,8 @@ Ngày cập nhật gần nhất: 2026-08-07
 
 - [x] Mỗi lần gửi món tạo một `orders` riêng trong cùng `table_sessions`.
 - [x] `OPERATOR` được dùng luồng chọn món của Customer để tạo order hộ khách vào
-  table session `OPEN`; order dùng cùng validation, giá, idempotency, FIFO và
-  phải ghi audit log theo tài khoản nhân viên.
+      table session `OPEN`; order dùng cùng validation, giá, idempotency, FIFO và
+      phải ghi audit log theo tài khoản nhân viên.
 - [x] Danh sách đơn gọi món ưu tiên theo FIFO: order có `created_at` sớm hơn được xếp lên món trước; order gọi thêm xếp sau các order đã tạo trước. Các order trùng `created_at` không cần bảo đảm thứ tự và không cần khóa sắp xếp phụ.
 - [x] Tiến độ làm món được quản lý bằng `order_items.prepared_quantity`; không lưu `orders.is_completed`. Nhân viên hoàn thành số lượng theo mẻ, backend phân bổ về các dòng món theo FIFO và trạng thái hoàn thành order được suy ra.
 - [x] Chống gửi order trùng bằng `idempotency_key` và `request_fingerprint`.
@@ -50,6 +50,9 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 - [x] Thời gian chờ của bàn trên dashboard Operation được tính từ `orders.created_at` của order cũ nhất còn ít nhất một phần chưa làm xong trong table session; bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình. UI tạm dùng `25` phút.
 - [x] Hệ thống **không có chức năng đổi bàn, chuyển bàn hoặc gộp bàn** trong phạm vi hiện tại; mỗi table session gắn cố định với một bàn từ khi `OPEN` đến khi `CLOSED`.
+- [x] Chốt việc tách bàn, gộp bàn hay chuyển bàn được giải quyết toàn bộ qua thẻ QR di động (khách cầm đi bàn khác) nên hệ thống không cần phát triển tính năng này.
+- [x] Chốt nhân viên có giao diện Hủy món (như khách), cờ `is_remade` được lưu khi món bị hỏng/khách chê; Backend sinh đơn mới kèm nhãn `[LÀM LẠI]` để bù trừ tiền chính xác.
+- [x] Chốt tất cả khách hàng và nhân viên đều được phép Hủy phiên bàn (đóng session ngay) miễn là chưa có order nào được gửi xuống bếp.
 
 ## 3. Các quyết định kỹ thuật đã chốt
 
@@ -97,7 +100,7 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [ ] Xây dựng module Catalog.
 - [ ] Xây dựng module Ordering.
 - [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
-  quy tắc tạo order hiện có và ghi audit log.
+      quy tắc tạo order hiện có và ghi audit log.
 - [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
 - [ ] Xây dựng module Payment.
 - [ ] Xây dựng authentication và phân quyền theo role.
@@ -133,41 +136,41 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
 - [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING`, hướng dẫn đến quầy thu ngân và lớp thông báo chặn thao tác khác.
 - [x] Bổ sung màn Customer “Thanh toán thành công” khi trạng thái payment chuyển
-  từ `PENDING` sang `PAID`, hiển thị bàn, tổng tiền, thời gian hoàn tất, lời cảm
-  ơn và nút tiếp tục tạo đơn mới bằng QR token của chính bàn để trở về màn nhập
-  thông tin khách mới; không hiển thị nhãn hoặc thông báo bàn đã đóng.
+      từ `PENDING` sang `PAID`, hiển thị bàn, tổng tiền, thời gian hoàn tất, lời cảm
+      ơn và nút tiếp tục tạo đơn mới bằng QR token của chính bàn để trở về màn nhập
+      thông tin khách mới; không hiển thị nhãn hoặc thông báo bàn đã đóng.
 - [x] Điều chỉnh thanh tab Customer mặc định theo thứ tự Trang chủ, Thực đơn,
-  Đơn hàng, Cài đặt; bỏ tab Thanh toán thường trực và chỉ hiển thị tab này khi
-  Customer đi từ thao tác yêu cầu thanh toán trong Đơn hàng; bổ sung trang Cài
-  đặt giao diện tại `/settings`; hiển thị dạng thanh dưới trên mobile và các khối
-  tab chữ nhật có border, tách rời bên trái trên web.
+      Đơn hàng, Cài đặt; bỏ tab Thanh toán thường trực và chỉ hiển thị tab này khi
+      Customer đi từ thao tác yêu cầu thanh toán trong Đơn hàng; bổ sung trang Cài
+      đặt giao diện tại `/settings`; hiển thị dạng thanh dưới trên mobile và các khối
+      tab chữ nhật có border, tách rời bên trái trên web.
 - [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
 - [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch
-  “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive
-  mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt
-  gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn;
-  bổ sung cảnh báo bàn chờ lâu với ngưỡng UI `25` phút, danh sách khiếu nại rút
-  gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
-  động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
+      “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive
+      mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt
+      gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn;
+      bổ sung cảnh báo bàn chờ lâu với ngưỡng UI `25` phút, danh sách khiếu nại rút
+      gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
+động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
 - [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
 - [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món
-  và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
-  phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có
-  thể xổ/đóng danh sách bàn và không dùng icon trang trí trong từng nhánh.
+      và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
+      phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có
+      thể xổ/đóng danh sách bàn và không dùng icon trang trí trong từng nhánh.
 - [x] Chia màn `/operator/orders` thành hai cột: tổng hợp số lượng theo món ở
-  bên trái và cây món còn cần làm theo từng bàn ở bên phải; hai cột cập nhật
-  đồng thời khi nhân viên ghi nhận số phần hoàn thành.
+      bên trái và cây món còn cần làm theo từng bàn ở bên phải; hai cột cập nhật
+      đồng thời khi nhân viên ghi nhận số phần hoàn thành.
 - [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
-  thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
-  lượng đã làm/còn lại cùng tổng tiền của một order.
+      thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
+      lượng đã làm/còn lại cùng tổng tiền của một order.
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
-  món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
+      món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
-  `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
-  phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
-  giao dịch thành công.
+      `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
+      phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
+      giao dịch thành công.
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Xây dựng giao diện Admin xem danh sách `report`; loại report, dữ liệu hiển thị, trạng thái, bộ lọc, phân trang, API contract và mô hình dữ liệu vẫn `Cần chốt`.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
@@ -190,8 +193,8 @@ Ngày cập nhật gần nhất: 2026-08-07
 
 1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
-3. Hoàn thiện cách xử lý các edge case còn lại.
-4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report`.
+3. ~~Hoàn thiện cách xử lý các edge case còn lại.~~ (Đã hoàn thiện)
+4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
 5. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 
 ## 9. Tài liệu liên quan

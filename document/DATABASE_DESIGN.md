@@ -143,7 +143,6 @@ Lưu thông tin bàn.
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bàn |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
 | `code` | `INT UNSIGNED NOT NULL` | Mã bàn |
-| `capacity` | `SMALLINT UNSIGNED NULL` | Số chỗ dự kiến |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -450,6 +449,7 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | `requested_quantity` | `INT UNSIGNED NOT NULL` | Số lượng khách yêu cầu hủy |
 | `reason` | `VARCHAR(1000) NULL` | Lý do yêu cầu |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái chờ xử lý, đồng ý hoặc từ chối |
+| `is_remade` | `BOOLEAN NOT NULL DEFAULT FALSE` | Cờ đánh dấu món này bị hủy do lỗi/đền bù và đã được/yêu cầu làm lại |
 | `resolved_by` | `BIGINT UNSIGNED NULL` | Tài khoản xử lý |
 | `resolved_by_name` | `VARCHAR(150) NULL` | Tên người xử lý tại thời điểm thao tác |
 | `resolved_at` | `DATETIME(3) NULL` | Thời điểm xử lý |
@@ -457,6 +457,8 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
 Khi yêu cầu được đồng ý, hệ thống không cập nhật `order_items.quantity`, không cập nhật `order_items.total_amount` và không xóa dòng món. Số lượng đã hủy bằng tổng `requested_quantity` của các yêu cầu trạng thái `APPROVED`; số lượng còn tính tiền bằng số lượng ban đầu trừ số lượng đã hủy. Hệ thống dùng số lượng còn lại để cập nhật `orders.payable_amount`; `orders.original_amount` không thay đổi. Yêu cầu bị từ chối không làm thay đổi số tiền.
+
+Đặc biệt đối với **Báo cáo của Admin**, báo cáo hao hụt/nguyên liệu cần bóc tách khối lượng hủy dựa trên trường `is_remade = TRUE` (hủy do lỗi nhân viên/chế biến) để thống kê chính xác lượng thất thoát (chi phí của cửa hàng), phân biệt với các món hủy thông thường do khách hàng tự đổi ý.
 
 ```text
 remaining_quantity

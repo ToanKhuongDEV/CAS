@@ -501,21 +501,198 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 
 ## 21.1. Khách yêu cầu đổi bàn hoặc gộp bàn
 
-**Trạng thái:** Đã chốt — Ngoài phạm vi hiện tại
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Khách đang ngồi ở bàn hiện tại và muốn chuyển sang bàn khác hoặc gộp hai bàn lại.
+Khách đang sử dụng một thẻ bàn và muốn chuyển sang vị trí ngồi khác hoặc gộp với một nhóm bạn (ghép bàn).
 
 ### Quy tắc đã chốt
 
-- Hệ thống CAS **không có chức năng đổi bàn, chuyển bàn hoặc gộp bàn** trong phạm vi hiện tại.
-- Mỗi `table_sessions` gắn cố định với duy nhất một `dining_tables` từ lúc `OPEN` đến khi `CLOSED`.
-- Nếu khách đổi chỗ thực tế, nhân viên và khách tiếp tục phục vụ theo session của bàn ban đầu cho đến khi hoàn tất thanh toán, hoặc đóng session cũ và mở session mới theo quy trình thủ công.
+- Mã QR được gắn với một **thẻ bàn di động**, không dán cố định xuống mặt bàn vật lý.
+- Khi khách chuyển bàn thực tế, khách chỉ cần mang theo thẻ bàn di động đó đi.
+- Mỗi `table_sessions` vẫn gắn cố định với thẻ bàn `dining_tables` đó từ lúc `OPEN` đến khi `CLOSED`.
+- Hệ thống trên phần mềm không cần xử lý gộp/tách, quản lý việc di chuyển do đã được giải quyết bằng việc di chuyển tấm thẻ vật lý.
 
-## 22. Các edge case cần bổ sung sau
+## 21.6. `option_values` bị Inactive hoặc hết hàng khi món chính còn bán
 
-- Mất kết nối khi đang submit order.
-- Nhân viên đổi trạng thái món trong lúc khách đang chọn option.
-- Nhân viên ghi nhận chưa thanh toán đồng thời với một nhân viên khác đang xác nhận payment.
-- Loa báo giao dịch mất kết nối hoặc báo chậm.
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Món chính (ví dụ: Trà sữa) đang ở trạng thái `AVAILABLE`, nhưng một `option_values` thuộc nhóm lựa chọn (ví dụ: Trân châu đen hoặc Size L) bị chuyển sang `INACTIVE` hoặc hết hàng.
+
+### Cách xử lý
+
+- Backend kiểm tra lại trạng thái của món chính lẫn tất cả `option_values` được chọn tại thời điểm submit order.
+- Nếu có bất kỳ `option_values` nào bị `INACTIVE` hoặc không thuộc `option_groups` được liên kết với món qua `menu_item_option_groups`, backend từ chối order.
+- Frontend thông báo cho khách hàng biết option tương ứng đã hết hàng để chọn lại.
+
+## 21.7. Vi phạm giới hạn lựa chọn option (`min_select`, `max_select`)
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Khách hàng gửi order thiếu option bắt buộc (`min_select > 0`) hoặc chọn số lượng option vượt quá giới hạn tối đa (`max_select`).
+
+### Cách xử lý
+
+- Backend validate số lượng `option_values` được chọn đối với từng nhóm lựa chọn `option_groups`.
+- Nếu chọn thiếu nhóm bắt buộc hoặc vượt quá `max_select`, backend từ chối order và trả lỗi HTTP `400 Bad Request`.
+- Frontend bắt buộc hiển thị cảnh báo và khóa nút gửi đơn cho đến khi khách chọn đúng số lượng option quy định.
+
+## 21.8. Giá option/topping thay đổi sau khi khách đã gửi order
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Admin hoặc quản lý thay đổi giá cộng thêm (`extra_price`) của `option_values` sau khi khách đã đặt món thành công.
+
+### Cách xử lý
+
+- Giá của option tại thời điểm đặt được chụp lại và lưu cố định vào `order_item_options.unit_price`.
+- Bill và tổng tiền của order sử dụng giá snapshot trong `order_item_options`, không bị thay đổi bởi việc cập nhật giá menu/topping sau đó.
+
+## 21.9. Các món trong cùng một order hoàn thành chế biến ở thời điểm khác nhau
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Một order gồm nhiều món (hoặc 1 món nhiều phần), bếp/quầy pha chế làm xong từng món/từng phần rải rác tại các thời điểm khác nhau.
+
+### Cách xử lý
+
+- Tiến độ làm món được theo dõi chi tiết theo từng dòng món qua `order_items.prepared_quantity`, không lưu trạng thái hoàn thành chung ở cấp `orders`.
+- Nhân viên cập nhật số phần làm xong theo mẻ, hệ thống phân bổ theo FIFO vào `order_items.prepared_quantity` của các order cũ nhất.
+- Một order được xem là hoàn thành hoàn toàn khi mọi dòng món trong order đó đều có `prepared_quantity >= quantity - approved_cancelled_quantity`.
+
+## 21.10. Khách yêu cầu hủy món sau khi bếp đã chế biến một phần hoặc toàn bộ
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Khách gửi yêu cầu hủy món khi dòng món đó đã được nhân viên ghi nhận làm xong một phần hoặc toàn bộ (`prepared_quantity > 0`).
+
+### Cách xử lý
+
+- Giao diện Operator hiển thị rõ số lượng đã làm xong (`prepared_quantity`) của dòng món khi nhân viên xem xét yêu cầu hủy.
+- Nhân viên vận hành linh hoạt quyết định `APPROVED` hoặc `REJECTED` dựa trên thực tế tại quán.
+- Nếu `APPROVED`, backend kiểm tra trong transaction để bảo đảm tổng số lượng hủy đã duyệt không làm số lượng còn lại nhỏ hơn số lượng đã làm xong (`quantity - approved_cancelled_quantity >= prepared_quantity`). Nếu vi phạm, request duyệt bị từ chối.
+
+## 21.11. Khách muốn sửa số lượng hoặc đổi topping sau khi đã gửi order
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Khách đã gửi order thành công nhưng sau đó muốn đổi size, bớt topping hoặc đổi sang món khác.
+
+### Cách xử lý
+
+- Hệ thống không hỗ trợ thao tác "chỉnh sửa" trực tiếp trên order/dòng món đã gửi.
+- Muốn đổi topping hoặc giảm số lượng, khách/nhân viên phải tạo **yêu cầu hủy món** cho dòng món cũ.
+- Sau khi nhân viên duyệt hủy, khách/nhân viên gửi **order mới** chứa đúng cấu hình món và option mong muốn.
+
+## 21.12. Tương tác đồng thời từ nhiều thiết bị trên cùng order/session
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+2 khách cùng bàn hoặc 1 khách và 1 nhân viên đồng thời gửi order, gửi yêu cầu hủy hoặc duyệt hoàn thành món.
+
+### Cách xử lý
+
+- Tất cả thao tác ghi dữ liệu (tạo order, duyệt hủy, ghi nhận hoàn thành theo mẻ, xác nhận thanh toán) được thực thi trong transaction có khóa phù hợp (pessimistic locking hoặc conditional update).
+- Thao tác gửi order dùng `idempotency_key` + `request_fingerprint` để xử lý duplicate (Mục 7).
+- Thao tác duyệt hủy hoặc làm món theo mẻ nếu tới sau và dữ liệu không còn thỏa mãn điều kiện sẽ bị từ chối và thông báo dữ liệu mới nhất cho người dùng.
+
+## 21.13. Phát hiện sai sót/hủy món sau khi đã xác nhận thanh toán
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Payment đã ở trạng thái `PAID` và session đã `CLOSED`, sau đó mới phát hiện tính nhầm tiền hoặc cần hủy món đền bù cho khách.
+
+### Cách xử lý
+
+- Khi session đã `CLOSED`, thông tin hóa đơn và `bill_snapshot` đã chốt bất biến để phục vụ đối soát. CAS không cho phép mở lại session hoặc sửa đổi bill đã đóng.
+- Việc hoàn tiền hoặc đền bù cho khách được xử lý thủ công ngoài hệ thống CAS.
+- Quản lý/Admin có thể ghi chép ghi chú vào `audit_logs` để phục vụ giải trình cuối ca nếu cần.
+
+## 21.14. Xử lý sự cố mạng, Timeout và Request lặp (Retry)
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Client mất mạng, frontend timeout hoặc POS reload trang khi đang gửi request (submit order, tạo payment, confirm payment).
+
+### Cách xử lý
+
+- **Gửi Order**: Sử dụng `idempotency_key` (phạm vi session) + `request_fingerprint` (SHA-256 payload). Nếu retry trùng key và payload, backend trả lại kết quả order đã tạo mà không tạo đơn trùng (Mục 7).
+- **Yêu cầu Thanh toán**: `payments.table_session_id` có unique constraint. Request gửi lặp chỉ trả về thông tin payment `PENDING` hiện tại, không tạo payment mới (Mục 19).
+- **Xác nhận Thanh toán (`PAID`)**: Thao tác confirm là idempotent. Nếu request bị gửi lặp, backend trả về kết quả `PAID` hiện tại mà không cập nhật lại thời gian hay tạo audit log trùng (Mục 20).
+
+## 21.15. Hủy phiên bàn khi chưa gọi món (Chưa gửi order vào bếp)
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Phiên bàn (session) đã được mở do khách quét QR hoặc nhân viên ấn tạo, nhưng phát hiện nhầm lẫn, hoặc khách đổi ý rời đi ngay mà chưa báo bếp món nào.
+
+### Cách xử lý
+
+- **Tất cả mọi người** (Customer và Operator/Admin) đều có quyền **Hủy phiên bàn** nếu chưa gửi đồ ăn gì xuống bếp.
+- Backend kiểm tra nếu phiên bàn chưa có bản ghi `orders` nào, session sẽ được đóng ngay lập tức (chuyển sang `CLOSED`), không cần qua luồng thanh toán tạm tính hay hủy đơn.
+- Nếu đã gửi món thành công (đã có order), thao tác này sẽ bị từ chối; lúc này phải thực hiện luồng hủy món đã gửi hoặc thanh toán.
+
+## 21.16. Món làm xong nhưng bị hỏng hoặc khách trả lại (Hủy / Làm lại)
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Món đã được nhân viên ghi nhận làm xong (`prepared_quantity` đã tăng), nhưng làm đổ, bếp làm sai yêu cầu, hoặc khách chê và trả lại. Khách có thể chỉ muốn hủy luôn (không ăn nữa) hoặc yêu cầu làm lại phần mới.
+
+### Cách xử lý
+
+- Nhân viên vào mục **Hủy món** (tạo Cancellation Request) trên thiết bị Operator.
+- Tại đây, nhân viên nhập **Lý do** và số lượng, sau đó chọn 1 trong 2 nút: **Hủy hoàn toàn** hoặc **Làm lại**.
+- **Nếu chọn Hủy hoàn toàn:**
+  - Backend `APPROVED` yêu cầu hủy, số lượng tính tiền giảm đi (khách sẽ không phải trả tiền cho món bị hỏng này).
+- **Nếu chọn Hủy và Làm lại:**
+  - Backend `APPROVED` yêu cầu hủy cho phần bị hỏng (giảm tiền).
+  - Thuận lợi: Backend tự động sinh ra một `orders` mới (tương đương nhân viên tạo order hộ) chứa chính xác số lượng món và option vừa bị hủy. Do thêm order mới, số tiền của phần làm lại được tự cộng lại vào bill, giúp tổng tiền bill của khách không bị tính đúp.
+  - Nhận biết món làm lại: Hệ thống tự động mượn tính năng ghi chú chung, gắn tiền tố vào `orders.note` của order mới (Ví dụ: `[LÀM LẠI] - {Lý do hủy}`).
+  - Bếp/pha chế khi thấy order đi kèm chữ `[LÀM LẠI]` sẽ tự hiểu đây là món cần làm lại và cần ưu tiên.
+  - Đồng thời, bản ghi yêu cầu hủy sẽ được đánh cờ `is_remade = TRUE` trong Database để phục vụ báo cáo hao hụt, phân biệt với việc khách tự đổi ý hủy.
+
+## 22. Các chức năng thuộc phạm vi nâng cấp (Ngoài phạm vi Phase 1)
+
+Các trường hợp dưới đây được xác định rõ là **Ngoài phạm vi của Phase 1** theo tài liệu tổng quan sản phẩm ([OVERALL.md](file:///D:/Intern_job/CAS/document/OVERALL.md)). Hệ thống CAS tập trung xử lý luồng cốt lõi (Gọi món QR & Xác nhận thanh toán thủ công), không triển khai các tính năng này trong giai đoạn hiện tại:
+
+1. **Bàn & Session**:
+   - Đổi bàn, chuyển bàn, gộp bàn giữa các phiên, tách bàn (Mục 21.1).
+   - _Hướng xử lý tạm thời_: Nhân viên đóng session cũ và mở session mới theo quy trình thủ công.
+2. **Phân chia Bếp / Bar**:
+   - Tách riêng màn hình hiển thị Bếp và Bar, chuyển món giữa Bếp và Bar, luồng trả món/làm lại chi tiết.
+   - _Hướng xử lý tạm thời_: Nhân viên theo dõi danh sách món chung trên màn hình Operator.
+3. **Thanh toán nâng cao**:
+   - Tách bill, chia bill cho từng người, thanh toán kết hợp nhiều hình thức (tiền mặt + chuyển khoản), tự động tích hợp Webhook/API VietQR/Ngân hàng.
+   - _Hướng xử lý tạm thời_: Nhân viên tự tính toán và xác minh chuyển khoản qua loa báo giao dịch ("ting ting") bên ngoài CAS trước khi nhấn xác nhận.
+4. **Khuyến mãi & Giá**:
+   - Áp dụng Voucher, mã giảm giá, giảm giá thủ công theo %, phụ phí tự động/thủ công.
+   - _Hướng xử lý tạm thời_: Chỉ áp dụng đúng bảng giá menu được cấu hình sẵn.
+5. **Quản lý Nhân viên & Ca làm**:
+   - Đổi ca, giao ca, nghỉ giữa ca, chốt ca, kiểm kê lệch quỹ tiền mặt/chuyển khoản cuối ca.
+   - _Hướng xử lý tạm thời_: Phân quyền đơn giản theo role `ADMIN` và `OPERATOR`; xác thực qua Firebase Authentication.
+6. **Quản lý Kho & Tồn kho**:
+   - Quản lý định lượng nguyên liệu, tồn kho âm, tự động trừ kho khi chế biến hoặc hoàn kho khi hủy món.
+   - _Hướng xử lý tạm thời_: Nhân viên chủ động cập nhật trạng thái món/topping sang `SOLD_OUT` hoặc `INACTIVE` trên giao diện quản lý khi hết hàng.
