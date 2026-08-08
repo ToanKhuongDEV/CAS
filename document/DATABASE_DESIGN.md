@@ -83,6 +83,9 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
 | Vận hành | `operational_incidents` | Báo cáo sự cố phát sinh do nhân viên vận hành ghi nhận trong ca |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
+| Khuyến mãi | `vouchers` | Mã giảm giá và điều kiện áp dụng cho đơn hàng |
+| Khuyến mãi | `promotion_configs` | Cấu hình thông báo khuyến mãi, banner popup và gợi ý voucher |
+| Thông báo | `system_notifications` | Thông báo hệ thống và tin tức vận hành |
 
 Các tên trên là tên vật lý dự kiến dùng trong MySQL.
 
@@ -824,7 +827,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Hồ sơ và lịch sử nhân viên.
 - Ma trận phân quyền chi tiết theo từng API.
 - Kho và nguyên vật liệu.
-- Khuyến mãi, voucher và điểm thành viên.
+- Điểm thành viên và chương trình tích điểm.
 - Hồ sơ khách hàng và CRM.
 - Zalo và chiến dịch marketing.
 - Game và AI.
@@ -892,6 +895,9 @@ Thiết kế hiện tại chưa bao gồm:
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
 - Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
 - Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
+- `vouchers` lưu mã giảm giá, kiểu giảm (`FIXED_AMOUNT`/`PERCENTAGE`), số tiền/tỷ lệ giảm, điều kiện đơn tối thiểu (`min_order_amount`), mức giảm tối đa (`max_discount_amount`), hạn sử dụng (`start_at`, `end_at`), giới hạn số lượt dùng (`usage_limit`, `usage_count`) và trạng thái (`ACTIVE`/`INACTIVE`). `orders` có thêm `voucher_id` và `discount_amount` để ghi nhận số tiền ưu đãi được trừ.
+- `system_notifications` lưu danh sách thông báo hệ thống do `ADMIN` phát hành (tiêu đề `title`, nội dung `content`, mức độ `type` IN (`INFO`, `WARNING`, `URGENT`), đối tượng nhận `target_role` IN (`ALL`, `OPERATOR`, `ADMIN`), cờ trạng thái `is_read`).
+- `promotion_configs` lưu cấu hình bật/tắt popup chào mừng, tiêu đề & nội dung banner, mã voucher đính kèm, nội dung thanh thông báo chạy chữ header (`ticker_message`) và ngưỡng tự động gợi ý mã giảm giá khi giỏ hàng đạt giá trị tối thiểu (`cart_suggest_threshold`).
 
 ## 11. Bước tiếp theo
 

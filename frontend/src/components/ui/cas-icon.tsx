@@ -3,6 +3,7 @@ import type { ReactNode, SVGProps } from "react";
 export type CasIconName =
   | "arrow"
   | "basket"
+  | "bell"
   | "bill"
   | "cart"
   | "check"
@@ -33,6 +34,11 @@ const iconPaths: Record<CasIconName, ReactNode> = {
     <>
       <path d="m4 10 2 10h12l2-10H4Z" />
       <path d="m8 10 4-6 4 6M9 14v2M15 14v2" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />
     </>
   ),
   bill: (

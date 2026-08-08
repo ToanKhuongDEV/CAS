@@ -41,6 +41,8 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được x�
 _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền hạn hệ thống kể cả quyền của OPERATOR._
 - **Quản lý Cửa hàng & Bàn:** Tạo mã bàn, sinh Token khởi tạo thẻ QR cố định/di động cho bàn.
 - **Quản lý Thực đơn (Catalog):** Thêm, sửa, xóa, ẩn Hiện Danh mục, Menu, Option (Size, Topping, Độ ngọt). Đánh dấu món hết hàng (`SOLD_OUT`).
+- **Quản lý Mã giảm giá (Vouchers):** Thêm, sửa, kích hoạt/khóa mã giảm giá (voucher), cấu hình giảm theo số tiền hoặc phần trăm, hạn sử dụng và điều kiện đơn hàng.
+- **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các tài khoản `OPERATOR`.
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
 - **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
@@ -54,7 +56,7 @@ Hệ thống tập trung vào luồng:
 ```text
 Quét QR
     ↓
-Xem menu và gọi món
+Xem menu và gọi món (Áp dụng Mã giảm giá nếu có)
     ↓
 Cửa hàng tiếp nhận và xử lý order
     ↓
@@ -69,7 +71,7 @@ Nhân viên xác nhận kết quả thanh toán
 
 - Quét QR tại bàn.
 - Xem menu.
-- Chọn món và tạo order.
+- Chọn món, nhập mã giảm giá (voucher) và tạo order.
 - Gọi thêm món.
 
 #### Quản lý menu
@@ -78,6 +80,14 @@ Nhân viên xác nhận kết quả thanh toán
 - Quản lý thông tin và giá món.
 - Quản lý trạng thái còn hoặc hết món.
 - Quản lý hình ảnh món.
+
+#### Quản lý Mã giảm giá (Vouchers) & Thông báo Khuyến mãi
+
+- Tạo mã giảm giá (voucher code), thiết lập giảm theo số tiền (`FIXED_AMOUNT`) hoặc theo phần trăm (`PERCENTAGE`), giá trị đơn tối thiểu (`min_order_amount`), số tiền giảm tối đa (`max_discount_amount`), hạn sử dụng và số lần sử dụng.
+- Khách hàng hoặc nhân viên nhập mã voucher hợp lệ khi gửi order; backend tự động tính toán tiền giảm và lưu số tiền giảm `discount_amount` vào order.
+- Cấu hình thông báo khuyến mãi & Banner (Admin bật/tắt Popup chào mừng khi quét QR, thanh thông báo chạy chữ trên Header, tự động gợi ý mã giảm giá khi giỏ hàng đạt ngưỡng).
+- Quản lý danh sách thông báo hệ thống và phát hành tin tức, cảnh báo ca trực.
+- Tích hợp biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải giao diện Khách hàng (`Customer`) và Nhân viên (`Operator`) để xem nhanh thông báo khuyến mãi và tin tức vận hành.
 
 #### Quản lý bàn và QR
 
@@ -152,7 +162,7 @@ khi chưa có quyết định tiếp theo.
 - Ma trận phân quyền chi tiết theo từng API.
 - Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
-- Khuyến mãi, voucher và chương trình thành viên.
+- Chương trình thành viên và tích điểm khách hàng.
 - CRM và chăm sóc khách hàng.
 - Tích hợp Zalo.
 - Game và các tính năng AI.

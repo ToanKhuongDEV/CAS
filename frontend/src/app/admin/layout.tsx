@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
 
-import { OperatorHeaderNotifications } from "../../../../components/operator/operator-header-notifications";
-import { OperatorTabNavigation } from "../../../../components/operator/operator-tab-navigation";
-import { CasIcon } from "../../../../components/ui/cas-icon";
+import { AdminTabNavigation } from "../../components/admin/admin-tab-navigation";
+import { CasIcon } from "../../components/ui/cas-icon";
 
-type OperatorWorkspaceLayoutProps = {
+type AdminLayoutProps = {
   children: ReactNode;
 };
 
-export default function OperatorWorkspaceLayout({
-  children,
-}: OperatorWorkspaceLayoutProps) {
+export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <main className="min-h-screen bg-cas-surface text-cas-on-surface">
       <div className="sticky top-0 z-40 shadow-xs">
@@ -28,24 +25,19 @@ export default function OperatorWorkspaceLayout({
             </div>
 
             <div className="flex items-center gap-3">
-              <OperatorHeaderNotifications />
-
               <div className="flex items-center gap-3 rounded-xl bg-cas-glass px-3 py-2">
-                <span className="grid size-8 place-items-center rounded-lg bg-cas-secondary-container/30 text-cas-secondary">
+                <span className="grid size-8 place-items-center rounded-lg bg-cas-primary/20 text-cas-primary">
                   <CasIcon className="size-4.5" name="user" />
                 </span>
                 <div className="hidden sm:block">
-                  <p className="text-xs font-extrabold">Nhân viên CAS</p>
-                  <p className="text-[0.68rem] text-cas-on-surface-variant">
-                    Đang trực
-                  </p>
+                  <p className="text-xs font-extrabold">ADMIN Master</p>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <OperatorTabNavigation />
+        <AdminTabNavigation />
       </div>
 
       <div className="mx-auto max-w-[100rem] px-4 py-7 sm:px-8 sm:py-9 xl:px-12">
