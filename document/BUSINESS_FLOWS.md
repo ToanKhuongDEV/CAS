@@ -20,6 +20,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Ghi nhận khách rời đi chưa thanh toán.
 - Nhân viên xác nhận trạng thái thanh toán thủ công.
 - Đóng phiên bàn.
+- Tạo và xem Báo cáo sự cố phát sinh (OPERATOR tạo, ADMIN xem).
 
 Ngoài phạm vi hiện tại:
 
@@ -553,12 +554,26 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 - Table session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments.status`, còn `unpaid_records` ghi nhận trường hợp đóng phiên khi payment vẫn `PENDING`.
 - QR bàn vẫn là QR cố định, lượt khách tiếp theo quét cùng QR sẽ tạo hoặc nhận session mới phù hợp.
 
-## 14. Trạng thái chính
+## 15. Luồng Báo cáo sự cố phát sinh
 
-| Entity | Trạng thái |
-|---|---|
-| Table session | `OPEN`, `PAYMENT_PENDING`, `CLOSED` |
-| Unpaid record | `OPEN`, `RESOLVED` |
-| Payment | `PENDING`, `PAID` |
-| Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
-| Account | `ACTIVE`, `INACTIVE` |
+### Tác nhân
+
+- `OPERATOR`: Tạo báo cáo sự cố phát sinh trong ca trực.
+- `ADMIN`: Tiếp nhận, xem và theo dõi danh sách báo cáo sự cố.
+
+### Mục tiêu
+
+Ghi nhận các sự cố vận hành đột xuất trong ca (hỏng hóc thiết bị, thiếu nguyên liệu, rơi vỡ, mâu thuẫn khách hàng...) từ phía nhân viên `OPERATOR` để gửi lên cho `ADMIN` kiểm tra và xử lý.
+
+### Luồng chính
+
+1. Nhân viên `OPERATOR` mở form "Báo cáo sự cố phát sinh" tại trang Tổng quan (`/operator/dashboard`).
+2. `OPERATOR` nhập thông tin người tạo báo cáo (`created_by_name`) và nội dung mô tả chi tiết sự cố.
+3. Hệ thống ghi nhận báo cáo với thời gian hiện tại (`created_at`) và lưu vào cơ sở dữ liệu.
+4. Quản trị viên `ADMIN` truy cập trang quản trị/báo cáo để tra cứu, theo dõi và tổng hợp toàn bộ các sự cố do nhân viên báo cáo.
+
+### Quy tắc nghiệp vụ
+
+- Tài khoản `OPERATOR` chỉ có quyền tạo báo cáo sự cố (Create).
+- Tài khoản `ADMIN` có quyền xem và tra cứu danh sách toàn bộ báo cáo sự cố (Read/View).
+- Báo cáo sự cố bắt buộc lưu trữ thời điểm khởi tạo (`created_at`), người tạo (`created_by_name`/`created_by_account_id`) và nội dung mô tả (`description`).

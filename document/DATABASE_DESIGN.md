@@ -81,6 +81,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Thanh toán | `payments` | Yêu cầu, trạng thái xác nhận và JSON snapshot của bill |
 | Tài khoản | `accounts` | Tài khoản đăng nhập hệ thống |
 | Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
+| Vận hành | `operational_incidents` | Báo cáo sự cố phát sinh do nhân viên vận hành ghi nhận trong ca |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
 
 Các tên trên là tên vật lý dự kiến dùng trong MySQL.
@@ -108,7 +109,8 @@ stores
   │
   ├── option_groups (store_id)
   ├── accounts
-  └── client_accounts
+  ├── client_accounts
+  └── operational_incidents
 
 audit_logs
 ```
@@ -178,6 +180,8 @@ Lưu danh mục món.
 | `category_type` | `VARCHAR(20) NOT NULL` | Loại danh mục `REGULAR` hoặc `OPTION` |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hiển thị |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo danh mục |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -196,6 +200,8 @@ Lưu thông tin món.
 | `image_storage_key` | `VARCHAR(512) NULL` | Khóa asset trên dịch vụ lưu trữ để thay thế hoặc xóa ảnh |
 | `availability_status` | `VARCHAR(20) NOT NULL` | Trạng thái còn hoặc hết món |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo món |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin/Nhân viên cập nhật gần nhất |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -330,6 +336,7 @@ thể gửi món nhiều lần trong cùng session; mỗi lần gửi tạo mộ
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh order |
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn |
+| `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên tạo order hộ; `NULL` khi do Khách tự đặt qua QR |
 | `idempotency_key` | `VARCHAR(100) NOT NULL` | Khóa chống tạo order trùng cho một lần submit trong cùng phiên bàn |
 | `request_fingerprint` | `CHAR(64) NOT NULL` | SHA-256 dạng hexadecimal của payload order đã được backend chuẩn hóa |
 | `order_number` | `VARCHAR(50) NOT NULL` | Mã hiển thị cho cửa hàng |
@@ -361,10 +368,11 @@ bảng trước khi có thiết kế được duyệt. UI dùng tạm giá trị
 `idempotency_key` do frontend tạo mới cho mỗi lần submit order và được lưu bền vững cùng order. Backend chuẩn hóa payload, tính SHA-256 và lưu vào `request_fingerprint`; client không được gửi hoặc quyết định fingerprint. Cặp `table_session_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo; nếu fingerprint khác, backend trả HTTP `409 Conflict`. Key không cần TTL và fingerprint không cần unique constraint.
 
 Order do `OPERATOR` tạo hộ dùng cùng cấu trúc dữ liệu và quy tắc tính tiền với
-order do Customer gửi. Việc truy vết nhân viên thực hiện được ghi trong
-`audit_logs` với `entity_type = ORDER`, `entity_id` là order vừa tạo và
-`actor_account_id` là tài khoản đăng nhập; không lấy danh tính nhân viên từ
-payload client. Thiết kế hiện tại chưa bổ sung cột nguồn tạo vào `orders`.
+order do Customer gửi. Cột `created_by_account_id` lưu ID tài khoản nhân viên thao tác
+(với order do Khách gửi qua QR, cột này mang giá trị `NULL`). Việc truy vết nhân viên
+thực hiện đồng thời được ghi trong `audit_logs` với `entity_type = ORDER`, `entity_id`
+là order vừa tạo và `actor_account_id` là tài khoản đăng nhập; không lấy danh tính
+nhân viên từ payload client.
 
 #### `order_items`
 
@@ -445,6 +453,8 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh yêu cầu |
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món cần hủy |
+| `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên khởi tạo yêu cầu hủy (Hủy sự cố); `NULL` khi do Khách tự gửi |
+| `created_by_name` | `VARCHAR(150) NULL` | Tên người khởi tạo yêu cầu tại thời điểm thao tác |
 | `idempotency_key` | `VARCHAR(100) NOT NULL` | Khóa chống tạo yêu cầu hủy trùng trong cùng dòng món |
 | `requested_quantity` | `INT UNSIGNED NOT NULL` | Số lượng khách yêu cầu hủy |
 | `reason` | `VARCHAR(1000) NULL` | Lý do yêu cầu |
@@ -641,6 +651,21 @@ Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 - `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
 - `opened_by_customer_name` và `opened_by_customer_phone` trong `table_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
 
+#### `operational_incidents`
+
+Lưu thông tin các sự cố phát sinh do nhân viên vận hành (`OPERATOR`) ghi nhận tại ca trực để gửi lên cho quản trị viên (`ADMIN`) tra cứu, theo dõi và xử lý.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh sự cố |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng ngoài hệ thống |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng phát sinh sự cố |
+| `reporter_name` | `VARCHAR(150) NOT NULL` | Tên người ghi nhận sự cố tại thời điểm thao tác |
+| `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên báo cáo (nếu có đăng nhập) |
+| `description` | `TEXT NOT NULL` | Nội dung mô tả chi tiết sự cố |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phát sinh sự cố |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
 #### `audit_logs`
 
 Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán của món, nhân viên tạo order hộ khách, duyệt hủy món, xác nhận thanh toán thủ công hoặc ghi nhận chưa thanh toán.
@@ -662,7 +687,7 @@ Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi 
 
 Trong đó:
 
-- `entity_type` có thể là `MENU_ITEM`, `ORDER`, `PAYMENT`, `UNPAID_RECORD`, `CANCELLATION_REQUEST` hoặc `DINING_TABLE`.
+- `entity_type` có thể là `MENU_ITEM`, `ORDER`, `PAYMENT`, `UNPAID_RECORD`, `CANCELLATION_REQUEST`, `OPERATIONAL_INCIDENT` hoặc `DINING_TABLE`.
 - `entity_id` liên kết logic tới dữ liệu gốc. Không tạo một foreign key chung vì audit log có thể tham chiếu nhiều loại bảng.
 - `entity_name` giúp nhận biết nhanh dữ liệu đã thay đổi, ví dụ `Cà phê sữa`.
 - `actor_account_id` lưu ID tài khoản thực hiện thao tác.
@@ -691,6 +716,8 @@ Trong đó:
 | Table session — Unpaid record | Một - không hoặc một |
 | Unpaid record — Payment | Một - một payment của cùng table session dùng để xác định kết quả |
 | Table session — Payment | Một - không hoặc một |
+| Store — Operational incident | Một - nhiều |
+| Account — Operational incident | Một - nhiều (với vai trò người tạo báo cáo) |
 | Store — Audit log | Một - nhiều |
 | Account — Audit log | Một - nhiều |
 | Client account — Table session | Một - nhiều |
@@ -864,6 +891,7 @@ Thiết kế hiện tại chưa bao gồm:
 - CAS không lưu số tài khoản, mã hoặc tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hay mã tham chiếu giao dịch.
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
 - Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
+- Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
 
 ## 11. Bước tiếp theo
 

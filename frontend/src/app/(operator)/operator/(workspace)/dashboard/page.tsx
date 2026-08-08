@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { OperatorComplaintsPanel } from "../../../../../components/operator/operator-complaints-panel";
+import { OperatorIncidentsPanel } from "../../../../../components/operator/operator-incidents-panel";
 import { CasButton } from "../../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 
@@ -88,11 +89,10 @@ export default function OperatorDashboardPage() {
 			<header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Tổng quan</h1>
-					<p className="mt-2 text-sm text-cas-on-surface-variant">Theo dõi nhanh hoạt động và các bàn cần chú ý trong ca.</p>
 				</div>
 
 				<div className="flex items-center gap-2.5">
-					<CasButton variant="outline">
+					<CasButton variant="outline" href="/operator/cancellations/new">
 						<CasIcon className="size-4" name="trash" />
 						<span>Hủy món do sự cố</span>
 					</CasButton>
@@ -147,6 +147,7 @@ export default function OperatorDashboardPage() {
 					</section>
 
 					<OperatorComplaintsPanel />
+					<OperatorIncidentsPanel />
 				</div>
 
 				<section className="rounded-2xl border border-cas-outline-variant/20 bg-cas-glass p-5 shadow-[0_5px_18px_var(--cas-shadow-color)]" aria-labelledby="table-overview-title">

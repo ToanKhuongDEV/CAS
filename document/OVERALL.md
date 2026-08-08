@@ -35,7 +35,7 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được x�
 - **Duyệt/Chủ động Hủy món:** Xác nhận hoặc từ chối yêu cầu hủy của khách. Quyền chủ động hủy món kèm lý do, bao gồm phương án **Làm lại món** (hủy lưu cờ `is_remade = TRUE` và tự động sinh order bồi thường) để xử lý món lỗi bể/vỡ.
 - **Điều phối chế biến:** Ghi nhận và cập nhật số lượng món đã làm xong (`prepared_quantity`) để trả đồ cho khách.
 - **Nghiệp vụ thanh toán:** Kiểm tra hóa đơn, đối chiếu tiền mặt/chuyển khoản và ấn **Xác nhận thanh toán thủ công (PAID)**. (Đã bấm là không được hoàn tác).
-- **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới.
+- **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới; **Tạo Báo cáo sự cố phát sinh** trong ca trực (lưu tên người tạo, thời gian và mô tả sự cố) để gửi trực tiếp cho ADMIN.
 
 ### 3.3. Quản lý / Quản trị viên (ADMIN)
 _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền hạn hệ thống kể cả quyền của OPERATOR._
@@ -43,6 +43,7 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Quản lý Thực đơn (Catalog):** Thêm, sửa, xóa, ẩn Hiện Danh mục, Menu, Option (Size, Topping, Độ ngọt). Đánh dấu món hết hàng (`SOLD_OUT`).
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
+- **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
 - **Báo cáo (Report):** Xem tổng hợp doanh thu, tra cứu hóa đơn, lịch sử order. Nhìn thấy các số liệu báo cáo hao hụt rạch ròi bằng cách đánh giá các order có `is_remade = TRUE`.
 - **Audit Logs:** Xem lại toàn bộ lịch sử thao tác quan trọng của hệ thống (ai xác nhận tiền, ai hủy món, ai xóa giá) để quy trách nhiệm.
 

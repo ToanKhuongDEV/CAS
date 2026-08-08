@@ -87,6 +87,7 @@ Ngày cập nhật gần nhất: 2026-08-08
 - [x] Chốt đầy đủ foreign key với `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
 - [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
 - [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
+- [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
 - [x] Tạo Flyway migration khởi tạo schema.
 - [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
@@ -171,6 +172,11 @@ Ngày cập nhật gần nhất: 2026-08-08
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
       giao dịch thành công.
+- [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món.
+- [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
+- [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) cho phép nhân viên `OPERATOR` tạo và ghi nhận các sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`.
+- [x] Cập nhật hệ thống tài liệu thiết kế (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`, `PROJECT_PROGRESS.md`) phân định rõ: `OPERATOR` tạo báo cáo sự cố phát sinh, `ADMIN` có quyền xem và tra cứu danh sách báo cáo sự cố.
+- [x] Bổ sung badge số nhỏ (counter badge) hiển thị số lượng yêu cầu/thông tin chờ xử lý trên thanh điều hướng `OperatorTabNavigation` cho các tab Đơn gọi món (8), Hủy món (3), Thanh toán (3), và Chưa thanh toán (1).
 - [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
 - [ ] Xây dựng giao diện Admin xem danh sách `report`; loại report, dữ liệu hiển thị, trạng thái, bộ lọc, phân trang, API contract và mô hình dữ liệu vẫn `Cần chốt`.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
