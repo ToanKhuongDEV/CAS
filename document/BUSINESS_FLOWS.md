@@ -54,24 +54,21 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 
 ### Luồng chính
 
-1. Người dùng nhập username và password.
-2. Hệ thống kiểm tra tài khoản trong `accounts`.
-3. Hệ thống kiểm tra trạng thái tài khoản là `ACTIVE`.
-4. Hệ thống xác thực password.
-5. Hệ thống cấp access JWT có thời hạn 15 phút và refresh JWT có thời hạn 10 ngày.
+1. Người dùng nhập thông tin đăng nhập trên Frontend.
+2. Frontend xác thực người dùng qua **Firebase Authentication**.
+3. Firebase phát hành ID Token cho Client.
+4. Client gửi Firebase ID Token lên CAS Backend trong HTTP Header (`Authorization: Bearer <Firebase_ID_Token>`).
+5. Backend verify Firebase ID Token, kiểm tra tài khoản tương ứng trong `accounts` và xác nhận trạng thái `ACTIVE`.
 6. Hệ thống ghi nhận `last_login_at`.
 7. Người dùng được chuyển vào giao diện vận hành phù hợp với role.
 
 ### Quy tắc nghiệp vụ
 
-- Tài khoản `INACTIVE` không được đăng nhập.
-- Password luôn được lưu bằng `password_hash`, không lưu password thô.
-- Password phải dài hơn 8 ký tự, có ít nhất một chữ cái và một chữ số.
-- Password được băm bằng BCrypt.
-- Role được lấy từ backend theo tài khoản đăng nhập, client không được tự gửi role để quyết định quyền.
+- Xác thực tài khoản vận hành sử dụng Firebase Authentication.
+- Backend sử dụng Firebase Admin SDK (hoặc thư viện xác thực Firebase) để verify Firebase ID Token.
+- Tài khoản `INACTIVE` không được phép truy cập hệ thống.
+- Role được lấy từ backend theo tài khoản trong database tương ứng với danh tính Firebase, client không được tự gửi role để quyết định quyền.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
-- Hệ thống không giới hạn số thiết bị đăng nhập và không quản lý cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
-- Access JWT và refresh JWT không được lưu trong `localStorage`; cơ chế vận chuyển và lưu token cụ thể sẽ được chốt trong API contract.
 - Backend phải kiểm tra role trên mọi API được bảo vệ: API quản trị chỉ cho phép `ADMIN`; API vận hành chỉ cho phép role có quyền vận hành theo API contract.
 
 ## 4.1. Luồng Admin xem danh sách report
@@ -482,7 +479,7 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 2. Khách ra gặp nhân viên và thực hiện chuyển khoản.
 3. Nhân viên chỉ tiếp tục khi loa báo giao dịch phát tín hiệu “ting ting”, xác nhận chuyển khoản thành công.
 4. Nhân viên chọn đúng yêu cầu và bấm xác nhận thanh toán thành công.
-5. Backend lấy tài khoản xác nhận từ access JWT.
+5. Backend lấy tài khoản xác nhận từ Firebase ID Token đã verify.
 6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển table session sang `CLOSED` và lưu `closed_at`.
 7. Nếu session có `unpaid_records` trạng thái `OPEN`, hệ thống chuyển bản ghi đó sang `RESOLVED`.
 8. Hệ thống ghi audit log xác nhận thanh toán.
@@ -497,7 +494,7 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 
 ### Quy tắc nghiệp vụ
 
-- Backend phải lấy tài khoản xác nhận từ access JWT, không nhận `confirmed_by` từ client.
+- Backend phải lấy tài khoản xác nhận từ Firebase ID Token đã verify, không nhận `confirmed_by` từ client.
 - Nhân viên chỉ bấm xác nhận sau khi đã xác minh tín hiệu chuyển khoản thành công từ loa báo giao dịch.
 - Confirm payment là idempotent: request lặp trên payment đã `PAID` trả trạng thái hiện tại, không đổi `confirmed_at` và không tạo audit log trùng.
 - Payment `PENDING` không tự hết hạn.

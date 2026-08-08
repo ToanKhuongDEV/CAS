@@ -114,7 +114,7 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 - Tài khoản vận hành sử dụng hai role `ADMIN` và `OPERATOR`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - `ADMIN` có chức năng xem danh sách `report`.
 - `ADMIN` cấu hình ngưỡng số phút dùng để cảnh báo bàn chờ lâu.
-- JWT là cơ chế xác thực chính cho tài khoản vận hành và không được lưu trong `localStorage`.
+- Firebase Authentication là cơ chế xác thực chính cho tài khoản vận hành (`ADMIN` và `OPERATOR`); Backend xác thực Firebase ID Token do Client gửi lên.
 - Cấu hình thông tin cửa hàng.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
@@ -200,8 +200,8 @@ Giao diện khách hàng, giao diện nhân viên vận hành và giao diện ad
 ```text
 CAS Frontend
 ├── Customer — không đăng nhập
-├── Operation — JWT, role OPERATOR
-└── Admin — JWT, role ADMIN
+├── Operation — Firebase Auth, role OPERATOR
+└── Admin — Firebase Auth, role ADMIN
 ```
 
 Luồng route Customer bắt đầu tại `/table/{qrToken}` khi khách quét QR. Route

@@ -59,8 +59,8 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] CI/CD sử dụng GitHub Actions.
 - [x] Môi trường production được triển khai trên một VPS.
 - [x] Chốt frontend và backend chạy trong cùng Docker Compose network trên VPS.
-- [x] Chốt authentication dùng access JWT 15 phút, refresh JWT 10 ngày và BCrypt.
-- [x] Chốt JWT là cơ chế xác thực chính và không lưu token trong `localStorage`.
+- [x] Chốt authentication sử dụng Firebase Authentication.
+- [x] Chốt Firebase Authentication là cơ chế xác thực chính cho tài khoản vận hành (ADMIN và OPERATOR); Client gửi Firebase ID Token và Backend verify token để phân quyền.
 - [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
 - [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
 - [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.

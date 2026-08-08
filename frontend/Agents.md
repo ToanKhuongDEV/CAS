@@ -63,10 +63,7 @@ Customer is an actor, not an `accounts.role`. The current system has no kitchen/
 - One Next.js App Router application.
 - Three route and layout areas: Customer, Operation, and Admin.
 - Customer routes are public and entered through the table QR flow.
-- JWT is the primary authentication mechanism for Operation and Admin.
-- Access JWT lifetime is 15 minutes; refresh JWT lifetime is 10 days.
-- Access and refresh JWTs must never be stored in `localStorage`.
-- The system does not limit the number of logged-in devices and has no active JWT revocation mechanism in the current scope.
+- Firebase Authentication is the primary authentication mechanism for Operation and Admin; client attaches Firebase ID Token in requests.
 - Only `ADMIN` can create operational accounts.
 - Detailed permissions for `ADMIN` and `OPERATOR` must follow the backend contract once finalized.
 - Frontend communicates only with CAS Backend.
@@ -626,9 +623,8 @@ Are you sure?
 ## 14. Authentication and Authorization
 
 - Customer does not log in and must not be treated as role `USER`.
-- JWT is the primary authentication mechanism and is used only by `ADMIN` and `OPERATOR`.
-- Access JWT expires after 15 minutes; refresh JWT expires after 10 days.
-- Never store access or refresh JWTs in `localStorage`.
+- Firebase Authentication is the primary authentication mechanism used by `ADMIN` and `OPERATOR`.
+- Client attaches Firebase ID Token in the `Authorization: Bearer <Firebase_ID_Token>` header for protected backend requests.
 - Do not fall back to `sessionStorage` or IndexedDB as an alternative token store without an approved architecture change.
 - Use the token transport and storage mechanism defined by the backend API contract. The split between in-memory state and secure cookies has not yet been approved.
 - Centralize access-token attachment, refresh, authentication failure, and logout behavior.

@@ -178,7 +178,7 @@ Nhân viên A nhìn thấy yêu cầu trước, nhưng nhân viên B là ngườ
 ### Cách xử lý
 
 - Cho phép tài khoản vận hành hợp lệ xác nhận.
-- Backend lấy account xác nhận từ access JWT.
+- Backend lấy account xác nhận từ Firebase ID Token đã verify.
 - Không nhận `confirmed_by` từ client.
 - Lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at` và audit log.
 
@@ -486,7 +486,7 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
   order do Customer gửi.
 - Order tạo hộ xuất hiện trong cùng danh sách order và hóa đơn của table
   session; không tạo luồng tính tiền riêng.
-- Backend lấy danh tính nhân viên từ JWT và ghi audit log; không nhận
+- Backend lấy danh tính nhân viên từ Firebase ID Token đã verify và ghi audit log; không nhận
   `actor_account_id` từ request.
 - Nếu Customer và nhân viên đồng thời gửi hai order hợp lệ, hệ thống tạo hai
   order riêng; thứ tự FIFO dựa trên `created_at`.

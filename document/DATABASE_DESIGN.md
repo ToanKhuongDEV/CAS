@@ -610,12 +610,12 @@ Các role cơ bản:
 
 Khách hàng không có tài khoản đăng nhập và không phải một giá trị của `accounts.role`. Mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập các chức năng này.
 
-Authentication sử dụng JWT:
+Authentication sử dụng Firebase Authentication:
 
-- Access JWT có thời hạn 15 phút.
-- Refresh JWT có thời hạn 10 ngày.
-- Không giới hạn số thiết bị đăng nhập và không lưu cơ chế chủ động thu hồi JWT trong phạm vi hiện tại.
-- Password được băm bằng BCrypt; password đầu vào phải dài hơn 8 ký tự, có ít nhất một chữ cái và một chữ số.
+- Khách hàng không có tài khoản đăng nhập và không sử dụng authentication.
+- Tài khoản vận hành (`ADMIN`, `OPERATOR`) được quản lý và xác thực qua Firebase Authentication.
+- Client truyền Firebase ID Token trong HTTP header `Authorization: Bearer <Firebase_ID_Token>`.
+- CAS Backend verify Firebase ID Token (sử dụng Firebase Admin SDK hoặc thư viện xác thực tương đương), trích xuất danh tính và phân quyền theo tài khoản & role (`ADMIN`, `OPERATOR`) lưu trong database.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
 - Backend phải kiểm tra role trên mọi API được bảo vệ; ma trận quyền chi tiết theo từng API được xác định trong API contract.
 
@@ -810,8 +810,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
 - Quy tắc mỗi option group có tối đa một option mặc định chỉ được kiểm tra trong Java, không có unique constraint trong database.
 - Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
-- Authentication dùng access JWT 15 phút và refresh JWT 10 ngày; không giới hạn số thiết bị và chưa có cơ chế chủ động thu hồi JWT.
-- Password được băm bằng BCrypt, dài hơn 8 ký tự và chứa ít nhất một chữ cái cùng một chữ số.
+- Authentication sử dụng Firebase Authentication; Client truyền Firebase ID Token trong header request để backend verify và phân quyền.
 - Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; mọi chức năng quản trị chỉ dành cho `ADMIN`, còn `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
 - `OPERATOR` được tạo order hộ vào table session `OPEN`; order này dùng cùng dữ

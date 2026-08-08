@@ -50,6 +50,9 @@ Do not organize the entire application into shared technical packages such as
 
 
 ## Authentication and Secrets
+- Operational accounts (`ADMIN` and `OPERATOR`) use Firebase Authentication.
+- Client passes the Firebase ID Token in the `Authorization: Bearer <Firebase_ID_Token>` header.
+- CAS Backend verifies the Firebase ID Token and maps it to system accounts and roles.
 
 
 ## Test Order
