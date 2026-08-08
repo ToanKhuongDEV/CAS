@@ -160,12 +160,11 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 ### Luồng chính
 
 1. Khách hàng mở menu từ session bàn.
-2. Hệ thống lấy danh sách `categories` đang hiển thị.
-3. Hệ thống lấy danh sách `menu_items` thuộc category loại `REGULAR`.
-4. Với từng món, hệ thống lấy các `tags` qua `menu_item_tags`, các `option_groups`, `option_group_items` và các `menu_items` loại option được phép chọn.
-5. Hệ thống suy ra `selectionType` của từng option group từ `max_select`: `SINGLE` khi giá trị bằng `1`, ngược lại là `MULTIPLE`.
-6. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món, các option và `selectionType` nếu có.
-7. Khách hàng chọn món và tùy chọn.
+2. Hệ thống lấy danh sách `categories` đang hiển thị và danh sách `menu_items`.
+3. Với từng món, hệ thống lấy các `tags` qua `menu_item_tags`, các `option_groups` được liên kết qua `menu_item_option_groups` và các `option_values` thuộc từng nhóm.
+4. Hệ thống xác định `selection_type` của từng option group (`SINGLE` hoặc `MULTIPLE`).
+5. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món, các option và `selectionType` nếu có.
+6. Khách hàng chọn món và tùy chọn.
 
 ### Quy tắc nghiệp vụ
 
@@ -230,7 +229,7 @@ Khách hàng gửi một order mới trong session bàn.
 - Session không còn `OPEN`: không cho gửi order.
 - Món hết hàng hoặc không tồn tại: từ chối dòng món tương ứng.
 - Số option vượt quá `max_select`: không cho gửi order.
-- Option không liên kết với món qua `option_group_items`: không cho gửi order.
+- Option value không thuộc option group được liên kết với món qua `menu_item_option_groups`: không cho gửi order.
 
 ## 7.1. Luồng nhân viên tạo order hộ khách
 

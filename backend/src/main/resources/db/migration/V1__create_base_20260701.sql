@@ -56,14 +56,13 @@ CREATE TABLE categories (
     store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
     description TEXT NULL,
-    category_type VARCHAR(20) NOT NULL,
     display_order INT UNSIGNED NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_categories_store_name UNIQUE (store_id, name),
-    KEY idx_categories_menu (store_id, category_type, status, display_order),
+    KEY idx_categories_menu (store_id, status, display_order),
     CONSTRAINT fk_categories_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
@@ -128,7 +127,7 @@ CREATE TABLE menu_item_tags (
 
 CREATE TABLE option_groups (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    menu_item_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
     selection_type VARCHAR(20) NOT NULL,
     min_select SMALLINT UNSIGNED NOT NULL DEFAULT 0,
@@ -138,34 +137,50 @@ CREATE TABLE option_groups (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    CONSTRAINT uk_option_groups_item_name UNIQUE (menu_item_id, name),
-    KEY idx_option_groups_menu (menu_item_id, status, display_order),
-    CONSTRAINT fk_option_groups_menu_item
-        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+    CONSTRAINT uk_option_groups_store_name UNIQUE (store_id, name),
+    KEY idx_option_groups_store (store_id, status, display_order),
+    CONSTRAINT fk_option_groups_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE option_group_items (
+CREATE TABLE option_values (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     option_group_id BIGINT UNSIGNED NOT NULL,
-    option_menu_item_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    extra_price DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     display_order INT UNSIGNED NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    CONSTRAINT uk_option_group_items_group_item
-        UNIQUE (option_group_id, option_menu_item_id),
-    KEY idx_option_group_items_option_menu_item_id (option_menu_item_id),
-    KEY idx_option_group_items_menu (option_group_id, status, display_order),
-    CONSTRAINT fk_option_group_items_group
+    CONSTRAINT uk_option_values_group_name UNIQUE (option_group_id, name),
+    KEY idx_option_values_group (option_group_id, status, display_order),
+    CONSTRAINT fk_option_values_group
         FOREIGN KEY (option_group_id) REFERENCES option_groups (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE menu_item_option_groups (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    option_group_id BIGINT UNSIGNED NOT NULL,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_menu_item_option_groups UNIQUE (menu_item_id, option_group_id),
+    KEY idx_menu_item_option_groups_option_group_id (option_group_id),
+    KEY idx_menu_item_option_groups_menu (menu_item_id, display_order),
+    CONSTRAINT fk_menu_item_option_groups_menu_item
+        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_option_group_items_menu_item
-        FOREIGN KEY (option_menu_item_id) REFERENCES menu_items (id)
+    CONSTRAINT fk_menu_item_option_groups_option_group
+        FOREIGN KEY (option_group_id) REFERENCES option_groups (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
@@ -297,7 +312,7 @@ CREATE TABLE order_items (
 CREATE TABLE order_item_options (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     order_item_id BIGINT UNSIGNED NOT NULL,
-    option_group_item_id BIGINT UNSIGNED NOT NULL,
+    option_value_id BIGINT UNSIGNED NOT NULL,
     option_group_name VARCHAR(150) NOT NULL,
     option_name VARCHAR(150) NOT NULL,
     unit_price DECIMAL(15, 2) NOT NULL,
@@ -305,14 +320,14 @@ CREATE TABLE order_item_options (
     total_amount DECIMAL(15, 2) NOT NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    CONSTRAINT uk_order_item_options_item_option
-        UNIQUE (order_item_id, option_group_item_id),
-    KEY idx_order_item_options_option_group_item_id (option_group_item_id),
+    CONSTRAINT uk_order_item_options_item_value
+        UNIQUE (order_item_id, option_value_id),
+    KEY idx_order_item_options_option_value_id (option_value_id),
     CONSTRAINT fk_order_item_options_order_item
         FOREIGN KEY (order_item_id) REFERENCES order_items (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_order_item_options_group_item
-        FOREIGN KEY (option_group_item_id) REFERENCES option_group_items (id)
+    CONSTRAINT fk_order_item_options_option_value
+        FOREIGN KEY (option_value_id) REFERENCES option_values (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4

@@ -33,10 +33,10 @@ Ngày cập nhật gần nhất: 2026-08-07
 - [x] Chống gửi order trùng bằng `idempotency_key` và `request_fingerprint`.
 - [x] Order chỉ có ghi chú chung tại `orders.note`, không ghi chú theo từng món.
 - [x] Giá món chính và giá option được lưu riêng tại thời điểm đặt.
-- [x] Option được quản lý như `menu_items` thuộc category loại `OPTION`.
+- [x] Option (size, topping, đường/đá...) được quản lý độc lập trong bảng `option_values`, thuộc nhóm `option_groups`, không nằm trong `menu_items`.
 - [x] Quản lý nhãn món bằng `tags` và bảng trung gian nhiều-nhiều `menu_item_tags`.
 - [x] `dining_tables` dùng `code` kiểu `INT UNSIGNED`, duy nhất toàn hệ thống và không còn lưu `name`.
-- [x] Dùng `option_groups`, `option_group_items` và `order_item_options` để liên kết size/topping với đúng món.
+- [x] Dùng `option_groups`, `option_values`, `menu_item_option_groups` và `order_item_options` để quản lý nhóm lựa chọn và liên kết size/topping với món.
 - [x] Hai món có cấu hình option khác nhau được lưu thành hai `order_items` khác nhau.
 - [x] Yêu cầu hủy món không sửa hoặc xóa dữ liệu order gốc.
 - [x] Bàn đang có khách được suy ra từ `table_sessions` trạng thái `OPEN` hoặc `PAYMENT_PENDING`.

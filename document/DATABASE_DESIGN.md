@@ -53,8 +53,8 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - `created_at` dùng `DEFAULT CURRENT_TIMESTAMP(3)`.
 - `updated_at` dùng `DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)`.
 - Các cột `display_order` dùng `DEFAULT 0`.
-- `option_group_items.is_default` dùng `DEFAULT FALSE`.
-- `stores`, `table_qr_codes`, `categories`, `option_groups`, `option_group_items` và `accounts` dùng trạng thái mặc định `ACTIVE`.
+- `option_values.is_default` dùng `DEFAULT FALSE`.
+- `stores`, `table_qr_codes`, `categories`, `option_groups`, `option_values` và `accounts` dùng trạng thái mặc định `ACTIVE`.
 - `menu_items.availability_status`, trạng thái session, cancellation request, unpaid record và payment phải được Java truyền rõ khi tạo, không dùng giá trị mặc định trong database.
 - `dining_tables` không có cột trạng thái.
 
@@ -69,8 +69,9 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Menu | `menu_items` | Thông tin món |
 | Menu | `tags` | Nhãn có thể gắn cho món hoặc option |
 | Menu | `menu_item_tags` | Liên kết nhiều-nhiều giữa món và nhãn |
-| Menu | `option_groups` | Nhóm lựa chọn của món |
-| Menu | `option_group_items` | Liên kết nhóm lựa chọn với menu item loại option |
+| Menu | `option_groups` | Nhóm lựa chọn dùng chung hoặc thuộc cửa hàng (như Kích thước, Đường, Topping) |
+| Menu | `option_values` | Các giá trị bên trong nhóm lựa chọn (như Size L, 50%, Trân châu) |
+| Menu | `menu_item_option_groups` | Liên kết nhiều-nhiều giữa món và nhóm lựa chọn |
 | Phiên bàn | `table_sessions` | Lượt sử dụng bàn |
 | Order | `orders` | Các order thuộc mỗi phiên bàn |
 | Order | `order_items` | Các món trong order |
@@ -100,14 +101,12 @@ stores
   │
   ├── categories
   │     └── menu_items
-  │            └── menu_item_tags
-  │                    └── tags
+  │            ├── menu_item_tags ─── tags
+  │            └── menu_item_option_groups
+  │                    └── option_groups
+  │                           └── option_values
   │
-  │   menu_items (REGULAR)
-  │     └── option_groups
-  │            └── option_group_items
-  │                    └── menu_items (OPTION)
-  │
+  ├── option_groups (store_id)
   ├── accounts
   └── client_accounts
 
@@ -227,49 +226,66 @@ Hệ thống không giới hạn tag theo `category_type`; tag có thể gắn v
 
 #### `option_groups`
 
-Lưu nhóm lựa chọn của món như kích thước, topping, độ ngọt hoặc cách chế biến.
+Lưu các nhóm lựa chọn của cửa hàng như `Kích thước`, `Độ ngọt`, `Topping` hoặc `Cấp độ cay`.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nhóm lựa chọn |
-| `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Món áp dụng |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu nhóm lựa chọn |
 | `name` | `VARCHAR(150) NOT NULL` | Tên nhóm lựa chọn |
+| `selection_type` | `VARCHAR(20) NOT NULL` | Loại lựa chọn (`SINGLE`, `MULTIPLE`) |
+| `min_select` | `SMALLINT UNSIGNED NOT NULL DEFAULT 0` | Số lượng chọn tối thiểu |
 | `max_select` | `SMALLINT UNSIGNED NULL` | Số lựa chọn tối đa; `NULL` nghĩa là không giới hạn |
-| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
-| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
-
-Kiểu lựa chọn không được lưu trong database mà suy ra từ `max_select`: `max_select = 1` là `SINGLE`; mọi trường hợp còn lại, gồm `max_select > 1` hoặc `NULL`, là `MULTIPLE`. Backend trả trường suy ra `selectionType` cho frontend: `SINGLE` hiển thị radio, còn `MULTIPLE` hiển thị checkbox. Với nhóm size, hệ thống chọn một giá trị mặc định được cấu hình trong `option_group_items`. Với nhóm topping, `max_select` có thể để trống để biểu thị không giới hạn số lựa chọn.
-
-#### `option_group_items`
-
-Liên kết một nhóm lựa chọn với các `menu_items` thuộc category loại `OPTION`. Giá cộng thêm lấy từ `menu_items.price` của option, không lưu giá override trong bảng liên kết.
-
-| Cột | Kiểu dữ liệu | Ý nghĩa |
-|---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh liên kết |
-| `option_group_id` | `BIGINT UNSIGNED NOT NULL` | Nhóm lựa chọn của món chính |
-| `option_menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Menu item loại option được phép chọn |
-| `is_default` | `BOOLEAN NOT NULL DEFAULT FALSE` | Option mặc định của nhóm lựa chọn |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
+Kiểu lựa chọn được xác định qua `selection_type` (`SINGLE` hoặc `MULTIPLE`). Với nhóm `SINGLE`, hệ thống hiển thị radio; với nhóm `MULTIPLE`, hệ thống hiển thị checkbox.
+
+#### `option_values`
+
+Lưu các giá trị cụ thể nằm bên trong nhóm lựa chọn (ví dụ: `Size L`, `50%`, `Trân châu`). Topping và size nằm riêng trong `option_values`, không thuộc `menu_items`.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh giá trị lựa chọn |
+| `option_group_id` | `BIGINT UNSIGNED NOT NULL` | Nhóm lựa chọn chứa giá trị này |
+| `name` | `VARCHAR(150) NOT NULL` | Tên giá trị (ví dụ: `Size L`, `50%`, `Trân châu`) |
+| `extra_price` | `DECIMAL(15,2) NOT NULL DEFAULT 0.00` | Giá cộng thêm của lựa chọn |
+| `is_default` | `BOOLEAN NOT NULL DEFAULT FALSE` | Giá trị mặc định của nhóm |
+| `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+#### `menu_item_option_groups`
+
+Liên kết nhiều-nhiều giữa `menu_items` và `option_groups` để xác định món ăn/đồ uống nào sử dụng những nhóm lựa chọn nào.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh liên kết |
+| `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Món áp dụng |
+| `option_group_id` | `BIGINT UNSIGNED NOT NULL` | Nhóm lựa chọn được áp dụng |
+| `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị nhóm trong món |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm liên kết |
+
 Ví dụ:
 
 ```text
-Trà sữa
-├── Kích thước (chọn một, bắt buộc)
-│   ├── menu_items: Size M, giá 0
-│   └── menu_items: Size L, giá 10.000
-├── Độ ngọt (chọn một)
-│   ├── menu_items: 30%, giá 0
-│   ├── menu_items: 50%, giá 0
-│   └── menu_items: 100%, giá 0
-└── Topping (chọn nhiều)
-    ├── menu_items: Trân châu, giá 5.000
-    └── menu_items: Pudding, giá 7.000
+Trà sữa (menu_items)
+└── menu_item_option_groups
+    ├── Kích thước (option_groups: selection_type = SINGLE, min_select = 1, max_select = 1)
+    │   ├── option_values: Size M (extra_price = 0, is_default = true)
+    │   └── option_values: Size L (extra_price = 10.000)
+    ├── Độ ngọt (option_groups: selection_type = SINGLE, min_select = 0, max_select = 1)
+    │   ├── option_values: 30% (extra_price = 0)
+    │   ├── option_values: 50% (extra_price = 0)
+    │   └── option_values: 100% (extra_price = 0, is_default = true)
+    └── Topping (option_groups: selection_type = MULTIPLE, min_select = 0, max_select = NULL)
+        ├── option_values: Trân châu (extra_price = 5.000)
+        └── option_values: Pudding (extra_price = 7.000)
 ```
 
 Category loại `OPTION` không hiển thị như danh mục món chính trên giao diện khách. Một option có thể được liên kết với nhiều nhóm của nhiều món. Menu item loại option không được có option group con.
@@ -382,7 +398,7 @@ Lưu các option thực tế khách đã chọn cho một dòng món. Quan hệ 
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh option đã chọn |
 | `order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món chính |
-| `option_group_item_id` | `BIGINT UNSIGNED NOT NULL` | Liên kết option trong catalog tại thời điểm đặt |
+| `option_value_id` | `BIGINT UNSIGNED NOT NULL` | Liên kết tới giá trị lựa chọn tại thời điểm đặt |
 | `option_group_name` | `VARCHAR(150) NOT NULL` | Snapshot tên nhóm như `Kích thước`, `Topping` |
 | `option_name` | `VARCHAR(150) NOT NULL` | Snapshot tên option như `Size L`, `Trân châu` |
 | `unit_price` | `DECIMAL(15,2) NOT NULL` | Giá option cho một đơn vị tại thời điểm đặt |
@@ -625,9 +641,7 @@ Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 
 #### `audit_logs`
 
-Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán
-của món, nhân viên tạo order hộ khách, duyệt hủy món, xác nhận thanh toán thủ
-công hoặc ghi nhận chưa thanh toán.
+Lưu các thao tác thay đổi quan trọng như đổi giá món, thay đổi trạng thái bán của món, nhân viên tạo order hộ khách, duyệt hủy món, xác nhận thanh toán thủ công hoặc ghi nhận chưa thanh toán.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -654,42 +668,6 @@ Trong đó:
 - `request_id` giúp gom các audit log được tạo trong cùng một request hoặc transaction nghiệp vụ.
 - `change_data` lưu toàn bộ thông tin cần thiết để xem lại thay đổi.
 
-Ví dụ `change_data` khi đổi giá món:
-
-```json
-{
-  "before": {
-    "name": "Cà phê sữa",
-    "price": 30000,
-    "availabilityStatus": "AVAILABLE"
-  },
-  "after": {
-    "name": "Cà phê sữa",
-    "price": 35000,
-    "availabilityStatus": "AVAILABLE"
-  },
-  "changedFields": {
-    "price": {
-      "before": 30000,
-      "after": 35000
-    }
-  }
-}
-```
-
-Các cột ngoài JSON của bản ghi tương ứng:
-
-```text
-action          = UPDATE
-entity_type     = MENU_ITEM
-entity_id       = <menu_item_id>
-entity_name     = Cà phê sữa
-actor_account_id = <account_id>
-actor_name       = Nguyễn Văn A
-```
-
-Audit log chỉ được ghi cho các thao tác quan trọng cần truy vết, không ghi mọi lần đọc dữ liệu hoặc thao tác giao diện thông thường.
-
 ## 6. Quan hệ chính
 
 | Quan hệ | Loại |
@@ -701,9 +679,9 @@ Audit log chỉ được ghi cho các thao tác quan trọng cần truy vết, k
 | Category — Menu item | Một - nhiều |
 | Store — Tag | Một - nhiều |
 | Menu item — Tag | Nhiều - nhiều qua `menu_item_tags` |
-| Menu item — Option group | Một - nhiều |
-| Option group — Option group item | Một - nhiều |
-| Option menu item — Option group item | Một - nhiều |
+| Store — Option group | Một - nhiều |
+| Option group — Option value | Một - nhiều |
+| Menu item — Option group | Nhiều - nhiều qua `menu_item_option_groups` |
 | Table session — Order | Một - nhiều |
 | Order — Order item | Một - nhiều |
 | Order item — Order item option | Một - nhiều |
@@ -728,7 +706,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Category | `ACTIVE`, `INACTIVE` |
 | Menu item | `AVAILABLE`, `SOLD_OUT`, `INACTIVE` |
 | Option group | `ACTIVE`, `INACTIVE` |
-| Option group item | `ACTIVE`, `INACTIVE` |
+| Option value | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
 | Payment | `PENDING`, `PAID` |
 | Account | `ACTIVE`, `INACTIVE` |
@@ -750,12 +728,13 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - `categories`: unique `store_id + name`.
 - `tags`: unique `store_id + name`.
 - `menu_item_tags`: unique `menu_item_id + tag_id`.
-- `option_groups`: unique `menu_item_id + name`.
-- `option_group_items`: unique `option_group_id + option_menu_item_id`.
+- `option_groups`: unique `store_id + name`.
+- `option_values`: unique `option_group_id + name`.
+- `menu_item_option_groups`: unique `menu_item_id + option_group_id`.
 - `orders`: unique `public_id`, `order_number` và cặp `table_session_id + idempotency_key`.
 - `orders.request_fingerprint`: bắt buộc, do backend tạo từ SHA-256 của payload đã chuẩn hóa; không đặt unique constraint.
 - `order_items`: unique `public_id`.
-- `order_item_options`: unique `order_item_id + option_group_item_id`.
+- `order_item_options`: unique `order_item_id + option_value_id`.
 - Catalog đã được tham chiếu bởi order chỉ được chuyển `INACTIVE`, không xóa vật lý; snapshot trong order vẫn là nguồn hiển thị lịch sử.
 - `order_item_cancellation_requests`: unique `public_id` và cặp `order_item_id + idempotency_key`.
 - Tạo/resolve cancellation và chuyển session sang `PAYMENT_PENDING` phải khóa session hoặc dùng transaction tương đương để không phát sinh thay đổi sau khi bill bị khóa.
@@ -771,10 +750,9 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java phải kiểm tra trong application/domain layer trước khi ghi dữ liệu:
 
 - Giá trị hợp lệ và quy tắc chuyển đổi của tất cả trạng thái.
-- `categories.category_type` chỉ nhận `REGULAR` hoặc `OPTION`.
-- `option_groups.menu_item_id` phải trỏ tới menu item thuộc category loại `REGULAR`; option không được có option group con.
-- `option_groups.max_select` phải là `NULL`, `1` hoặc lớn hơn `1`; `max_select = 1` được suy ra là nhóm `SINGLE`, các giá trị còn lại là `MULTIPLE`.
-- `option_group_items.option_menu_item_id` phải trỏ tới menu item thuộc category loại `OPTION`.
+- Các nhóm lựa chọn được quản lý qua `option_groups` và liên kết với món qua `menu_item_option_groups`.
+- Mỗi nhóm lựa chọn chứa các giá trị lựa chọn tương ứng trong `option_values`.
+- `option_groups.max_select` có thể để `NULL` (không giới hạn) hoặc số nguyên `>= 1`.
 - Mỗi option group có tối đa một option mặc định và option đó phải thuộc nhóm đang hoạt động. Quy tắc này không có unique constraint trong database.
 - Giá tiền không âm, số lượng lớn hơn 0 và `orders.payable_amount <= orders.original_amount`.
 - `order_items.prepared_quantity` không lớn hơn `quantity` trừ tổng số lượng hủy
@@ -799,12 +777,13 @@ Java vẫn phải dùng transaction và khóa scope tương ứng khi tạo QR b
 
 Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng xem menu:
 
-- `categories(store_id, category_type, status, display_order)`.
+- `categories(store_id, status, display_order)`.
 - `menu_items(category_id, availability_status, display_order)`.
 - `tags(store_id, name)`.
 - `menu_item_tags` dùng primary key `(menu_item_id, tag_id)` và index `(tag_id)` để truy vấn hai chiều.
-- `option_groups(menu_item_id, status)`.
-- `option_group_items(option_group_id, status, display_order)`.
+- `option_groups(store_id, status, display_order)`.
+- `option_values(option_group_id, status, display_order)`.
+- `menu_item_option_groups(menu_item_id, display_order)`.
 
 Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Index cho payment, unpaid record, order, cancellation request, audit log, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
 
@@ -826,7 +805,6 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
-- Giữ nguyên mô hình 19 bảng nghiệp vụ và các quan hệ tổng quan trong mục 4 và mục 6.
 - Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
 - Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
 - Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
@@ -844,9 +822,9 @@ Thiết kế hiện tại chưa bao gồm:
 - Tạo order bắt buộc có `idempotency_key`; key duy nhất trong cùng table session, được lưu trong `orders` và được bảo vệ bằng unique constraint `table_session_id + idempotency_key`.
 - Backend lưu `orders.request_fingerprint` từ SHA-256 của payload chuẩn hóa để phân biệt retry hợp lệ với việc tái sử dụng key cho nội dung khác.
 - `orders.original_amount` là tổng tiền ban đầu và bất biến; `orders.payable_amount` là số tiền còn phải trả sau các yêu cầu hủy `APPROVED`.
-- Option là `menu_items` thuộc category loại `OPTION`; không dùng bảng `option_values`.
-- `option_group_items` xác định option nào được phép chọn cho từng nhóm của món; `order_item_options` lưu option thực tế của từng dòng món.
-- `option_groups` không lưu `selection_type`; backend suy ra và trả `selectionType` từ `max_select`: `SINGLE` khi bằng `1`, ngược lại là `MULTIPLE`, để frontend hiển thị radio hoặc checkbox tương ứng.
+- `option_groups` lưu nhóm lựa chọn (như Size, Đường, Topping); `option_values` lưu giá trị lựa chọn bên trong nhóm (như Size L, 50%, Trân châu). Topping và size nằm riêng trong `option_values`, không thuộc `menu_items`.
+- `menu_item_option_groups` liên kết nhiều-nhiều giữa `menu_items` và `option_groups` để xác định món nào áp dụng nhóm lựa chọn nào.
+- `order_item_options` liên kết tới `option_values` để lưu thông tin option thực tế được chọn cho từng dòng món.
 - Giá món chính nằm ở `order_items.unit_price`; giá option nằm ở `order_item_options.unit_price`; `order_items.options_amount` là tổng giá option trên một đơn vị món.
 - Hai món có cấu hình option khác nhau phải nằm ở hai `order_items` khác nhau.
 - Thanh toán toàn bộ các order của phiên bàn, chưa hỗ trợ tách hóa đơn.
