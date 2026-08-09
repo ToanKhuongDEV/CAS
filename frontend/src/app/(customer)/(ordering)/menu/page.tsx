@@ -89,8 +89,7 @@ const menuItems = [
     categoryId: "mon-noi-bat",
     detailSlug: "tra-sua-tran-chau-duong-den",
     name: "Trà sữa Trân châu Đường đen",
-    description:
-      "Vị trà thơm dịu, sữa béo vừa phải cùng trân châu đường đen mềm dẻo.",
+    description: "Vị trà thơm dịu, sữa béo vừa phải cùng trân châu đường đen mềm dẻo.",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu đường đen mát lạnh",
     price: "45.000đ",
@@ -103,8 +102,7 @@ const menuItems = [
     categoryId: "mon-noi-bat",
     detailSlug: undefined,
     name: "Gà rán giòn rụm",
-    description:
-      "Lớp vỏ vàng giòn, thịt gà mềm mọng, dùng kèm sốt cay đặc trưng của quán.",
+    description: "Lớp vỏ vàng giòn, thịt gà mềm mọng, dùng kèm sốt cay đặc trưng của quán.",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Phần gà rán vàng giòn dùng kèm sốt cay",
     price: "35.000đ",
@@ -116,8 +114,7 @@ const menuItems = [
     categoryId: "my-cay",
     detailSlug: "my-cay-xuc-xich-pho-mai",
     name: "Mỳ cay xúc xích phô mai",
-    description:
-      "Mỳ cay thơm béo với xúc xích, phô mai tan chảy, rau nấm và nước dùng đậm vị.",
+    description: "Mỳ cay thơm béo với xúc xích, phô mai tan chảy, rau nấm và nước dùng đậm vị.",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay xúc xích phủ phô mai",
     price: "49.000đ",
@@ -137,8 +134,7 @@ const menuItems = [
     categoryId: "my-cay",
     detailSlug: "my-cay-nam-rau-cu",
     name: "Mỳ cay nấm rau củ",
-    description:
-      "Phiên bản thanh nhẹ với nhiều loại nấm, rau xanh và nước dùng chua cay vừa vị.",
+    description: "Phiên bản thanh nhẹ với nhiều loại nấm, rau xanh và nước dùng chua cay vừa vị.",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay nấm và rau củ",
     price: "42.000đ",
@@ -158,8 +154,7 @@ const menuItems = [
     categoryId: "ga-ran",
     detailSlug: undefined,
     name: "Gà sốt cay Hàn Quốc",
-    description:
-      "Gà rán giòn áo sốt cay ngọt, phủ mè rang thơm và hành lá.",
+    description: "Gà rán giòn áo sốt cay ngọt, phủ mè rang thơm và hành lá.",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà rán phủ sốt cay và mè rang",
     price: "39.000đ",
@@ -171,8 +166,7 @@ const menuItems = [
     categoryId: "ga-ran",
     detailSlug: undefined,
     name: "Gà popcorn lắc phô mai",
-    description:
-      "Gà viên nhỏ giòn tan, phủ bột phô mai đậm đà, tiện dùng cùng bạn bè.",
+    description: "Gà viên nhỏ giòn tan, phủ bột phô mai đậm đà, tiện dùng cùng bạn bè.",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà popcorn phủ bột phô mai",
     price: "32.000đ",
@@ -184,8 +178,7 @@ const menuItems = [
     categoryId: "tra-sua",
     detailSlug: "tra-sua-truyen-thong",
     name: "Trà sữa truyền thống",
-    description:
-      "Trà đậm thơm kết hợp cùng sữa béo nhẹ, vị ngọt hài hòa và dễ uống.",
+    description: "Trà đậm thơm kết hợp cùng sữa béo nhẹ, vị ngọt hài hòa và dễ uống.",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa truyền thống",
     price: "35.000đ",
@@ -198,8 +191,7 @@ const menuItems = [
     categoryId: "tra-sua",
     detailSlug: "tra-sua-matcha",
     name: "Trà sữa matcha",
-    description:
-      "Matcha thơm dịu hòa cùng sữa tươi và lớp kem béo mịn.",
+    description: "Matcha thơm dịu hòa cùng sữa tươi và lớp kem béo mịn.",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly trà sữa matcha xanh mát",
     price: "42.000đ",
@@ -212,8 +204,7 @@ const menuItems = [
     categoryId: "ca-phe",
     detailSlug: "ca-phe-sua-da",
     name: "Cà phê sữa đá",
-    description:
-      "Cà phê rang đậm pha cùng sữa đặc, phục vụ với đá mát lạnh.",
+    description: "Cà phê rang đậm pha cùng sữa đặc, phục vụ với đá mát lạnh.",
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly cà phê sữa đá",
     price: "29.000đ",
@@ -226,8 +217,7 @@ const menuItems = [
     categoryId: "ca-phe",
     detailSlug: undefined,
     name: "Bạc xỉu",
-    description:
-      "Vị sữa thơm béo nổi bật, điểm thêm cà phê nhẹ nhàng và đá lạnh.",
+    description: "Vị sữa thơm béo nổi bật, điểm thêm cà phê nhẹ nhàng và đá lạnh.",
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly bạc xỉu mát lạnh",
     price: "32.000đ",
@@ -239,8 +229,7 @@ const menuItems = [
     categoryId: "nuoc-giai-khat",
     detailSlug: "matcha-latte",
     name: "Matcha latte",
-    description:
-      "Matcha thanh nhẹ kết hợp sữa tươi, tạo vị béo dịu và hậu vị thơm.",
+    description: "Matcha thanh nhẹ kết hợp sữa tươi, tạo vị béo dịu và hậu vị thơm.",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly matcha latte",
     price: "39.000đ",
@@ -253,8 +242,7 @@ const menuItems = [
     categoryId: "nuoc-giai-khat",
     detailSlug: undefined,
     name: "Nước chanh dây",
-    description:
-      "Chanh dây chua ngọt, thơm mát, thích hợp dùng cùng các món cay.",
+    description: "Chanh dây chua ngọt, thơm mát, thích hợp dùng cùng các món cay.",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly nước giải khát mát lạnh",
     price: "25.000đ",
@@ -266,8 +254,7 @@ const menuItems = [
     categoryId: "nuoc-giai-khat",
     detailSlug: undefined,
     name: "Soda dâu",
-    description:
-      "Soda mát lạnh hòa cùng vị dâu chua ngọt và hương thơm trái cây.",
+    description: "Soda mát lạnh hòa cùng vị dâu chua ngọt và hương thơm trái cây.",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly soda trái cây mát lạnh",
     price: "29.000đ",
@@ -279,8 +266,7 @@ const menuItems = [
     categoryId: "an-vat",
     detailSlug: undefined,
     name: "Ăn vặt thập cẩm",
-    description:
-      "Phần ăn vặt gồm khoai tây chiên, cá viên và các món xiên chiên giòn.",
+    description: "Phần ăn vặt gồm khoai tây chiên, cá viên và các món xiên chiên giòn.",
     imageSrc: "/images/welcome/street-snacks.jpg",
     imageAlt: "Phần ăn vặt thập cẩm với khoai tây và xiên chiên",
     price: "45.000đ",
@@ -347,9 +333,7 @@ export default function MenuPage() {
 
         <div className="mt-2" id="menu-list">
           {categories.map((category) => {
-            const categoryItems = menuItems.filter(
-              (item) => item.categoryId === category.id,
-            );
+            const categoryItems = menuItems.filter((item) => item.categoryId === category.id);
 
             return (
               <section
@@ -359,10 +343,7 @@ export default function MenuPage() {
                 aria-labelledby={`${category.id}-title`}
               >
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  <h2
-                    className="text-xl font-extrabold"
-                    id={`${category.id}-title`}
-                  >
+                  <h2 className="text-xl font-extrabold" id={`${category.id}-title`}>
                     {category.label}
                   </h2>
                   <span className="text-xs font-semibold text-cas-on-surface-variant">
@@ -383,9 +364,7 @@ export default function MenuPage() {
                           alt={item.imageAlt}
                           fill
                           loading={
-                            category.id === "mon-noi-bat" && itemIndex === 0
-                              ? "eager"
-                              : "lazy"
+                            category.id === "mon-noi-bat" && itemIndex === 0 ? "eager" : "lazy"
                           }
                           sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
                         />
@@ -394,9 +373,7 @@ export default function MenuPage() {
                             {item.badges.map((badge, index) => (
                               <span
                                 className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${
-                                  index === 0
-                                    ? "bg-cas-primary"
-                                    : "bg-rose-600"
+                                  index === 0 ? "bg-cas-primary" : "bg-rose-600"
                                 }`}
                                 key={badge}
                               >

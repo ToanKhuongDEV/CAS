@@ -745,6 +745,7 @@ Minimum expectation for normal code changes:
 
 ```bash
 npm run lint
+npm run format # or npx prettier --write src/
 npm run typecheck
 npm run test
 ```

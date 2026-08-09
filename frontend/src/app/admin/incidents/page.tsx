@@ -34,7 +34,9 @@ export default function AdminIncidentsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-cas-on-surface">Báo cáo Sự cố ca trực (Operational Incidents)</h1>
+          <h1 className="text-2xl font-black text-cas-on-surface">
+            Báo cáo Sự cố ca trực (Operational Incidents)
+          </h1>
           <p className="text-xs text-cas-on-surface-variant">
             Tiếp nhận và tra cứu các báo cáo sự cố do nhân viên OPERATOR gửi về trong ca làm việc.
           </p>
@@ -60,7 +62,6 @@ export default function AdminIncidentsPage() {
                   • {inc.createdAt}
                 </span>
               </div>
-
             </div>
 
             <div className="mt-4 space-y-2">

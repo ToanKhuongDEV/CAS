@@ -15,9 +15,7 @@ export default function OperatorLoginPage() {
         <span className="grid size-14 place-items-center rounded-2xl bg-cas-primary text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)]">
           <CasIcon className="size-7" name="users" />
         </span>
-        <h1 className="mt-6 text-3xl font-extrabold tracking-tight">
-          Đăng nhập nhân viên
-        </h1>
+        <h1 className="mt-6 text-3xl font-extrabold tracking-tight">Đăng nhập nhân viên</h1>
         <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
           Nhập thông tin tài khoản để tiếp tục xử lý order và thanh toán.
         </p>

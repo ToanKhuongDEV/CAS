@@ -36,8 +36,7 @@ const complaints: Complaint[] = [
 ];
 
 export function OperatorComplaintsPanel() {
-  const [selectedComplaint, setSelectedComplaint] =
-    useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
   useEffect(() => {
     if (!selectedComplaint) {
@@ -87,9 +86,7 @@ export function OperatorComplaintsPanel() {
                   <CasIcon className="size-4.5" name="info" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-extrabold">
-                    {complaint.table}
-                  </span>
+                  <span className="block text-sm font-extrabold">{complaint.table}</span>
                   <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-cas-on-surface-variant">
                     {complaint.description}
                   </span>
@@ -123,10 +120,7 @@ export function OperatorComplaintsPanel() {
                 <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
                   {selectedComplaint.table}
                 </p>
-                <h2
-                  className="mt-1 text-xl font-extrabold"
-                  id="complaint-dialog-title"
-                >
+                <h2 className="mt-1 text-xl font-extrabold" id="complaint-dialog-title">
                   Chi tiết khiếu nại
                 </h2>
                 <time className="mt-1 block text-xs text-cas-on-surface-variant">

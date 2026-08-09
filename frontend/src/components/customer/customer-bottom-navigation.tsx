@@ -21,9 +21,7 @@ const navigationItems: NavigationItem[] = [
   { id: "settings", label: "Cài đặt", icon: "settings", href: "/settings" },
 ];
 
-export function CustomerBottomNavigation({
-  activeItem,
-}: CustomerBottomNavigationProps) {
+export function CustomerBottomNavigation({ activeItem }: CustomerBottomNavigationProps) {
   const visibleItems =
     activeItem === "payment"
       ? [

@@ -75,9 +75,7 @@ export function CustomerInformationForm() {
             required
             type="text"
             value={customerName}
-            aria-describedby={
-              errors.customerName ? "customer-name-error" : undefined
-            }
+            aria-describedby={errors.customerName ? "customer-name-error" : undefined}
             aria-invalid={errors.customerName ? true : undefined}
             onChange={(event) => {
               setCustomerName(event.target.value);
@@ -92,10 +90,7 @@ export function CustomerInformationForm() {
         </span>
       </label>
       {errors.customerName ? (
-        <p
-          className="mt-2 text-xs font-semibold text-cas-primary"
-          id="customer-name-error"
-        >
+        <p className="mt-2 text-xs font-semibold text-cas-primary" id="customer-name-error">
           {errors.customerName}
         </p>
       ) : null}
@@ -121,9 +116,7 @@ export function CustomerInformationForm() {
             required
             type="tel"
             value={customerPhone}
-            aria-describedby={
-              errors.customerPhone ? "customer-phone-error" : undefined
-            }
+            aria-describedby={errors.customerPhone ? "customer-phone-error" : undefined}
             aria-invalid={errors.customerPhone ? true : undefined}
             onChange={(event) => {
               setCustomerPhone(event.target.value);
@@ -138,10 +131,7 @@ export function CustomerInformationForm() {
         </span>
       </label>
       {errors.customerPhone ? (
-        <p
-          className="mt-2 text-xs font-semibold text-cas-primary"
-          id="customer-phone-error"
-        >
+        <p className="mt-2 text-xs font-semibold text-cas-primary" id="customer-phone-error">
           {errors.customerPhone}
         </p>
       ) : null}

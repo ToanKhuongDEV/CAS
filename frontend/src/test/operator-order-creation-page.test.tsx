@@ -6,17 +6,16 @@ describe("OperatorOrderCreationView", () => {
   it("renders table context, allows selecting items and adding options to cart", () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
 
-    expect(
-      screen.getByRole("heading", { name: "Tạo order hộ tại bàn" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tạo order hộ tại bàn" })).toBeInTheDocument();
 
     // Table context
     expect(screen.getAllByText(/Bàn 05/i).length).toBeGreaterThan(0);
 
     // Search bar
-    expect(
-      screen.getByRole("textbox", { name: "Tìm kiếm món ăn" }),
-    ).toHaveAttribute("placeholder", "Tìm kiếm món trong thực đơn...");
+    expect(screen.getByRole("textbox", { name: "Tìm kiếm món ăn" })).toHaveAttribute(
+      "placeholder",
+      "Tìm kiếm món trong thực đơn...",
+    );
 
     // Category navigation links from CategoryNavigation
     expect(screen.getByRole("link", { name: "Mỳ cay" })).toBeInTheDocument();
@@ -35,9 +34,7 @@ describe("OperatorOrderCreationView", () => {
     expect(screen.getAllByText(/35\.000đ/i).length).toBeGreaterThan(0);
 
     // Menu item with options: Mỳ cay đặc biệt 7 cấp độ
-    const noodleCard = screen
-      .getByText("Mỳ cay đặc biệt 7 cấp độ")
-      .closest("article");
+    const noodleCard = screen.getByText("Mỳ cay đặc biệt 7 cấp độ").closest("article");
     expect(noodleCard).not.toBeNull();
     const addNoodleBtn = within(noodleCard as HTMLElement).getByRole("button", {
       name: /chọn tùy chọn cho mỳ cay đặc biệt 7 cấp độ/i,
@@ -45,9 +42,7 @@ describe("OperatorOrderCreationView", () => {
     fireEvent.click(addNoodleBtn);
 
     // Option dialog should be open
-    expect(
-      screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i })).toBeInTheDocument();
 
     // Select spice level
     const spiceSelect = screen.getByRole("combobox", { name: "Cấp độ cay" });
@@ -64,9 +59,7 @@ describe("OperatorOrderCreationView", () => {
     expect(screen.getByText("Cấp 3")).toBeInTheDocument();
 
     // Enter note
-    const noteInput = screen.getByPlaceholderText(
-      /Ví dụ: vui lòng phục vụ món cay sau/i,
-    );
+    const noteInput = screen.getByPlaceholderText(/Ví dụ: vui lòng phục vụ món cay sau/i);
     fireEvent.change(noteInput, {
       target: { value: "Mang kèm thêm ớt tươi và khăn giấy" },
     });
@@ -82,9 +75,7 @@ describe("OperatorOrderCreationView", () => {
     fireEvent.click(switchTableBtns[0]);
 
     // Modal dialog
-    expect(
-      screen.getByRole("heading", { name: "Chọn bàn phục vụ" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Chọn bàn phục vụ" })).toBeInTheDocument();
 
     const table01Option = screen.getByRole("button", { name: /Bàn 01/i });
     fireEvent.click(table01Option);

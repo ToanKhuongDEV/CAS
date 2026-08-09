@@ -12,9 +12,7 @@ type PageProps = {
   }>;
 };
 
-export default async function OperatorNewOrderPage({
-  searchParams,
-}: PageProps) {
+export default async function OperatorNewOrderPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const tableCode = params.table;
   const defaultTableId = tableCode ? `table-${tableCode.padStart(2, "0")}` : "table-05";

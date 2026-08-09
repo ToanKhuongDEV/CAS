@@ -29,23 +29,23 @@ export function CancellationRequestControl({
   return (
     <>
       {isPending ? (
-      <button
-        className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-cas-tertiary-container/25 px-2.5 py-1 text-[0.65rem] font-bold text-cas-on-surface-variant transition hover:bg-cas-tertiary-container/40 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-        type="button"
-        onClick={() => setIsRequestFormOpen(true)}
-      >
-        <CasIcon className="size-3.5 text-cas-tertiary" name="minus" />
-        Chờ xác nhận
-      </button>
+        <button
+          className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-cas-tertiary-container/25 px-2.5 py-1 text-[0.65rem] font-bold text-cas-on-surface-variant transition hover:bg-cas-tertiary-container/40 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+          type="button"
+          onClick={() => setIsRequestFormOpen(true)}
+        >
+          <CasIcon className="size-3.5 text-cas-tertiary" name="minus" />
+          Chờ xác nhận
+        </button>
       ) : (
         <button
-        className="mt-3 inline-flex min-h-8 items-center gap-1 rounded-lg px-1 text-[0.68rem] font-bold text-cas-primary transition hover:bg-cas-primary/8 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-        type="button"
-        onClick={() => setIsRequestFormOpen(true)}
-      >
-        <CasIcon className="size-3.5" name="minus" />
-        Yêu cầu hủy
-      </button>
+          className="mt-3 inline-flex min-h-8 items-center gap-1 rounded-lg px-1 text-[0.68rem] font-bold text-cas-primary transition hover:bg-cas-primary/8 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+          type="button"
+          onClick={() => setIsRequestFormOpen(true)}
+        >
+          <CasIcon className="size-3.5" name="minus" />
+          Yêu cầu hủy
+        </button>
       )}
 
       {isRequestFormOpen ? (
@@ -62,10 +62,7 @@ export function CancellationRequestControl({
             <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
               {isPending ? "Cập nhật yêu cầu hủy" : "Yêu cầu hủy món"}
             </p>
-            <h2
-              className="mt-1 text-xl font-extrabold"
-              id={`${itemId}-cancellation-title`}
-            >
+            <h2 className="mt-1 text-xl font-extrabold" id={`${itemId}-cancellation-title`}>
               {itemName}
             </h2>
 
@@ -77,13 +74,11 @@ export function CancellationRequestControl({
                 value={requestedQuantity}
                 onChange={(event) => setRequestedQuantity(Number(event.target.value))}
               >
-                {Array.from({ length: quantity }, (_, index) => index + 1).map(
-                  (value) => (
-                    <option key={value} value={value}>
-                      {value} phần
-                    </option>
-                  ),
-                )}
+                {Array.from({ length: quantity }, (_, index) => index + 1).map((value) => (
+                  <option key={value} value={value}>
+                    {value} phần
+                  </option>
+                ))}
               </select>
             </label>
 

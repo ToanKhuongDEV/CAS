@@ -21,17 +21,9 @@ describe("OperatorLoginPage", () => {
   it("renders and validates the employee login form", () => {
     render(<OperatorLoginPage />);
 
-    expect(
-      screen.getByRole("heading", { name: "Đăng nhập nhân viên" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Số điện thoại" })).toHaveAttribute(
-      "type",
-      "tel",
-    );
-    expect(screen.getByLabelText("Mật khẩu")).toHaveAttribute(
-      "type",
-      "password",
-    );
+    expect(screen.getByRole("heading", { name: "Đăng nhập nhân viên" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Số điện thoại" })).toHaveAttribute("type", "tel");
+    expect(screen.getByLabelText("Mật khẩu")).toHaveAttribute("type", "password");
 
     fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
 

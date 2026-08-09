@@ -41,8 +41,7 @@ export function GlobalDragScroll({ children }: GlobalDragScrollProps) {
       isPointerDown.current = true;
       dragStartY.current = event.clientY;
       dragStartScrollY.current = window.scrollY;
-      previousScrollBehavior.current =
-        document.documentElement.style.scrollBehavior;
+      previousScrollBehavior.current = document.documentElement.style.scrollBehavior;
       document.documentElement.style.scrollBehavior = "auto";
       setIsDragging(true);
     }
@@ -69,8 +68,7 @@ export function GlobalDragScroll({ children }: GlobalDragScrollProps) {
       }
 
       isPointerDown.current = false;
-      document.documentElement.style.scrollBehavior =
-        previousScrollBehavior.current;
+      document.documentElement.style.scrollBehavior = previousScrollBehavior.current;
       setIsDragging(false);
       window.setTimeout(() => {
         didDrag.current = false;
@@ -107,8 +105,7 @@ export function GlobalDragScroll({ children }: GlobalDragScrollProps) {
       document.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("pointerup", stopDragging);
       document.removeEventListener("pointercancel", stopDragging);
-      document.documentElement.style.scrollBehavior =
-        previousScrollBehavior.current;
+      document.documentElement.style.scrollBehavior = previousScrollBehavior.current;
       delete surface.dataset.dragScrollReady;
     };
   }, []);

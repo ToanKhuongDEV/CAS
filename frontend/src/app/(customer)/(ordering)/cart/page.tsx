@@ -58,8 +58,7 @@ export default function CartPage() {
             <CasIcon className="size-5" name="info" />
           </span>
           <p className="text-xs leading-relaxed md:text-sm">
-            Bạn có thể gọi thêm món trong suốt bữa ăn và thanh toán một lần khi
-            kết thúc.
+            Bạn có thể gọi thêm món trong suốt bữa ăn và thanh toán một lần khi kết thúc.
           </p>
         </aside>
 
@@ -120,13 +119,8 @@ export default function CartPage() {
                   </div>
 
                   <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                    <strong className="text-sm text-cas-primary md:text-base">
-                      {item.price}
-                    </strong>
-                    <ItemQuantityControl
-                      itemName={item.name}
-                      quantity={item.quantity}
-                    />
+                    <strong className="text-sm text-cas-primary md:text-base">{item.price}</strong>
+                    <ItemQuantityControl itemName={item.name} quantity={item.quantity} />
                   </div>
                 </div>
               </article>
@@ -139,10 +133,7 @@ export default function CartPage() {
           aria-labelledby="order-note-title"
         >
           <label className="block" htmlFor="order-note">
-            <span
-              className="text-lg font-extrabold"
-              id="order-note-title"
-            >
+            <span className="text-lg font-extrabold" id="order-note-title">
               Ghi chú chung
             </span>
             <span className="mt-1 block text-xs leading-relaxed text-cas-on-surface-variant">

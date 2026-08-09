@@ -7,12 +7,8 @@ describe("OperatorPaymentsPage", () => {
   it("requires confirmation before marking a payment as paid", () => {
     render(<OperatorPaymentsPage />);
 
-    expect(
-      screen.getByRole("heading", { name: "Thanh toán chờ xác nhận" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Kiểm tra payment" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Thanh toán chờ xác nhận" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Kiểm tra payment" })).not.toBeInTheDocument();
 
     const confirmationButtons = screen.getAllByRole("button", {
       name: "Xác nhận đã thanh toán",
@@ -26,9 +22,7 @@ describe("OperatorPaymentsPage", () => {
     });
     expect(within(dialog).getByText("Bàn 05")).toBeInTheDocument();
     expect(within(dialog).getByText("170.000đ")).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i)).toBeInTheDocument();
 
     fireEvent.click(
       within(dialog).getByRole("button", {
@@ -37,11 +31,7 @@ describe("OperatorPaymentsPage", () => {
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Đã xác nhận Bàn 05 thanh toán 170.000đ.",
-    );
-    expect(
-      screen.getAllByRole("button", { name: "Xác nhận đã thanh toán" }),
-    ).toHaveLength(2);
+    expect(screen.getByRole("status")).toHaveTextContent("Đã xác nhận Bàn 05 thanh toán 170.000đ.");
+    expect(screen.getAllByRole("button", { name: "Xác nhận đã thanh toán" })).toHaveLength(2);
   });
 });

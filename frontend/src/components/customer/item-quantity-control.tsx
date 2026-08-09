@@ -26,9 +26,7 @@ export function ItemQuantityControl({
       >
         <CasIcon className="size-4" name="minus" />
       </button>
-      <span className="min-w-3 text-center text-xs font-extrabold">
-        {quantity}
-      </span>
+      <span className="min-w-3 text-center text-xs font-extrabold">{quantity}</span>
       <button
         className="grid size-7 place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         type="button"

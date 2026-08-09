@@ -18,8 +18,7 @@ type ProductDetailFormProps = {
   toppings?: ProductOption[];
 };
 
-const formatPrice = (value: number) =>
-  `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function ProductDetailForm({
   basePrice,
@@ -30,19 +29,15 @@ export function ProductDetailForm({
 }: ProductDetailFormProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(sizes?.[0]?.id);
-  const [selectedSpiceLevel, setSelectedSpiceLevel] = useState(
-    spiceLevels?.[0]?.id,
-  );
+  const [selectedSpiceLevel, setSelectedSpiceLevel] = useState(spiceLevels?.[0]?.id);
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
 
-  const selectedSizePrice =
-    sizes?.find((size) => size.id === selectedSize)?.priceDelta ?? 0;
+  const selectedSizePrice = sizes?.find((size) => size.id === selectedSize)?.priceDelta ?? 0;
   const selectedToppingPrice =
     toppings
       ?.filter((topping) => selectedToppings.includes(topping.id))
       .reduce((total, topping) => total + topping.priceDelta, 0) ?? 0;
-  const totalPrice =
-    (basePrice + selectedSizePrice + selectedToppingPrice) * quantity;
+  const totalPrice = (basePrice + selectedSizePrice + selectedToppingPrice) * quantity;
 
   const handleToppingChange = (toppingId: string) => {
     setSelectedToppings((currentToppings) =>
@@ -114,9 +109,7 @@ export function ProductDetailForm({
             <legend className="text-xs font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
               Topping
             </legend>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">
-              Có thể chọn nhiều topping.
-            </p>
+            <p className="mt-1 text-xs text-cas-on-surface-variant">Có thể chọn nhiều topping.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {toppings.map((topping) => (
                 <label className="cursor-pointer" key={topping.id}>
@@ -138,9 +131,7 @@ export function ProductDetailForm({
                     >
                       <CasIcon className="size-4" name="check" />
                     </span>
-                    <strong className="min-w-0 flex-1 text-sm">
-                      {topping.label}
-                    </strong>
+                    <strong className="min-w-0 flex-1 text-sm">{topping.label}</strong>
                     <span className="text-xs font-bold text-cas-primary">
                       +{formatPrice(topping.priceDelta)}
                     </span>
@@ -167,9 +158,7 @@ export function ProductDetailForm({
             >
               <CasIcon className="size-5" name="minus" />
             </button>
-            <span className="min-w-6 text-center text-sm font-extrabold">
-              {quantity}
-            </span>
+            <span className="min-w-6 text-center text-sm font-extrabold">{quantity}</span>
             <button
               className="grid size-11 place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
               type="button"
@@ -185,9 +174,7 @@ export function ProductDetailForm({
             type="button"
           >
             <CasIcon className="size-5 shrink-0" name="cart" />
-            <span className="truncate">
-              Thêm vào giỏ · {formatPrice(totalPrice)}
-            </span>
+            <span className="truncate">Thêm vào giỏ · {formatPrice(totalPrice)}</span>
           </button>
         </div>
       </div>

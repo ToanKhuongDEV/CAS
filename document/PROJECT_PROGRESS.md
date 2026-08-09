@@ -208,6 +208,20 @@ Ngày cập nhật gần nhất: 2026-08-09
 - [x] Hoàn thiện tương tác menu Admin ba cấp: rê chuột hoặc nhấn "Catalog" ở cấp 2 sẽ mở submenu cấp 3 ở bên phải.
 - [x] Đồng bộ trạng thái hiển thị "Catalog" với các mục cấp 2 khác: chỉ đổi màu khi mở submenu, không tự tô nền theo route con đang chọn.
 - [x] Đóng submenu cấp 3 của "Catalog" khi rê chuột sang một mục cấp 2 khác, đồng thời giữ menu mở khi đi qua khoảng hở để chọn submenu bên phải.
+- [x] Đồng bộ hiệu ứng hover của tab cấp 1 Admin với thanh điều hướng Operator: nền bo tròn nhẹ và màu chữ tương ứng.
+- [x] Đồng nhất hiệu ứng hover cho tab Admin có submenu: mở dropdown không tự kích hoạt kiểu tab đang chọn.
+- [x] Đồng bộ hiệu ứng hover cho các submenu Admin với thanh Operator: nền xanh nhạt và chữ tối, không dùng nền xanh đậm/chữ trắng khi rê chuột.
+
+- [x] Hoàn thiện UI quản lý món tại `/admin/catalog`: popup thêm/sửa món, thiết lập danh mục, giá, nhãn, nhóm option và trạng thái; xác nhận ẩn món bằng `INACTIVE` để giữ lịch sử order.
+- [x] Rút gọn bộ lọc món tại `/admin/catalog` thành Tất cả, Đồ ăn và Đồ uống.
+- [x] Cập nhật dữ liệu mẫu Catalog theo thực đơn quán: bỏ món ốc, thêm Gà rán và Đồ ăn vặt; bộ lọc dùng dropdown loại món/trạng thái cùng nút xóa lọc.
+- [x] Lược bỏ nút chuyển nhanh trạng thái bán trong bảng Catalog; trạng thái được chỉnh trong popup sửa món.
+- [x] Đổi trường Nhãn món trong popup Catalog sang dropdown thực sự, hỗ trợ tick chọn nhiều nhãn có sẵn.
+- [x] Bổ sung đóng dropdown Nhãn món khi click bên ngoài và dùng `CasIcon` cho mũi tên xổ xuống.
+- [x] Loại bỏ ghi chú kỹ thuật về API Catalog khỏi popup quản lý món.
+- [x] Bổ sung UI chọn ảnh món và thiết lập thứ tự hiển thị trong popup Catalog, sẵn sàng để ghép API sau.
+- [x] Đổi Nhóm option áp dụng sang dropdown tick chọn nhiều, đồng bộ với Nhãn món.
+- [x] Bổ sung cột Thứ tự hiển thị trong bảng danh sách Thực đơn tại `/admin/catalog`.
 
 ## 7. Hạ tầng và triển khai
 

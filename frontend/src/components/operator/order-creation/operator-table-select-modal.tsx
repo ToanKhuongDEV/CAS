@@ -112,8 +112,7 @@ export function OperatorTableSelectModal({
     (t) =>
       t.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.code.includes(searchTerm) ||
-      (t.customerName &&
-        t.customerName.toLowerCase().includes(searchTerm.toLowerCase())),
+      (t.customerName && t.customerName.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   return (
@@ -215,9 +214,7 @@ export function OperatorTableSelectModal({
 
                   {isOpenSession && table.customerName && (
                     <div className="mt-2 text-xs text-cas-on-surface-variant">
-                      <p className="font-semibold text-cas-on-surface">
-                        {table.customerName}
-                      </p>
+                      <p className="font-semibold text-cas-on-surface">{table.customerName}</p>
                       <p className="text-[0.7rem] text-cas-on-surface-variant/80">
                         {table.customerPhone} • Mở lúc {table.openedAt}
                       </p>

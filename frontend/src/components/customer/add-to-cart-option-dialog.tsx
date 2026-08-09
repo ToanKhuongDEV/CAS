@@ -33,8 +33,7 @@ type AddToCartOptionDialogProps = {
   onAddToCart?: (payload: AddToCartPayload) => void;
 };
 
-const formatPrice = (value: number) =>
-  `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function AddToCartOptionDialog({
   basePrice,
@@ -44,16 +43,13 @@ export function AddToCartOptionDialog({
   onAddToCart,
 }: AddToCartOptionDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>(
-    () =>
-      Object.fromEntries(
-        optionGroups.map((group) => [
-          group.id,
-          group.selectionType === "SINGLE" && group.options[0]
-            ? [group.options[0].id]
-            : [],
-        ]),
-      ),
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(
+      optionGroups.map((group) => [
+        group.id,
+        group.selectionType === "SINGLE" && group.options[0] ? [group.options[0].id] : [],
+      ]),
+    ),
   );
 
   const selectedOptionPrice = optionGroups.reduce(
@@ -151,10 +147,7 @@ export function AddToCartOptionDialog({
                 <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
                   Chọn tùy chọn
                 </p>
-                <h2
-                  className="mt-1 text-xl font-extrabold"
-                  id={`${itemId}-options-title`}
-                >
+                <h2 className="mt-1 text-xl font-extrabold" id={`${itemId}-options-title`}>
                   {itemName}
                 </h2>
               </div>
@@ -178,9 +171,7 @@ export function AddToCartOptionDialog({
                         className="mt-3 h-12 w-full rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm font-bold outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
                         aria-label={group.label}
                         value={selectedOptions[group.id]?.[0] ?? ""}
-                        onChange={(event) =>
-                          handleOptionChange(group, event.target.value)
-                        }
+                        onChange={(event) => handleOptionChange(group, event.target.value)}
                       >
                         {group.options.map((option) => (
                           <option key={option.id} value={option.id}>
@@ -191,32 +182,26 @@ export function AddToCartOptionDialog({
                     ) : (
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         {group.options.map((option) => {
-                        const isSelected = selectedOptions[group.id]?.includes(
-                          option.id,
-                        );
+                          const isSelected = selectedOptions[group.id]?.includes(option.id);
 
-                        return (
-                          <label className="cursor-pointer" key={option.id}>
-                            <input
-                              className="peer sr-only"
-                              type={
-                                group.selectionType === "SINGLE"
-                                  ? "radio"
-                                  : "checkbox"
-                              }
-                              name={group.id}
-                              value={option.id}
-                              checked={isSelected}
-                              onChange={() => handleOptionChange(group, option.id)}
-                            />
-                            <span className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm transition peer-checked:border-cas-primary peer-checked:bg-cas-primary/10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
-                              <span className="font-bold">{option.label}</span>
-                              <span className="shrink-0 text-xs font-bold text-cas-primary">
-                                +{formatPrice(option.priceDelta)}
+                          return (
+                            <label className="cursor-pointer" key={option.id}>
+                              <input
+                                className="peer sr-only"
+                                type={group.selectionType === "SINGLE" ? "radio" : "checkbox"}
+                                name={group.id}
+                                value={option.id}
+                                checked={isSelected}
+                                onChange={() => handleOptionChange(group, option.id)}
+                              />
+                              <span className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm transition peer-checked:border-cas-primary peer-checked:bg-cas-primary/10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
+                                <span className="font-bold">{option.label}</span>
+                                <span className="shrink-0 text-xs font-bold text-cas-primary">
+                                  +{formatPrice(option.priceDelta)}
+                                </span>
                               </span>
-                            </span>
-                          </label>
-                        );
+                            </label>
+                          );
                         })}
                       </div>
                     )}

@@ -13,9 +13,7 @@ function getInitialTheme(): ColorTheme {
     return savedTheme;
   }
 
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function applyTheme(theme: ColorTheme) {

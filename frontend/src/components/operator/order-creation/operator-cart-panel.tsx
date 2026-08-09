@@ -30,8 +30,7 @@ type OperatorCartPanelProps = {
   onCloseMobileDrawer?: () => void;
 };
 
-const formatPrice = (value: number) =>
-  `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function OperatorCartPanel({
   selectedTable,
@@ -47,10 +46,7 @@ export function OperatorCartPanel({
   onCloseMobileDrawer,
 }: OperatorCartPanelProps) {
   const totalItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const totalCartAmount = cartItems.reduce(
-    (acc, item) => acc + item.unitPrice * item.quantity,
-    0,
-  );
+  const totalCartAmount = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
 
   return (
     <div className="flex h-full flex-col rounded-[1.4rem] border border-cas-outline-variant/30 bg-cas-surface shadow-[0_8px_24px_var(--cas-shadow-color)]">
@@ -104,9 +100,7 @@ export function OperatorCartPanel({
       <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h4 className="text-base font-extrabold text-cas-on-surface">
-              Món đã chọn
-            </h4>
+            <h4 className="text-base font-extrabold text-cas-on-surface">Món đã chọn</h4>
             <span className="grid min-w-6 place-items-center rounded-full bg-cas-primary px-2 py-0.5 text-[0.65rem] font-extrabold text-cas-on-primary">
               {totalItemCount}
             </span>
@@ -128,9 +122,7 @@ export function OperatorCartPanel({
             <span className="grid size-12 place-items-center rounded-2xl bg-cas-outline-variant/20 text-cas-on-surface-variant/60">
               <CasIcon className="size-6" name="basket" />
             </span>
-            <p className="mt-3 text-sm font-bold text-cas-on-surface">
-              Chưa có món nào trong đơn
-            </p>
+            <p className="mt-3 text-sm font-bold text-cas-on-surface">Chưa có món nào trong đơn</p>
             <p className="mt-1 text-xs text-cas-on-surface-variant/80">
               Nhấp chọn món ở danh mục bên trái để đưa món vào đơn
             </p>
@@ -192,9 +184,7 @@ export function OperatorCartPanel({
         {/* Section Ghi chú chung - Identical to Customer Cart */}
         <section className="mt-6 border-t border-cas-outline-variant/40 pt-5">
           <label className="block" htmlFor="operator-order-note">
-            <span className="text-sm font-extrabold text-cas-on-surface">
-              Ghi chú chung
-            </span>
+            <span className="text-sm font-extrabold text-cas-on-surface">Ghi chú chung</span>
             <span className="mt-0.5 block text-xs leading-relaxed text-cas-on-surface-variant">
               Ghi chú này áp dụng cho toàn bộ lần gửi món.
             </span>

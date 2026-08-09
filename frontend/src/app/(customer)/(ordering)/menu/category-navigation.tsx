@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  type MouseEvent,
-  type PointerEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type MouseEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 
 type Category = {
   id: string;
@@ -18,19 +12,14 @@ type CategoryNavigationProps = {
   className?: string;
 };
 
-export function CategoryNavigation({
-  categories,
-  className,
-}: CategoryNavigationProps) {
+export function CategoryNavigation({ categories, className }: CategoryNavigationProps) {
   const navigationRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const categoryLinkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const dragStartX = useRef(0);
   const dragStartScrollLeft = useRef(0);
   const didDrag = useRef(false);
-  const [activeCategoryId, setActiveCategoryId] = useState(
-    categories[0]?.id ?? "",
-  );
+  const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id ?? "");
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -59,8 +48,7 @@ export function CategoryNavigation({
         return;
       }
 
-      const navigationBottom =
-        navigationRef.current?.getBoundingClientRect().bottom ?? 0;
+      const navigationBottom = navigationRef.current?.getBoundingClientRect().bottom ?? 0;
       const activationLine = navigationBottom + 8;
       const documentHeight = Math.max(
         document.documentElement.scrollHeight,
@@ -84,9 +72,7 @@ export function CategoryNavigation({
       }
 
       setActiveCategoryId((currentCategoryId) =>
-        currentCategoryId === nextCategoryId
-          ? currentCategoryId
-          : nextCategoryId,
+        currentCategoryId === nextCategoryId ? currentCategoryId : nextCategoryId,
       );
     }
 
@@ -179,10 +165,7 @@ export function CategoryNavigation({
   function stopDragging(event: PointerEvent<HTMLDivElement>) {
     const scroller = scrollerRef.current;
 
-    if (
-      scroller?.hasPointerCapture(event.pointerId) &&
-      event.pointerType === "mouse"
-    ) {
+    if (scroller?.hasPointerCapture(event.pointerId) && event.pointerType === "mouse") {
       scroller.releasePointerCapture(event.pointerId);
     }
 
