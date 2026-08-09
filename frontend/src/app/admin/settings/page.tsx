@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
-import { ThemeToggle } from "../../../components/ui/theme-toggle";
 
 const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -144,7 +143,7 @@ export default function AdminSettingsPage() {
 			<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h1 className="text-2xl font-black text-cas-on-surface">Cấu hình Cửa hàng & Tham số Vận hành</h1>
-					<p className="text-xs text-cas-on-surface-variant">Quản lý thông tin thương hiệu, địa chỉ, giờ mở cửa và thiết lập quy tắc vận hành hệ thống CAS.</p>
+					<p className="text-xs text-cas-on-surface-variant">Quản lý thông tin cửa hàng và tham số vận hành</p>
 				</div>
 				<div className="mt-2 sm:mt-0 flex items-center gap-2">
 					<span
@@ -314,18 +313,6 @@ export default function AdminSettingsPage() {
 									placeholder="VD: Phục vụ món ngon hot dẻo, gọi món QR siêu tốc..."
 									className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
 								/>
-							</div>
-
-							{/* Chế độ Giao diện Sáng / Tối */}
-							<div>
-								<label className="block font-extrabold text-cas-on-surface mb-1">Chế độ Giao diện Hệ thống</label>
-								<div className="flex items-center gap-3 mt-1.5 p-3 rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
-									<ThemeToggle />
-									<div>
-										<p className="text-xs font-bold text-cas-on-surface">Chuyển đổi Giao diện Sáng (Light) / Tối (Dark)</p>
-										<p className="text-[0.7rem] text-cas-on-surface-variant">Bấm vào biểu tượng để đổi màu giao diện hệ thống trực tiếp.</p>
-									</div>
-								</div>
 							</div>
 
 							{/* Trạng thái hoạt động */}

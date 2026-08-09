@@ -198,10 +198,16 @@ Ngày cập nhật gần nhất: 2026-08-09
 - [ ] Viết component test và end-to-end test.
 
 - [x] Căn chỉnh popup submenu của `AdminTabNavigation` bám ngay dưới thanh điều hướng, loại bỏ khoảng hở do `fixed` positioning bị ảnh hưởng bởi backdrop blur.
-- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`) và nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên cả Admin và Operator Header.
+- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` (mô tả phụ: "Quản lý thông tin cửa hàng và tham số vận hành") hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`) cùng nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên Admin & Operator Header.
 - [x] Sửa lỗi active route trùng lặp ở `AdminTabNavigation`: áp dụng thuật toán so khớp tiền tố chính xác nhất (`isRouteActive`), khắc phục triệt để tình trạng mục "Món ăn" (`/admin/catalog`) luôn bị tô xanh đồng thời khi chọn các submenu như "Danh mục", "Nhóm & giá trị Option", "Nhãn món".
-- [x] Đổi tên nhóm menu từ "Quản lý Quán" thành **"Menu & Voucher"** và nhóm "Hệ thống & Cấu hình" thành **"Thông tin & thông báo"** trong `AdminTabNavigation`, đồng thời rút gọn nhãn submenu từ "Nhóm & giá trị Option" thành **"Option"**. Tích hợp toàn bộ nội dung cấu hình Khuyến mãi (Popup Banner, Header Ticker, Gợi ý Voucher) vào trang `/admin/vouchers` qua dạng Sub-tab Navigation và xóa bỏ hoàn toàn route/file `/admin/promotions`.
-- [x] Cập nhật form tạo thông báo hệ thống tại `/admin/notifications`: đổi tiêu đề thành **"Tạo thông báo"** và tinh chỉnh danh sách đối tượng nhận trong dropdown chỉ bao gồm 3 tùy chọn: **Tất cả**, **Nhân viên**, **Khách hàng**.
+- [x] Gỡ bỏ hoàn toàn phần Cấu hình Banner & Thông báo Khuyến mãi (Popup Banner, Header Ticker, Gợi ý giỏ hàng) khỏi trang `/admin/vouchers`, tối ưu hóa trang thành giao diện chuyên biệt cho **Quản lý Mã giảm giá (Voucher)**.
+- [x] Chuyển đổi giao diện Quản lý Bàn ăn & Thẻ Mã QR tại `/admin/tables` sang dạng **Danh sách (Table View)** hiện đại, hỗ trợ các chức năng: Thêm bàn mới, Xóa bàn (kèm Modal xác nhận), Xem Mã QR Token trực quan và Quản lý Trạng thái bàn (Bàn trống, Đang có khách, Chờ thanh toán) kèm bộ lọc và tìm kiếm nhanh.
+- [x] Sửa tương tác click trên `AdminTabNavigation`: Đảm bảo khi người dùng click vào mục menu chính có submenu thì menu con sẽ mở ra và giữ hiển thị ổn định, không bị ẩn đi do xung đột trạng thái rê chuột (hover).
+- [x] Cấu trúc lại danh mục điều hướng `AdminTabNavigation`: Đưa các mục "Món ăn", "Danh mục", "Option", "Nhãn món" thuộc nhóm **Menu & Voucher** vào nhóm con cấp 2 **Catalog** trực quan.
+- [x] Điều chỉnh menu Admin ba cấp: giữ "Món ăn", "Danh mục" và "Option" ở cấp 3 dưới "Catalog"; đưa "Nhãn món" lên cấp 2 trong nhóm **Menu & Voucher**.
+- [x] Hoàn thiện tương tác menu Admin ba cấp: rê chuột hoặc nhấn "Catalog" ở cấp 2 sẽ mở submenu cấp 3 ở bên phải.
+- [x] Đồng bộ trạng thái hiển thị "Catalog" với các mục cấp 2 khác: chỉ đổi màu khi mở submenu, không tự tô nền theo route con đang chọn.
+- [x] Đóng submenu cấp 3 của "Catalog" khi rê chuột sang một mục cấp 2 khác, đồng thời giữ menu mở khi đi qua khoảng hở để chọn submenu bên phải.
 
 ## 7. Hạ tầng và triển khai
 
