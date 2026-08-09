@@ -42,7 +42,7 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Quản lý Cửa hàng & Bàn:** Tạo mã bàn, sinh Token khởi tạo thẻ QR cố định/di động cho bàn.
 - **Quản lý Thực đơn (Catalog):** Thêm, sửa, xóa, ẩn Hiện Danh mục, Menu, Option (Size, Topping, Độ ngọt). Đánh dấu món hết hàng (`SOLD_OUT`).
 - **Quản lý Mã giảm giá (Vouchers):** Thêm, sửa, kích hoạt/khóa mã giảm giá (voucher), cấu hình giảm theo số tiền hoặc phần trăm, hạn sử dụng và điều kiện đơn hàng.
-- **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các tài khoản `OPERATOR`.
+- **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các đối tượng nhận: Nhân viên (`OPERATOR`), Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
 - **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
@@ -86,7 +86,7 @@ Nhân viên xác nhận kết quả thanh toán
 - Tạo mã giảm giá (voucher code), thiết lập giảm theo số tiền (`FIXED_AMOUNT`) hoặc theo phần trăm (`PERCENTAGE`), giá trị đơn tối thiểu (`min_order_amount`), số tiền giảm tối đa (`max_discount_amount`), hạn sử dụng và số lần sử dụng.
 - Khách hàng hoặc nhân viên nhập mã voucher hợp lệ khi gửi order; backend tự động tính toán tiền giảm và lưu số tiền giảm `discount_amount` vào order.
 - Cấu hình thông báo khuyến mãi & Banner (Admin bật/tắt Popup chào mừng khi quét QR, thanh thông báo chạy chữ trên Header, tự động gợi ý mã giảm giá khi giỏ hàng đạt ngưỡng).
-- Quản lý danh sách thông báo hệ thống và phát hành tin tức, cảnh báo ca trực.
+- Quản lý danh sách thông báo hệ thống và phát hành tin tức, cảnh báo cho phép linh hoạt cấu hình đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - Tích hợp biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải giao diện Khách hàng (`Customer`) và Nhân viên (`Operator`) để xem nhanh thông báo khuyến mãi và tin tức vận hành.
 
 #### Quản lý bàn và QR

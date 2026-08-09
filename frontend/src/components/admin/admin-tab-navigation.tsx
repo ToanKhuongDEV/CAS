@@ -22,14 +22,13 @@ const adminNavSchema: MenuItemGroup[] = [
 		label: "Tổng quan",
 	},
 	{
-		label: "Quản lý Quán",
+		label: "Menu & Voucher",
 		items: [
 			{ href: "/admin/catalog", label: "Món ăn" },
 			{ href: "/admin/catalog/categories", label: "Danh mục" },
-			{ href: "/admin/catalog/options", label: "Nhóm & giá trị Option" },
+			{ href: "/admin/catalog/options", label: "Option" },
 			{ href: "/admin/catalog/tags", label: "Nhãn món" },
 			{ href: "/admin/vouchers", label: "Mã giảm giá (Vouchers)" },
-			{ href: "/admin/promotions", label: "Cấu hình Khuyến mãi & Banner" },
 			{ href: "/admin/tables", label: "Sơ đồ Bàn & Mã QR" },
 		],
 	},
@@ -45,93 +44,134 @@ const adminNavSchema: MenuItemGroup[] = [
 		label: "Báo cáo",
 	},
 	{
-		label: "Hệ thống & Cấu hình",
+		label: "Thông tin & thông báo",
 		items: [
-			{ href: "/admin/settings", label: "Tham số vận hành" },
+			{ href: "/admin/settings", label: "Thông tin & Cấu hình Cửa hàng" },
 			{ href: "/admin/notifications", label: "Thông báo hệ thống" },
 			{ href: "/admin/audit-logs", label: "Audit Logs" },
 		],
 	},
 ];
 
+function isRouteActive(pathname: string, targetHref: string, siblingHrefs: string[] = []) {
+	if (pathname === targetHref) return true;
+	if (!pathname.startsWith(targetHref + "/")) return false;
+	// Nếu targetHref là tiền tố của pathname, đảm bảo không có sibling href nào khác có độ dài lớn hơn mà cũng match pathname
+	return !siblingHrefs.some((sibling) => sibling !== targetHref && sibling.length > targetHref.length && (pathname === sibling || pathname.startsWith(sibling + "/")));
+}
+
 export function AdminTabNavigation() {
 	const pathname = usePathname();
 	const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+	const [dropdownPos, setDropdownPos] = useState<{ left: number } | null>(null);
 	const navRef = useRef<HTMLElement>(null);
 
-	// Auto close popover on click outside
+	// Tính toán vị trí ngang của popup theo menu đang mở.
+	const openDropdown = (label: string, element: HTMLElement) => {
+		const rect = element.getBoundingClientRect();
+		const popupWidth = 240;
+		const leftPos = Math.min(rect.left, window.innerWidth - popupWidth - 4);
+		setDropdownPos({ left: leftPos });
+		setActiveDropdown(label);
+	};
+
+	// Đóng popup khi click ra ngoài hoặc khi cuộn trang
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
 			if (navRef.current && !navRef.current.contains(e.target as Node)) {
 				setActiveDropdown(null);
 			}
 		}
+		function handleScroll() {
+			setActiveDropdown(null);
+		}
 		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+			window.removeEventListener("scroll", handleScroll);
+		};
 	}, []);
 
+	const activeGroup = adminNavSchema.find((g) => g.label === activeDropdown);
+
 	return (
-		<nav ref={navRef} className="border-y border-cas-outline-variant/25 bg-cas-navigation backdrop-blur-xl" aria-label="Thanh điều hướng Admin">
-			<div className="mx-auto flex max-w-[100rem] flex-wrap items-center gap-x-6 px-4 sm:px-8 xl:px-12">
+		<nav ref={navRef} className="relative border-y border-cas-outline-variant/25 bg-cas-navigation backdrop-blur-xl" aria-label="Thanh điều hướng Admin">
+			<div className="mx-auto flex max-w-[100rem] items-center gap-x-6 overflow-x-auto px-4 whitespace-nowrap no-scrollbar sm:px-8 xl:px-12">
 				{adminNavSchema.map((group) => {
-					// Single Link Item (e.g. "Trang chủ Admin")
+					// Single Link Item (e.g. "Tổng quan")
 					if (group.href && !group.items) {
 						const isActive = pathname === group.href;
 
 						return (
-							<Link key={group.label} href={group.href} onClick={() => setActiveDropdown(null)} className={`relative py-3.5 text-base font-bold transition focus-visible:outline-none ${isActive ? "text-cas-secondary font-black" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}>
+							<Link key={group.label} href={group.href} onClick={() => setActiveDropdown(null)} className={`relative shrink-0 py-3.5 text-base font-bold transition focus-visible:outline-none ${isActive ? "text-cas-secondary font-black" : "text-cas-on-surface-variant hover:text-cas-secondary"}`}>
 								<span>{group.label}</span>
 								{isActive && <span className="absolute bottom-0 left-0 h-0.5 w-full bg-cas-secondary rounded-full" />}
 							</Link>
 						);
 					}
 
-					// Dropdown Item with Submenu Box (matches 12e.jpg design)
-					const isChildActive = group.items?.some((item) => pathname.startsWith(item.href));
+					// Dropdown Item
+					const groupSiblingHrefs = group.items?.map((item) => item.href) || [];
+					const isChildActive = group.items?.some((item) => isRouteActive(pathname, item.href, groupSiblingHrefs));
 					const isOpen = activeDropdown === group.label;
 					const submenuId = `admin-submenu-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 					const totalBadge = group.items?.reduce((acc, item) => acc + (item.badge || 0), 0);
 
 					return (
-						<div key={group.label} className="relative" onMouseEnter={() => setActiveDropdown(group.label)}>
+						<div key={group.label} className="relative shrink-0">
 							<button
 								type="button"
-								onClick={() => setActiveDropdown(isOpen ? null : group.label)}
+								onMouseEnter={(e) => openDropdown(group.label, e.currentTarget)}
+								onClick={(e) => {
+									if (isOpen) {
+										setActiveDropdown(null);
+									} else {
+										openDropdown(group.label, e.currentTarget);
+									}
+								}}
 								aria-controls={submenuId}
 								aria-expanded={isOpen}
 								aria-haspopup="menu"
-								className={`relative flex items-center gap-1.5 py-3.5 text-base font-bold transition focus-visible:outline-none ${isChildActive || isOpen ? "text-cas-secondary font-black" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+								className={`relative flex items-center gap-1.5 py-3.5 text-base font-bold transition focus-visible:outline-none ${isChildActive || isOpen ? "text-cas-secondary font-black" : "text-cas-on-surface-variant hover:text-cas-secondary"}`}
 							>
 								<span>{group.label}</span>
 								{Boolean(totalBadge) && <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cas-primary px-1 text-[0.65rem] font-black text-white">{totalBadge}</span>}
 								{isChildActive && <span className="absolute bottom-0 left-0 h-0.5 w-full bg-cas-secondary rounded-full" />}
 							</button>
-
-							{/* VERTICAL DROPDOWN POPUP BOX (Exact style of 12e.jpg) */}
-							{isOpen && group.items && (
-								<div id={submenuId} role="menu" onMouseLeave={() => setActiveDropdown(null)} className="absolute left-0 top-full z-50 mt-0 min-w-60 overflow-hidden rounded-2xl border border-cas-outline-variant/30 bg-cas-surface py-2 shadow-2xl backdrop-blur-2xl animate-in fade-in duration-150">
-									{group.items.map((sub) => {
-										const isSubActive = pathname.startsWith(sub.href);
-
-										return (
-											<Link
-												key={sub.href}
-												href={sub.href}
-												role="menuitem"
-												onClick={() => setActiveDropdown(null)}
-												className={`flex items-center justify-between px-5 py-2.5 text-xs font-bold transition ${isSubActive ? "bg-cas-secondary text-white font-black" : "text-cas-on-surface hover:bg-cas-secondary hover:text-white"}`}
-											>
-												<span>{sub.label}</span>
-												{typeof sub.badge === "number" && <span className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[0.65rem] font-black ${isSubActive ? "bg-white text-cas-secondary" : "bg-cas-primary text-white"}`}>{sub.badge}</span>}
-											</Link>
-										);
-									})}
-								</div>
-							)}
 						</div>
 					);
 				})}
 			</div>
+
+			{/* Dropdown Menu xổ ra ngoài box overflow, không bị cắt hay bắt kéo cuộn */}
+			{activeDropdown && activeGroup && activeGroup.items && dropdownPos && (
+				<div
+					id={`admin-submenu-${activeGroup.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+					role="menu"
+					style={{ left: `${dropdownPos.left}px` }}
+					onMouseLeave={() => setActiveDropdown(null)}
+					className="absolute top-full z-50 min-w-60 overflow-hidden rounded-b-2xl border border-t-0 border-cas-outline-variant/30 bg-cas-surface pb-2 shadow-2xl backdrop-blur-2xl animate-in fade-in duration-150"
+				>
+					{activeGroup.items.map((sub) => {
+						const activeGroupHrefs = activeGroup.items?.map((item) => item.href) || [];
+						const isSubActive = isRouteActive(pathname, sub.href, activeGroupHrefs);
+
+						return (
+							<Link
+								key={sub.href}
+								href={sub.href}
+								role="menuitem"
+								onClick={() => setActiveDropdown(null)}
+								className={`flex items-center justify-between px-5 py-2.5 text-xs font-bold transition ${isSubActive ? "bg-cas-secondary text-white font-black" : "text-cas-on-surface hover:bg-cas-secondary hover:text-white"}`}
+							>
+								<span>{sub.label}</span>
+								{typeof sub.badge === "number" && <span className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[0.65rem] font-black ${isSubActive ? "bg-white text-cas-secondary" : "bg-cas-primary text-white"}`}>{sub.badge}</span>}
+							</Link>
+						);
+					})}
+				</div>
+			)}
 		</nav>
 	);
 }

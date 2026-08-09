@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-08
+Ngày cập nhật gần nhất: 2026-08-09
 
 ## Quy ước
 
@@ -184,13 +184,24 @@ Ngày cập nhật gần nhất: 2026-08-08
 - [x] Tăng kích thước font chữ cấp 1 của thanh điều hướng AdminTabNavigation lên text-base (tăng 2 cấp font), giữ nguyên kích thước text-xs cho menu cấp 2 trong popup dropdown; đổi nhãn menu nhóm từ "Vận hành & Nhân sự" thành "Sự cố và Nhân sự"; bảo đảm duy nhất tab "Sự cố và Nhân sự" hiển thị badge đếm số thông báo.
 - [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ 16 & 17 & 18 và quy tắc dữ liệu cho Mã giảm giá (Vouchers), Thông báo hệ thống (Notifications), Cấu hình Banner/Popup Khuyến mãi và Biểu tượng Chuông thông báo góc trên bên phải cho Customer & Operator.
 - [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`).
-- [x] Xây dựng UI Thông báo hệ thống (`/admin/notifications`).
+- [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
+- [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
+- [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
+- [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
 - [x] Xây dựng UI Admin Cấu hình Thông báo Khuyến mãi & Banner (`/admin/promotions`).
 - [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
-- [ ] Xây dựng giao diện quản lý khoản chưa thanh toán.
+- [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
+- [x] Tinh chỉnh thanh điều hướng Admin (`AdminTabNavigation`): hỗ trợ trượt ngang mượt mà (`overflow-x-auto`, `whitespace-nowrap`, `shrink-0`) trên mobile; đồng thời xử lý hiển thị popup menu con bằng `fixed` positioning giúp menu xổ ra tự do bên ngoài box, không bị cắt mép hay bắt người dùng kéo cuộn bên trong.
+- [x] Xây dựng giao diện quản lý khoản chưa thanh toán tại `/operator/unpaid`, bao gồm danh sách các bản ghi `unpaid_records`, bộ lọc trạng thái (`ALL`, `OPEN`, `RESOLVED`), nút chuyển đổi trạng thái đã thu tiền và Modal xem `bill_snapshot` chi tiết (hỗ trợ chuyển đổi giữa tab Hóa đơn và tab dữ liệu thô JSON).
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
 - [ ] Viết component test và end-to-end test.
+
+- [x] Căn chỉnh popup submenu của `AdminTabNavigation` bám ngay dưới thanh điều hướng, loại bỏ khoảng hở do `fixed` positioning bị ảnh hưởng bởi backdrop blur.
+- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`) và nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên cả Admin và Operator Header.
+- [x] Sửa lỗi active route trùng lặp ở `AdminTabNavigation`: áp dụng thuật toán so khớp tiền tố chính xác nhất (`isRouteActive`), khắc phục triệt để tình trạng mục "Món ăn" (`/admin/catalog`) luôn bị tô xanh đồng thời khi chọn các submenu như "Danh mục", "Nhóm & giá trị Option", "Nhãn món".
+- [x] Đổi tên nhóm menu từ "Quản lý Quán" thành **"Menu & Voucher"** và nhóm "Hệ thống & Cấu hình" thành **"Thông tin & thông báo"** trong `AdminTabNavigation`, đồng thời rút gọn nhãn submenu từ "Nhóm & giá trị Option" thành **"Option"**. Tích hợp toàn bộ nội dung cấu hình Khuyến mãi (Popup Banner, Header Ticker, Gợi ý Voucher) vào trang `/admin/vouchers` qua dạng Sub-tab Navigation và xóa bỏ hoàn toàn route/file `/admin/promotions`.
+- [x] Cập nhật form tạo thông báo hệ thống tại `/admin/notifications`: đổi tiêu đề thành **"Tạo thông báo"** và tinh chỉnh danh sách đối tượng nhận trong dropdown chỉ bao gồm 3 tùy chọn: **Tất cả**, **Nhân viên**, **Khách hàng**.
 
 ## 7. Hạ tầng và triển khai
 

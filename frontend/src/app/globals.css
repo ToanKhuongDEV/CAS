@@ -46,6 +46,11 @@ html[data-theme="dark"] [data-drag-scroll-axis="x"] {
 	--color-cas-tertiary: var(--cas-tertiary);
 	--color-cas-tertiary-container: var(--cas-tertiary-container);
 	--color-cas-on-tertiary-container: var(--cas-on-tertiary-container);
+	--color-cas-error: var(--cas-error);
+	--color-cas-error-hover: var(--cas-error-hover);
+	--color-cas-error-container: var(--cas-error-container);
+	--color-cas-on-error: var(--cas-on-error);
+	--color-cas-on-error-container: var(--cas-on-error-container);
 	--color-cas-surface: var(--cas-surface);
 	--color-cas-surface-container: var(--cas-surface-container);
 	--color-cas-on-surface: var(--cas-on-surface);
@@ -84,6 +89,11 @@ html[data-theme="light"] {
 	--cas-tertiary: #825100;
 	--cas-tertiary-container: #a36700;
 	--cas-on-tertiary-container: #fffbff;
+	--cas-error: #dc2626;
+	--cas-error-hover: #b91c1c;
+	--cas-error-container: #fee2e2;
+	--cas-on-error: #ffffff;
+	--cas-on-error-container: #7f1d1d;
 	--cas-surface: #f8f9ff;
 	--cas-surface-container: #e6eeff;
 	--cas-on-surface: #121c2a;
@@ -111,6 +121,11 @@ html[data-theme="dark"] {
 	--cas-tertiary: #ffb95f;
 	--cas-tertiary-container: #653e00;
 	--cas-on-tertiary-container: #ffddb8;
+	--cas-error: #ef4444;
+	--cas-error-hover: #f87171;
+	--cas-error-container: #7f1d1d;
+	--cas-on-error: #ffffff;
+	--cas-on-error-container: #fee2e2;
 	--cas-surface: #121c2a;
 	--cas-surface-container: #27313f;
 	--cas-on-surface: #eaf1ff;

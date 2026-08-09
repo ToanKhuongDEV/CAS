@@ -1,72 +1,199 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { CasButton } from "../../components/ui/cas-button";
 import { CasIcon } from "../../components/ui/cas-icon";
 
+type FilterMode = "date" | "month" | "year" | "range";
+
 export default function AdminDashboardPage() {
+	// State quản lý chế độ và thời gian chọn
+	const [filterMode, setFilterMode] = useState<FilterMode>("date");
+	const [selectedDate, setSelectedDate] = useState("2026-08-09");
+	const [selectedMonth, setSelectedMonth] = useState("2026-08");
+	const [selectedYear, setSelectedYear] = useState("2026");
+	const [startDate, setStartDate] = useState("2026-08-01");
+	const [endDate, setEndDate] = useState("2026-08-09");
+
+	// Đưa ra nhãn mô tả khoảng thời gian đang lọc
+	const getDisplayLabel = () => {
+		switch (filterMode) {
+			case "date":
+				return `Ngày ${selectedDate.split("-").reverse().join("/")}`;
+			case "month": {
+				const [year, month] = selectedMonth.split("-");
+				return `Tháng ${month}/${year}`;
+			}
+			case "year":
+				return `Năm ${selectedYear}`;
+			case "range":
+				return `Từ ${startDate.split("-").reverse().join("/")} đến ${endDate.split("-").reverse().join("/")}`;
+		}
+	};
+
+	// Tính toán dữ liệu chỉ số mock theo chế độ thời gian được chọn
+	const getMetricsByFilter = () => {
+		switch (filterMode) {
+			case "month":
+				return {
+					revenue: "1.250.000.000 đ",
+					orders: "5.480 đơn",
+					remade: "85 món (16.500.000 đ)",
+					openTables: "12 / 20 bàn",
+					pendingPayments: "3 bàn",
+					unpaidRecords: "8 khoản",
+					cancellations: "92 yêu cầu",
+				};
+			case "year":
+				return {
+					revenue: "14.800.000.000 đ",
+					orders: "64.200 đơn",
+					remade: "980 món (185.000.000 đ)",
+					openTables: "12 / 20 bàn",
+					pendingPayments: "3 bàn",
+					unpaidRecords: "24 khoản",
+					cancellations: "410 yêu cầu",
+				};
+			case "range":
+				return {
+					revenue: "385.200.000 đ",
+					orders: "1.650 đơn",
+					remade: "28 món (5.400.000 đ)",
+					openTables: "12 / 20 bàn",
+					pendingPayments: "3 bàn",
+					unpaidRecords: "4 khoản",
+					cancellations: "24 yêu cầu",
+				};
+			case "date":
+			default:
+				return {
+					revenue: "42.850.000 đ",
+					orders: "186 đơn",
+					remade: "4 món (850.000 đ)",
+					openTables: "12 / 20 bàn",
+					pendingPayments: "3 bàn",
+					unpaidRecords: "1 khoản",
+					cancellations: "2 yêu cầu",
+				};
+		}
+	};
+
+	const currentMetrics = getMetricsByFilter();
+
 	return (
 		<div className="space-y-8">
 			{/* Header */}
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-black text-cas-on-surface">Tổng quan</h1>
+					<h1 className="text-2xl font-black text-cas-on-surface">Bảng điều khiển Quản trị CAS</h1>
 				</div>
 			</div>
 
-			{/* 3 Thẻ Chỉ số KPI cốt lõi */}
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				{/* Doanh thu */}
-				<div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs transition hover:shadow-md">
-					<div className="flex items-center justify-between">
-						<span className="text-xs font-extrabold uppercase text-cas-on-surface-variant">Doanh thu Hôm nay</span>
-						<span className="grid size-9 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-							<CasIcon className="size-5" name="payment" />
-						</span>
+			{/* Ô chọn điều kiện lọc ở đầu (Hỗ trợ chọn theo ngày, theo tháng, theo năm, theo khoảng ngày) */}
+			<div className="flex flex-col gap-4 rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4 lg:flex-row lg:items-center lg:justify-between">
+				{/* Nhóm bộ lọc lựa chọn */}
+				<div className="flex flex-wrap items-center gap-3">
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-bold text-cas-on-surface-variant">Lọc theo:</span>
+						<select value={filterMode} onChange={(e) => setFilterMode(e.target.value as FilterMode)} className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1.5 text-xs font-bold text-cas-on-surface shadow-2xs focus:outline-hidden">
+							<option value="date">Theo ngày</option>
+							<option value="month">Theo tháng</option>
+							<option value="year">Theo năm</option>
+							<option value="range">Theo khoảng ngày</option>
+						</select>
 					</div>
-					<p className="mt-3 text-2xl font-black text-cas-on-surface">42.850.000 đ</p>
-					<div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-						<span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5">+12.5%</span>
-						<span className="text-cas-on-surface-variant">so với cùng giờ hôm qua</span>
-					</div>
+
+					{/* Ô chọn ngày */}
+					{filterMode === "date" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-xs font-bold text-cas-on-surface-variant">Chọn ngày:</span>
+							<input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden" />
+						</div>
+					)}
+
+					{/* Ô chọn tháng */}
+					{filterMode === "month" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-xs font-bold text-cas-on-surface-variant">Chọn tháng:</span>
+							<input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden" />
+						</div>
+					)}
+
+					{/* Ô chọn năm */}
+					{filterMode === "year" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-xs font-bold text-cas-on-surface-variant">Chọn năm:</span>
+							<select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden">
+								<option value="2026">2026</option>
+								<option value="2025">2025</option>
+								<option value="2024">2024</option>
+								<option value="2023">2023</option>
+							</select>
+						</div>
+					)}
+
+					{/* Ô chọn khoảng ngày (Từ ngày - Đến ngày) */}
+					{filterMode === "range" && (
+						<div className="flex items-center gap-2">
+							<span className="text-xs font-bold text-cas-on-surface-variant">Từ:</span>
+							<input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-2.5 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden" />
+							<span className="text-xs font-bold text-cas-on-surface-variant">Đến:</span>
+							<input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-2.5 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden" />
+						</div>
+					)}
 				</div>
 
-				{/* Tổng số đơn */}
-				<div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs transition hover:shadow-md">
-					<div className="flex items-center justify-between">
-						<span className="text-xs font-extrabold uppercase text-cas-on-surface-variant">Tổng số đơn hàng</span>
-						<span className="grid size-9 place-items-center rounded-xl bg-cas-secondary/15 text-cas-secondary">
-							<CasIcon className="size-5" name="bill" />
-						</span>
-					</div>
-					<p className="mt-3 text-2xl font-black text-cas-on-surface">186 đơn</p>
-					<div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-cas-on-surface-variant">
-						<span>Tỷ lệ hoàn tất 96.8% (180 đơn đã PAID)</span>
-					</div>
-				</div>
+				<span className="text-xs font-semibold text-cas-on-surface-variant">
+					Đang hiển thị dữ liệu: <strong className="text-cas-primary">{getDisplayLabel()}</strong>
+				</span>
+			</div>
 
-				{/* Món hỏng / Làm lại (is_remade) */}
-				<div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs transition hover:shadow-md">
-					<div className="flex items-center justify-between">
-						<span className="text-xs font-extrabold uppercase text-cas-on-surface-variant">Món hỏng / Bù tiền (is_remade)</span>
-						<span className="grid size-9 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
-							<CasIcon className="size-5" name="fire" />
-						</span>
-					</div>
-					<p className="mt-3 text-2xl font-black text-cas-primary">
-						4 món <span className="text-sm font-bold text-cas-on-surface-variant">(850.000 đ)</span>
-					</p>
-					<div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-						<span className="rounded-md bg-amber-500/10 px-1.5 py-0.5">Cần theo dõi</span>
-						<span className="text-cas-on-surface-variant">Bóc tách hao hụt chính xác</span>
-					</div>
-				</div>
+			{/* Bảng biểu diễn 7 giá trị chỉ số theo bộ lọc */}
+			<div className="overflow-hidden rounded-2xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
+				<table className="w-full text-left text-xs">
+					<thead className="border-b border-cas-outline-variant/20 bg-cas-surface-container/50 font-bold text-cas-on-surface">
+						<tr>
+							<th className="px-4 py-3">Chỉ số thống kê</th>
+							<th className="px-4 py-3">Giá trị ({getDisplayLabel()})</th>
+						</tr>
+					</thead>
+					<tbody className="divide-y divide-cas-outline-variant/15 text-cas-on-surface">
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">1. Doanh thu</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.revenue}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">2. Tổng đơn hàng</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.orders}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">3. Món hỏng / Bù tiền (is_remade)</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.remade}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">4. Bàn đang mở</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.openTables}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">5. Bàn chờ thanh toán</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.pendingPayments}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">6. Khoản chưa thanh toán</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.unpaidRecords}</td>
+						</tr>
+						<tr className="transition hover:bg-cas-surface-container/30">
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">7. Yêu cầu hủy món</td>
+							<td className="px-4 py-3 text-xs font-bold text-cas-on-surface">{currentMetrics.cancellations}</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 
 			{/* Nội dung chính 2 cột */}
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-				{/* Cột trái (8 columns): Biểu đồ Doanh thu & Báo cáo Sự cố ca trực */}
-				<div className="space-y-8 lg:col-span-8">
+				{/* Cột trái (7 columns): Biểu đồ Doanh thu & Báo cáo Sự cố ca trực */}
+				<div className="space-y-8 lg:col-span-7">
 					{/* Biểu đồ doanh thu theo giờ */}
 					<div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
 						<div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
@@ -99,7 +226,7 @@ export default function AdminDashboardPage() {
 									return (
 										<div key={idx} className="group relative flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
 											<div className="pointer-events-none absolute -top-8 z-10 hidden rounded-md bg-cas-on-surface px-2 py-1 text-[0.68rem] font-bold text-cas-surface shadow-md group-hover:block whitespace-nowrap">{item.val} triệu đ</div>
-											<div style={{ height: `${heightPercent}%` }} className={`w-full max-w-[28px] rounded-t-lg transition-all duration-300 ${isPeak ? "bg-gradient-to-t from-cas-primary to-rose-400 shadow-sm" : "bg-cas-secondary/40 group-hover:bg-cas-secondary"}`} />
+											<div style={{ height: `${heightPercent}%` }} className={`w-full max-w-7 rounded-t-lg transition-all duration-300 ${isPeak ? "bg-linear-to-t from-cas-primary to-rose-400 shadow-sm" : "bg-cas-secondary/40 group-hover:bg-cas-secondary"}`} />
 											<span className="text-[0.7rem] font-bold text-cas-on-surface-variant">{item.hour}</span>
 										</div>
 									);
@@ -171,59 +298,87 @@ export default function AdminDashboardPage() {
 					</div>
 				</div>
 
-				{/* Cột phải (4 columns): Các Khối Lối tắt Quản lý Chuyên biệt */}
-				<div className="space-y-6 lg:col-span-4">
-					{/* Quản lý Quán (Menu & Bàn) */}
-					<div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs space-y-3">
-						<div className="flex items-center gap-2.5 border-b border-cas-outline-variant/15 pb-3">
-							<span className="grid size-8 place-items-center rounded-lg bg-cas-primary/15 text-cas-primary">
-								<CasIcon className="size-4.5" name="menu" />
-							</span>
-							<h3 className="text-base font-black text-cas-on-surface">Quản lý Quán</h3>
+				{/* Cột phải (5 columns): Top Món bán chạy & Món tạm hết hàng */}
+				<div className="space-y-8 lg:col-span-5">
+					{/* Top món bán chạy trong ngày */}
+					<div className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
+						<div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
+							<div className="flex items-center gap-2.5">
+								<span className="grid size-9 place-items-center rounded-xl bg-cas-secondary/15 text-cas-secondary">
+									<CasIcon className="size-5" name="fire" />
+								</span>
+								<div>
+									<h2 className="text-base font-black text-cas-on-surface">Top Món bán chạy Hôm nay</h2>
+									<p className="text-xs font-medium text-cas-on-surface-variant">Xếp hạng theo tổng số phần đã gọi</p>
+								</div>
+							</div>
 						</div>
-						<p className="text-xs text-cas-on-surface-variant">Truy cập nhanh danh mục thực đơn, món hết hàng và sơ đồ mã QR bàn ăn.</p>
-						<div className="space-y-2 pt-1">
-							<CasButton href="/admin/catalog" icon="menu" variant="outline-primary" size="sm" className="w-full justify-start">
-								Thực đơn & Options
-							</CasButton>
-							<CasButton href="/admin/tables" icon="table" variant="outline" size="sm" className="w-full justify-start">
-								Sơ đồ Bàn ăn & Mã QR
-							</CasButton>
+
+						<div className="space-y-3">
+							{[
+								{ rank: 1, name: "Cà phê sữa đá", category: "Cà phê", count: 68, total: "2.380.000 đ" },
+								{ rank: 2, name: "Bạc xỉu Sài Gòn", category: "Cà phê", count: 45, total: "1.800.000 đ" },
+								{ rank: 3, name: "Mỳ cay hải sản", category: "Món ăn chính", count: 32, total: "2.240.000 đ" },
+								{ rank: 4, name: "Trà đào cam sả", category: "Trà trái cây", count: 29, total: "1.305.000 đ" },
+							].map((item) => (
+								<div key={item.rank} className="flex items-center justify-between rounded-2xl border border-cas-outline-variant/15 bg-cas-surface-container/40 p-3 transition hover:bg-cas-surface-container/80">
+									<div className="flex items-center gap-3">
+										<span
+											className={`grid size-7 place-items-center rounded-xl text-xs font-black ${
+												item.rank === 1 ? "bg-amber-500 text-white shadow-xs" : item.rank === 2 ? "bg-slate-300 text-slate-800" : item.rank === 3 ? "bg-amber-700/30 text-amber-800 dark:text-amber-200" : "bg-cas-outline-variant/30 text-cas-on-surface-variant"
+											}`}
+										>
+											#{item.rank}
+										</span>
+										<div>
+											<h4 className="text-xs font-black text-cas-on-surface">{item.name}</h4>
+											<p className="text-[0.68rem] font-medium text-cas-on-surface-variant">{item.category}</p>
+										</div>
+									</div>
+									<div className="text-right">
+										<span className="text-xs font-black text-cas-primary">{item.count} phần</span>
+										<p className="text-[0.68rem] font-semibold text-cas-on-surface-variant">{item.total}</p>
+									</div>
+								</div>
+							))}
 						</div>
 					</div>
 
-					{/* Vận hành & Nhân sự */}
-					<div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs space-y-3">
-						<div className="flex items-center gap-2.5 border-b border-cas-outline-variant/15 pb-3">
-							<span className="grid size-8 place-items-center rounded-lg bg-cas-secondary/15 text-cas-secondary">
-								<CasIcon className="size-4.5" name="users" />
-							</span>
-							<h3 className="text-base font-black text-cas-on-surface">Vận hành & Nhân sự</h3>
+					{/* Món đang tạm hết hàng (SOLD_OUT) */}
+					<div className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
+						<div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
+							<div className="flex items-center gap-2.5">
+								<span className="grid size-9 place-items-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+									<CasIcon className="size-5" name="info" />
+								</span>
+								<div>
+									<h2 className="text-base font-black text-cas-on-surface">Món đang tạm hết hàng</h2>
+									<p className="text-xs font-medium text-cas-on-surface-variant">Trạng thái SOLD_OUT trên thực đơn</p>
+								</div>
+							</div>
+							<Link href="/admin/catalog" className="text-xs font-extrabold text-cas-primary hover:underline">
+								Quản lý menu ➔
+							</Link>
 						</div>
-						<p className="text-xs text-cas-on-surface-variant">Tạo tài khoản nhân viên OPERATOR, mở/khóa quyền và duyệt sự cố ca trực.</p>
-						<div className="space-y-2 pt-1">
-							<CasButton href="/admin/operators" icon="users" variant="outline" size="sm" className="w-full justify-start">
-								Tài khoản Nhân viên
-							</CasButton>
-							<CasButton href="/admin/incidents" icon="info" variant="outline" size="sm" className="w-full justify-start">
-								Báo cáo Sự cố ca trực (2)
-							</CasButton>
-						</div>
-					</div>
 
-					{/* Hệ thống & Cấu hình */}
-					<div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs space-y-3">
-						<div className="flex items-center gap-2.5 border-b border-cas-outline-variant/15 pb-3">
-							<span className="grid size-8 place-items-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
-								<CasIcon className="size-4.5" name="settings" />
-							</span>
-							<h3 className="text-base font-black text-cas-on-surface">Hệ thống & Cấu hình</h3>
-						</div>
-						<p className="text-xs text-cas-on-surface-variant">Điều chỉnh ngưỡng cảnh báo chờ món 25 phút và tra cứu nhật ký Audit Logs.</p>
-						<div className="pt-1">
-							<CasButton href="/admin/settings" icon="settings" variant="outline" size="sm" className="w-full justify-start">
-								Cấu hình Tham số & Audit Logs
-							</CasButton>
+						<div className="space-y-3">
+							{[
+								{ name: "Sinh tố Bơ sáp", category: "Sinh tố", price: "45.000 đ", time: "Bật lúc 14:10" },
+								{ name: "Bánh Tiramisu", category: "Tráng miệng", price: "38.000 đ", time: "Bật lúc 16:30" },
+							].map((soldOutItem, idx) => (
+								<div key={idx} className="flex items-center justify-between rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3">
+									<div className="flex items-center gap-2.5">
+										<span className="rounded-lg bg-rose-500/15 px-2 py-0.5 text-[0.65rem] font-black uppercase text-rose-600 dark:text-rose-400">SOLD OUT</span>
+										<div>
+											<h4 className="text-xs font-black text-cas-on-surface">{soldOutItem.name}</h4>
+											<p className="text-[0.68rem] font-medium text-cas-on-surface-variant">
+												{soldOutItem.category} • {soldOutItem.price}
+											</p>
+										</div>
+									</div>
+									<span className="text-[0.68rem] font-semibold text-cas-on-surface-variant">{soldOutItem.time}</span>
+								</div>
+							))}
 						</div>
 					</div>
 				</div>
