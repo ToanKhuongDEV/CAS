@@ -10,7 +10,14 @@ export type CancellationRequest = {
   table: string;
   item: string;
   quantity: string;
+  requestedQuantity: number;
   requestedAt: string;
+  unitPrice: number;
+  options: Array<{
+    groupName: string;
+    name: string;
+    unitPrice: number;
+  }>;
   reason?: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
 };
@@ -21,7 +28,13 @@ const initialRequests: CancellationRequest[] = [
     table: "Bàn 08",
     item: "Mỳ cay đặc biệt 7 cấp độ",
     quantity: "1 phần",
+    requestedQuantity: 1,
     requestedAt: "19:40",
+    unitPrice: 65000,
+    options: [
+      { groupName: "Cấp độ cay", name: "Cấp 7", unitPrice: 0 },
+      { groupName: "Topping", name: "Thêm phô mai", unitPrice: 10000 },
+    ],
     reason: "Khách muốn đổi sang món khác",
     status: "PENDING",
   },
@@ -30,7 +43,13 @@ const initialRequests: CancellationRequest[] = [
     table: "Bàn 01",
     item: "Trà sữa Trân châu Đường đen",
     quantity: "1 ly",
+    requestedQuantity: 1,
     requestedAt: "19:31",
+    unitPrice: 35000,
+    options: [
+      { groupName: "Kích thước", name: "Size L", unitPrice: 10000 },
+      { groupName: "Topping", name: "Trân châu đen", unitPrice: 5000 },
+    ],
     reason: "Gửi nhầm số lượng",
     status: "PENDING",
   },
@@ -39,11 +58,64 @@ const initialRequests: CancellationRequest[] = [
     table: "Bàn 05",
     item: "Gà rán giòn rụm",
     quantity: "2 phần",
+    requestedQuantity: 2,
     requestedAt: "19:25",
+    unitPrice: 55000,
+    options: [],
     reason: "Đợi chế biến lâu",
     status: "PENDING",
   },
 ];
+
+function formatCurrency(value: number) {
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
+function CancellationItemDetails({ request }: { request: CancellationRequest }) {
+  const optionsAmount = request.options.reduce((total, option) => total + option.unitPrice, 0);
+  const unitAmount = request.unitPrice + optionsAmount;
+  const requestedAmount = unitAmount * request.requestedQuantity;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/60 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold text-cas-on-surface-variant">Món yêu cầu hủy</p>
+          <p className="mt-1 text-sm font-extrabold text-cas-on-surface">{request.item}</p>
+        </div>
+        <span className="rounded-lg bg-cas-primary/10 px-2.5 py-1 text-xs font-black text-cas-primary">
+          {request.table}
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2 border-y border-cas-outline-variant/20 py-3 text-xs">
+        <div className="flex justify-between gap-4">
+          <span className="text-cas-on-surface-variant">Món gốc</span>
+          <span className="font-bold text-cas-on-surface">{formatCurrency(request.unitPrice)}</span>
+        </div>
+        {request.options.map((option) => (
+          <div className="flex justify-between gap-4" key={`${option.groupName}-${option.name}`}>
+            <span className="text-cas-on-surface-variant">
+              {option.groupName}: <strong className="text-cas-on-surface">{option.name}</strong>
+            </span>
+            <span className="font-bold text-cas-on-surface">
+              {option.unitPrice > 0 ? `+${formatCurrency(option.unitPrice)}` : "Miễn phí"}
+            </span>
+          </div>
+        ))}
+        <div className="flex justify-between gap-4">
+          <span className="text-cas-on-surface-variant">Đơn giá mỗi phần</span>
+          <span className="font-bold text-cas-on-surface">{formatCurrency(unitAmount)}</span>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-4 text-sm">
+        <span className="font-bold text-cas-on-surface-variant">Số lượng yêu cầu: {request.quantity}</span>
+        <span className="font-black text-cas-primary">{formatCurrency(requestedAmount)}</span>
+      </div>
+    </div>
+  );
+}
 
 export function OperatorCancellationRequestsView() {
   const [requests, setRequests] = useState<CancellationRequest[]>(initialRequests);
@@ -224,7 +296,7 @@ export function OperatorCancellationRequestsView() {
           }}
         >
           <section
-            className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            className="w-full max-w-xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
             aria-labelledby="approve-dialog-title"
             role="dialog"
             aria-modal="true"
@@ -247,22 +319,7 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/60 p-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-cas-on-surface-variant">Vị trí:</span>
-                <strong className="font-extrabold">{activeModal.request.table}</strong>
-              </div>
-              <div className="mt-2 flex justify-between text-sm">
-                <span className="text-cas-on-surface-variant">Món hủy:</span>
-                <strong className="font-extrabold text-cas-primary">
-                  {activeModal.request.item}
-                </strong>
-              </div>
-              <div className="mt-2 flex justify-between text-sm">
-                <span className="text-cas-on-surface-variant">Số lượng:</span>
-                <strong className="font-extrabold">{activeModal.request.quantity}</strong>
-              </div>
-            </div>
+            <CancellationItemDetails request={activeModal.request} />
 
             <div className="mt-4 space-y-4">
               <div>
@@ -337,7 +394,7 @@ export function OperatorCancellationRequestsView() {
           }}
         >
           <section
-            className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            className="w-full max-w-xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
             aria-labelledby="reject-dialog-title"
             role="dialog"
             aria-modal="true"
@@ -360,15 +417,7 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/60 p-4">
-              <p className="text-xs text-cas-on-surface-variant">
-                Bàn: <strong className="text-cas-on-surface">{activeModal.request.table}</strong>
-              </p>
-              <p className="mt-1 text-xs text-cas-on-surface-variant">
-                Món: <strong className="text-cas-on-surface">{activeModal.request.item}</strong> (
-                {activeModal.request.quantity})
-              </p>
-            </div>
+            <CancellationItemDetails request={activeModal.request} />
 
             <div className="mt-4">
               <label className="block text-xs font-bold">

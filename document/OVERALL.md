@@ -169,7 +169,7 @@ khi chưa có quyết định tiếp theo.
 ### 4.2. Ngoài phạm vi hiện tại
 
 - Đổi bàn, chuyển bàn hoặc gộp bàn giữa các phiên bàn.
-- Quản lý nhân viên, ca làm và chấm công.
+- Quản lý nhân viên, ca làm, chấm công và khai báo tiền mặt đầu ca/cuối ca.
 - Ma trận phân quyền chi tiết theo từng API.
 - Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
@@ -423,6 +423,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 
 - Cải thiện quy trình xử lý order.
 - Báo cáo vận hành cơ bản.
+- Khai báo tiền mặt đầu ca và cuối ca; phạm vi đối soát, dữ liệu lưu và quy trình xử lý chênh lệch sẽ được chốt trước khi triển khai.
 - Tinh chỉnh ma trận phân quyền theo từng API nếu cần.
 - Tối ưu trải nghiệm và hiệu năng.
 

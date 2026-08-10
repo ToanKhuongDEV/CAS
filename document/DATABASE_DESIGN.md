@@ -916,6 +916,7 @@ Thiết kế hiện tại chưa bao gồm:
 
 - Đổi bàn, chuyển bàn, tách bàn hoặc gộp bàn giữa các table session.
 - Hồ sơ và lịch sử nhân viên.
+- Dữ liệu khai báo tiền mặt đầu ca/cuối ca, đối soát quỹ theo ca và xử lý chênh lệch.
 - Ma trận phân quyền chi tiết theo từng API.
 - Kho và nguyên vật liệu.
 - Điểm thành viên và chương trình tích điểm.

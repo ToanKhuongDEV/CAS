@@ -35,6 +35,7 @@ Ngoài phạm vi hiện tại:
 - Tự động hết hạn payment đang chờ xác nhận.
 - Màn hình bếp/phục vụ riêng.
 - Theo dõi trạng thái chế biến từng món.
+- Khai báo tiền mặt đầu ca/cuối ca, đối soát tiền mặt theo ca và xử lý chênh lệch quỹ.
 
 ## 3. Tác nhân và role
 

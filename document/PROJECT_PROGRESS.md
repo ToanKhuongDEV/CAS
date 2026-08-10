@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-10
+Ngày cập nhật gần nhất: 2026-08-11
 
 ## Quy ước
 
@@ -192,7 +192,7 @@ Ngày cập nhật gần nhất: 2026-08-10
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
       giao dịch thành công.
-- [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món.
+- [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món, hiển thị đầy đủ món gốc, option, đơn giá, số lượng và thành tiền cần đối chiếu.
 - [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
 - [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) cho phép nhân viên `OPERATOR` tạo và ghi nhận các sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`.
 - [x] Cập nhật hệ thống tài liệu thiết kế (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`, `PROJECT_PROGRESS.md`) phân định rõ: `OPERATOR` tạo báo cáo sự cố phát sinh, `ADMIN` có quyền xem và tra cứu danh sách báo cáo sự cố.
@@ -274,6 +274,7 @@ Ngày cập nhật gần nhất: 2026-08-10
 3. ~~Hoàn thiện cách xử lý các edge case còn lại.~~ (Đã hoàn thiện)
 4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
 5. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
+6. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
 
 ## 9. Tài liệu liên quan
 
