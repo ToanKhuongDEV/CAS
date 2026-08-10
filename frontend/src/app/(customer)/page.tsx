@@ -46,16 +46,16 @@ const menuCategories = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-hidden bg-cas-surface text-cas-on-surface transition-colors duration-200 [background-image:linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] [background-size:30px_30px]">
+    <div className="min-h-screen overflow-hidden bg-cas-surface text-cas-on-surface transition-colors duration-200 bg-[linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] bg-size-[30px_30px]">
       <CustomerHeader tableName="Bàn 05" />
 
-      <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
+      <div className="mx-auto flex w-full max-w-340 items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
         <CustomerBottomNavigation activeItem="home" />
 
         <main className="min-w-0 flex-1">
-          <section className="grid w-full pb-10 md:min-h-[44rem] md:grid-cols-[5fr_7fr] md:items-center md:gap-10 md:pt-4 md:pb-12">
+          <section className="grid w-full pb-10 md:min-h-176 md:grid-cols-[5fr_7fr] md:items-center md:gap-10 md:pt-4 md:pb-12">
             <div className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left">
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-cas-secondary-container/30 px-4 py-2 text-[0.72rem] font-semibold tracking-[0.1em] text-cas-secondary uppercase">
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-cas-secondary-container/30 px-4 py-2 text-[0.72rem] font-semibold tracking-widest text-cas-secondary uppercase">
                 <CasIcon className="size-4.5" name="sparkle" />
                 Mỳ cay, gà rán &amp; coffee
               </p>
@@ -65,13 +65,13 @@ export default function Home() {
                 đến <em className="text-cas-primary">Cas</em>
               </h1>
 
-              <p className="mt-4 max-w-[31rem] text-[0.93rem] leading-[1.65] text-cas-on-surface-variant md:text-[1.05rem]">
+              <p className="mt-4 max-w-124 text-[0.93rem] leading-[1.65] text-cas-on-surface-variant md:text-[1.05rem]">
                 Cùng chọn món ngon cho bàn của bạn. Thưởng thức mỳ cay 7 cấp độ, gà rán giòn tan
                 cùng cà phê, trà sữa và đồ uống mát lạnh.
               </p>
 
               <Link
-                className="mt-6 inline-flex min-h-14 w-full max-w-[21rem] items-center justify-center gap-3.5 rounded-xl bg-cas-primary px-7 font-bold text-cas-on-primary shadow-[0_10px_28px_var(--cas-shadow-color)] transition duration-200 hover:-translate-y-0.5 hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring md:w-auto md:min-w-[13.5rem]"
+                className="mt-6 inline-flex min-h-14 w-full max-w-84 items-center justify-center gap-3.5 rounded-xl bg-cas-primary px-7 font-bold text-cas-on-primary shadow-[0_10px_28px_var(--cas-shadow-color)] transition duration-200 hover:-translate-y-0.5 hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring md:w-auto md:min-w-54"
                 href="/menu"
               >
                 Bắt đầu gọi món
@@ -79,13 +79,13 @@ export default function Home() {
               </Link>
 
               <div
-                className="mt-6 grid w-full max-w-[23rem] grid-cols-3 divide-x divide-cas-outline-variant text-cas-on-surface-variant md:w-auto"
+                className="mt-6 grid w-full max-w-92 grid-cols-3 divide-x divide-cas-outline-variant text-cas-on-surface-variant md:w-auto"
                 aria-label="Thông tin nổi bật"
               >
                 {quickStats.map((stat) => (
                   <div className="flex flex-col items-center px-3 md:items-start" key={stat.label}>
                     <strong className="text-[1.05rem] text-cas-on-surface">{stat.value}</strong>
-                    <span className="mt-0.5 text-[0.55rem] font-bold tracking-[0.1em] uppercase">
+                    <span className="mt-0.5 text-[0.55rem] font-bold tracking-widest uppercase">
                       {stat.label}
                     </span>
                   </div>
@@ -93,11 +93,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div
-              className="relative mt-8 h-[28rem] md:mt-0 md:h-[37rem]"
-              aria-label="Món ăn nổi bật"
-            >
-              <div className="group absolute top-0 right-0 h-[79%] w-[82%] overflow-hidden rounded-[2rem] shadow-[0_22px_48px_var(--cas-shadow-color)]">
+            <div className="relative mt-8 h-112 md:mt-0 md:h-148" aria-label="Món ăn nổi bật">
+              <div className="group absolute top-0 right-0 h-[79%] w-[82%] overflow-hidden rounded-4xl shadow-[0_22px_48px_var(--cas-shadow-color)]">
                 <Image
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                   src="/images/welcome/spicy-noodles.jpg"
@@ -116,6 +113,8 @@ export default function Home() {
                   src="/images/welcome/street-snacks.jpg"
                   alt="Các món ăn vặt gồm cá viên, khoai tây chiên và xiên que"
                   fill
+                  loading="eager"
+                  priority
                   sizes="(max-width: 767px) 58vw, 28vw"
                 />
               </div>
@@ -156,7 +155,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
               {menuCategories.map((category, index) => (
                 <Link
-                  className="group relative min-h-52 overflow-hidden rounded-[1.15rem] shadow-[0_8px_24px_var(--cas-shadow-color)] last:col-span-2 last:min-h-44 md:min-h-[23rem] md:last:col-span-1 md:last:min-h-[23rem]"
+                  className="group relative min-h-52 overflow-hidden rounded-[1.15rem] shadow-[0_8px_24px_var(--cas-shadow-color)] last:col-span-2 last:min-h-44 md:min-h-92 md:last:col-span-1 md:last:min-h-92"
                   key={category.title}
                   href={category.href}
                   aria-label={category.title}

@@ -1,5 +1,6 @@
 "use client";
 
+import { QRCodeCanvas } from "qrcode.react";
 import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
@@ -12,11 +13,11 @@ type TableItem = {
 };
 
 const mockTables: TableItem[] = [
-  { id: 1, code: 1, qrToken: "qr-tb-001-fix", sessionStatus: "OPEN" },
-  { id: 2, code: 2, qrToken: "qr-tb-002-fix", sessionStatus: "OPEN" },
-  { id: 3, code: 3, qrToken: "qr-tb-003-mob", sessionStatus: "CLOSED" },
-  { id: 4, code: 4, qrToken: "qr-tb-004-fix", sessionStatus: "PAYMENT_PENDING" },
-  { id: 5, code: 5, qrToken: "qr-tb-005-fix", sessionStatus: "CLOSED" },
+  { id: 1, code: 1, qrToken: "CAS_TABLE_001", sessionStatus: "OPEN" },
+  { id: 2, code: 2, qrToken: "CAS_TABLE_002", sessionStatus: "OPEN" },
+  { id: 3, code: 3, qrToken: "CAS_TABLE_003", sessionStatus: "CLOSED" },
+  { id: 4, code: 4, qrToken: "CAS_TABLE_004", sessionStatus: "PAYMENT_PENDING" },
+  { id: 5, code: 5, qrToken: "CAS_TABLE_005", sessionStatus: "CLOSED" },
 ];
 
 export default function AdminTablesPage() {
@@ -41,10 +42,13 @@ export default function AdminTablesPage() {
       return;
     }
 
+    const formattedCode =
+      codeNum < 10 ? `00${codeNum}` : codeNum < 100 ? `0${codeNum}` : `${codeNum}`;
+
     const newTab: TableItem = {
       id: Date.now(),
       code: codeNum,
-      qrToken: `qr-tb-00${codeNum}-fix`,
+      qrToken: `CAS_TABLE_${formattedCode}`,
       sessionStatus: "CLOSED",
     };
     setTables([...tables, newTab]);
@@ -55,6 +59,16 @@ export default function AdminTablesPage() {
   const handleDeleteTable = (id: number) => {
     setTables((prev) => prev.filter((t) => t.id !== id));
     setDeletingTable(null);
+  };
+
+  const downloadQRCode = (tableCode: number) => {
+    const canvas = document.getElementById(`qr-code-canvas-${tableCode}`) as HTMLCanvasElement;
+    if (!canvas) return;
+    const image = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = image;
+    link.download = `QR-Code-Ban-${tableCode}.png`;
+    link.click();
   };
 
   const filteredTables = tables.filter((t) => {
@@ -303,7 +317,7 @@ export default function AdminTablesPage() {
         </div>
       )}
 
-      {/* Modal Xem Mã QR */}
+      {/* Modal Xem Mã QR thực tế */}
       {selectedQR && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
@@ -321,13 +335,19 @@ export default function AdminTablesPage() {
               </button>
             </div>
 
-            <div className="mx-auto grid size-48 place-items-center rounded-2xl border border-cas-outline-variant/30 bg-white p-4 shadow-inner">
-              <div className="grid size-36 place-items-center rounded-xl border-4 border-dashed border-cas-primary/40 text-center font-mono text-[0.68rem] font-black text-cas-primary leading-tight">
-                [ QR CODE TOKEN ]<br />
-                <span className="mt-1 text-[0.65rem] text-cas-on-surface-variant">
-                  {selectedQR.qrToken}
-                </span>
-              </div>
+            <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-white p-5 shadow-inner">
+              <QRCodeCanvas
+                bgColor="#ffffff"
+                fgColor="#000000"
+                id={`qr-code-canvas-${selectedQR.code}`}
+                includeMargin
+                level="H"
+                size={180}
+                value={`${typeof window !== "undefined" ? window.location.origin : ""}/table/${selectedQR.qrToken}`}
+              />
+              <span className="mt-2 font-mono text-[0.65rem] font-bold text-gray-500">
+                {selectedQR.qrToken}
+              </span>
             </div>
 
             <p className="text-xs font-medium text-cas-on-surface-variant">
@@ -343,8 +363,13 @@ export default function AdminTablesPage() {
               >
                 Đóng
               </CasButton>
-              <CasButton className="w-full" size="sm" variant="primary">
-                Tải ảnh QR
+              <CasButton
+                className="w-full"
+                onClick={() => downloadQRCode(selectedQR.code)}
+                size="sm"
+                variant="primary"
+              >
+                Tải ảnh QR (PNG)
               </CasButton>
             </div>
           </div>

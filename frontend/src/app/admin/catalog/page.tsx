@@ -14,10 +14,20 @@ type MenuItem = {
   description?: string;
   displayOrder: number;
   optionGroups?: string[];
+  imageSrc?: string;
+  createdAt?: string;
 };
 
 type ItemDraft = Omit<MenuItem, "id">;
 type ModalMode = "create" | "edit" | "deactivate" | null;
+type SortOption =
+  | "DEFAULT"
+  | "ORDER_ASC"
+  | "ORDER_DESC"
+  | "PRICE_ASC"
+  | "PRICE_DESC"
+  | "CREATED_NEWEST"
+  | "CREATED_OLDEST";
 
 const categories = ["Mỳ Cay", "Gà Rán", "Đồ Ăn Vặt", "Đồ Uống"];
 const optionGroups = ["Cấp độ cay", "Kích thước", "Độ ngọt", "Topping"];
@@ -31,6 +41,8 @@ const emptyDraft: ItemDraft = {
   price: 0,
   status: "ACTIVE",
   tags: [],
+  imageSrc: "",
+  createdAt: new Date().toISOString().split("T")[0],
 };
 
 const mockItems: MenuItem[] = [
@@ -42,6 +54,8 @@ const mockItems: MenuItem[] = [
     price: 69000,
     status: "ACTIVE",
     tags: ["Bán chạy", "Cay"],
+    imageSrc: "/images/welcome/spicy-noodles.jpg",
+    createdAt: "2026-08-01",
   },
   {
     id: 2,
@@ -51,6 +65,8 @@ const mockItems: MenuItem[] = [
     price: 65000,
     status: "ACTIVE",
     tags: ["Bán chạy"],
+    imageSrc: "/images/welcome/spicy-noodles.jpg",
+    createdAt: "2026-08-02",
   },
   {
     id: 3,
@@ -60,6 +76,8 @@ const mockItems: MenuItem[] = [
     price: 39000,
     status: "SOLD_OUT",
     tags: ["Bán chạy"],
+    imageSrc: "/images/welcome/fried-chicken.jpg",
+    createdAt: "2026-08-03",
   },
   {
     id: 4,
@@ -69,6 +87,8 @@ const mockItems: MenuItem[] = [
     price: 32000,
     status: "ACTIVE",
     tags: [],
+    imageSrc: "/images/welcome/fried-chicken.jpg",
+    createdAt: "2026-08-04",
   },
   {
     id: 7,
@@ -78,6 +98,8 @@ const mockItems: MenuItem[] = [
     price: 18000,
     status: "ACTIVE",
     tags: ["Ăn vặt"],
+    imageSrc: "/images/welcome/street-snacks.jpg",
+    createdAt: "2026-08-05",
   },
   {
     id: 5,
@@ -87,6 +109,8 @@ const mockItems: MenuItem[] = [
     price: 35000,
     status: "SOLD_OUT",
     tags: ["Giải nhiệt"],
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    createdAt: "2026-08-06",
   },
   {
     id: 6,
@@ -96,6 +120,8 @@ const mockItems: MenuItem[] = [
     price: 28000,
     status: "ACTIVE",
     tags: [],
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    createdAt: "2026-08-07",
   },
 ];
 
@@ -104,12 +130,22 @@ export default function AdminCatalogPage() {
   const [filterCat, setFilterCat] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
+  const [sortBy, setSortBy] = useState<SortOption>("DEFAULT");
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [draft, setDraft] = useState<ItemDraft>(emptyDraft);
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const [isOptionGroupDropdownOpen, setIsOptionGroupDropdownOpen] = useState(false);
   const [imageFileName, setImageFileName] = useState("");
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkTargetStatus, setBulkTargetStatus] = useState<"ACTIVE" | "SOLD_OUT" | "INACTIVE" | "">(
+    "",
+  );
+  const [bulkMessage, setBulkMessage] = useState<{
+    text: string;
+    type: "success" | "warning";
+  } | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const optionGroupDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -124,6 +160,40 @@ export default function AdminCatalogPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleSelectItem = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((itemId) => itemId !== id)));
+  };
+
+  const applyBulkStatusUpdate = () => {
+    if (!bulkTargetStatus) {
+      setBulkMessage({ text: "Vui lòng chọn trạng thái cần đổi", type: "warning" });
+      setTimeout(() => setBulkMessage(null), 3000);
+      return;
+    }
+    if (selectedIds.length === 0) {
+      setBulkMessage({ text: "Vui lòng tích chọn các món cần đổi trạng thái", type: "warning" });
+      setTimeout(() => setBulkMessage(null), 3000);
+      return;
+    }
+    setItems((current) =>
+      current.map((item) =>
+        selectedIds.includes(item.id) ? { ...item, status: bulkTargetStatus } : item,
+      ),
+    );
+    const statusLabels: Record<string, string> = {
+      ACTIVE: "Đang bán",
+      SOLD_OUT: "Hết hàng",
+      INACTIVE: "Ngừng bán",
+    };
+    setBulkMessage({
+      text: `Đã cập nhật trạng thái "${statusLabels[bulkTargetStatus]}" cho ${selectedIds.length} món`,
+      type: "success",
+    });
+    setSelectedIds([]);
+    setBulkTargetStatus("");
+    setTimeout(() => setBulkMessage(null), 4000);
+  };
+
   const closeModal = () => {
     setModalMode(null);
     setSelectedItem(null);
@@ -131,6 +201,7 @@ export default function AdminCatalogPage() {
     setIsTagDropdownOpen(false);
     setIsOptionGroupDropdownOpen(false);
     setImageFileName("");
+    setImagePreview("");
   };
 
   const openEditModal = (item: MenuItem) => {
@@ -139,8 +210,21 @@ export default function AdminCatalogPage() {
       ...item,
       description: item.description ?? "",
       optionGroups: item.optionGroups ?? [],
+      imageSrc: item.imageSrc ?? "",
     });
+    setImagePreview(item.imageSrc ?? "");
+    setImageFileName(item.imageSrc ? "Ảnh hiện tại" : "");
     setModalMode("edit");
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImageFileName(file.name);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      setDraft((current) => ({ ...current, imageSrc: previewUrl }));
+    }
   };
 
   const saveItem = (event: React.FormEvent<HTMLFormElement>) => {
@@ -179,10 +263,19 @@ export default function AdminCatalogPage() {
       const matchSearch = item.name.toLowerCase().includes(search.toLowerCase());
       return matchCat && matchStatus && matchSearch;
     })
-    .sort(
-      (first, second) =>
-        first.category.localeCompare(second.category) || first.displayOrder - second.displayOrder,
-    );
+    .sort((first, second) => {
+      if (sortBy === "ORDER_ASC") return first.displayOrder - second.displayOrder;
+      if (sortBy === "ORDER_DESC") return second.displayOrder - first.displayOrder;
+      if (sortBy === "PRICE_ASC") return first.price - second.price;
+      if (sortBy === "PRICE_DESC") return second.price - first.price;
+      if (sortBy === "CREATED_NEWEST")
+        return (second.createdAt ?? "").localeCompare(first.createdAt ?? "");
+      if (sortBy === "CREATED_OLDEST")
+        return (first.createdAt ?? "").localeCompare(second.createdAt ?? "");
+      return (
+        first.category.localeCompare(second.category) || first.displayOrder - second.displayOrder
+      );
+    });
 
   return (
     <div className="space-y-6">
@@ -225,7 +318,7 @@ export default function AdminCatalogPage() {
             onChange={(event) => setFilterCat(event.target.value)}
             value={filterCat}
           >
-            <option value="ALL">Tất cả</option>
+            <option value="ALL">Tất cả danh mục</option>
             <option value="FOOD">Đồ ăn</option>
             <option value="DRINK">Đồ uống</option>
           </select>
@@ -243,25 +336,93 @@ export default function AdminCatalogPage() {
             <option value="INACTIVE">Ngừng bán</option>
             <option value="SOLD_OUT">Hết hàng</option>
           </select>
+          <label className="sr-only" htmlFor="catalog-sort-filter">
+            Sắp xếp danh sách
+          </label>
+          <select
+            className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+            id="catalog-sort-filter"
+            onChange={(event) => setSortBy(event.target.value as SortOption)}
+            value={sortBy}
+          >
+            <option value="DEFAULT">Sắp xếp: Mặc định</option>
+            <option value="ORDER_ASC">Thứ tự hiển thị (Thấp → Cao)</option>
+            <option value="ORDER_DESC">Thứ tự hiển thị (Cao → Thấp)</option>
+            <option value="PRICE_ASC">Giá tăng dần</option>
+            <option value="PRICE_DESC">Giá giảm dần</option>
+            <option value="CREATED_NEWEST">Ngày tạo (Mới nhất)</option>
+            <option value="CREATED_OLDEST">Ngày tạo (Cũ nhất)</option>
+          </select>
           <CasButton
             onClick={() => {
               setFilterCat("ALL");
               setFilterStatus("ALL");
               setSearch("");
+              setSortBy("DEFAULT");
             }}
             size="sm"
             variant="outline"
           >
             Xóa lọc
           </CasButton>
+
+          {/* Always Visible Bulk Update Control */}
+          <div className="ml-auto flex flex-wrap items-center gap-2 border-t border-cas-outline-variant/20 pt-2 sm:ml-0 sm:border-t-0 sm:border-l sm:border-cas-outline-variant/30 sm:pt-0 sm:pl-3">
+            <label className="sr-only" htmlFor="bulk-status-select">
+              Cập nhật trạng thái hàng loạt
+            </label>
+            <select
+              className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+              id="bulk-status-select"
+              onChange={(e) =>
+                setBulkTargetStatus(e.target.value as "ACTIVE" | "SOLD_OUT" | "INACTIVE" | "")
+              }
+              value={bulkTargetStatus}
+            >
+              <option value="">-- Đổi trạng thái hàng loạt --</option>
+              <option value="ACTIVE">Chuyển &quot;Đang bán&quot;</option>
+              <option value="SOLD_OUT">Chuyển &quot;Hết hàng&quot;</option>
+              <option value="INACTIVE">Chuyển &quot;Ngừng bán&quot;</option>
+            </select>
+            <CasButton onClick={applyBulkStatusUpdate} size="sm" variant="outline-primary">
+              Áp dụng {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
+            </CasButton>
+            {selectedIds.length > 0 ? (
+              <button
+                className="cursor-pointer text-xs font-semibold text-cas-on-surface-variant underline hover:text-cas-on-surface"
+                onClick={() => setSelectedIds([])}
+                type="button"
+              >
+                Bỏ chọn
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {bulkMessage ? (
+        <div
+          className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xs ${
+            bulkMessage.type === "success"
+              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          <CasIcon
+            className="size-4 shrink-0"
+            name={bulkMessage.type === "success" ? "check" : "info"}
+          />
+          <span>{bulkMessage.text}</span>
+        </div>
+      ) : null}
 
       {/* Table Danh sách Món */}
       <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
         <table className="w-full text-left text-xs">
-          <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 text-cas-on-surface-variant font-extrabold uppercase">
+          <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 font-extrabold uppercase text-cas-on-surface-variant">
             <tr>
+              <th className="w-12 px-4 py-4 text-center" />
               <th className="px-6 py-4">Tên Món</th>
               <th className="px-6 py-4">Danh mục</th>
               <th className="px-6 py-4 text-center">Thứ tự hiển thị</th>
@@ -273,9 +434,36 @@ export default function AdminCatalogPage() {
           </thead>
           <tbody className="divide-y divide-cas-outline-variant/15 font-bold">
             {filtered.map((item) => (
-              <tr key={item.id} className="hover:bg-cas-surface-container/30 transition">
+              <tr
+                key={item.id}
+                className={`transition hover:bg-cas-surface-container/30 ${
+                  selectedIds.includes(item.id) ? "bg-cas-primary/5" : ""
+                }`}
+              >
+                <td className="px-4 py-4 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                    className="size-4 cursor-pointer rounded border-cas-outline-variant/50 text-cas-primary focus:ring-cas-primary"
+                    aria-label={`Chọn món ${item.name}`}
+                  />
+                </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-black text-cas-on-surface">{item.name}</span>
+                  <div className="flex items-center gap-3">
+                    {item.imageSrc ? (
+                      <img
+                        src={item.imageSrc}
+                        alt={item.name}
+                        className="size-10 rounded-xl object-cover border border-cas-outline-variant/30 shrink-0"
+                      />
+                    ) : (
+                      <div className="size-10 rounded-xl bg-cas-surface-container flex items-center justify-center border border-cas-outline-variant/30 shrink-0">
+                        <CasIcon name="sparkle" className="size-4 text-cas-on-surface-variant/50" />
+                      </div>
+                    )}
+                    <span className="text-sm font-black text-cas-on-surface">{item.name}</span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-cas-on-surface-variant">{item.category}</td>
                 <td className="px-6 py-4 text-center font-black text-cas-on-surface-variant">
@@ -486,18 +674,44 @@ export default function AdminCatalogPage() {
                   value={draft.description}
                 />
               </label>
-              <label className="block text-xs font-bold text-cas-on-surface-variant">
-                Ảnh món
-                <input
-                  accept="image/*"
-                  className="mt-1 block w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm text-cas-on-surface file:mr-3 file:rounded-lg file:border-0 file:bg-cas-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-cas-primary"
-                  onChange={(event) => setImageFileName(event.target.files?.[0]?.name ?? "")}
-                  type="file"
-                />
-              </label>
-              {imageFileName ? (
-                <p className="text-xs text-cas-on-surface-variant">Đã chọn: {imageFileName}</p>
-              ) : null}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-cas-on-surface-variant">
+                  Ảnh món
+                  <input
+                    accept="image/*"
+                    className="mt-1 block w-full cursor-pointer rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm text-cas-on-surface file:mr-3 file:rounded-lg file:border-0 file:bg-cas-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-cas-primary"
+                    onChange={handleFileChange}
+                    type="file"
+                  />
+                </label>
+                {imagePreview ? (
+                  <div className="relative mt-2 flex items-center gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container/60 p-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imagePreview}
+                      alt="Xem trước ảnh món"
+                      className="size-16 shrink-0 rounded-xl border border-cas-outline-variant/30 object-cover shadow-xs"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-cas-on-surface">
+                        {imageFileName || "Ảnh món khả dụng"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview("");
+                        setImageFileName("");
+                        setDraft((current) => ({ ...current, imageSrc: "" }));
+                      }}
+                      className="rounded-lg p-1.5 text-cas-on-surface-variant transition hover:bg-rose-500/10 hover:text-rose-600"
+                      title="Xóa ảnh xem trước"
+                    >
+                      <CasIcon name="trash" className="size-4" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <div
                 className="relative text-xs font-bold text-cas-on-surface-variant"
                 ref={tagDropdownRef}
