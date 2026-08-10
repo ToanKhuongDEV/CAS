@@ -83,10 +83,9 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
 | Vận hành | `operational_incidents` | Báo cáo sự cố phát sinh do nhân viên vận hành ghi nhận trong ca |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
-| Khuyến mãi | `promotions` | Chương trình khuyến mãi và loại ưu đãi |
-| Khuyến mãi | `promotion_codes` | Mã khuyến mãi, như `ZALO10` hoặc `TET2027` |
+| Khuyến mãi | `promotions` | Chương trình khuyến mãi, mã nhập và loại ưu đãi |
 | Khuyến mãi | `promotion_targets` | Phạm vi áp dụng theo món hoặc danh mục |
-| Khuyến mãi | `promotion_redemptions` | Lịch sử chương trình hoặc mã đã được sử dụng |
+| Khuyến mãi | `promotion_redemptions` | Lịch sử chương trình đã được sử dụng |
 | Giảm giá bill | `bill_discounts` | Snapshot discount thực tế áp dụng cho bill của table session |
 | Thông báo | `system_notifications` | Thông báo hệ thống và tin tức vận hành |
 
@@ -119,7 +118,6 @@ stores
   ├── client_accounts
   ├── operational_incidents
   └── promotions
-        ├── promotion_codes
         ├── promotion_targets
         └── promotion_redemptions
 
@@ -326,6 +324,7 @@ cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn 
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu promotion |
 | `name` | `VARCHAR(150) NOT NULL` | Tên chương trình để hiển thị và snapshot |
+| `code` | `VARCHAR(50) NOT NULL` | Mã nhập của promotion, như `ZALO10` hoặc `TET2027`; unique theo store |
 | `promotion_type` | `VARCHAR(30) NOT NULL` | `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF` |
 | `discount_value` | `DECIMAL(15,2) NULL` | Giá trị giảm khi loại promotion sử dụng giá trị này |
 | `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF`; `NULL` là không giới hạn |
@@ -343,15 +342,7 @@ cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn 
 
 Promotion hết hạn được suy ra khi `now > end_at`; không có trạng thái `EXPIRED`
 được lưu. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn không thuộc mô
-hình 5 bảng hiện tại; chỉ tách bảng điều kiện khi cần mở rộng các rule đó.
-
-#### `promotion_codes`
-
-Lưu mã như `ZALO10`, `TET2027`; mỗi record có `store_id`, `promotion_id`,
-`code` và `max_redemptions` nullable. Promotion không có code không tự động áp
-dụng: backend vẫn chỉ trả nó về trong danh sách lựa chọn nếu bill đủ điều kiện.
-Promotion có code chỉ được chọn khi khách nhập đúng code. Quota theo code chỉ
-cần khi một promotion có nhiều code với giới hạn riêng.
+hình hiện tại; chỉ tách bảng điều kiện khi cần mở rộng các rule đó.
 
 #### `promotion_targets`
 
@@ -363,11 +354,11 @@ của chương trình.
 #### `promotion_redemptions`
 
 Lưu lịch sử sử dụng sau khi payment của table session đã chuyển `PAID`. Mỗi
-record có `store_id`, `promotion_id`, `promotion_code_id` nếu có,
-`client_account_id`, `table_session_id`, `payment_id`, `status`, `created_at`
-và `reversed_at` khi phù hợp. Trạng thái gồm `COMPLETED` và `REVERSED`;
-redemption `REVERSED` không được tính vào quota sử dụng. Backend kiểm tra quota
-theo promotion, code và `client_account_id` trong transaction tạo redemption.
+record có `store_id`, `promotion_id`, `client_account_id`, `table_session_id`,
+`payment_id`, `status`, `created_at` và `reversed_at` khi phù hợp. Trạng thái
+gồm `COMPLETED` và `REVERSED`; redemption `REVERSED` không được tính vào quota
+sử dụng. Backend kiểm tra quota theo promotion và `client_account_id` trong
+transaction tạo redemption.
 
 #### `bill_discounts`
 
@@ -376,11 +367,11 @@ backend có thể tính lại discount khi order của session thay đổi. Khi 
 chuyển `PAYMENT_PENDING`, các bảng snapshot discount được khóa bất biến.
 
 Mỗi record snapshot có `store_id` và phải lưu tối thiểu `promotion_id`,
-`promotion_code_id` nếu có, `promotion_name`, `code`, `promotion_type`,
-`discount_value`, `discount_amount`, `max_discount_amount`, các điều kiện quan
-trọng và `promotion_snapshot` dạng JSON. `bill_discounts` gắn với
-`table_session_id` và bill/payment khi đã được tạo; không phân bổ discount cấp
-bill xuống từng order hoặc từng dòng món trong giai đoạn hiện tại.
+`promotion_name`, `code`, `promotion_type`, `discount_value`, `discount_amount`,
+`max_discount_amount`, các điều kiện quan trọng và `promotion_snapshot` dạng
+JSON. `bill_discounts` gắn với `table_session_id` và bill/payment khi đã được
+tạo; không phân bổ discount cấp bill xuống từng order hoặc từng dòng món trong
+giai đoạn hiện tại.
 
 Giá niêm yết `menu_items.price` không bị sửa khi chạy promotion. Snapshot
 discount là nguồn xác định số tiền giảm của bill lịch sử khi promotion hoặc code
@@ -470,7 +461,6 @@ Lưu các món thuộc order.
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh dòng món |
-| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `order_id` | `BIGINT UNSIGNED NOT NULL` | Order |
 | `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Tham chiếu món gốc |
 | `item_name` | `VARCHAR(150) NOT NULL` | Tên món được ghi nhận trong order |
@@ -540,7 +530,6 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh yêu cầu |
-| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món cần hủy |
 | `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên khởi tạo yêu cầu hủy (Hủy sự cố); `NULL` khi do Khách tự gửi |
 | `created_by_name` | `VARCHAR(150) NULL` | Tên người khởi tạo yêu cầu tại thời điểm thao tác |
@@ -582,7 +571,6 @@ Ghi nhận trường hợp table session được đóng khi payment vẫn chưa
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bản ghi |
-| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn chưa thanh toán; duy nhất trong bảng |
 | `amount` | `DECIMAL(15,2) NOT NULL` | Tổng tiền chưa thanh toán tại thời điểm ghi nhận |
 | `bill_snapshot` | `JSON NOT NULL` | Toàn bộ nội dung bill tại thời điểm ghi nhận chưa thanh toán |
@@ -806,9 +794,7 @@ Trong đó:
 | Unpaid record — Payment | Một - một payment của cùng table session dùng để xác định kết quả |
 | Table session — Payment | Một - không hoặc một |
 | Store — Promotion | Một - nhiều |
-| Store — Promotion code/redemption | Một - nhiều |
 | Store — Bill discount | Một - nhiều |
-| Promotion — Promotion code | Một - nhiều |
 | Promotion — Promotion target | Một - nhiều |
 | Promotion — Promotion redemption | Một - nhiều |
 | Table session — Promotion redemption | Một - nhiều theo lịch sử |
@@ -862,21 +848,20 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - `menu_item_option_groups`: unique `menu_item_id + option_group_id`.
 - `orders`: unique `public_id`, `order_number` và cặp `table_session_id + idempotency_key`.
 - `orders.request_fingerprint`: bắt buộc, do backend tạo từ SHA-256 của payload đã chuẩn hóa; không đặt unique constraint.
-- `order_items`: unique `public_id`.
+- `order_items`: unique `order_id + menu_item_id` chỉ khi cùng cấu hình option (kiểm tra trong Java).
 - `order_item_options`: unique `order_item_id + option_value_id`.
 - Catalog đã được tham chiếu bởi order chỉ được chuyển `INACTIVE`, không xóa vật lý; snapshot trong order vẫn là nguồn hiển thị lịch sử.
-- `order_item_cancellation_requests`: unique `public_id` và cặp `order_item_id + idempotency_key`.
+- `order_item_cancellation_requests`: unique `order_item_id + idempotency_key`.
 - Tạo/resolve cancellation và chuyển session sang `PAYMENT_PENDING` phải khóa session hoặc dùng transaction tương đương để không phát sinh thay đổi sau khi bill bị khóa.
-- `unpaid_records`: unique `public_id`, `table_session_id` và `resolution_payment_id`.
+- `unpaid_records`: unique `table_session_id` và `resolution_payment_id`.
 - `payments`: unique `public_id` và `table_session_id`.
 - Confirm lặp trên payment đã `PAID` là thao tác đọc idempotent: không cập nhật dữ liệu và không tạo audit log mới.
 - Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
 - `accounts`: unique `store_id + username`.
 - `client_accounts`: unique `store_id + phone`.
-- `promotions`: unique `public_id`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
-- `promotion_codes`: unique `store_id + code`.
+- `promotions`: unique `public_id` và `store_id + code`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
 - `promotion_targets`: unique `promotion_id + target_type + target_id`.
-- `promotion_redemptions`: unique `payment_id` để confirm payment lặp không tạo redemption thứ hai; index theo promotion/code/khách hàng và `status` phục vụ kiểm tra quota.
+- `promotion_redemptions`: unique `payment_id` để confirm payment lặp không tạo redemption thứ hai; index theo `promotion_id`, `client_account_id` và `status` phục vụ kiểm tra quota.
 - `bill_discounts`: unique `payment_id` vì mỗi bill hiện chỉ áp dụng tối đa một promotion.
 
 ### 8.3. Quy tắc chỉ kiểm tra trong Java

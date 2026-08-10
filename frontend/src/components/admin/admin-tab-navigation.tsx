@@ -23,7 +23,7 @@ const adminNavSchema: MenuItemGroup[] = [
     label: "Tổng quan",
   },
   {
-    label: "Menu & Voucher",
+    label: "Menu & Promotion",
     items: [
       {
         label: "Catalog",
@@ -34,7 +34,7 @@ const adminNavSchema: MenuItemGroup[] = [
         ],
       },
       { href: "/admin/catalog/tags", label: "Nhãn món" },
-      { href: "/admin/vouchers", label: "Mã giảm giá (Vouchers)" },
+      { href: "/admin/promotions", label: "Khuyến mãi (Promotions)" },
       { href: "/admin/tables", label: "Sơ đồ Bàn & Mã QR" },
     ],
   },

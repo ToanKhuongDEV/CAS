@@ -201,8 +201,10 @@ Ngày cập nhật gần nhất: 2026-08-10
 - [x] Tăng kích thước font chữ cấp 1 của thanh điều hướng AdminTabNavigation lên text-base (tăng 2 cấp font), giữ nguyên kích thước text-xs cho menu cấp 2 trong popup dropdown; đổi nhãn menu nhóm từ "Vận hành & Nhân sự" thành "Sự cố và Nhân sự"; bảo đảm duy nhất tab "Sự cố và Nhân sự" hiển thị badge đếm số thông báo.
 - [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ và quy tắc dữ liệu cho khuyến mãi và Thông báo hệ thống (Notifications).
 - [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`) theo mô hình cũ.
-- [ ] Điều chỉnh UI Quản lý Mã giảm giá sang mô hình Promotion sau khi API
-      contract và thiết kế cột dữ liệu được chốt.
+- [x] Điều chỉnh UI `/admin/vouchers` sang Promotion V1 bằng dữ liệu local:
+      tạo/sửa/kích hoạt-ngừng promotion, điều kiện cơ bản, thời gian, quota,
+      code, target món/danh mục và xem redemption; chờ API backend để thay dữ
+      liệu mock.
 - [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
