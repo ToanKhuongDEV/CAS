@@ -530,15 +530,13 @@ CREATE TABLE promotions (
     public_id CHAR(36) NOT NULL,
     store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
+    code VARCHAR(50) NOT NULL,
     promotion_type VARCHAR(30) NOT NULL,
     discount_value DECIMAL(15, 2) NULL,
     max_discount_amount DECIMAL(15, 2) NULL,
     min_bill_amount DECIMAL(15, 2) NULL,
-    min_quantity INT UNSIGNED NULL,
     max_redemptions INT UNSIGNED NULL,
     max_redemptions_per_customer INT UNSIGNED NULL,
-    priority INT NOT NULL DEFAULT 0,
-    is_stackable BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(20) NOT NULL,
     start_at DATETIME(3) NULL,
     end_at DATETIME(3) NULL,
@@ -546,6 +544,7 @@ CREATE TABLE promotions (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_promotions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_promotions_store_code UNIQUE (store_id, code),
     KEY idx_promotions_store_status_period (store_id, status, start_at, end_at),
     CONSTRAINT fk_promotions_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
@@ -675,3 +674,28 @@ CREATE TABLE bill_discounts (
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE system_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'INFO',
+    target_role VARCHAR(20) NOT NULL DEFAULT 'ALL',
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_system_notifications_store_role (store_id, target_role, created_at),
+    KEY idx_system_notifications_created_by (created_by),
+    CONSTRAINT fk_system_notifications_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_system_notifications_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+

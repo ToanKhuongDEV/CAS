@@ -594,7 +594,7 @@ Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của t
 ### Luồng chính
 
 1. `ADMIN` tạo `promotions` thuộc một `store`, chọn `promotion_type` là `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF`, rồi đặt `status` là `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
-2. `ADMIN` cấu hình trực tiếp tại promotion giá trị giảm, mức giảm tối đa, điều kiện cơ bản `min_bill_amount`/`min_quantity`, thời gian hiệu lực, quota, `priority` và `is_stackable`.
+2. `ADMIN` cấu hình trực tiếp tại promotion giá trị giảm, mức giảm tối đa, điều kiện cơ bản `min_bill_amount`, thời gian hiệu lực và quota.
 3. `ADMIN` cấu hình phạm vi món/danh mục tại `promotion_targets`, và code tại `promotion_codes` nếu chương trình yêu cầu khách nhập mã.
 4. Khi Customer hoặc `OPERATOR` xem bill, backend tải các promotion `ACTIVE` của đúng store, trong thời gian hiệu lực, kiểm tra điều kiện/code và trả danh sách promotion đủ điều kiện cùng số tiền dự kiến được giảm.
 5. Khách chọn tối đa một promotion cho bill của table session. Backend không tự chọn promotion có lợi nhất; muốn đổi promotion, khách phải bỏ promotion hiện tại rồi chọn promotion khác.

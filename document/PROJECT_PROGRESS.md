@@ -97,7 +97,7 @@ Ngày cập nhật gần nhất: 2026-08-10
 - [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
 - [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
 - [x] Tạo Flyway migration khởi tạo schema nền tảng.
-- [x] Cập nhật trực tiếp V1 khi schema chưa được áp dụng ở bất kỳ môi trường nào, bổ sung 5 bảng promotion/bill cùng foreign key, unique constraint và index cơ bản; không tạo migration V2.
+- [x] Cập nhật trực tiếp V1 DDL khi schema chưa được áp dụng ở bất kỳ môi trường nào: cập nhật bảng `promotions` (`code VARCHAR(50)`, `uk_promotions_store_code`, loại bỏ `min_quantity`, `priority` và `is_stackable`), bổ sung bảng `system_notifications` cùng foreign keys & unique constraints; không tạo migration V2.
 - [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
 - [x] Cập nhật tài liệu sang mô hình khuyến mãi 5 bảng `promotions`,
       `promotion_codes`, `promotion_targets`, `promotion_redemptions` và
@@ -201,10 +201,7 @@ Ngày cập nhật gần nhất: 2026-08-10
 - [x] Tăng kích thước font chữ cấp 1 của thanh điều hướng AdminTabNavigation lên text-base (tăng 2 cấp font), giữ nguyên kích thước text-xs cho menu cấp 2 trong popup dropdown; đổi nhãn menu nhóm từ "Vận hành & Nhân sự" thành "Sự cố và Nhân sự"; bảo đảm duy nhất tab "Sự cố và Nhân sự" hiển thị badge đếm số thông báo.
 - [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ và quy tắc dữ liệu cho khuyến mãi và Thông báo hệ thống (Notifications).
 - [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`) theo mô hình cũ.
-- [x] Điều chỉnh UI `/admin/vouchers` sang Promotion V1 bằng dữ liệu local:
-      tạo/sửa/kích hoạt-ngừng promotion, điều kiện cơ bản, thời gian, quota,
-      code, target món/danh mục và xem redemption; chờ API backend để thay dữ
-      liệu mock.
+- [x] Rà soát và hoàn thiện UI `/admin/promotions` đúng và đủ các field theo tài liệu & DB design: nhập số tiền tự động có dấu phân cách hàng nghìn (`1,000,000`), thời gian chuẩn `datetime-local` (`start_at`/`end_at`), cảnh báo loại giảm `ITEM_...` chưa chọn target, và tích hợp Modal xem lịch sử lượt sử dụng (`PromotionRedemption`).
 - [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.

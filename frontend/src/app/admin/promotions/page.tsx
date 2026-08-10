@@ -30,11 +30,8 @@ type Promotion = {
   discountValue: number;
   maxDiscountAmount: number | null;
   minBillAmount: number | null;
-  minQuantity: number | null;
   maxRedemptions: number | null;
   maxRedemptionsPerCustomer: number | null;
-  priority: number;
-  isStackable: boolean;
   status: PromotionStatus;
   startAt: string;
   endAt: string;
@@ -66,18 +63,27 @@ const mockPromotions: Promotion[] = [
     discountValue: 50000,
     maxDiscountAmount: null,
     minBillAmount: 200000,
-    minQuantity: null,
     maxRedemptions: 100,
     maxRedemptionsPerCustomer: 1,
-    priority: 10,
-    isStackable: false,
     status: "ACTIVE",
     startAt: "2026-08-01",
     endAt: "2026-08-31",
     targets: [],
     redemptions: [
-      { id: "red-1", customerName: "Nguyễn Minh Anh", amount: 50000, paidAt: "10/08/2026 19:20", status: "COMPLETED" },
-      { id: "red-2", customerName: "Trần Quốc Bảo", amount: 50000, paidAt: "09/08/2026 18:42", status: "COMPLETED" },
+      {
+        id: "red-1",
+        customerName: "Nguyễn Minh Anh",
+        amount: 50000,
+        paidAt: "10/08/2026 19:20",
+        status: "COMPLETED",
+      },
+      {
+        id: "red-2",
+        customerName: "Trần Quốc Bảo",
+        amount: 50000,
+        paidAt: "09/08/2026 18:42",
+        status: "COMPLETED",
+      },
     ],
   },
   {
@@ -88,17 +94,20 @@ const mockPromotions: Promotion[] = [
     discountValue: 15,
     maxDiscountAmount: 100000,
     minBillAmount: null,
-    minQuantity: 2,
     maxRedemptions: 50,
     maxRedemptionsPerCustomer: 2,
-    priority: 5,
-    isStackable: false,
     status: "ACTIVE",
     startAt: "2026-08-01",
     endAt: "2026-09-30",
     targets: [{ id: "target-1", targetType: "CATEGORY", targetId: "cat-3" }],
     redemptions: [
-      { id: "red-3", customerName: "Lê Thu Hà", amount: 24000, paidAt: "10/08/2026 15:10", status: "COMPLETED" },
+      {
+        id: "red-3",
+        customerName: "Lê Thu Hà",
+        amount: 24000,
+        paidAt: "10/08/2026 15:10",
+        status: "COMPLETED",
+      },
     ],
   },
   {
@@ -109,13 +118,26 @@ const mockPromotions: Promotion[] = [
     discountValue: 10000,
     maxDiscountAmount: null,
     minBillAmount: 50000,
-    minQuantity: null,
     maxRedemptions: null,
     maxRedemptionsPerCustomer: 1,
-    priority: 0,
-    isStackable: false,
     status: "DRAFT",
     startAt: "",
+    endAt: "",
+    targets: [],
+    redemptions: [],
+  },
+  {
+    id: "promo-4",
+    name: "Tri ân khách hàng thân thiết",
+    code: "VIPMEMBER",
+    promotionType: "PERCENT_OFF",
+    discountValue: 10,
+    maxDiscountAmount: 50000,
+    minBillAmount: 100000,
+    maxRedemptions: null,
+    maxRedemptionsPerCustomer: null,
+    status: "ACTIVE",
+    startAt: "2026-08-01",
     endAt: "",
     targets: [],
     redemptions: [],
@@ -142,11 +164,8 @@ const emptyForm = (): PromotionForm => ({
   discountValue: 20000,
   maxDiscountAmount: null,
   minBillAmount: null,
-  minQuantity: null,
   maxRedemptions: null,
   maxRedemptionsPerCustomer: 1,
-  priority: 0,
-  isStackable: false,
   status: "DRAFT",
   startAt: "",
   endAt: "",
@@ -156,6 +175,13 @@ const emptyForm = (): PromotionForm => ({
 function formatMoney(value: number | null) {
   if (value === null) return "Không giới hạn";
   return `${value.toLocaleString("vi-VN")}đ`;
+}
+
+function formatValidity(startAt: string, endAt: string) {
+  if (!startAt && !endAt) return "Vô thời hạn";
+  if (startAt && !endAt) return `Từ ${startAt} → ∞`;
+  if (!startAt && endAt) return `Đến ${endAt}`;
+  return `${startAt} → ${endAt}`;
 }
 
 function getTargetLabel(target: PromotionTarget) {
@@ -181,6 +207,7 @@ export default function AdminPromotionsPage() {
     promotionName?: string;
     nextStatus?: PromotionStatus;
   } | null>(null);
+  const [selectedRedemptionPromo, setSelectedRedemptionPromo] = useState<Promotion | null>(null);
   const [targetType, setTargetType] = useState<TargetType>("MENU_ITEM");
   const [targetId, setTargetId] = useState(menuItems[0].id);
 
@@ -220,11 +247,8 @@ export default function AdminPromotionsPage() {
       discountValue: promotion.discountValue,
       maxDiscountAmount: promotion.maxDiscountAmount,
       minBillAmount: promotion.minBillAmount,
-      minQuantity: promotion.minQuantity,
       maxRedemptions: promotion.maxRedemptions,
       maxRedemptionsPerCustomer: promotion.maxRedemptionsPerCustomer,
-      priority: promotion.priority,
-      isStackable: promotion.isStackable,
       status: promotion.status,
       startAt: promotion.startAt,
       endAt: promotion.endAt,
@@ -241,9 +265,7 @@ export default function AdminPromotionsPage() {
   };
 
   const addTarget = () => {
-    const exists = form.targets.some(
-      (t) => t.targetType === targetType && t.targetId === targetId,
-    );
+    const exists = form.targets.some((t) => t.targetType === targetType && t.targetId === targetId);
     if (exists) return;
     setForm((current) => ({
       ...current,
@@ -395,7 +417,7 @@ export default function AdminPromotionsPage() {
                 <span
                   className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[0.65rem] font-black ${statusTone}`}
                 >
-                  {quotaReached ? "ĐÃ HẾT QUOTA" : statusLabels[promotion.status].toUpperCase()}
+                  {quotaReached ? "ĐÃ HẾT LƯỢT DÙNG" : statusLabels[promotion.status].toUpperCase()}
                 </span>
               </div>
 
@@ -419,20 +441,15 @@ export default function AdminPromotionsPage() {
                 <div>
                   <p className="text-cas-on-surface-variant">Điều kiện</p>
                   <p className="mt-0.5 font-bold text-cas-on-surface">
-                    {[
-                      promotion.minBillAmount !== null
-                        ? `Bill từ ${formatMoney(promotion.minBillAmount)}`
-                        : null,
-                      promotion.minQuantity !== null ? `Từ ${promotion.minQuantity} món` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "Không yêu cầu"}
+                    {promotion.minBillAmount !== null
+                      ? `Bill từ ${formatMoney(promotion.minBillAmount)}`
+                      : "Không yêu cầu"}
                   </p>
                 </div>
                 <div>
                   <p className="text-cas-on-surface-variant">Hiệu lực</p>
                   <p className="mt-0.5 font-bold text-cas-on-surface">
-                    {promotion.startAt || "Không giới hạn"} → {promotion.endAt || "Không hết hạn"}
+                    {formatValidity(promotion.startAt, promotion.endAt)}
                   </p>
                 </div>
               </div>
@@ -452,16 +469,23 @@ export default function AdminPromotionsPage() {
 
               <div className="mt-4 flex flex-col gap-2 border-t border-cas-outline-variant/20 pt-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[0.7rem] font-bold text-cas-on-surface-variant">
-                  Quota:{" "}
+                  Lượt dùng:{" "}
                   <span className="text-cas-on-surface">
                     {completed}/{promotion.maxRedemptions ?? "∞"}
                   </span>{" "}
-                  · Mỗi khách:{" "}
+                  · Tối đa/khách:{" "}
                   <span className="text-cas-on-surface">
                     {promotion.maxRedemptionsPerCustomer ?? "∞"}
                   </span>
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRedemptionPromo(promotion)}
+                    className="rounded-xl px-2.5 py-1.5 text-xs font-bold text-cas-primary hover:bg-cas-primary/10 transition-colors"
+                  >
+                    Lịch sử dùng ({promotion.redemptions.length})
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEditForm(promotion)}
@@ -546,9 +570,7 @@ export default function AdminPromotionsPage() {
                   <Field label="Loại promotion">
                     <select
                       value={form.promotionType}
-                      onChange={(e) =>
-                        updateForm("promotionType", e.target.value as PromotionType)
-                      }
+                      onChange={(e) => updateForm("promotionType", e.target.value as PromotionType)}
                       className={inputClass}
                     >
                       {Object.entries(typeLabels).map(([value, label]) => (
@@ -559,24 +581,79 @@ export default function AdminPromotionsPage() {
                     </select>
                   </Field>
                   <Field label={typeUsesPercent ? "Tỷ lệ giảm (%)" : "Giá trị giảm (VNĐ)"}>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={form.discountValue}
-                      onChange={(e) => updateForm("discountValue", Number(e.target.value))}
-                      className={inputClass}
-                    />
+                    {typeUsesPercent ? (
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        required
+                        value={form.discountValue || ""}
+                        onChange={(e) => updateForm("discountValue", Number(e.target.value))}
+                        placeholder="VD: 15"
+                        className={inputClass}
+                      />
+                    ) : (
+                      <MoneyInput
+                        required
+                        value={form.discountValue}
+                        onChange={(v) => updateForm("discountValue", v ?? 0)}
+                        placeholder="VD: 50,000"
+                      />
+                    )}
                   </Field>
                   {typeUsesPercent && (
                     <Field label="Giảm tối đa (VNĐ)">
-                      <OptionalNumberInput
+                      <MoneyInput
                         value={form.maxDiscountAmount}
                         onChange={(v) => updateForm("maxDiscountAmount", v)}
                         placeholder="Không giới hạn"
                       />
                     </Field>
                   )}
+                </div>
+              </section>
+
+              {/* Section 2: Điều kiện áp dụng */}
+              <section className="space-y-4">
+                <FormTitle icon="settings" title="Điều kiện áp dụng" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Bill tối thiểu (VNĐ)">
+                    <MoneyInput
+                      value={form.minBillAmount}
+                      onChange={(v) => updateForm("minBillAmount", v)}
+                      placeholder="Không yêu cầu"
+                    />
+                  </Field>
+                  <Field label="Số lượt dùng tối đa">
+                    <OptionalNumberInput
+                      value={form.maxRedemptions}
+                      onChange={(v) => updateForm("maxRedemptions", v)}
+                      placeholder="Không giới hạn"
+                    />
+                  </Field>
+                  <Field label="Bắt đầu">
+                    <input
+                      type="datetime-local"
+                      value={form.startAt}
+                      onChange={(e) => updateForm("startAt", e.target.value)}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Kết thúc">
+                    <input
+                      type="datetime-local"
+                      value={form.endAt}
+                      onChange={(e) => updateForm("endAt", e.target.value)}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Số lượt dùng tối đa / khách">
+                    <OptionalNumberInput
+                      value={form.maxRedemptionsPerCustomer}
+                      onChange={(v) => updateForm("maxRedemptionsPerCustomer", v)}
+                      placeholder="Không giới hạn"
+                    />
+                  </Field>
                   <Field label="Trạng thái">
                     <select
                       value={form.status}
@@ -591,67 +668,6 @@ export default function AdminPromotionsPage() {
                     </select>
                   </Field>
                 </div>
-
-              </section>
-
-              {/* Section 2: Điều kiện & quota */}
-              <section className="space-y-4">
-                <FormTitle icon="settings" title="Điều kiện, hiệu lực & quota" />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="Bill tối thiểu (VNĐ)">
-                    <OptionalNumberInput
-                      value={form.minBillAmount}
-                      onChange={(v) => updateForm("minBillAmount", v)}
-                      placeholder="Không yêu cầu"
-                    />
-                  </Field>
-                  <Field label="Số món tối thiểu">
-                    <OptionalNumberInput
-                      value={form.minQuantity}
-                      onChange={(v) => updateForm("minQuantity", v)}
-                      placeholder="Không yêu cầu"
-                    />
-                  </Field>
-                  <Field label="Bắt đầu">
-                    <input
-                      type="date"
-                      value={form.startAt}
-                      onChange={(e) => updateForm("startAt", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Kết thúc">
-                    <input
-                      type="date"
-                      value={form.endAt}
-                      onChange={(e) => updateForm("endAt", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Quota toàn promotion">
-                    <OptionalNumberInput
-                      value={form.maxRedemptions}
-                      onChange={(v) => updateForm("maxRedemptions", v)}
-                      placeholder="Không giới hạn"
-                    />
-                  </Field>
-                  <Field label="Quota mỗi khách">
-                    <OptionalNumberInput
-                      value={form.maxRedemptionsPerCustomer}
-                      onChange={(v) => updateForm("maxRedemptionsPerCustomer", v)}
-                      placeholder="Không giới hạn"
-                    />
-                  </Field>
-                  <Field label="Priority">
-                    <input
-                      type="number"
-                      value={form.priority}
-                      onChange={(e) => updateForm("priority", Number(e.target.value))}
-                      className={inputClass}
-                    />
-                  </Field>
-
-                </div>
               </section>
             </div>
 
@@ -661,6 +677,12 @@ export default function AdminPromotionsPage() {
               <p className="text-[0.7rem] text-cas-on-surface-variant">
                 Không chọn target nghĩa là áp dụng trên toàn bill.
               </p>
+              {form.promotionType.startsWith("ITEM_") && form.targets.length === 0 && (
+                <p className="rounded-xl bg-cas-tertiary/10 p-2.5 text-xs font-bold text-cas-tertiary">
+                  ⚠️ Loại ưu đãi này áp dụng theo món/danh mục (`ITEM_...`). Vui lòng chọn ít nhất 1
+                  món ăn hoặc danh mục bên dưới.
+                </p>
+              )}
               <div className="flex gap-2">
                 <select
                   value={targetType}
@@ -798,6 +820,91 @@ export default function AdminPromotionsPage() {
             </div>
           );
         })()}
+
+      {/* Redemptions list modal */}
+      {selectedRedemptionPromo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+            onClick={() => setSelectedRedemptionPromo(null)}
+          />
+          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
+              <div>
+                <h3 className="text-base font-black text-cas-on-surface">
+                  Lịch sử sử dụng: {selectedRedemptionPromo.name}
+                </h3>
+                <p className="text-xs font-medium text-cas-on-surface-variant">
+                  Mã: {selectedRedemptionPromo.code || "Không dùng mã"} · Tổng lượt dùng:{" "}
+                  {selectedRedemptionPromo.redemptions.length}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRedemptionPromo(null)}
+                className="grid size-8 place-items-center rounded-xl text-cas-on-surface-variant hover:bg-cas-on-surface/5"
+                aria-label="Đóng modal lịch sử sử dụng"
+              >
+                <CasIcon name="close" className="size-5" />
+              </button>
+            </div>
+
+            {selectedRedemptionPromo.redemptions.length === 0 ? (
+              <p className="py-8 text-center text-xs font-bold text-cas-on-surface-variant">
+                Chưa có khách hàng nào sử dụng chương trình này.
+              </p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto rounded-2xl border border-cas-outline-variant/20">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-cas-surface/80 text-cas-on-surface-variant">
+                    <tr>
+                      <th className="p-3 font-bold">Khách hàng</th>
+                      <th className="p-3 font-bold">Số tiền giảm</th>
+                      <th className="p-3 font-bold">Thời gian thanh toán</th>
+                      <th className="p-3 font-bold">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cas-outline-variant/15 text-cas-on-surface">
+                    {selectedRedemptionPromo.redemptions.map((red) => (
+                      <tr key={red.id} className="hover:bg-cas-on-surface/5">
+                        <td className="p-3 font-bold">{red.customerName}</td>
+                        <td className="p-3 font-black text-cas-primary">
+                          {formatMoney(red.amount)}
+                        </td>
+                        <td className="p-3 font-medium text-cas-on-surface-variant">
+                          {red.paidAt}
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`inline-block rounded-md px-2 py-0.5 text-[0.65rem] font-bold ${
+                              red.status === "COMPLETED"
+                                ? "bg-cas-secondary/15 text-cas-secondary"
+                                : "bg-cas-error/15 text-cas-error"
+                            }`}
+                          >
+                            {red.status === "COMPLETED" ? "Hoàn thành" : "Đã hoàn trả (Reversed)"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <CasButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedRedemptionPromo(null)}
+              >
+                Đóng
+              </CasButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -856,6 +963,43 @@ function OptionalNumberInput({
       min="0"
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+      placeholder={placeholder}
+      className={inputClass}
+    />
+  );
+}
+
+function MoneyInput({
+  value,
+  onChange,
+  placeholder,
+  required = false,
+}: {
+  value: number | null;
+  onChange: (value: number | null) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  const displayValue =
+    value !== null && value !== undefined && !isNaN(value) ? value.toLocaleString("en-US") : "";
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/,/g, "").replace(/\D/g, "");
+    if (raw === "") {
+      onChange(null);
+    } else {
+      const num = Number(raw);
+      onChange(isNaN(num) ? null : num);
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      required={required}
+      value={displayValue}
+      onChange={handleChange}
       placeholder={placeholder}
       className={inputClass}
     />

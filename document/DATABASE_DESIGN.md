@@ -10,6 +10,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - Gọi món và xử lý order.
 - Yêu cầu thanh toán và xác nhận trạng thái thủ công.
 - Tài khoản, phân quyền theo role và nhật ký cơ bản.
+- Cấu hình khuyến mãi 
 
 ## 2. Nguyên tắc thiết kế
 
@@ -329,11 +330,8 @@ cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn 
 | `discount_value` | `DECIMAL(15,2) NULL` | Giá trị giảm khi loại promotion sử dụng giá trị này |
 | `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF`; `NULL` là không giới hạn |
 | `min_bill_amount` | `DECIMAL(15,2) NULL` | Giá trị bill tối thiểu; `NULL` là không yêu cầu |
-| `min_quantity` | `INT UNSIGNED NULL` | Số lượng món tối thiểu; `NULL` là không yêu cầu |
 | `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn tổng redemption `COMPLETED`; `NULL` là không giới hạn |
 | `max_redemptions_per_customer` | `INT UNSIGNED NULL` | Giới hạn số bill mỗi khách dùng promotion; `NULL` là không giới hạn |
-| `priority` | `INT NOT NULL DEFAULT 0` | Giá trị ưu tiên để mở rộng; phiên bản hiện tại không tự chọn promotion |
-| `is_stackable` | `BOOLEAN NOT NULL DEFAULT FALSE` | Cờ mở rộng; phiên bản hiện tại vẫn chỉ cho tối đa một promotion trên bill |
 | `status` | `VARCHAR(20) NOT NULL` | `DRAFT`, `ACTIVE` hoặc `INACTIVE` |
 | `start_at` | `DATETIME(3) NULL` | `NULL` nghĩa là không giới hạn thời điểm bắt đầu |
 | `end_at` | `DATETIME(3) NULL` | `NULL` nghĩa là không có ngày hết hạn |
@@ -884,8 +882,7 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - Payment chỉ chuyển từ `PENDING` sang `PAID`.
 - Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
-- Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount`, `min_quantity` cùng quota theo promotion/code/khách hàng.
-- `priority` và `is_stackable` chưa ảnh hưởng lựa chọn ở phiên bản hiện tại vì mỗi bill chỉ cho phép tối đa một promotion.
+- Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.
 
 ### 8.4. Unique constraint có điều kiện
 
@@ -987,7 +984,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
 - Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
 - Khuyến mãi dùng đúng 5 bảng: `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`, thay cho bảng `vouchers` đơn giản. Tất cả record promotion/redemption/discount snapshot có `store_id`. `promotions` hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`.
-- Điều kiện cơ bản `min_bill_amount` và `min_quantity`, thời gian hiệu lực, quota, `priority` và `is_stackable` nằm trực tiếp tại `promotions`. `promotion_targets` dùng `target_type` và `target_id` để giới hạn phạm vi theo món hoặc danh mục. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn sẽ được bổ sung ở giai đoạn mở rộng.
+- Điều kiện cơ bản `min_bill_amount`, thời gian hiệu lực và quota nằm trực tiếp tại `promotions`. `promotion_targets` dùng `target_type` và `target_id` để giới hạn phạm vi theo món hoặc danh mục. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn sẽ được bổ sung ở giai đoạn mở rộng.
 - Một promotion được chọn cho toàn bộ bill của table session; backend trả danh sách đủ điều kiện và số tiền dự kiến, không tự chọn promotion có lợi nhất. Bill chỉ áp dụng tối đa một promotion ở phiên bản hiện tại.
 - Không sửa `menu_items.price` khi một chương trình chạy. Discount cấp bill được tính lại trước payment khi bill thay đổi và được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món. Các snapshot được khóa khi session chuyển `PAYMENT_PENDING`.
 - `promotion_redemptions` chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` và không tính quota nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
