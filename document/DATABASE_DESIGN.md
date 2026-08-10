@@ -726,6 +726,8 @@ Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 - `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
 - `opened_by_customer_name` và `opened_by_customer_phone` trong `table_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
 
+Module tra cứu khách hàng dành cho `ADMIN` dùng lại `client_accounts` cùng các quan hệ hiện có tới `table_sessions`, `orders`, `payments` và `unpaid_records`; không cần thêm bảng CRM hoặc thay đổi schema trong phạm vi hiện tại. Danh sách khách chỉ trả dữ liệu nhận diện tối thiểu, số lượt mở bàn và thời điểm sử dụng gần nhất; thông tin chi tiết lịch sử được truy vấn khi `ADMIN` mở một khách cụ thể. Mọi truy vấn phải giới hạn theo `store_id`.
+
 #### `operational_incidents`
 
 Lưu thông tin các sự cố phát sinh do nhân viên vận hành (`OPERATOR`) ghi nhận tại ca trực để gửi lên cho quản trị viên (`ADMIN`) tra cứu, theo dõi và xử lý.
@@ -857,6 +859,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
 - `accounts`: unique `store_id + username`.
 - `client_accounts`: unique `store_id + phone`.
+- Tra cứu khách hàng dùng unique index `client_accounts(store_id, phone)` hiện có; index phục vụ tìm kiếm theo tên hoặc thống kê lịch sử chỉ được bổ sung sau khi có truy vấn triển khai và kiểm tra bằng `EXPLAIN`.
 - `promotions`: unique `public_id` và `store_id + code`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
 - `promotion_targets`: unique `promotion_id + target_type + target_id`.
 - `promotion_redemptions`: unique `payment_id` để confirm payment lặp không tạo redemption thứ hai; index theo `promotion_id`, `client_account_id` và `status` phục vụ kiểm tra quota.
@@ -932,6 +935,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
 - Authentication sử dụng Firebase Authentication; Client truyền Firebase ID Token trong header request để backend verify và phân quyền.
 - Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; mọi chức năng quản trị chỉ dành cho `ADMIN`, còn `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
+- Module tra cứu khách hàng chỉ dành cho `ADMIN`, dùng lại `client_accounts` và lịch sử table session/order/payment hiện có; đây là chức năng chỉ đọc, không phải CRM và không bổ sung bảng dữ liệu.
 - Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
 - `OPERATOR` được tạo order hộ vào table session `OPEN`; order này dùng cùng dữ
   liệu, validation, tính tiền, idempotency và FIFO với order do Customer gửi,

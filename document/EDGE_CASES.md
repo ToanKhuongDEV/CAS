@@ -714,6 +714,22 @@ bộ.
 - Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng
   order hoặc dòng món.
 
+## 21.19. Admin tra cứu dữ liệu khách hàng
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+`ADMIN` cần tra cứu khách đã mở bàn và lịch sử liên quan, trong khi số điện thoại là dữ liệu nhận diện cá nhân.
+
+### Cách xử lý
+
+- Chỉ `ADMIN` được truy cập danh sách và chi tiết khách hàng; `OPERATOR` không được truy cập.
+- Backend luôn giới hạn `client_accounts`, table session, order, payment và `unpaid_records` theo `store_id` của tài khoản đăng nhập.
+- Danh sách khách chỉ trả số điện thoại đã che một phần; số đầy đủ chỉ được trả trong trang chi tiết khi cần thiết.
+- Module chỉ đọc dữ liệu đã có; không cho sửa hoặc xóa khách hàng, order, payment hay lịch sử phiên bàn.
+- Không suy diễn module này thành CRM, phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân hoặc tiếp thị trực tiếp.
+
 ## 22. Các chức năng thuộc phạm vi nâng cấp (Ngoài phạm vi Phase 1)
 
 Các trường hợp dưới đây được xác định rõ là **Ngoài phạm vi của Phase 1** theo tài liệu tổng quan sản phẩm ([OVERALL.md](file:///D:/Intern_job/CAS/document/OVERALL.md)). Hệ thống CAS tập trung xử lý luồng cốt lõi (Gọi món QR & Xác nhận thanh toán thủ công), không triển khai các tính năng này trong giai đoạn hiện tại:

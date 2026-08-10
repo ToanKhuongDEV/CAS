@@ -21,6 +21,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Nhân viên xác nhận trạng thái thanh toán thủ công.
 - Đóng phiên bàn.
 - Tạo và xem Báo cáo sự cố phát sinh (OPERATOR tạo, ADMIN xem).
+- Admin tra cứu khách hàng đã mở bàn và lịch sử sử dụng bàn.
 - Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
 - Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/ADMIN nhận thông báo).
 
@@ -108,6 +109,30 @@ của hệ thống.
 - Bộ lọc, tìm kiếm, sắp xếp và phân trang.
 - Quyền xem chi tiết và các thao tác xử lý sau khi mở report.
 - API contract và nhu cầu bổ sung mô hình dữ liệu.
+
+## 4.2. Luồng Admin tra cứu khách hàng
+
+### Mục tiêu
+
+Cho phép `ADMIN` tra cứu khách đã từng mở table session tại cửa hàng và xem lịch sử sử dụng bàn có liên quan, mà không mở rộng CAS thành CRM.
+
+### Luồng chính
+
+1. `ADMIN` đăng nhập khu vực quản trị và mở danh sách khách hàng.
+2. Frontend yêu cầu danh sách khách trong phạm vi cửa hàng của tài khoản.
+3. Backend xác thực Firebase ID Token, kiểm tra role `ADMIN` và giới hạn dữ liệu theo `store_id`.
+4. Backend trả thông tin nhận diện tối thiểu của `client_accounts`, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại được che một phần ở danh sách.
+5. `ADMIN` có thể tìm theo tên hoặc số điện thoại, rồi mở một khách hàng để xem các `table_sessions` cùng order, payment hoặc `unpaid_records` liên quan.
+6. Frontend hiển thị dữ liệu lịch sử, trạng thái tải, danh sách trống và lỗi phù hợp.
+
+### Quy tắc nghiệp vụ
+
+- Chức năng chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập.
+- Đây là chức năng chỉ đọc, không cho sửa hoặc xóa `client_accounts`, table session, order, payment hay khoản chưa thanh toán.
+- Mọi truy vấn phải giới hạn theo `store_id`; không trả dữ liệu khách của cửa hàng khác.
+- Lịch sử dùng snapshot trong `table_sessions`, order và payment làm nguồn hiển thị; không thay đổi dữ liệu lịch sử khi `client_accounts.display_name` được cập nhật ở một phiên sau.
+- Danh sách không hiển thị đầy đủ số điện thoại; chỉ màn chi tiết mới được trả số điện thoại đầy đủ khi thật sự cần thiết.
+- Chức năng không bao gồm phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân, chiến dịch tiếp thị hay gửi thông báo theo từng khách.
 
 ## 5. Luồng quét QR và mở phiên bàn
 
@@ -535,6 +560,7 @@ Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa đượ
 - `unpaid_records` chỉ là bản ghi trạng thái chưa thanh toán phục vụ vận hành; CAS không quản lý phương thức thu tiền, đối soát hoặc giao dịch tài chính.
 - Nếu payment được nhân viên xác nhận sau đó, payment chuyển sang `PAID` và `unpaid_records` chuyển sang `RESOLVED`.
 - Không tính lại theo giá menu hiện tại.
+- `OPERATOR` và `ADMIN` có thể thực hiện thao tác kết thúc phiên và ghi nhận chưa thanh toán; `ADMIN` có thêm quyền theo dõi số lượng, tổng tiền, trạng thái và bill snapshot của các khoản chưa thanh toán.
 
 ## 13. Luồng đóng phiên bàn
 

@@ -64,6 +64,30 @@ export type UnpaidRecord = {
   tableSessionId: string;
 };
 
+type UnpaidViewMode = "admin" | "operator";
+
+type OpenTableSession = {
+  amount: number;
+  billNumber: string;
+  table: string;
+  tableSessionId: string;
+};
+
+const openTableSessions: OpenTableSession[] = [
+  {
+    amount: 218000,
+    billNumber: "BILL-20260810-006",
+    table: "Bàn 06",
+    tableSessionId: "session-b06-20260810",
+  },
+  {
+    amount: 146000,
+    billNumber: "BILL-20260810-010",
+    table: "Bàn 10",
+    tableSessionId: "session-b10-20260810",
+  },
+];
+
 const initialUnpaidRecords: UnpaidRecord[] = [
   {
     amount: 320000,
@@ -294,12 +318,14 @@ const initialUnpaidRecords: UnpaidRecord[] = [
   },
 ];
 
-export function OperatorUnpaidView() {
+export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMode }) {
   const [records, setRecords] = useState<UnpaidRecord[]>(initialUnpaidRecords);
   const [filterStatus, setFilterStatus] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
   const [selectedRecord, setSelectedRecord] = useState<UnpaidRecord | null>(null);
-  const [activeTab, setActiveTab] = useState<"RECEIPT" | "JSON">("RECEIPT");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [isCloseSessionDialogOpen, setIsCloseSessionDialogOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState(openTableSessions[0].tableSessionId);
+  const [unpaidReason, setUnpaidReason] = useState("");
 
   // Handle ESC key and scroll lock
   useEffect(() => {
@@ -355,6 +381,55 @@ export function OperatorUnpaidView() {
     );
   }
 
+  function handleCloseSessionAsUnpaid(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const session = openTableSessions.find((item) => item.tableSessionId === selectedSessionId);
+    if (!session || !unpaidReason.trim()) return;
+
+    const now = new Date();
+    const date = now.toLocaleDateString("vi-VN");
+    const time = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    const newRecord: UnpaidRecord = {
+      amount: session.amount,
+      amountFormatted: `${session.amount.toLocaleString("vi-VN")}đ`,
+      billSnapshot: {
+        billNumber: session.billNumber,
+        currency: "VND",
+        orders: [],
+        originalAmount: session.amount,
+        payableAmount: session.amount,
+        table: {
+          code: Number(session.table.replace(/\D/g, "")),
+          id: session.tableSessionId.replace("session", "table"),
+          name: session.table,
+        },
+      },
+      closedAt: time,
+      createdDate: date,
+      id: `unpaid-${Date.now()}`,
+      publicId: `upr-${crypto.randomUUID()}`,
+      reason: unpaidReason.trim(),
+      reportedBy: "acc-operator-current",
+      reportedByName: mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
+      status: "OPEN",
+      table: session.table,
+      tableSessionId: session.tableSessionId,
+    };
+
+    setRecords((previous) => [newRecord, ...previous]);
+    setFilterStatus("OPEN");
+    setIsCloseSessionDialogOpen(false);
+    setUnpaidReason("");
+    setActionMessage(
+      `Đã kết thúc phiên ${session.table} và ghi nhận khoản chưa thanh toán. Bàn đã được giải phóng.`,
+    );
+  }
+
+  const openRecordCount = records.filter((record) => record.status === "OPEN").length;
+  const openAmount = records
+    .filter((record) => record.status === "OPEN")
+    .reduce((total, record) => total + record.amount, 0);
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -362,12 +437,15 @@ export function OperatorUnpaidView() {
         <div>
           <h1 className="text-3xl font-extrabold">Khoản chưa thanh toán</h1>
           <p className="mt-1 text-sm text-cas-on-surface-variant">
-            Quản lý và tra cứu bill snapshot các phiên bàn đã đóng nhưng payment chưa xác nhận PAID
+            {mode === "admin"
+              ? "Theo dõi các phiên bàn đã đóng khi payment chưa được xác nhận PAID."
+              : "Quản lý và tra cứu bill snapshot các phiên bàn đã đóng nhưng payment chưa xác nhận PAID."}
           </p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-1 rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-1.5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-1 rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-1.5 shadow-sm">
           <button
             className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "ALL" ? "bg-cas-primary text-cas-on-primary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
             onClick={() => setFilterStatus("ALL")}
@@ -389,8 +467,67 @@ export function OperatorUnpaidView() {
           >
             Đã thu hồi ({records.filter((r) => r.status === "RESOLVED").length})
           </button>
+          </div>
         </div>
       </div>
+
+      {mode === "admin" ? (
+        <section className="grid gap-3 sm:grid-cols-2" aria-label="Thống kê khoản chưa thanh toán">
+          <article className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4 shadow-xs">
+            <p className="text-xs font-bold text-cas-on-surface-variant">Khoản chưa xử lý</p>
+            <p className="mt-2 text-2xl font-black text-cas-error">{openRecordCount}</p>
+          </article>
+          <article className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4 shadow-xs">
+            <p className="text-xs font-bold text-cas-on-surface-variant">Tổng tiền chưa thanh toán</p>
+            <p className="mt-2 text-2xl font-black text-cas-primary">{openAmount.toLocaleString("vi-VN")}đ</p>
+          </article>
+        </section>
+      ) : null}
+
+      <section
+        className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs"
+        aria-labelledby="open-table-sessions-title"
+      >
+          <div>
+            <h2 className="text-lg font-black text-cas-on-surface" id="open-table-sessions-title">
+              Phiên bàn cần xử lý
+            </h2>
+            <p className="mt-1 text-xs text-cas-on-surface-variant">
+              Chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {openTableSessions.map((session) => (
+              <article
+                className="rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-4"
+                key={session.tableSessionId}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-black text-cas-on-surface">{session.table}</p>
+                    <p className="mt-1 text-xs font-bold text-cas-on-surface-variant">
+                      {session.billNumber} · {session.amount.toLocaleString("vi-VN")}đ
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-cas-tertiary-container/30 px-2.5 py-1 text-[0.68rem] font-black text-cas-tertiary">
+                    Chờ thanh toán
+                  </span>
+                </div>
+                <button
+                  className="mt-4 w-full rounded-xl bg-cas-error px-3 py-2.5 text-sm font-extrabold text-cas-on-error transition hover:bg-cas-error-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  onClick={() => {
+                    setSelectedSessionId(session.tableSessionId);
+                    setIsCloseSessionDialogOpen(true);
+                  }}
+                  type="button"
+                >
+                  Kết thúc phiên & ghi nhận chưa thanh toán
+                </button>
+              </article>
+            ))}
+          </div>
+      </section>
 
       {/* Status Action Message Toast */}
       {actionMessage ? (
@@ -452,7 +589,6 @@ export function OperatorUnpaidView() {
                   className="flex items-center gap-2 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-4 py-2.5 text-sm font-extrabold text-cas-on-surface transition hover:border-cas-primary/50 hover:bg-cas-primary/5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                   onClick={() => {
                     setSelectedRecord(record);
-                    setActiveTab("RECEIPT");
                   }}
                   type="button"
                 >
@@ -514,24 +650,6 @@ export function OperatorUnpaidView() {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Tab Toggle: Receipt view vs Raw JSON */}
-                <div className="flex rounded-lg border border-cas-outline-variant/30 bg-cas-surface-container/60 p-1 text-xs font-extrabold">
-                  <button
-                    className={`rounded-md px-2.5 py-1 transition ${activeTab === "RECEIPT" ? "bg-cas-primary text-cas-on-primary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-                    onClick={() => setActiveTab("RECEIPT")}
-                    type="button"
-                  >
-                    Hóa đơn
-                  </button>
-                  <button
-                    className={`rounded-md px-2.5 py-1 transition ${activeTab === "JSON" ? "bg-cas-primary text-cas-on-primary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-                    onClick={() => setActiveTab("JSON")}
-                    type="button"
-                  >
-                    JSON
-                  </button>
-                </div>
-
                 <button
                   className="grid size-9 place-items-center rounded-xl border border-cas-outline-variant/35 text-cas-on-surface-variant transition hover:border-cas-primary/30 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                   onClick={() => setSelectedRecord(null)}
@@ -545,8 +663,7 @@ export function OperatorUnpaidView() {
 
             {/* Modal Content Scrollable Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6 sm:p-6">
-              {activeTab === "RECEIPT" ? (
-                <>
+              <>
                   {/* Receipt Meta Box */}
                   <div className="rounded-xl border border-cas-outline-variant/20 bg-cas-surface-container/40 p-4 text-xs space-y-2">
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -690,31 +807,7 @@ export function OperatorUnpaidView() {
                       </span>
                     </div>
                   </div>
-                </>
-              ) : (
-                /* JSON Raw View */
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-cas-on-surface-variant font-mono">
-                      Dữ liệu `bill_snapshot` lưu bất biến trong bảng `unpaid_records`:
-                    </p>
-                    <button
-                      className="text-xs text-cas-primary underline font-bold hover:no-underline"
-                      onClick={() =>
-                        navigator.clipboard.writeText(
-                          JSON.stringify(selectedRecord.billSnapshot, null, 2),
-                        )
-                      }
-                      type="button"
-                    >
-                      Sao chép JSON
-                    </button>
-                  </div>
-                  <pre className="max-h-96 overflow-x-auto rounded-xl border border-cas-outline-variant/30 bg-black/90 p-4 text-xs text-emerald-400 font-mono">
-                    {JSON.stringify(selectedRecord.billSnapshot, null, 2)}
-                  </pre>
-                </div>
-              )}
+              </>
             </div>
 
             {/* Modal Footer Actions */}
@@ -744,6 +837,84 @@ export function OperatorUnpaidView() {
               </div>
             </div>
           </section>
+        </div>
+      ) : null}
+
+      {isCloseSessionDialogOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsCloseSessionDialogOpen(false);
+          }}
+        >
+          <form
+            aria-labelledby="close-unpaid-session-title"
+            className="my-auto w-full max-w-lg rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            onSubmit={handleCloseSessionAsUnpaid}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
+              <div>
+                <p className="text-xs font-bold text-cas-error">Xác nhận nghiệp vụ</p>
+                <h2 className="mt-1 text-lg font-black text-cas-on-surface" id="close-unpaid-session-title">
+                  Kết thúc phiên và ghi nhận chưa thanh toán
+                </h2>
+              </div>
+              <button
+                aria-label="Đóng hộp thoại"
+                className="grid size-9 place-items-center rounded-xl text-cas-on-surface-variant transition hover:bg-cas-surface-container"
+                onClick={() => setIsCloseSessionDialogOpen(false)}
+                type="button"
+              >
+                <CasIcon className="size-4" name="close" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4 text-sm">
+              <label className="block">
+                <span className="text-xs font-bold text-cas-on-surface-variant">Phiên bàn</span>
+                <select
+                  className="mt-1.5 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 font-bold text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setSelectedSessionId(event.target.value)}
+                  value={selectedSessionId}
+                >
+                  {openTableSessions.map((session) => (
+                    <option key={session.tableSessionId} value={session.tableSessionId}>
+                      {session.table} · {session.amount.toLocaleString("vi-VN")}đ
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-cas-on-surface-variant">Lý do ghi nhận *</span>
+                <textarea
+                  className="mt-1.5 min-h-24 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setUnpaidReason(event.target.value)}
+                  placeholder="Ví dụ: Khách rời đi trước khi hoàn tất thanh toán"
+                  required
+                  value={unpaidReason}
+                />
+              </label>
+              <p className="rounded-xl bg-cas-error-container p-3 text-xs leading-relaxed text-cas-on-error-container">
+                Hệ thống sẽ tạo payment PENDING nếu cần, lưu bill snapshot, tạo khoản chưa thanh toán và đóng phiên để giải phóng bàn.
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="rounded-xl border border-cas-outline-variant/40 px-4 py-2.5 text-sm font-extrabold text-cas-on-surface transition hover:bg-cas-surface-container"
+                onClick={() => setIsCloseSessionDialogOpen(false)}
+                type="button"
+              >
+                Hủy
+              </button>
+              <button
+                className="rounded-xl bg-cas-error px-4 py-2.5 text-sm font-extrabold text-cas-on-error transition hover:bg-cas-error-hover"
+                type="submit"
+              >
+                Xác nhận kết thúc phiên
+              </button>
+            </div>
+          </form>
         </div>
       ) : null}
     </div>

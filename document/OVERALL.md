@@ -44,8 +44,10 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Quản lý khuyến mãi (Promotions):** Tạo, sửa, kích hoạt/khóa chương trình khuyến mãi; cấu hình điều kiện, phạm vi món/danh mục và mã khuyến mãi.
 - **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các đối tượng nhận: Nhân viên (`OPERATOR`), Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
+- **Tra cứu khách hàng:** Xem danh sách khách đã mở bàn tại cửa hàng và lịch sử phiên bàn, order, payment hoặc khoản chưa thanh toán liên quan. Đây là chức năng tra cứu, không phải CRM.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
 - **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
+- **Theo dõi khoản chưa thanh toán:** Xem số lượng, tổng tiền và bill snapshot của các phiên đã đóng nhưng payment còn `PENDING`; có thể thực hiện kết thúc phiên, ghi nhận chưa thanh toán và đối chiếu các khoản `OPEN` và `RESOLVED`.
 - **Báo cáo (Report):** Xem tổng hợp doanh thu, tra cứu hóa đơn, lịch sử order. Nhìn thấy các số liệu báo cáo hao hụt rạch ròi bằng cách đánh giá các order có `is_remade = TRUE`.
 - **Audit Logs:** Xem lại toàn bộ lịch sử thao tác quan trọng của hệ thống (ai xác nhận tiền, ai hủy món, ai xóa giá) để quy trách nhiệm.
 
@@ -150,6 +152,14 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 - Theo dõi lỗi và trạng thái hoạt động cơ bản.
 - Sao lưu dữ liệu cần thiết.
 
+#### Tra cứu khách hàng cho Admin
+
+- `ADMIN` có thể tra cứu khách hàng đã mở bàn trong phạm vi cửa hàng, theo tên hoặc số điện thoại.
+- Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách.
+- Khi mở chi tiết, `ADMIN` có thể xem các table session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
+- Chức năng chỉ đọc dữ liệu hiện có, không cho sửa hoặc xóa thông tin khách, order, payment hay lịch sử phiên bàn.
+- `OPERATOR` không được truy cập chức năng này.
+
 Chức năng danh sách `report` hiện mới được chốt ở mức phạm vi và quyền truy
 cập. Loại report, nguồn tạo report, dữ liệu hiển thị, trạng thái, bộ lọc, phân
 trang và thao tác xử lý là các nội dung `Cần chốt`. Chưa được suy diễn chức năng
@@ -165,6 +175,7 @@ khi chưa có quyết định tiếp theo.
 - Quản lý kho và nguyên vật liệu.
 - Chương trình thành viên và tích điểm khách hàng.
 - CRM và chăm sóc khách hàng.
+- Phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân, chiến dịch tiếp thị hoặc gửi thông báo theo từng khách hàng.
 - Tích hợp Zalo.
 - Game và các tính năng AI.
 - Kế toán và hóa đơn điện tử.
