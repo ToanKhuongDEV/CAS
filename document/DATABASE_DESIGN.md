@@ -83,8 +83,11 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
 | Vận hành | `operational_incidents` | Báo cáo sự cố phát sinh do nhân viên vận hành ghi nhận trong ca |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
-| Khuyến mãi | `vouchers` | Mã giảm giá và điều kiện áp dụng cho đơn hàng |
-| Khuyến mãi | `promotion_configs` | Cấu hình thông báo khuyến mãi, banner popup và gợi ý voucher |
+| Khuyến mãi | `promotions` | Chương trình khuyến mãi và loại ưu đãi |
+| Khuyến mãi | `promotion_codes` | Mã khuyến mãi, như `ZALO10` hoặc `TET2027` |
+| Khuyến mãi | `promotion_targets` | Phạm vi áp dụng theo món hoặc danh mục |
+| Khuyến mãi | `promotion_redemptions` | Lịch sử chương trình hoặc mã đã được sử dụng |
+| Giảm giá bill | `bill_discounts` | Snapshot discount thực tế áp dụng cho bill của table session |
 | Thông báo | `system_notifications` | Thông báo hệ thống và tin tức vận hành |
 
 Các tên trên là tên vật lý dự kiến dùng trong MySQL.
@@ -101,7 +104,8 @@ stores
   │            │            ├── order_item_options
   │            │            └── order_item_cancellation_requests
   │            ├── unpaid_records
-  │            └── payments
+  │            ├── payments
+  │            └── bill_discounts
   │
   ├── categories
   │     └── menu_items
@@ -113,7 +117,11 @@ stores
   ├── option_groups (store_id)
   ├── accounts
   ├── client_accounts
-  └── operational_incidents
+  ├── operational_incidents
+  └── promotions
+        ├── promotion_codes
+        ├── promotion_targets
+        └── promotion_redemptions
 
 audit_logs
 ```
@@ -300,7 +308,85 @@ Category loại `OPTION` không hiển thị như danh mục món chính trên g
 
 Ảnh món được quản lý qua CAS Backend. Backend nhận file từ giao diện admin, upload lên Cloudinary bằng authenticated API, sau đó lưu URL hiển thị vào `image_url` và khóa asset vào `image_storage_key`. Frontend không upload trực tiếp lên Cloudinary.
 
-### 5.3. Phiên sử dụng bàn
+### 5.3. Khuyến mãi và snapshot discount
+
+Tất cả record của mô hình khuyến mãi và snapshot discount phải có `store_id`
+để dữ liệu luôn được xác định trong đúng cửa hàng khi CAS mở rộng thành chuỗi.
+Backend phải kiểm tra store của promotion, table session, order, order item,
+payment và code trước mọi thao tác áp dụng hoặc xác nhận redemption.
+
+#### `promotions`
+
+Lưu chương trình khuyến mãi gốc. Một promotion thuộc đúng một store. Điều kiện
+cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn hiện tại giữ đơn giản.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu promotion |
+| `name` | `VARCHAR(150) NOT NULL` | Tên chương trình để hiển thị và snapshot |
+| `promotion_type` | `VARCHAR(30) NOT NULL` | `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF` |
+| `discount_value` | `DECIMAL(15,2) NULL` | Giá trị giảm khi loại promotion sử dụng giá trị này |
+| `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF`; `NULL` là không giới hạn |
+| `min_bill_amount` | `DECIMAL(15,2) NULL` | Giá trị bill tối thiểu; `NULL` là không yêu cầu |
+| `min_quantity` | `INT UNSIGNED NULL` | Số lượng món tối thiểu; `NULL` là không yêu cầu |
+| `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn tổng redemption `COMPLETED`; `NULL` là không giới hạn |
+| `max_redemptions_per_customer` | `INT UNSIGNED NULL` | Giới hạn số bill mỗi khách dùng promotion; `NULL` là không giới hạn |
+| `priority` | `INT NOT NULL DEFAULT 0` | Giá trị ưu tiên để mở rộng; phiên bản hiện tại không tự chọn promotion |
+| `is_stackable` | `BOOLEAN NOT NULL DEFAULT FALSE` | Cờ mở rộng; phiên bản hiện tại vẫn chỉ cho tối đa một promotion trên bill |
+| `status` | `VARCHAR(20) NOT NULL` | `DRAFT`, `ACTIVE` hoặc `INACTIVE` |
+| `start_at` | `DATETIME(3) NULL` | `NULL` nghĩa là không giới hạn thời điểm bắt đầu |
+| `end_at` | `DATETIME(3) NULL` | `NULL` nghĩa là không có ngày hết hạn |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Promotion hết hạn được suy ra khi `now > end_at`; không có trạng thái `EXPIRED`
+được lưu. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn không thuộc mô
+hình 5 bảng hiện tại; chỉ tách bảng điều kiện khi cần mở rộng các rule đó.
+
+#### `promotion_codes`
+
+Lưu mã như `ZALO10`, `TET2027`; mỗi record có `store_id`, `promotion_id`,
+`code` và `max_redemptions` nullable. Promotion không có code không tự động áp
+dụng: backend vẫn chỉ trả nó về trong danh sách lựa chọn nếu bill đủ điều kiện.
+Promotion có code chỉ được chọn khi khách nhập đúng code. Quota theo code chỉ
+cần khi một promotion có nhiều code với giới hạn riêng.
+
+#### `promotion_targets`
+
+Lưu phạm vi áp dụng của promotion. Mỗi record có `id`, `store_id`,
+`promotion_id`, `target_type` (`MENU_ITEM` hoặc `CATEGORY`) và `target_id`.
+Promotion không có record target áp dụng trên toàn bộ bill theo điều kiện cơ bản
+của chương trình.
+
+#### `promotion_redemptions`
+
+Lưu lịch sử sử dụng sau khi payment của table session đã chuyển `PAID`. Mỗi
+record có `store_id`, `promotion_id`, `promotion_code_id` nếu có,
+`client_account_id`, `table_session_id`, `payment_id`, `status`, `created_at`
+và `reversed_at` khi phù hợp. Trạng thái gồm `COMPLETED` và `REVERSED`;
+redemption `REVERSED` không được tính vào quota sử dụng. Backend kiểm tra quota
+theo promotion, code và `client_account_id` trong transaction tạo redemption.
+
+#### `bill_discounts`
+
+Promotion được chọn cho toàn bộ bill của table session. Trước khi tạo payment,
+backend có thể tính lại discount khi order của session thay đổi. Khi session
+chuyển `PAYMENT_PENDING`, các bảng snapshot discount được khóa bất biến.
+
+Mỗi record snapshot có `store_id` và phải lưu tối thiểu `promotion_id`,
+`promotion_code_id` nếu có, `promotion_name`, `code`, `promotion_type`,
+`discount_value`, `discount_amount`, `max_discount_amount`, các điều kiện quan
+trọng và `promotion_snapshot` dạng JSON. `bill_discounts` gắn với
+`table_session_id` và bill/payment khi đã được tạo; không phân bổ discount cấp
+bill xuống từng order hoặc từng dòng món trong giai đoạn hiện tại.
+
+Giá niêm yết `menu_items.price` không bị sửa khi chạy promotion. Snapshot
+discount là nguồn xác định số tiền giảm của bill lịch sử khi promotion hoặc code
+thay đổi sau này.
+
+### 5.4. Phiên sử dụng bàn
 
 #### `table_sessions`
 
@@ -326,7 +412,7 @@ Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING`, khô
 
 Table session không lưu `is_paid`. Kết quả thanh toán được xác định từ `payments.status`; `unpaid_records` ghi nhận trường hợp phiên đã đóng khi payment vẫn `PENDING`, còn `table_sessions.status` chỉ quản lý vòng đời sử dụng bàn.
 
-### 5.4. Order
+### 5.5. Order
 
 #### `orders`
 
@@ -487,7 +573,7 @@ Việc tạo và duyệt yêu cầu hủy phải kiểm tra số lượng còn l
 
 Chỉ tạo hoặc xử lý cancellation request khi table session còn `OPEN`. Session không được chuyển sang `PAYMENT_PENDING` nếu còn cancellation request `PENDING`; sau khi chuyển trạng thái, dữ liệu cấu thành bill của session là bất biến.
 
-### 5.5. Thanh toán
+### 5.6. Thanh toán
 
 #### `unpaid_records`
 
@@ -599,7 +685,7 @@ Khi payment được xác nhận:
 
 Nếu nhân viên cần đóng phiên khi payment chưa được xác nhận, hệ thống tạo `unpaid_records` từ chính `amount` và `bill_snapshot` của payment rồi giữ payment ở `PENDING`. Trường hợp chưa có payment, backend tạo payment `PENDING` từ dữ liệu order trước khi tạo `unpaid_records`.
 
-### 5.6. Vận hành
+### 5.7. Vận hành
 
 #### `accounts`
 
@@ -719,6 +805,15 @@ Trong đó:
 | Table session — Unpaid record | Một - không hoặc một |
 | Unpaid record — Payment | Một - một payment của cùng table session dùng để xác định kết quả |
 | Table session — Payment | Một - không hoặc một |
+| Store — Promotion | Một - nhiều |
+| Store — Promotion code/redemption | Một - nhiều |
+| Store — Bill discount | Một - nhiều |
+| Promotion — Promotion code | Một - nhiều |
+| Promotion — Promotion target | Một - nhiều |
+| Promotion — Promotion redemption | Một - nhiều |
+| Table session — Promotion redemption | Một - nhiều theo lịch sử |
+| Payment — Promotion redemption | Một - nhiều theo các promotion đã áp dụng |
+| Table session — Bill discount | Một - nhiều theo lịch sử |
 | Store — Operational incident | Một - nhiều |
 | Account — Operational incident | Một - nhiều (với vai trò người tạo báo cáo) |
 | Store — Audit log | Một - nhiều |
@@ -741,6 +836,8 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Option value | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
 | Payment | `PENDING`, `PAID` |
+| Promotion | `DRAFT`, `ACTIVE`, `INACTIVE` |
+| Promotion redemption | `COMPLETED`, `REVERSED` |
 | Account | `ACTIVE`, `INACTIVE` |
 | Account role | `ADMIN`, `OPERATOR` |
 
@@ -748,7 +845,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 
 ### 8.1. Khóa ngoại và chính sách xóa
 
-- Tất cả quan hệ trong mục 6 được tạo foreign key vật lý, ngoại trừ `audit_logs.entity_id` là liên kết logic tới nhiều loại entity.
+- Tất cả quan hệ trong mục 6 được tạo foreign key vật lý, ngoại trừ `audit_logs.entity_id` và `promotion_targets.target_id` là liên kết logic tới nhiều loại entity. `promotion_targets.target_type` xác định `target_id` tham chiếu `menu_items` hoặc `categories`.
 - Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
 - Mỗi foreign key có index với tên tường minh để MySQL không tự tạo index ẩn.
 - Dữ liệu đã được tham chiếu không bị xóa vật lý; các entity có trạng thái được chuyển sang `INACTIVE` hoặc `REVOKED`.
@@ -776,6 +873,11 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
 - `accounts`: unique `store_id + username`.
 - `client_accounts`: unique `store_id + phone`.
+- `promotions`: unique `public_id`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
+- `promotion_codes`: unique `store_id + code`.
+- `promotion_targets`: unique `promotion_id + target_type + target_id`.
+- `promotion_redemptions`: unique `payment_id` để confirm payment lặp không tạo redemption thứ hai; index theo promotion/code/khách hàng và `status` phục vụ kiểm tra quota.
+- `bill_discounts`: unique `payment_id` vì mỗi bill hiện chỉ áp dụng tối đa một promotion.
 
 ### 8.3. Quy tắc chỉ kiểm tra trong Java
 
@@ -795,6 +897,10 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - `payments.amount` bằng tổng `orders.payable_amount` của table session tại thời điểm tạo payment.
 - Payment `PENDING` không có thông tin xác nhận; payment `PAID` phải có đủ `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
 - Payment chỉ chuyển từ `PENDING` sang `PAID`.
+- Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
+- `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
+- Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount`, `min_quantity` cùng quota theo promotion/code/khách hàng.
+- `priority` và `is_stackable` chưa ảnh hưởng lựa chọn ở phiên bản hiện tại vì mỗi bill chỉ cho phép tối đa một promotion.
 
 ### 8.4. Unique constraint có điều kiện
 
@@ -895,9 +1001,12 @@ Thiết kế hiện tại chưa bao gồm:
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
 - Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
 - Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
-- `vouchers` lưu mã giảm giá, kiểu giảm (`FIXED_AMOUNT`/`PERCENTAGE`), số tiền/tỷ lệ giảm, điều kiện đơn tối thiểu (`min_order_amount`), mức giảm tối đa (`max_discount_amount`), hạn sử dụng (`start_at`, `end_at`), giới hạn số lượt dùng (`usage_limit`, `usage_count`) và trạng thái (`ACTIVE`/`INACTIVE`). `orders` có thêm `voucher_id` và `discount_amount` để ghi nhận số tiền ưu đãi được trừ.
+- Khuyến mãi dùng đúng 5 bảng: `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`, thay cho bảng `vouchers` đơn giản. Tất cả record promotion/redemption/discount snapshot có `store_id`. `promotions` hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`.
+- Điều kiện cơ bản `min_bill_amount` và `min_quantity`, thời gian hiệu lực, quota, `priority` và `is_stackable` nằm trực tiếp tại `promotions`. `promotion_targets` dùng `target_type` và `target_id` để giới hạn phạm vi theo món hoặc danh mục. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn sẽ được bổ sung ở giai đoạn mở rộng.
+- Một promotion được chọn cho toàn bộ bill của table session; backend trả danh sách đủ điều kiện và số tiền dự kiến, không tự chọn promotion có lợi nhất. Bill chỉ áp dụng tối đa một promotion ở phiên bản hiện tại.
+- Không sửa `menu_items.price` khi một chương trình chạy. Discount cấp bill được tính lại trước payment khi bill thay đổi và được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món. Các snapshot được khóa khi session chuyển `PAYMENT_PENDING`.
+- `promotion_redemptions` chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` và không tính quota nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
 - `system_notifications` lưu danh sách thông báo hệ thống do `ADMIN` phát hành (tiêu đề `title`, nội dung `content`, mức độ `type` IN (`INFO`, `WARNING`, `URGENT`), đối tượng nhận `target_role` IN (`ALL`, `OPERATOR`, `ADMIN`), cờ trạng thái `is_read`).
-- `promotion_configs` lưu cấu hình bật/tắt popup chào mừng, tiêu đề & nội dung banner, mã voucher đính kèm, nội dung thanh thông báo chạy chữ header (`ticker_message`) và ngưỡng tự động gợi ý mã giảm giá khi giỏ hàng đạt giá trị tối thiểu (`cart_suggest_threshold`).
 
 ## 11. Bước tiếp theo
 

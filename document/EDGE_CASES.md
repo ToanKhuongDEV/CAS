@@ -674,6 +674,46 @@ Món đã được nhân viên ghi nhận làm xong (`prepared_quantity` đã t�
   - Bếp/pha chế khi thấy order đi kèm chữ `[LÀM LẠI]` sẽ tự hiểu đây là món cần làm lại và cần ưu tiên.
   - Đồng thời, bản ghi yêu cầu hủy sẽ được đánh cờ `is_remade = TRUE` trong Database để phục vụ báo cáo hao hụt, phân biệt với việc khách tự đổi ý hủy.
 
+## 21.17. Bill thay đổi sau khi đã chọn promotion
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Khách đã chọn một promotion cho bill, sau đó gọi thêm món hoặc một yêu cầu hủy
+món được duyệt trước khi tạo payment.
+
+### Cách xử lý
+
+- Backend tính lại promotion từ toàn bộ dữ liệu bill đáng tin cậy của table
+  session.
+- Nếu promotion vẫn đủ điều kiện, backend cập nhật số tiền giảm tạm thời.
+- Nếu promotion không còn đủ điều kiện, backend gỡ promotion hiện tại và trả
+  danh sách promotion đủ điều kiện mới để khách chọn.
+- Khi session đã `PAYMENT_PENDING`, bill và snapshot discount đã bị khóa, không
+  được thay đổi.
+
+## 21.18. Redemption promotion và món quà
+
+**Trạng thái:** Đã chốt
+
+### Tình huống
+
+Khách dùng promotion có mã, sau đó payment được xác nhận hay bị refund/hủy toàn
+bộ.
+
+### Cách xử lý
+
+- Không tạo `promotion_redemptions` khi khách chỉ chọn promotion hoặc khi bill
+  đang `PAYMENT_PENDING`.
+- Chỉ tạo redemption `COMPLETED` khi payment của table session chuyển `PAID`.
+- Nếu payment đã `PAID` bị refund hoặc hủy toàn bộ trong tương lai, redemption
+  chuyển `REVERSED` và không được tính vào quota.
+- Mọi record promotion, redemption và discount snapshot phải có `store_id`, và
+  backend chỉ áp dụng promotion trong cùng store với table session.
+- Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng
+  order hoặc dòng món.
+
 ## 22. Các chức năng thuộc phạm vi nâng cấp (Ngoài phạm vi Phase 1)
 
 Các trường hợp dưới đây được xác định rõ là **Ngoài phạm vi của Phase 1** theo tài liệu tổng quan sản phẩm ([OVERALL.md](file:///D:/Intern_job/CAS/document/OVERALL.md)). Hệ thống CAS tập trung xử lý luồng cốt lõi (Gọi món QR & Xác nhận thanh toán thủ công), không triển khai các tính năng này trong giai đoạn hiện tại:
@@ -687,9 +727,12 @@ Các trường hợp dưới đây được xác định rõ là **Ngoài phạm
 3. **Thanh toán nâng cao**:
    - Tách bill, chia bill cho từng người, thanh toán kết hợp nhiều hình thức (tiền mặt + chuyển khoản), tự động tích hợp Webhook/API VietQR/Ngân hàng.
    - _Hướng xử lý tạm thời_: Nhân viên tự tính toán và xác minh chuyển khoản qua loa báo giao dịch ("ting ting") bên ngoài CAS trước khi nhấn xác nhận.
-4. **Khuyến mãi & Giá**:
-   - Áp dụng Voucher, mã giảm giá, giảm giá thủ công theo %, phụ phí tự động/thủ công.
-   - _Hướng xử lý tạm thời_: Chỉ áp dụng đúng bảng giá menu được cấu hình sẵn.
+4. **Khuyến mãi & Giá ngoài mô hình đã chốt**:
+   - Giảm giá thủ công, phụ phí tự động/thủ công và các quy tắc khuyến mãi chưa
+     được chốt trong mô hình `promotions`.
+   - _Phạm vi hiện tại_: Khuyến mãi dùng `promotions`, điều kiện/phạm vi/code và
+     redemption riêng; discount thực tế được snapshot ở order hoặc dòng món.
+     Giá niêm yết tại `menu_items.price` không bị sửa.
 5. **Quản lý Nhân viên & Ca làm**:
    - Đổi ca, giao ca, nghỉ giữa ca, chốt ca, kiểm kê lệch quỹ tiền mặt/chuyển khoản cuối ca.
    - _Hướng xử lý tạm thời_: Phân quyền đơn giản theo role `ADMIN` và `OPERATOR`; xác thực qua Firebase Authentication.

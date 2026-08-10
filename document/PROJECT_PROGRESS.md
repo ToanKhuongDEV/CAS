@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-09
+Ngày cập nhật gần nhất: 2026-08-10
 
 ## Quy ước
 
@@ -53,6 +53,14 @@ Ngày cập nhật gần nhất: 2026-08-09
 - [x] Chốt việc tách bàn, gộp bàn hay chuyển bàn được giải quyết toàn bộ qua thẻ QR di động (khách cầm đi bàn khác) nên hệ thống không cần phát triển tính năng này.
 - [x] Chốt nhân viên có giao diện Hủy món (như khách), cờ `is_remade` được lưu khi món bị hỏng/khách chê; Backend sinh đơn mới kèm nhãn `[LÀM LẠI]` để bù trừ tiền chính xác.
 - [x] Chốt tất cả khách hàng và nhân viên đều được phép Hủy phiên bàn (đóng session ngay) miễn là chưa có order nào được gửi xuống bếp.
+- [x] Mọi record khuyến mãi, redemption và discount snapshot có `store_id`; promotion chỉ áp dụng cho bill cùng store.
+- [x] Promotion thuộc một store, có `DRAFT`/`ACTIVE`/`INACTIVE`, hiệu lực qua `start_at`/`end_at` có thể `NULL`; `promotion_targets` giới hạn phạm vi theo `MENU_ITEM` hoặc `CATEGORY` khi cần.
+- [x] Promotion không tự áp dụng; backend trả các lựa chọn hợp lệ và số tiền dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của table session.
+- [x] Discount được tính lại khi bill thay đổi, được khóa khi session chuyển `PAYMENT_PENDING`, và redemption chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
+- [x] Discount làm tròn tới đơn vị đồng bằng `RoundingMode.HALF_UP`.
+- [x] Mô hình promotion giai đoạn hiện tại chỉ dùng `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`; điều kiện cơ bản nằm trực tiếp tại `promotions`.
+- [x] Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món.
+- [x] Quota hỗ trợ đồng thời theo promotion, code và khách hàng; mỗi khách dùng tối đa một voucher/promotion cho một bill.
 
 ## 3. Các quyết định kỹ thuật đã chốt
 
@@ -77,19 +85,28 @@ Ngày cập nhật gần nhất: 2026-08-09
 
 ## 4. Thiết kế database
 
-- [x] Xác định danh sách 19 bảng nghiệp vụ.
+- [x] Xác định danh sách bảng nghiệp vụ.
 - [x] Mô tả quan hệ giữa các bảng.
 - [x] Xác định các trạng thái nghiệp vụ chính.
-- [x] Bổ sung kiểu dữ liệu MySQL cho toàn bộ các cột.
+- [x] Bổ sung kiểu dữ liệu MySQL cho các cột của mô hình dữ liệu nền tảng.
 - [x] Xác định `NULL`, `NOT NULL`, `DEFAULT` và `AUTO_INCREMENT` ở mức thiết kế.
 - [x] Xác định các unique constraint và index nghiệp vụ cơ bản.
-- [x] Hoàn thiện mô hình 19 bảng và quan hệ tổng quan.
+- [x] Hoàn thiện mô hình dữ liệu nền tảng và quan hệ tổng quan.
 - [x] Chốt đầy đủ foreign key với `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
 - [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
 - [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
 - [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
-- [x] Tạo Flyway migration khởi tạo schema.
+- [x] Tạo Flyway migration khởi tạo schema nền tảng.
+- [x] Cập nhật trực tiếp V1 khi schema chưa được áp dụng ở bất kỳ môi trường nào, bổ sung 5 bảng promotion/bill cùng foreign key, unique constraint và index cơ bản; không tạo migration V2.
 - [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
+- [x] Cập nhật tài liệu sang mô hình khuyến mãi 5 bảng `promotions`,
+      `promotion_codes`, `promotion_targets`, `promotion_redemptions` và
+      `bill_discounts`; không sửa giá niêm yết `menu_items.price` khi áp dụng
+      khuyến mãi.
+- [x] Chốt mô hình logic của 5 bảng promotion/bill và quota theo
+      promotion/code/khách hàng.
+- [x] Thiết kế migration V1 chi tiết, unique constraint và index cho các bảng
+      promotion, redemption và discount snapshot.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend
@@ -182,13 +199,16 @@ Ngày cập nhật gần nhất: 2026-08-09
 - [x] Tổ chức lại UI Admin: tách Catalog thành các trang danh mục, món ăn, option và nhãn món; tách Audit Logs thành trang tra cứu riêng; báo cáo sự cố chỉ còn chức năng xem/tra cứu theo phạm vi đã chốt.
 - [x] Bổ sung UI `/admin/reports` với bộ lọc ngày/loại báo cáo và thao tác xuất Excel tạm thời; bổ sung điều hướng đến Reports và Audit Logs.
 - [x] Tăng kích thước font chữ cấp 1 của thanh điều hướng AdminTabNavigation lên text-base (tăng 2 cấp font), giữ nguyên kích thước text-xs cho menu cấp 2 trong popup dropdown; đổi nhãn menu nhóm từ "Vận hành & Nhân sự" thành "Sự cố và Nhân sự"; bảo đảm duy nhất tab "Sự cố và Nhân sự" hiển thị badge đếm số thông báo.
-- [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ 16 & 17 & 18 và quy tắc dữ liệu cho Mã giảm giá (Vouchers), Thông báo hệ thống (Notifications), Cấu hình Banner/Popup Khuyến mãi và Biểu tượng Chuông thông báo góc trên bên phải cho Customer & Operator.
-- [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`).
+- [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ và quy tắc dữ liệu cho khuyến mãi và Thông báo hệ thống (Notifications).
+- [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`) theo mô hình cũ.
+- [ ] Điều chỉnh UI Quản lý Mã giảm giá sang mô hình Promotion sau khi API
+      contract và thiết kế cột dữ liệu được chốt.
 - [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
 - [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
-- [x] Xây dựng UI Admin Cấu hình Thông báo Khuyến mãi & Banner (`/admin/promotions`).
+- [x] Đã từng xây dựng UI Admin Cấu hình Thông báo Khuyến mãi & Banner (`/admin/promotions`); chức năng hiện đã bị loại khỏi phạm vi.
+- [x] Loại Banner chào mừng, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không còn dùng `promotion_configs`.
 - [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
 - [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
 - [x] Tinh chỉnh thanh điều hướng Admin (`AdminTabNavigation`): hỗ trợ trượt ngang mượt mà (`overflow-x-auto`, `whitespace-nowrap`, `shrink-0`) trên mobile; đồng thời xử lý hiển thị popup menu con bằng `fixed` positioning giúp menu xổ ra tự do bên ngoài box, không bị cắt mép hay bắt người dùng kéo cuộn bên trong.

@@ -21,7 +21,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Nhân viên xác nhận trạng thái thanh toán thủ công.
 - Đóng phiên bàn.
 - Tạo và xem Báo cáo sự cố phát sinh (OPERATOR tạo, ADMIN xem).
-- Quản lý và áp dụng Mã giảm giá (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
+- Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
 - Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/ADMIN nhận thông báo).
 
 Ngoài phạm vi hiện tại:
@@ -580,35 +580,44 @@ Ghi nhận các sự cố vận hành đột xuất trong ca (hỏng hóc thiế
 - Tài khoản `ADMIN` có quyền xem và tra cứu danh sách toàn bộ báo cáo sự cố (Read/View).
 - Báo cáo sự cố bắt buộc lưu trữ thời điểm khởi tạo (`created_at`), người tạo (`created_by_name`/`created_by_account_id`) và nội dung mô tả (`description`).
 
-## 16. Luồng Quản lý và Áp dụng Mã giảm giá (Vouchers)
+## 16. Luồng Quản lý và Áp dụng Khuyến mãi (Promotions)
 
 ### Tác nhân
 
-- `ADMIN`: Quản lý danh sách voucher (Tạo, Sửa, Bật/Tắt trạng thái `ACTIVE`/`INACTIVE`).
-- Khách hàng (`CLIENT`) / `OPERATOR`: Nhập mã giảm giá khi tạo order.
+- `ADMIN`: Quản lý chương trình khuyến mãi, điều kiện, phạm vi áp dụng và mã khuyến mãi.
+- Khách hàng (`CLIENT`) / `OPERATOR`: Chọn một khuyến mãi cho bill của table session; nhập mã khi chương trình yêu cầu code.
 
 ### Mục tiêu
 
-Cho phép cửa hàng áp dụng chính sách ưu đãi giảm giá (theo số tiền cố định `FIXED_AMOUNT` hoặc phần trăm `PERCENTAGE`) cho đơn hàng.
+Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của table session trước khi payment được tạo. Backend tính giảm giá riêng, không sửa giá niêm yết của menu, và khóa snapshot discount khi bill được chốt.
 
 ### Luồng chính
 
-1. `ADMIN` tạo mã voucher trên trang quản trị với các thông số: mã (`code`), kiểu giảm (`discount_type`), giá trị giảm (`discount_value`), giá trị đơn tối thiểu (`min_order_amount`), mức giảm tối đa (`max_discount_amount`), hạn sử dụng và lượt dùng.
-2. Khách hàng (hoặc nhân viên tạo đơn hộ) nhập mã voucher tại bước xác nhận giỏ món / gọi món.
-3. CAS Backend kiểm tra tính hợp lệ của mã:
-   - Voucher tồn tại và có trạng thái `ACTIVE`.
-   - Thời gian hiện tại nằm trong khoảng từ `start_at` đến `end_at`.
-   - Tổng tiền đơn hàng đạt ngưỡng `min_order_amount`.
-   - Lượt sử dụng `usage_count` chưa vượt quá `usage_limit`.
-4. Backend tính toán số tiền giảm `discount_amount`, trừ trực tiếp vào `payable_amount` của `orders` và lưu lại thông tin `voucher_id`.
-5. Hệ thống tăng `usage_count` của voucher lên 1 khi order được tạo thành công.
+1. `ADMIN` tạo `promotions` thuộc một `store`, chọn `promotion_type` là `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF`, rồi đặt `status` là `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
+2. `ADMIN` cấu hình trực tiếp tại promotion giá trị giảm, mức giảm tối đa, điều kiện cơ bản `min_bill_amount`/`min_quantity`, thời gian hiệu lực, quota, `priority` và `is_stackable`.
+3. `ADMIN` cấu hình phạm vi món/danh mục tại `promotion_targets`, và code tại `promotion_codes` nếu chương trình yêu cầu khách nhập mã.
+4. Khi Customer hoặc `OPERATOR` xem bill, backend tải các promotion `ACTIVE` của đúng store, trong thời gian hiệu lực, kiểm tra điều kiện/code và trả danh sách promotion đủ điều kiện cùng số tiền dự kiến được giảm.
+5. Khách chọn tối đa một promotion cho bill của table session. Backend không tự chọn promotion có lợi nhất; muốn đổi promotion, khách phải bỏ promotion hiện tại rồi chọn promotion khác.
+6. Khi order trong session thay đổi do gọi thêm món hoặc yêu cầu hủy được duyệt, backend đánh giá lại promotion trước khi tạo payment. Nếu không còn đủ điều kiện, backend gỡ promotion hiện tại để khách chọn promotion khác.
+7. Khi khách yêu cầu thanh toán, backend tính lại promotion trong transaction, lưu discount cấp bill tại `bill_discounts`, rồi khóa snapshot cùng bill/payment.
+8. Khi payment của session chuyển `PAID`, hệ thống tạo `promotion_redemptions`. Nếu payment đã `PAID` bị refund hoặc hủy toàn bộ trong tương lai, redemption chuyển `REVERSED` và không tính vào quota.
 
 ### Quy tắc nghiệp vụ
 
-- Mỗi order chỉ được áp dụng tối đa 1 mã giảm giá.
 - Backend bắt buộc tự tính toán lại tiền giảm từ server, không tin số tiền giảm do Client truyền lên.
-- Nếu loại giảm giá là `PERCENTAGE`, số tiền giảm không được vượt quá `max_discount_amount` (nếu có cấu hình).
-- Số tiền `payable_amount` của đơn hàng sau khi giảm không bao giờ âm (tối thiểu là 0 VNĐ).
+- Mọi record promotion, redemption và discount snapshot phải có `store_id`; backend luôn kiểm tra promotion và bill thuộc cùng store.
+- Không sửa `menu_items.price` để kích hoạt hoặc kết thúc khuyến mãi.
+- Một promotion chỉ được áp dụng một lần cho cùng bill; phiên bản hiện tại chỉ cho phép mỗi khách hàng dùng tối đa một voucher/promotion cho mỗi bill và mỗi table session chỉ áp dụng tối đa một promotion.
+- `PERCENT_OFF` có thể dùng `max_discount_amount`; giá trị `NULL` nghĩa là không giới hạn mức giảm.
+- Discount được làm tròn tới đơn vị đồng bằng cùng quy tắc backend `RoundingMode.HALF_UP`, dù database dùng `DECIMAL(15,2)`.
+- `BUY_X_GET_Y` và `FREE_ITEM` ngoài phạm vi mô hình promotion đơn giản hiện tại; chỉ bổ sung khi có mô hình dữ liệu mua/tặng riêng.
+- Trước khi payment được tạo, kết quả discount chỉ là áp dụng tạm thời và phải được tính lại khi bill thay đổi. Sau khi session chuyển `PAYMENT_PENDING`, `bill_discounts` là snapshot bất biến; hóa đơn lịch sử không tính lại theo promotion hiện hành.
+- Quota được kiểm tra khi tạo redemption `COMPLETED`: `promotions.max_redemptions` giới hạn toàn chương trình, `promotion_codes.max_redemptions` giới hạn từng code khi một promotion có nhiều code, và `promotions.max_redemptions_per_customer` giới hạn số bill mà một khách sử dụng promotion.
+- Tổng tiền phải trả sau giảm không bao giờ âm (tối thiểu là 0 VNĐ).
+
+### Nội dung cần chốt
+
+- Không còn nội dung cần chốt cho mô hình promotion hiện tại. Những quy tắc mới chỉ được bổ sung khi phạm vi yêu cầu phân bổ discount theo order, tách bill hoặc điều kiện phức tạp hơn.
 
 ## 17. Luồng Quản lý và Nhận Thông báo Hệ thống (System Notifications)
 
@@ -634,28 +643,3 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 - Thông báo hỗ trợ phân loại mức độ ưu tiên (`INFO`, `WARNING`, `URGENT`).
 - Cửa sổ thông báo hiển thị danh sách mới nhất xếp theo `created_at` giảm dần.
 - Biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải của giao diện `Customer` và `Operator` tự động đếm số lượng thông báo chưa đọc (`unreadCount`) và mở danh sách thông báo dạng popover khi bấm vào.
-
-## 18. Luồng Cấu hình Thông báo Khuyến mãi & Banner Popups
-
-### Tác nhân
-
-- `ADMIN`: Cấu hình tham số thông báo khuyến mãi, tin nổi bật và banner.
-- Khách hàng (`CLIENT`) / `OPERATOR`: Nhận thông báo tự động và xem banner ưu đãi.
-
-### Mục tiêu
-
-Cho phép Admin chủ động thiết lập các hình thức quảng bá khuyến mãi tự động trên giao diện gọi món và vận hành.
-
-### Luồng chính
-
-1. `ADMIN` truy cập trang cấu hình khuyến mãi (`/admin/promotions`) để điều chỉnh các tham số:
-   - **Popup Banner Chào mừng**: Bật/Tắt, tiêu đề, nội dung và mã voucher đính kèm khi khách mới quét QR bàn.
-   - **Thanh thông báo chạy (Header Ticker)**: Bật/Tắt và nhập dòng chữ thông báo ưu đãi nổi bật hiển thị trên header.
-   - **Gợi ý Voucher tại giỏ hàng**: Bật/Tắt và đặt ngưỡng giá trị giỏ hàng (`cartSuggestThreshold`) để tự động gợi ý mã giảm giá khi khách chọn món.
-2. Backend lưu thông số cấu hình vào bảng `promotion_configs`.
-3. Giao diện Customer & Operator đọc cấu hình và hiển thị tương ứng trên UI.
-
-### Quy tắc nghiệp vụ
-
-- Chỉ `ADMIN` có quyền chỉnh sửa cấu hình thông báo khuyến mãi.
-- Cấu hình banner và ticker có hiệu lực ngay lập tức sau khi Admin bấm Lưu.

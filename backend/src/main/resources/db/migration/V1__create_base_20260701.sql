@@ -524,3 +524,154 @@ CREATE TABLE operational_incidents (
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    promotion_type VARCHAR(30) NOT NULL,
+    discount_value DECIMAL(15, 2) NULL,
+    max_discount_amount DECIMAL(15, 2) NULL,
+    min_bill_amount DECIMAL(15, 2) NULL,
+    min_quantity INT UNSIGNED NULL,
+    max_redemptions INT UNSIGNED NULL,
+    max_redemptions_per_customer INT UNSIGNED NULL,
+    priority INT NOT NULL DEFAULT 0,
+    is_stackable BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(20) NOT NULL,
+    start_at DATETIME(3) NULL,
+    end_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotions_public_id UNIQUE (public_id),
+    KEY idx_promotions_store_status_period (store_id, status, start_at, end_at),
+    CONSTRAINT fk_promotions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_codes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    max_redemptions INT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_codes_store_code UNIQUE (store_id, code),
+    KEY idx_promotion_codes_promotion_id (promotion_id),
+    CONSTRAINT fk_promotion_codes_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_codes_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_targets (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    target_type VARCHAR(20) NOT NULL,
+    target_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_targets_promotion_type_target
+        UNIQUE (promotion_id, target_type, target_id),
+    KEY idx_promotion_targets_store_id (store_id),
+    CONSTRAINT fk_promotion_targets_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_targets_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_redemptions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    promotion_code_id BIGINT UNSIGNED NULL,
+    client_account_id BIGINT UNSIGNED NOT NULL,
+    table_session_id BIGINT UNSIGNED NOT NULL,
+    payment_id BIGINT UNSIGNED NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    reversed_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_redemptions_payment UNIQUE (payment_id),
+    KEY idx_promotion_redemptions_promotion_status (promotion_id, status),
+    KEY idx_promotion_redemptions_code_status (promotion_code_id, status),
+    KEY idx_promotion_redemptions_client_promotion_status
+        (client_account_id, promotion_id, status),
+    KEY idx_promotion_redemptions_table_session_id (table_session_id),
+    CONSTRAINT fk_promotion_redemptions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_code
+        FOREIGN KEY (promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_client_account
+        FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_table_session
+        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_payment
+        FOREIGN KEY (payment_id) REFERENCES payments (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE bill_discounts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    table_session_id BIGINT UNSIGNED NOT NULL,
+    payment_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    promotion_code_id BIGINT UNSIGNED NULL,
+    promotion_name VARCHAR(150) NOT NULL,
+    code VARCHAR(100) NULL,
+    promotion_type VARCHAR(30) NOT NULL,
+    discount_value DECIMAL(15, 2) NULL,
+    discount_amount DECIMAL(15, 2) NOT NULL,
+    max_discount_amount DECIMAL(15, 2) NULL,
+    promotion_snapshot JSON NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_bill_discounts_payment UNIQUE (payment_id),
+    KEY idx_bill_discounts_store_id (store_id),
+    KEY idx_bill_discounts_table_session_id (table_session_id),
+    KEY idx_bill_discounts_promotion_id (promotion_id),
+    KEY idx_bill_discounts_code_id (promotion_code_id),
+    CONSTRAINT fk_bill_discounts_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_table_session
+        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_payment
+        FOREIGN KEY (payment_id) REFERENCES payments (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_code
+        FOREIGN KEY (promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
