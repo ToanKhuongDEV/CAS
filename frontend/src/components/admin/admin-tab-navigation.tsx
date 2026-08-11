@@ -35,6 +35,7 @@ const adminNavSchema: MenuItemGroup[] = [
       },
       { href: "/admin/catalog/tags", label: "Nhãn món" },
       { href: "/admin/promotions", label: "Khuyến mãi (Promotions)" },
+      { href: "/admin/services", label: "Dịch vụ thêm" },
       { href: "/admin/tables", label: "Sơ đồ Bàn & Mã QR" },
     ],
   },

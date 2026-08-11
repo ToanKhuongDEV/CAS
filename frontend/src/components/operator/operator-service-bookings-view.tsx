@@ -91,7 +91,11 @@ function getStatusClass(status: PaymentStatus) {
   return "bg-cas-surface-container text-cas-on-surface-variant";
 }
 
-export function OperatorServiceBookingsView() {
+export function OperatorServiceBookingsView({
+  mode = "operator",
+}: {
+  mode?: "admin" | "operator";
+}) {
   const [bookings, setBookings] = useState<ServiceBooking[]>(initialBookings);
   const [clients, setClients] = useState<ClientAccount[]>(clientAccounts);
   const [filter, setFilter] = useState<"ALL" | PaymentStatus>("ALL");
@@ -168,7 +172,7 @@ export function OperatorServiceBookingsView() {
       agreedPrice: price,
       clientAccountId: clientAccount.id,
       createdAt,
-      createdByName: "Nhân viên đang đăng nhập",
+      createdByName: mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
       id: `service-${Date.now()}`,
       paymentStatus,
       serviceName: serviceName.trim(),
