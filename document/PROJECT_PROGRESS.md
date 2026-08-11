@@ -141,6 +141,8 @@ Ngày cập nhật gần nhất: 2026-08-11
 
 ## 6. Frontend
 
+- [x] Bổ sung nút In bill trong popup xác nhận thanh toán của Operator; hiện mở hộp in của trình duyệt.
+- [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bill/bàn, món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
 - [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
 - [x] Bổ sung section “Dịch vụ thêm” cuối Menu Customer: giá thỏa thuận và nhãn hotline liên hệ, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
 - [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
