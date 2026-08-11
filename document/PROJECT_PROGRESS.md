@@ -142,6 +142,13 @@ Ngày cập nhật gần nhất: 2026-08-11
 ## 6. Frontend
 
 - [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
+- [x] Bổ sung section “Dịch vụ thêm” cuối Menu Customer: giá thỏa thuận và nhãn hotline liên hệ, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
+- [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
+- [x] Đổi thumbnail cố định của card Dịch vụ thêm trên Menu Customer sang biểu tượng ngôi sao.
+- [x] Tăng vùng cuộn cuối Menu Customer để scroll-spy lần lượt kích hoạt đúng tab Ăn vặt và Khác.
+- [x] Sửa scroll-spy Menu Customer không ép active sang category cuối khi chạm đáy, giữ đúng category section đang xem.
+- [x] Đồng bộ vùng cuộn cuối Menu Customer trên desktop để các category cuối vẫn có thể đi qua vị trí kích hoạt scroll-spy.
+- [x] Đặt card Dịch vụ thêm trong cùng lưới 2/3 cột với card món ở desktop, giữ icon ngôi sao kích thước tiêu chuẩn.
 
 - [x] Khởi tạo Next.js, React và TypeScript.
 - [x] Tích hợp Tailwind CSS với PostCSS.

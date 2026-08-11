@@ -50,25 +50,14 @@ export function CategoryNavigation({ categories, className }: CategoryNavigation
 
       const navigationBottom = navigationRef.current?.getBoundingClientRect().bottom ?? 0;
       const activationLine = navigationBottom + 8;
-      const documentHeight = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-      );
-      const reachedDocumentEnd =
-        documentHeight > window.innerHeight &&
-        window.scrollY + window.innerHeight >= documentHeight - 2;
       let nextCategoryId = sectionPositions[0].id;
 
-      if (reachedDocumentEnd) {
-        nextCategoryId = sectionPositions.at(-1)?.id ?? nextCategoryId;
-      } else {
-        for (const sectionPosition of sectionPositions) {
-          if (sectionPosition.top > activationLine) {
-            break;
-          }
-
-          nextCategoryId = sectionPosition.id;
+      for (const sectionPosition of sectionPositions) {
+        if (sectionPosition.top > activationLine) {
+          break;
         }
+
+        nextCategoryId = sectionPosition.id;
       }
 
       setActiveCategoryId((currentCategoryId) =>

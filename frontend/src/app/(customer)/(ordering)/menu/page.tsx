@@ -24,6 +24,8 @@ const categories = [
   { id: "an-vat", label: "Ăn vặt" },
 ];
 
+const categoryNavigationItems = [...categories, { id: "additional-services", label: "Khác" }];
+
 const spiceLevels = Array.from({ length: 8 }, (_, level) => ({
   id: `level-${level}`,
   label: `Cấp ${level}`,
@@ -329,9 +331,9 @@ export default function MenuPage() {
           </article>
         </section>
 
-        <CategoryNavigation categories={categories} />
+        <CategoryNavigation categories={categoryNavigationItems} />
 
-        <div className="mt-2 pb-15 md:pb-28" id="menu-list">
+        <div className="mt-2 pb-70 md:pb-70" id="menu-list">
           {categories.map((category) => {
             const categoryItems = menuItems.filter((item) => item.categoryId === category.id);
 
@@ -418,6 +420,40 @@ export default function MenuPage() {
               </section>
             );
           })}
+
+          <section
+            aria-labelledby="additional-services-title"
+            className="border-t border-cas-outline-variant/55 py-5 md:py-6"
+            id="additional-services"
+          >
+            <h2 className="sr-only" id="additional-services-title">
+              Dịch vụ thêm
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <article className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4">
+                <div className="grid min-h-32 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary md:aspect-[4/3] md:min-h-0">
+                  <CasIcon className="size-10" name="sparkle" />
+                </div>
+                <div className="flex min-w-0 flex-col">
+                  <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
+                    Đặt tiệc và dịch vụ theo yêu cầu
+                  </h3>
+                  <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                    Liên hệ nhân viên để trao đổi dịch vụ và chốt giá trước khi đặt.
+                  </p>
+                  <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+                    <span className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
+                      Chốt giá qua Zalo
+                    </span>
+                    <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
+                      <CasIcon className="size-3.5" name="phone" />
+                      Liên hệ: 0901 234 567
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
         </div>
       </main>
 
