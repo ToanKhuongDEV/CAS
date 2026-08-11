@@ -1,8 +1,8 @@
 # CAS
 
-CAS là ứng dụng giúp quán ăn, quán nước số hóa việc gọi món tại bàn và thanh toán chuyển khoản.
+CAS là ứng dụng giúp quán ăn, quán nước số hóa việc gọi món tại bàn và ghi nhận trạng thái thanh toán.
 
-Khách chỉ cần quét QR ở bàn, xem menu trên điện thoại, chọn món và gửi order. Nhân viên nhìn thấy order ở màn hình vận hành, xử lý món, tạo mã VietQR để khách chuyển khoản và xác nhận khi đã nhận đúng tiền.
+Khách chỉ cần quét QR ở bàn, xem menu trên điện thoại, chọn món và gửi order. Khi tạo yêu cầu thanh toán, khách bắt buộc ra gặp nhân viên. Nhân viên nhìn thấy yêu cầu trên màn hình vận hành, xác minh chuyển khoản thành công qua loa báo giao dịch (“ting ting”), sau đó bấm xác nhận thanh toán thành công.
 
 ## Công nghệ
 
@@ -45,7 +45,7 @@ npm run dev
 - Hạn chế nhầm món, sai bàn, sai giá.
 - Khách gọi món nhanh hơn bằng điện thoại cá nhân.
 - Nhân viên theo dõi được bàn nào đã gọi món, bàn nào đang chờ thanh toán.
-- Thanh toán chuyển khoản rõ ràng hơn nhờ mã chuyển khoản riêng cho từng lần thanh toán.
+- Theo dõi rõ yêu cầu nào đang chờ và đã được nhân viên xác nhận thanh toán.
 - Lưu lại lịch sử order và thanh toán để kiểm tra khi có vấn đề.
 
 ## Các chức năng chính
@@ -98,19 +98,13 @@ Nếu khách muốn hủy món, hệ thống ghi nhận yêu cầu hủy. Nhân 
 
 Nếu đồng ý, hệ thống tính lại tiền từ số lượng còn lại nhưng không sửa hoặc xóa dòng món gốc. Nếu từ chối, tổng tiền không thay đổi.
 
-### Thanh toán bằng VietQR
+### Yêu cầu và xác nhận thanh toán
 
-Khi khách yêu cầu thanh toán, nhân viên tạo mã VietQR trên màn hình vận hành.
+Khi khách yêu cầu thanh toán, backend tạo một payment `PENDING`. Số tiền được backend tính từ tổng `orders.payable_amount` của phiên bàn, không lấy từ dữ liệu client. Giao diện thông báo khách bắt buộc ra gặp nhân viên để hoàn tất thanh toán.
 
-VietQR có:
+Nhân viên mở yêu cầu trên màn hình vận hành. Sau khi khách chuyển khoản và loa báo giao dịch (“ting ting”) xác nhận tiền đã vào, nhân viên bấm xác nhận thanh toán thành công. Hệ thống chuyển payment sang `PAID` và đóng phiên bàn.
 
-- Tài khoản ngân hàng của quán.
-- Số tiền cần thanh toán.
-- Nội dung chuyển khoản riêng cho lần thanh toán đó.
-
-Khách chuyển khoản xong, nhân viên kiểm tra app ngân hàng. Chỉ khi đúng số tiền và đúng nội dung chuyển khoản, nhân viên mới xác nhận đã thanh toán.
-
-Hệ thống chưa tự động nhận tiền qua ngân hàng và chưa dùng webhook. Việc xác nhận vẫn do nhân viên kiểm tra thủ công.
+CAS không tạo QR thanh toán, không lưu thông tin ngân hàng hoặc dữ liệu giao dịch và không tích hợp với loa báo giao dịch. Việc xác minh chuyển khoản do nhân viên thực hiện ngoài CAS; hệ thống chỉ ghi nhận payment `PENDING` hoặc `PAID` phục vụ vận hành.
 
 ## Tài liệu dự án
 
@@ -128,24 +122,20 @@ Khách có thể gọi thêm món trong khi phiên bàn còn mở. Mỗi lần g
 
 ### Khách yêu cầu thanh toán rồi muốn gọi thêm
 
-Khi đã yêu cầu thanh toán, phiên bàn cũ không nhận thêm món nữa. Nếu khách vẫn muốn gọi thêm, hệ thống sẽ tạo phiên mới để tránh gộp nhầm bill.
+Khi đã yêu cầu thanh toán, phiên bàn không nhận thêm món và vẫn chiếm dụng bàn. Chỉ sau khi phiên được đóng mới có thể tạo phiên mới cho cùng bàn.
 
-### Khách chuyển thiếu tiền hoặc sai nội dung
+### Yêu cầu chưa được xác nhận
 
-Nhân viên không xác nhận thanh toán. Payment vẫn ở trạng thái chờ xử lý.
+Nếu nhân viên chưa xác nhận, payment vẫn ở trạng thái `PENDING` và phiên bàn giữ trạng thái `PAYMENT_PENDING`.
 
-Nếu không tiếp tục xử lý payment đó, nhân viên đánh dấu payment là bỏ qua. Payment cũ được giữ lại như lịch sử của một lần thanh toán không thành công; khoản còn phải thu được quản lý duy nhất trong `unpaid_records`.
-
-### Người tạo QR phải là người xác nhận
-
-Nhân viên nào tạo QR thanh toán thì chính nhân viên đó phải xác nhận đã nhận tiền. Nhân viên khác không được xác nhận thay.
+Nếu cần đóng bàn khi chưa xác nhận payment, nhân viên ghi nhận chưa thanh toán. Hệ thống giữ payment `PENDING`, tạo `unpaid_records` và đóng phiên bàn.
 
 ### Khách rời đi trước khi thanh toán
 
-Nếu khách đã gọi món nhưng rời đi trước khi tạo mã thanh toán, hệ thống vẫn còn dữ liệu order và giá món đã gọi.
+Nếu khách đã gọi món nhưng rời đi trước khi tạo yêu cầu thanh toán, hệ thống vẫn còn dữ liệu order và giá món đã gọi.
 
-Trường hợp này được lưu trong `unpaid_records` cùng tổng tiền và bill snapshot để admin xử lý sau. Khi cần thu lại tiền, admin tạo payment mới từ khoản chưa thanh toán đã chốt.
+Backend tạo một payment `PENDING` với số tiền lấy từ tổng đơn hàng, đồng thời lưu `unpaid_records` cùng bill snapshot để ghi nhận phiên chưa thanh toán rồi đóng bàn.
 
-### Khách quay lại trả tiền sau khi payment bị bỏ qua
+### Xác nhận sau khi đã ghi nhận chưa thanh toán
 
-Payment `IGNORED` cũ vẫn được giữ lại để truy vết lần thanh toán không thành công. Khoản phải thu nằm trong `unpaid_records`; admin tạo payment mới với mã chuyển khoản mới từ khoản này. Không sửa payment cũ thành đã thanh toán và không cộng payment `IGNORED` riêng vào công nợ.
+Nhân viên xác nhận chính payment `PENDING` của phiên, không tạo payment mới. Hệ thống chuyển payment sang `PAID` và `unpaid_records` sang `RESOLVED`.

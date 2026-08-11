@@ -1,2 +1,0 @@
--- Baseline cho dự án CAS.
--- Schema nghiệp vụ sẽ được bổ sung sau khi ERD, foreign key và constraint được chốt.

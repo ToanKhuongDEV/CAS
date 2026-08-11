@@ -1,6 +1,6 @@
 # Project: CAS Backend API
 
-CAS is the backend API for a restaurant table-ordering and payment-confirmation
+CAS is the backend API for a restaurant table-ordering and payment-status
 system, serving both the customer-facing and operations interfaces. The backend
 is a modular monolith built with Java 21, Spring Boot, and Maven. It uses MyBatis
 with MySQL, supported by Redis, Flyway, Lombok, and Jakarta Bean Validation.
@@ -26,7 +26,7 @@ com.cas
 ├── store       # Store, dining tables, and table QR codes
 ├── catalog     # Categories, menu items, and options
 ├── ordering    # Table sessions, orders, and cancellation requests
-├── payment     # Payments, VietQR, and payment confirmation
+├── payment     # Payment requests and manual status confirmation
 └── operation   # Operational accounts and audit logs
 ```
 
@@ -50,6 +50,9 @@ Do not organize the entire application into shared technical packages such as
 
 
 ## Authentication and Secrets
+- Operational accounts (`ADMIN` and `OPERATOR`) use Firebase Authentication.
+- Client passes the Firebase ID Token in the `Authorization: Bearer <Firebase_ID_Token>` header.
+- CAS Backend verifies the Firebase ID Token and maps it to system accounts and roles.
 
 
 ## Test Order
@@ -59,7 +62,7 @@ Do not organize the entire application into shared technical packages such as
 
 
 ## Conventions
-
+- Upon completing a task, you must update the PROJECT_PROGRESS.md file.
 - Do not read files or directories listed in .gitignore.
 - Do not create a Git commit unless the user explicitly requests it.
 - If anything is unclear, ask for the user's approval before implementing it. Do not guess.
@@ -83,5 +86,12 @@ Do not organize the entire application into shared technical packages such as
 - Do not manually edit generated files, including OpenAPI or code-generation outputs.
 - Do not delete existing files, code, comments, tests, or configurations unless explicitly required.
 - Keep changes minimal and focused. Do not format or modify unrelated files.
-- After completing the implementation, run the project's formatting command.
+- After completing the implementation, run the project's formatting command (for frontend: npx prettier --write src/ or npm run format).
 - Clearly report assumptions, modified files, important decisions, and any remaining risks.
+
+## Frontend Design System
+
+- **Colors**: Always use the design tokens defined in `frontend/src/app/globals.css` (e.g., `cas-primary`, `cas-error`, `cas-secondary`, `cas-tertiary`, `cas-on-surface`, `cas-on-surface-variant`, `cas-surface`, `cas-outline-variant`, etc.). Never use raw Tailwind color utilities such as `red-500`, `emerald-500`, `rose-500`, `amber-500`, `slate-500`, or any other hardcoded palette color. If a new color is genuinely needed and no existing token fits, ask the user for approval before adding it to `globals.css`.
+- **Fonts**: Always use the system font stack defined via `--font-cas` in `globals.css`, applied globally through the `font-sans` Tailwind utility on `<body>`. Never declare a custom `font-family`, import a separate Google Font, or use any Tailwind font utility other than `font-sans`. If a new typeface is required, ask the user for approval before adding it.
+- Minimize additions to the design system. Reuse existing tokens first. Adding new tokens or colors requires explicit user approval.
+
