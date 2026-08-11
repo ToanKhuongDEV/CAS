@@ -137,14 +137,20 @@ Lưu thông tin cửa hàng.
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh cửa hàng |
 | `name` | `VARCHAR(150) NOT NULL` | Tên cửa hàng |
-| `address` | `VARCHAR(500) NULL` | Địa chỉ |
-| `phone` | `VARCHAR(20) NULL` | Số điện thoại |
+| `address` | `VARCHAR(500) NOT NULL` | Địa chỉ cửa hàng |
+| `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại hotline |
+| `email` | `VARCHAR(254) NOT NULL` | Email liên hệ |
+| `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
+| `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
+| `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |
+| `welcome_slogan` | `VARCHAR(500) NULL` | Thông điệp/slogan chào mừng hiển thị cho khách |
+| `long_wait_warning_minutes` | `SMALLINT UNSIGNED NOT NULL DEFAULT 25` | Ngưỡng cảnh báo bàn chờ lâu, tính theo phút |
 | `timezone` | `VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh'` | Múi giờ vận hành, dùng cố định `Asia/Ho_Chi_Minh` (`UTC+07:00`) |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hoạt động |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
+Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Các trường liên hệ, vị trí, giờ hoạt động và slogan được `ADMIN` cấu hình từ màn hình Settings; Customer có thể dùng dữ liệu công khai này để xem thông tin cửa hàng. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
 
 #### `dining_tables`
 
@@ -439,9 +445,8 @@ Dashboard Operation xác định order có `created_at` sớm nhất trong từn
 order đó là mốc tính thời gian chờ của bàn; order gọi thêm không làm đặt lại mốc
 nếu order cũ hơn vẫn còn món cần làm. Chức năng cảnh báo này dùng dữ liệu hiện
 có, không bổ sung cột trạng thái hoặc cột thời gian chờ vào database; ngưỡng
-cảnh báo do `ADMIN` cấu hình và được backend áp dụng. Vị trí lưu cấu hình, ràng
-buộc giá trị và migration tương ứng vẫn `Cần chốt`; không tự bổ sung cột hoặc
-bảng trước khi có thiết kế được duyệt. UI dùng tạm giá trị `25` phút.
+cảnh báo do `ADMIN` cấu hình tại `stores.long_wait_warning_minutes` và được
+backend áp dụng.
 
 `idempotency_key` do frontend tạo mới cho mỗi lần submit order và được lưu bền vững cùng order. Backend chuẩn hóa payload, tính SHA-256 và lưu vào `request_fingerprint`; client không được gửi hoặc quyết định fingerprint. Cặp `table_session_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo; nếu fingerprint khác, backend trả HTTP `409 Conflict`. Key không cần TTL và fingerprint không cần unique constraint.
 
@@ -886,6 +891,8 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
 - Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.
+- `stores.long_wait_warning_minutes` phải nằm trong khoảng từ `5` đến `120` phút.
+- `stores.open_time` và `stores.close_time` được diễn giải theo `stores.timezone`; backend không được suy diễn giờ mở/đóng cửa khi chưa có quy tắc ngày trong tuần hoặc ngày nghỉ được thiết kế riêng.
 
 ### 8.4. Unique constraint có điều kiện
 

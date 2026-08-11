@@ -176,6 +176,60 @@ export default function Home() {
               ))}
             </div>
           </section>
+
+          <footer className="border-t border-cas-outline-variant/45 py-7 text-sm text-cas-on-surface-variant">
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:gap-8">
+              <div>
+                <p className="flex items-center gap-2 font-extrabold text-cas-on-surface">
+                  <CasIcon className="size-4 text-cas-primary" name="restaurant" />
+                  Tiệm Ăn Vặt &amp; Mỳ Cay CAS
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 font-extrabold text-cas-on-surface">
+                  <CasIcon className="size-4 text-cas-primary" name="location" />
+                  Địa chỉ
+                </p>
+                <a
+                  className="mt-2 block leading-relaxed hover:text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  href="https://maps.google.com/?q=10.7554,106.6781"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh
+                </a>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 font-extrabold text-cas-on-surface">
+                  <CasIcon className="size-4 text-cas-primary" name="phone" />
+                  Liên hệ
+                </p>
+                <div className="mt-2 grid gap-2">
+                  <a
+                    className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                    href="tel:0901234567"
+                  >
+                    <CasIcon className="size-4" name="phone" />
+                    0901 234 567
+                  </a>
+                  <a
+                    className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                    href="mailto:contact@cas-restaurant.vn"
+                  >
+                    <CasIcon className="size-4" name="mail" />
+                    contact@cas-restaurant.vn
+                  </a>
+                  <p className="inline-flex items-center gap-2">
+                    <CasIcon className="size-4 text-cas-primary" name="clock" />
+                    08:00 – 22:30 mỗi ngày
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-7 border-t border-cas-outline-variant/30 pt-4 text-xs text-cas-on-surface-variant">
+              © 2026 Bản quyền thuộc về Khuong Xuan Toan - 0394986338
+            </p>
+          </footer>
         </main>
       </div>
     </div>

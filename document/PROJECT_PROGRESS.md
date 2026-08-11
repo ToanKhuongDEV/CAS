@@ -22,6 +22,8 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 - [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
 - [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
+- [x] Bổ sung yêu cầu in hóa đơn thanh toán và phiếu bếp qua máy in kết nối nội bộ (LAN/USB) vào `OVERALL.md` và `EDGE_CASES.md`.
+- [x] Bổ sung yêu cầu chế độ offline-first cho giao diện vận hành (Operation) với hàng đợi đồng bộ cục bộ vào `OVERALL.md` và `EDGE_CASES.md`. Các thao tác tài chính (PAID, đóng bill, voucher quota, hoàn tiền) vẫn bắt buộc online.
 
 ## 2. Các quyết định nghiệp vụ đã chốt
 
@@ -268,6 +270,10 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [ ] Kiểm thử triển khai thử nghiệm tại cửa hàng.
 
 ## 8. Việc tiếp theo
+
+- [x] Đồng bộ thiết kế `stores` với UI Admin Settings: thông tin liên hệ, vị trí Google Maps, giờ hoạt động, slogan và ngưỡng cảnh báo bàn chờ lâu.
+- [x] Bổ sung footer trang Welcome Customer hiển thị các thông tin công khai của cửa hàng theo dữ liệu `stores`: tên, địa chỉ/vị trí, hotline, email và giờ hoạt động, kèm icon ngữ cảnh và dòng bản quyền.
+- [x] Điều chỉnh khoảng đệm cuối trang giỏ hàng Customer để thanh gửi món cố định không che khu vực ghi chú chung.
 
 1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.

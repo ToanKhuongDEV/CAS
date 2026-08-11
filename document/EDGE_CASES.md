@@ -755,3 +755,126 @@ Các trường hợp dưới đây được xác định rõ là **Ngoài phạm
 6. **Quản lý Kho & Tồn kho**:
    - Quản lý định lượng nguyên liệu, tồn kho âm, tự động trừ kho khi chế biến hoặc hoàn kho khi hủy món.
    - _Hướng xử lý tạm thời_: Nhân viên chủ động cập nhật trạng thái món/topping sang `SOLD_OUT` hoặc `INACTIVE` trên giao diện quản lý khi hết hàng.
+
+---
+
+## 23. In hóa đơn thanh toán và phiếu bếp
+
+### 23.1. Máy in không thể hoàn tất việc in
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Nhân viên bấm "In hóa đơn" hoặc "In phiếu bếp". Frontend mở giao diện in của trình duyệt, nhưng việc in có thể không hoàn tất do máy in tắt nguồn, hết giấy, lỗi kết nối USB/LAN, lỗi driver hoặc nhân viên hủy thao tác in.
+
+#### Cách xử lý
+
+- Frontend tạo nội dung cần in và gọi chức năng in của trình duyệt.
+- Việc kết nối và trạng thái máy in do hệ điều hành/driver máy in quản lý.
+- CAS frontend không xác nhận được chắc chắn hóa đơn đã được in vật lý thành công.
+- Nếu việc in không thành công, nhân viên kiểm tra máy in và sử dụng chức năng "In lại".
+- Dữ liệu hóa đơn/phiếu bếp không bị mất và có thể tạo lại từ dữ liệu hiện tại.
+- Việc in hoặc in thất bại không thay đổi trạng thái payment, order hoặc session.
+- CAS Backend không tham gia trực tiếp vào quá trình giao tiếp với máy in.
+
+### 23.2. Hóa đơn PAID và phiếu bếp chứa dữ liệu nhạy cảm
+
+**Trạng thái:** Đã chốt
+
+#### Cách xử lý
+
+- Hóa đơn thanh toán (`PAID`) chỉ in thông tin kinh doanh: tên cửa hàng, số bàn, danh sách món, số lượng, đơn giá, thành tiền, tổng cộng, khuyến mãi (nếu có), thời điểm in.
+- Không in số điện thoại khách hàng, thông tin tài khoản ngân hàng, mã giao dịch hoặc dữ liệu cá nhân nhạy cảm.
+- Phiếu bếp chỉ in thông tin chế biến: số bàn, số thứ tự order (FIFO), món, option, số lượng, ghi chú, cờ `[LÀM LẠI]`.
+
+---
+
+## 24. Chế độ Offline và Đồng bộ
+
+### 24.1. Nhân viên tạo order offline, rồi mạng trở lại nhưng session đã đóng
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Nhân viên tạo order trong khi offline. Khi mạng trở lại và sync queue gửi lên backend, session đã bị đóng (`CLOSED`) do nhân viên khác đã xử lý thanh toán.
+
+#### Cách xử lý
+
+- Backend từ chối tạo order vào session đã `CLOSED` hoặc `PAYMENT_PENDING` và trả lỗi.
+- Frontend đánh dấu thao tác là `CONFLICT` trong sync queue và hiển thị cảnh báo để nhân viên xem xét thủ công.
+- Không tự động tạo order vào session mới hoặc session khác.
+
+### 24.2. Cập nhật `prepared_quantity` offline bị xung đột khi sync
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Nhân viên A ghi nhận hoàn thành một mẻ khi offline. Trong thời gian đó, nhân viên B (online) đã duyệt hủy một phần số lượng của dòng món đó. Khi A sync lại, số lượng hiệu lực đã giảm.
+
+#### Cách xử lý
+
+- Backend kiểm tra lại số lượng hiệu lực (`quantity - approved_cancelled_quantity`) trước khi ghi `prepared_quantity`.
+- Nếu `prepared_quantity` sau sync vượt số lượng hiệu lực, backend từ chối và trả dữ liệu mới nhất.
+- Frontend đánh dấu thao tác `CONFLICT`, hiển thị dữ liệu hiện tại từ server để nhân viên A quyết định.
+- Không tự động điều chỉnh `prepared_quantity` xuống; nhân viên phải nhập lại giá trị hợp lệ.
+
+### 24.3. Sync queue tích lũy quá nhiều khi mất mạng dài
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Quán mất mạng trong thời gian dài (ví dụ: vài giờ). Sync queue tích lũy hàng chục thao tác.
+
+#### Cách xử lý
+
+- Khi mạng trở lại, frontend xử lý queue tuần tự theo FIFO, không gửi đồng loạt.
+- Mỗi thao tác trong queue dùng `idempotency_key` để tránh tạo dữ liệu trùng khi gửi lặp.
+- Trong quá trình sync, frontend hiển thị tiến trình đồng bộ (ví dụ: "Đang đồng bộ 3/10 thao tác").
+- Thao tác sync lỗi được bỏ qua và đánh dấu `CONFLICT`; các thao tác sau vẫn tiếp tục được gửi.
+
+### 24.4. Cache catalog hết hạn khi đang offline
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Thiết bị offline quá lâu, TTL của cache catalog (danh mục, món, option) đã hết hạn. Nhân viên vẫn cố dùng menu offline.
+
+#### Cách xử lý
+
+- Hệ thống hiển thị cảnh báo rõ ràng: "Dữ liệu menu có thể đã lỗi thời. Vui lòng kết nối mạng để cập nhật."
+- Không chặn nhân viên tạo order từ dữ liệu cache cũ; đây là quyết định vận hành.
+- Khi mạng trở lại, backend re-validate toàn bộ order trong sync queue. Nếu món đã `INACTIVE` hoặc `SOLD_OUT`, backend từ chối order đó và trả lỗi về frontend.
+
+### 24.5. Hai thiết bị cùng tạo order cho một bàn khi cả hai đang offline
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Nhân viên A và nhân viên B cùng tạo order cho bàn 5 khi cả hai offline. Khi cả hai sync lên backend, có thể tạo ra hai order cho cùng một session.
+
+#### Cách xử lý
+
+- Mỗi thiết bị tạo `idempotency_key` độc lập cho mỗi lần gửi order; hai thiết bị sẽ có key khác nhau.
+- Backend xử lý hai order như hai order riêng biệt và tạo thành công cả hai nếu hợp lệ.
+- Đây là hành vi bình thường (tương tự hai nhân viên cùng gọi món hộ khách); nhân viên chịu trách nhiệm kiểm tra trùng lặp nếu cần.
+- Không có cơ chế tự động gộp hay dedupe hai order từ hai thiết bị offline khác nhau.
+
+### 24.6. Nhân viên xem order/bill offline từ cache nhưng đã lỗi thời
+
+**Trạng thái:** Đã chốt
+
+#### Tình huống
+
+Nhân viên xem bill của một bàn từ cache offline. Trong thời gian mất mạng, nhân viên khác (online) đã duyệt hủy một số món, làm tổng tiền giảm.
+
+#### Cách xử lý
+
+- Frontend hiển thị dữ liệu từ cache kèm thông báo "Dữ liệu có thể chưa cập nhật đầy đủ vì thiết bị đang offline."
+- Không cho phép nhân viên xác nhận thanh toán (`PAID`) khi offline; thao tác này bắt buộc online.
+- Khi mạng trở lại, frontend tự động refresh dữ liệu session/bill từ backend trước khi cho phép thanh toán.

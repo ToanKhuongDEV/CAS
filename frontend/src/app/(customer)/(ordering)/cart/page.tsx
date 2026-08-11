@@ -40,7 +40,7 @@ const cartItems = [
 export default function CartPage() {
   return (
     <>
-      <main className="w-full">
+      <main className="w-full pb-36 md:pb-32">
         <header className="mb-6">
           <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
             Món đang chọn

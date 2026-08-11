@@ -12,6 +12,8 @@ export type CasIconName =
   | "edit"
   | "fire"
   | "info"
+  | "location"
+  | "mail"
   | "menu"
   | "minus"
   | "payment"
@@ -72,6 +74,18 @@ const iconPaths: Record<CasIconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5M12 8h.01" />
+    </>
+  ),
+  location: (
+    <>
+      <path d="M20 10c0 5.3-8 11-8 11S4 15.3 4 10a8 8 0 1 1 16 0Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
     </>
   ),
   menu: (

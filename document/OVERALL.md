@@ -12,6 +12,8 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 - Giảm thời gian và sai sót trong quá trình tiếp nhận order.
 - Đồng bộ quá trình xử lý món giữa khách hàng và cửa hàng.
 - Hỗ trợ gửi yêu cầu và ghi nhận trạng thái thanh toán thuận tiện.
+- In hóa đơn thanh toán cho khách qua máy in kết nối nội bộ (LAN/USB).
+- Duy trì hoạt động vận hành cơ bản (xem menu, gọi món, điều phối bếp, in phiếu) ngay cả khi mất kết nối internet và tự đồng bộ khi mạng trở lại.
 - Tạo nền tảng để mở rộng các chức năng quản lý trong tương lai.
 
 ## 3. Đối tượng sử dụng và Phân quyền (Roles)
@@ -35,6 +37,8 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được x�
 - **Duyệt/Chủ động Hủy món:** Xác nhận hoặc từ chối yêu cầu hủy của khách. Quyền chủ động hủy món kèm lý do, bao gồm phương án **Làm lại món** (hủy lưu cờ `is_remade = TRUE` và tự động sinh order bồi thường) để xử lý món lỗi bể/vỡ.
 - **Điều phối chế biến:** Ghi nhận và cập nhật số lượng món đã làm xong (`prepared_quantity`) để trả đồ cho khách.
 - **Nghiệp vụ thanh toán:** Kiểm tra hóa đơn, đối chiếu tiền mặt/chuyển khoản và ấn **Xác nhận thanh toán thủ công (PAID)**. (Đã bấm là không được hoàn tác).
+- **In hóa đơn:** In hóa đơn thanh toán cho khách khi payment ở trạng thái `PAID` qua máy in kết nối nội bộ (LAN/USB).
+- **In phiếu bếp:** In phiếu chế biến cho bếp trực tiếp từ màn hình vận hành khi máy in kết nối nội bộ.
 - **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới; **Tạo Báo cáo sự cố phát sinh** trong ca trực (lưu tên người tạo, thời gian và mô tả sự cố) để gửi trực tiếp cho ADMIN.
 
 ### 3.3. Quản lý / Quản trị viên (ADMIN)
@@ -181,6 +185,8 @@ khi chưa có quyết định tiếp theo.
 - Kế toán và hóa đơn điện tử.
 - Báo cáo và phân tích nâng cao ngoài chức năng Admin xem danh sách `report` đã
   được ghi nhận ở phạm vi hiện tại.
+- Chế độ offline cho giao diện Customer (khách hàng vẫn bắt buộc cần mạng để quét QR, xem menu và gửi order).
+- Xử lý xung đột tự động khi sync offline; xung đột phải do nhân viên xem xét và xử lý thủ công.
 
 Các chức năng này sẽ được xem xét trong những phiên bản sau dựa trên nhu cầu vận hành thực tế.
 
@@ -289,7 +295,46 @@ Các module được tổ chức trong cùng một backend và có thể tách h
 - Giai đoạn đầu không dùng SSE, WebSocket hoặc Redis Pub/Sub.
 - Chu kỳ polling là cấu hình kỹ thuật được xác định khi triển khai và kiểm thử thực tế.
 
-### 6.4. Tích hợp dịch vụ ngoài
+### 6.4. Chế độ Offline và Đồng bộ (Offline-First cho giao diện vận hành)
+
+Giao diện Operation hỗ trợ chế độ offline có giới hạn để duy trì vận hành liên tục khi mất kết nối internet. Các thao tác được phép thực hiện offline sẽ được lưu vào **hàng đợi đồng bộ cục bộ** và tự động gửi lên backend khi mạng trở lại.
+
+#### Các thao tác được phép thực hiện offline
+
+| Thao tác | Mô tả |
+|---|---|
+| Xem menu, giá, option/topping | Dùng dữ liệu catalog đã cache từ lần online gần nhất |
+| Xem order/bill đang mở | Dùng dữ liệu session/order đã cache trước khi mất mạng |
+| Tạo order mới | Lưu vào hàng đợi local; sync khi có mạng |
+| Thêm ghi chú món | Ví dụ: ít cay, không hành; lưu cùng order trong hàng đợi |
+| Cập nhật `prepared_quantity` | Ghi nhận hoàn thành chế biến; lưu vào hàng đợi, sync sau |
+| In phiếu bếp | In trực tiếp qua máy in kết nối nội bộ (LAN/USB), không cần internet |
+
+#### Các thao tác bắt buộc online (không hỗ trợ offline)
+
+| Thao tác | Lý do |
+|---|---|
+| Xác nhận thanh toán (`PAID`) | Giao dịch tài chính — phải có kết nối để đảm bảo tính toàn vẹn |
+| Tạo payment / đóng bill | Tính toán tổng tiền và snapshot từ server |
+| Áp dụng voucher/khuyến mãi có quota | Kiểm tra quota thời gian thực để tránh vượt hạn mức |
+| Hoàn tiền | Cần đồng bộ ngay với dữ liệu chính thức |
+
+#### Cơ chế hàng đợi đồng bộ
+
+- Mỗi thao tác offline được ghi vào **sync queue** cục bộ (IndexedDB hoặc tương đương) với trạng thái `PENDING_SYNC`.
+- Khi phát hiện mạng trở lại, frontend tự động lần lượt gửi các thao tác trong hàng đợi lên backend theo thứ tự FIFO.
+- Mỗi thao tác trong hàng đợi sử dụng `idempotency_key` để backend xử lý an toàn khi gửi lặp.
+- Nếu sync một thao tác thất bại do xung đột (ví dụ: order_item đã bị hủy trước khi `prepared_quantity` được sync), backend trả lỗi và frontend hiển thị cảnh báo để nhân viên xử lý thủ công.
+- Các thao tác đã sync thành công được đánh dấu `SYNCED`; thao tác lỗi được đánh dấu `CONFLICT` và giữ nguyên trong hàng đợi để xem xét.
+- Hàng đợi đồng bộ chỉ tồn tại trên thiết bị client; backend không biết về trạng thái offline của client.
+
+#### Cache catalog và session
+
+- Khi online, frontend tự động cache dữ liệu catalog (danh mục, món, option) và danh sách session/order đang mở vào bộ nhớ cục bộ.
+- Dữ liệu cache có TTL được xác định khi triển khai. Khi cache hết hạn mà vẫn offline, hệ thống cảnh báo nhân viên dữ liệu có thể không còn chính xác.
+- Backend không cung cấp API đặc biệt cho offline; cache được xây dựng từ kết quả các API thông thường.
+
+### 6.5. Tích hợp dịch vụ ngoài
 
 - Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary.
 - Khi admin quản lý ảnh món, CAS Backend nhận file, kiểm tra quyền và upload ảnh lên Cloudinary bằng authenticated API. Backend lưu `image_url` và `image_storage_key` vào MySQL.
