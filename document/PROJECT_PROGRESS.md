@@ -21,6 +21,13 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Tổng hợp các trường hợp biên nghiệp vụ.
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 - [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
+- [x] Rà soát lộ trình và các tính năng dự kiến triển khai trong tương lai ngày 2026-08-11.
+- [x] Đồng bộ `DATABASE_DESIGN.md` với UI Admin Notifications: `target_role` dùng `OPERATOR`, `CUSTOMER` hoặc `BOTH`.
+- [x] Bổ sung thiết kế bảng trung gian `system_notification_recipients` để lưu trạng thái đã đọc/chưa đọc theo từng người nhận thông báo.
+- [x] Bổ sung `accounts.email` và unique constraint `uk_accounts_email` vào thiết kế tài khoản nhân viên.
+- [x] Bổ sung bảng `service_bookings` và luồng dịch vụ đặt trước chốt giá qua Zalo, thanh toán độc lập với table session và order món.
+- [x] Chuẩn hóa `service_bookings` chỉ tham chiếu `client_account_id`, không sao chép tên hoặc số điện thoại khách.
+- [x] Chuẩn hóa audit log bắt buộc cho mọi thao tác thay đổi dịch vụ đặt trước.
 - [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
 - [x] Bổ sung yêu cầu in hóa đơn thanh toán và phiếu bếp qua máy in kết nối nội bộ (LAN/USB) vào `OVERALL.md` và `EDGE_CASES.md`.
 - [x] Bổ sung yêu cầu chế độ offline-first cho giao diện vận hành (Operation) với hàng đợi đồng bộ cục bộ vào `OVERALL.md` và `EDGE_CASES.md`. Các thao tác tài chính (PAID, đóng bill, voucher quota, hoàn tiền) vẫn bắt buộc online.
@@ -198,7 +205,7 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
 - [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) cho phép nhân viên `OPERATOR` tạo và ghi nhận các sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`.
 - [x] Cập nhật hệ thống tài liệu thiết kế (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`, `PROJECT_PROGRESS.md`) phân định rõ: `OPERATOR` tạo báo cáo sự cố phát sinh, `ADMIN` có quyền xem và tra cứu danh sách báo cáo sự cố.
-- [x] Bổ sung badge số nhỏ (counter badge) hiển thị số lượng yêu cầu/thông tin chờ xử lý trên thanh điều hướng `OperatorTabNavigation` cho các tab Đơn gọi món (8), Hủy món (3), Thanh toán (3), và Chưa thanh toán (1).
+- [x] Bổ sung badge số nhỏ (counter badge) hiển thị số lượng yêu cầu/thông tin chờ xử lý trên thanh điều hướng `OperatorTabNavigation` cho các tab Đơn gọi món (8), Hủy món (3), Thanh toán (3), Chưa thanh toán (1) và Dịch vụ thêm (1).
 - [x] Xây dựng UI bộ giao diện Admin hoàn chỉnh tại `/admin` theo đúng thiết kế Stitch và tài liệu dự án, bao gồm Admin Header & AdminTabNavigation (`/admin/layout.tsx`), Dashboard Tổng quan (`/admin/page.tsx`), Quản lý Thực đơn & Catalog (`/admin/catalog/page.tsx`), Quản lý Bàn & Mã QR (`/admin/tables/page.tsx`), Quản lý Nhân viên OPERATOR (`/admin/operators/page.tsx`), Báo cáo Sự cố ca trực (`/admin/incidents/page.tsx`), Cấu hình & Nhật ký Audit Logs (`/admin/settings/page.tsx`).
 - [x] Sửa menu Admin hai cấp: popup submenu không còn bị cắt bởi vùng cuộn ngang; thanh điều hướng tự xuống hàng trên màn hình hẹp và bổ sung trạng thái truy cập cho dropdown.
 - [x] Tổ chức lại UI Admin: tách Catalog thành các trang danh mục, món ăn, option và nhãn món; tách Audit Logs thành trang tra cứu riêng; báo cáo sự cố chỉ còn chức năng xem/tra cứu theo phạm vi đã chốt.
@@ -215,13 +222,17 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Loại Banner chào mừng, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không còn dùng `promotion_configs`.
 - [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
 - [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
+- [x] Thay biểu đồ chính Admin Dashboard bằng line chart doanh thu theo thời gian, có bộ chọn Hôm nay/7 ngày/30 ngày/Tháng này và dữ liệu theo giờ từ 09h đến 22h cho chế độ Hôm nay.
 - [x] Tinh chỉnh thanh điều hướng Admin (`AdminTabNavigation`): hỗ trợ trượt ngang mượt mà (`overflow-x-auto`, `whitespace-nowrap`, `shrink-0`) trên mobile; đồng thời xử lý hiển thị popup menu con bằng `fixed` positioning giúp menu xổ ra tự do bên ngoài box, không bị cắt mép hay bắt người dùng kéo cuộn bên trong.
 - [x] Xây dựng giao diện quản lý khoản chưa thanh toán tại `/operator/unpaid`, bao gồm danh sách các bản ghi `unpaid_records`, bộ lọc trạng thái (`ALL`, `OPEN`, `RESOLVED`), Modal xem `bill_snapshot` chi tiết, thao tác kết thúc phiên bàn và ghi nhận chưa thanh toán với lý do bắt buộc, cùng nút chuyển đổi trạng thái đã thu tiền.
+- [x] Lược bỏ mô tả kỹ thuật về tạo payment và snapshot khỏi form ghi nhận chưa thanh toán.
+- [x] Xây dựng UI `OPERATOR` quản lý dịch vụ đặt trước tại `/operator/services` (tab “Dịch vụ thêm”): tạo dịch vụ sau khi chốt qua Zalo, chọn `client_account`, nhập giá đã thỏa thuận và cập nhật trạng thái thanh toán.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
 - [ ] Viết component test và end-to-end test.
 - [x] Xây dựng giao diện Admin tra cứu khách hàng tại `/admin/customers`, gồm tìm kiếm theo tên/SĐT, che số điện thoại ở danh sách và xem lịch sử phiên bàn dạng chỉ đọc bằng dữ liệu mẫu.
+- [x] Bổ sung section định hướng phát triển cuối trang `/admin/audit-logs`: chăm sóc khách hàng qua Zalo, trò chơi và tính năng AI.
 
 - [x] Căn chỉnh popup submenu của `AdminTabNavigation` bám ngay dưới thanh điều hướng, loại bỏ khoảng hở do `fixed` positioning bị ảnh hưởng bởi backdrop blur.
 - [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` (mô tả phụ: "Quản lý thông tin cửa hàng và tham số vận hành") hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`) cùng nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên Admin & Operator Header.
@@ -271,6 +282,7 @@ Ngày cập nhật gần nhất: 2026-08-11
 
 ## 8. Việc tiếp theo
 
+- [x] Chuẩn hóa phạm vi audit log: bổ sung entity type, action và các thao tác Admin/Operator bắt buộc phải ghi nhận.
 - [x] Đồng bộ thiết kế `stores` với UI Admin Settings: thông tin liên hệ, vị trí Google Maps, giờ hoạt động, slogan và ngưỡng cảnh báo bàn chờ lâu.
 - [x] Bổ sung footer trang Welcome Customer hiển thị các thông tin công khai của cửa hàng theo dữ liệu `stores`: tên, địa chỉ/vị trí, hotline, email và giờ hoạt động, kèm icon ngữ cảnh và dòng bản quyền.
 - [x] Điều chỉnh khoảng đệm cuối trang giỏ hàng Customer để thanh gửi món cố định không che khu vực ghi chú chung.

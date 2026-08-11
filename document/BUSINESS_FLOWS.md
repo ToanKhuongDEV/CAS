@@ -24,6 +24,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Admin tra cứu khách hàng đã mở bàn và lịch sử sử dụng bàn.
 - Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
 - Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/ADMIN nhận thông báo).
+- Ghi nhận dịch vụ đặt trước được chốt qua Zalo và thanh toán độc lập với phiên bàn.
 
 Ngoài phạm vi hiện tại:
 
@@ -670,3 +671,28 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 - Thông báo hỗ trợ phân loại mức độ ưu tiên (`INFO`, `WARNING`, `URGENT`).
 - Cửa sổ thông báo hiển thị danh sách mới nhất xếp theo `created_at` giảm dần.
 - Biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải của giao diện `Customer` và `Operator` tự động đếm số lượng thông báo chưa đọc (`unreadCount`) và mở danh sách thông báo dạng popover khi bấm vào.
+
+## 18. Luồng Dịch vụ đặt trước chốt qua Zalo
+
+### Tác nhân
+
+- Khách hàng: liên hệ Zalo qua số hotline của cửa hàng để yêu cầu dịch vụ.
+- `OPERATOR` và `ADMIN`: chốt tên dịch vụ, giá và trạng thái thanh toán.
+
+### Luồng chính
+
+1. Khách chọn dịch vụ đặt trước trên menu và mở Zalo bằng số hotline của cửa hàng.
+2. Khách và nhân viên thỏa thuận tên dịch vụ, giá và thời điểm thanh toán qua Zalo, ngoài CAS.
+3. `OPERATOR` hoặc `ADMIN` tìm hoặc tạo `client_accounts` theo số điện thoại đã trao đổi qua Zalo, sau đó tạo `service_booking` với `client_account_id`, tên dịch vụ và `agreed_price` đã chốt.
+4. Nếu thanh toán sau, record bắt đầu ở `PAY_LATER`.
+5. Nếu khách thanh toán ngay hoặc thanh toán sau đó, nhân viên chuyển record sang `PENDING`, tự xác minh giao dịch rồi xác nhận `PAID`.
+6. Hệ thống lưu người tạo, người xác nhận và thời điểm tương ứng, đồng thời ghi audit log.
+
+### Quy tắc nghiệp vụ
+
+- Dịch vụ đặt trước không tạo table session, order món, payment, bill snapshot hoặc khoản chưa thanh toán.
+- Giá dịch vụ chỉ do `OPERATOR` hoặc `ADMIN` nhập từ kết quả thỏa thuận; client không gửi hoặc ghi đè giá.
+- `ADMIN` có toàn bộ quyền thao tác của `OPERATOR` với dịch vụ đặt trước.
+- Mọi thao tác thay đổi dịch vụ đặt trước phải ghi audit log: tạo record, sửa tên dịch vụ/giá đã chốt, chuyển sang `PENDING` và xác nhận `PAID`.
+- CAS chỉ mở liên hệ Zalo theo `stores.phone`; không tích hợp, lưu hoặc đọc nội dung tin nhắn Zalo.
+- Việc xác minh thanh toán vẫn thủ công; CAS không tích hợp ngân hàng, VietQR hoặc dữ liệu giao dịch.

@@ -21,6 +21,7 @@ export type CasIconName =
   | "plus"
   | "restaurant"
   | "search"
+  | "service"
   | "settings"
   | "sparkle"
   | "table"
@@ -115,6 +116,12 @@ const iconPaths: Record<CasIconName, ReactNode> = {
     <>
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-4-4" />
+    </>
+  ),
+  service: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4M8 14h8M8 18h5" />
     </>
   ),
   settings: (

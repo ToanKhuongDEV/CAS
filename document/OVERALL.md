@@ -29,6 +29,7 @@ _Không có tài khoản đăng nhập nội bộ hệ thống, danh tính gắn
 - **Yêu cầu hủy món:** Tạo request yêu cầu hủy (cần được nhân viên duyệt).
 - **Theo dõi tiến độ:** Xem trạng thái món (chờ làm, đã nhận/đang làm, đã phục vụ) và số tiền hiện tại.
 - **Thanh toán:** Ấn nút yêu cầu thanh toán (gửi yêu cầu đến thu ngân để chốt sổ).
+- **Dịch vụ đặt trước:** Liên hệ Zalo qua hotline cửa hàng để thỏa thuận dịch vụ và giá; dịch vụ không đi vào giỏ hàng hoặc thanh toán tại bàn.
 
 ### 3.2. Nhân viên vận hành (OPERATOR)
 _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được xác thực qua Firebase nhưng không có quyền vào trang cấu hình quán._
@@ -40,6 +41,7 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được x�
 - **In hóa đơn:** In hóa đơn thanh toán cho khách khi payment ở trạng thái `PAID` qua máy in kết nối nội bộ (LAN/USB).
 - **In phiếu bếp:** In phiếu chế biến cho bếp trực tiếp từ màn hình vận hành khi máy in kết nối nội bộ.
 - **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới; **Tạo Báo cáo sự cố phát sinh** trong ca trực (lưu tên người tạo, thời gian và mô tả sự cố) để gửi trực tiếp cho ADMIN.
+- **Dịch vụ đặt trước:** Tạo dịch vụ sau khi chốt qua Zalo, nhập giá đã thỏa thuận và xác nhận thanh toán thủ công khi khách thanh toán.
 
 ### 3.3. Quản lý / Quản trị viên (ADMIN)
 _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền hạn hệ thống kể cả quyền của OPERATOR._
@@ -54,6 +56,7 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Theo dõi khoản chưa thanh toán:** Xem số lượng, tổng tiền và bill snapshot của các phiên đã đóng nhưng payment còn `PENDING`; có thể thực hiện kết thúc phiên, ghi nhận chưa thanh toán và đối chiếu các khoản `OPEN` và `RESOLVED`.
 - **Báo cáo (Report):** Xem tổng hợp doanh thu, tra cứu hóa đơn, lịch sử order. Nhìn thấy các số liệu báo cáo hao hụt rạch ròi bằng cách đánh giá các order có `is_remade = TRUE`.
 - **Audit Logs:** Xem lại toàn bộ lịch sử thao tác quan trọng của hệ thống (ai xác nhận tiền, ai hủy món, ai xóa giá) để quy trách nhiệm.
+- **Dịch vụ đặt trước:** Có toàn bộ quyền của `OPERATOR` để tạo dịch vụ, chốt giá và xác nhận thanh toán.
 
 ## 4. Phạm vi chức năng
 
@@ -222,6 +225,10 @@ Các chức năng này sẽ được xem xét trong những phiên bản sau d�
    không còn thao tác trên session vừa đóng.
 
 CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ thống không tạo QR thanh toán, không lưu thông tin ngân hàng và không tích hợp với loa báo giao dịch. Việc xác minh chuyển khoản diễn ra ngoài CAS và do nhân viên chịu trách nhiệm.
+
+### 5.4. Dịch vụ đặt trước
+
+Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với table session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
 
 ## 6. Kiến trúc tổng thể
 
@@ -477,7 +484,7 @@ Các chỉ tiêu kỹ thuật chi tiết sẽ được xác định trong tài l
 - Quản lý nhân viên.
 - Quản lý kho.
 - Khuyến mãi và chương trình thành viên.
-- CRM và tích hợp Zalo.
+- CRM và tích hợp Zalo mở rộng ngoài liên hệ dịch vụ đặt trước qua hotline.
 - Nhiều chi nhánh.
 - Game và tính năng AI.
 - Báo cáo nâng cao.

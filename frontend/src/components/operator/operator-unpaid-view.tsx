@@ -410,7 +410,8 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
       publicId: `upr-${crypto.randomUUID()}`,
       reason: unpaidReason.trim(),
       reportedBy: "acc-operator-current",
-      reportedByName: mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
+      reportedByName:
+        mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
       status: "OPEN",
       table: session.table,
       tableSessionId: session.tableSessionId,
@@ -436,37 +437,32 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold">Khoản chưa thanh toán</h1>
-          <p className="mt-1 text-sm text-cas-on-surface-variant">
-            {mode === "admin"
-              ? "Theo dõi các phiên bàn đã đóng khi payment chưa được xác nhận PAID."
-              : "Quản lý và tra cứu bill snapshot các phiên bàn đã đóng nhưng payment chưa xác nhận PAID."}
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Filter Tabs */}
           <div className="flex items-center gap-1 rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-1.5 shadow-sm">
-          <button
-            className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "ALL" ? "bg-cas-primary text-cas-on-primary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-            onClick={() => setFilterStatus("ALL")}
-            type="button"
-          >
-            Tất cả ({records.length})
-          </button>
-          <button
-            className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "OPEN" ? "bg-cas-error text-cas-on-error shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-            onClick={() => setFilterStatus("OPEN")}
-            type="button"
-          >
-            Chưa xử lý ({records.filter((r) => r.status === "OPEN").length})
-          </button>
-          <button
-            className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "RESOLVED" ? "bg-cas-secondary text-cas-on-secondary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-            onClick={() => setFilterStatus("RESOLVED")}
-            type="button"
-          >
-            Đã thu hồi ({records.filter((r) => r.status === "RESOLVED").length})
-          </button>
+            <button
+              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "ALL" ? "bg-cas-primary text-cas-on-primary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+              onClick={() => setFilterStatus("ALL")}
+              type="button"
+            >
+              Tất cả ({records.length})
+            </button>
+            <button
+              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "OPEN" ? "bg-cas-error text-cas-on-error shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+              onClick={() => setFilterStatus("OPEN")}
+              type="button"
+            >
+              Chưa xử lý ({records.filter((r) => r.status === "OPEN").length})
+            </button>
+            <button
+              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition ${filterStatus === "RESOLVED" ? "bg-cas-secondary text-cas-on-secondary shadow-xs" : "text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+              onClick={() => setFilterStatus("RESOLVED")}
+              type="button"
+            >
+              Đã thu hồi ({records.filter((r) => r.status === "RESOLVED").length})
+            </button>
           </div>
         </div>
       </div>
@@ -478,8 +474,12 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             <p className="mt-2 text-2xl font-black text-cas-error">{openRecordCount}</p>
           </article>
           <article className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4 shadow-xs">
-            <p className="text-xs font-bold text-cas-on-surface-variant">Tổng tiền chưa thanh toán</p>
-            <p className="mt-2 text-2xl font-black text-cas-primary">{openAmount.toLocaleString("vi-VN")}đ</p>
+            <p className="text-xs font-bold text-cas-on-surface-variant">
+              Tổng tiền chưa thanh toán
+            </p>
+            <p className="mt-2 text-2xl font-black text-cas-primary">
+              {openAmount.toLocaleString("vi-VN")}đ
+            </p>
           </article>
         </section>
       ) : null}
@@ -488,45 +488,45 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
         className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs"
         aria-labelledby="open-table-sessions-title"
       >
-          <div>
-            <h2 className="text-lg font-black text-cas-on-surface" id="open-table-sessions-title">
-              Phiên bàn cần xử lý
-            </h2>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">
-              Chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
-            </p>
-          </div>
+        <div>
+          <h2 className="text-lg font-black text-cas-on-surface" id="open-table-sessions-title">
+            Phiên bàn cần xử lý
+          </h2>
+          <p className="mt-1 text-xs text-cas-on-surface-variant">
+            Chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
+          </p>
+        </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {openTableSessions.map((session) => (
-              <article
-                className="rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-4"
-                key={session.tableSessionId}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-base font-black text-cas-on-surface">{session.table}</p>
-                    <p className="mt-1 text-xs font-bold text-cas-on-surface-variant">
-                      {session.billNumber} · {session.amount.toLocaleString("vi-VN")}đ
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-cas-tertiary-container/30 px-2.5 py-1 text-[0.68rem] font-black text-cas-tertiary">
-                    Chờ thanh toán
-                  </span>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {openTableSessions.map((session) => (
+            <article
+              className="rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-4"
+              key={session.tableSessionId}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-black text-cas-on-surface">{session.table}</p>
+                  <p className="mt-1 text-xs font-bold text-cas-on-surface-variant">
+                    {session.billNumber} · {session.amount.toLocaleString("vi-VN")}đ
+                  </p>
                 </div>
-                <button
-                  className="mt-4 w-full rounded-xl bg-cas-error px-3 py-2.5 text-sm font-extrabold text-cas-on-error transition hover:bg-cas-error-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                  onClick={() => {
-                    setSelectedSessionId(session.tableSessionId);
-                    setIsCloseSessionDialogOpen(true);
-                  }}
-                  type="button"
-                >
-                  Kết thúc phiên & ghi nhận chưa thanh toán
-                </button>
-              </article>
-            ))}
-          </div>
+                <span className="rounded-full bg-cas-tertiary-container/30 px-2.5 py-1 text-[0.68rem] font-black text-cas-tertiary">
+                  Chờ thanh toán
+                </span>
+              </div>
+              <button
+                className="mt-4 w-full rounded-xl bg-cas-error px-3 py-2.5 text-sm font-extrabold text-cas-on-error transition hover:bg-cas-error-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                onClick={() => {
+                  setSelectedSessionId(session.tableSessionId);
+                  setIsCloseSessionDialogOpen(true);
+                }}
+                type="button"
+              >
+                Kết thúc phiên & ghi nhận chưa thanh toán
+              </button>
+            </article>
+          ))}
+        </div>
       </section>
 
       {/* Status Action Message Toast */}
@@ -664,149 +664,147 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             {/* Modal Content Scrollable Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6 sm:p-6">
               <>
-                  {/* Receipt Meta Box */}
-                  <div className="rounded-xl border border-cas-outline-variant/20 bg-cas-surface-container/40 p-4 text-xs space-y-2">
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <div>
-                        <span className="text-cas-on-surface-variant">Khách mở bàn:</span>
-                        <p className="font-bold">
-                          {selectedRecord.billSnapshot.customerName || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-cas-on-surface-variant">SĐT khách:</span>
-                        <p className="font-bold">
-                          {selectedRecord.billSnapshot.customerPhone || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-cas-on-surface-variant">Thời gian đóng:</span>
-                        <p className="font-bold">
-                          {selectedRecord.closedAt} ({selectedRecord.createdDate})
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-cas-on-surface-variant">Người báo cáo:</span>
-                        <p className="font-bold">{selectedRecord.reportedByName}</p>
-                      </div>
-                    </div>
-                    <div className="border-t border-cas-outline-variant/20 pt-2">
-                      <span className="text-cas-on-surface-variant">
-                        Lý do ghi nhận chưa thanh toán:
-                      </span>
-                      <p className="font-semibold text-cas-error">
-                        &quot;{selectedRecord.reason}&quot;
+                {/* Receipt Meta Box */}
+                <div className="rounded-xl border border-cas-outline-variant/20 bg-cas-surface-container/40 p-4 text-xs space-y-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div>
+                      <span className="text-cas-on-surface-variant">Khách mở bàn:</span>
+                      <p className="font-bold">
+                        {selectedRecord.billSnapshot.customerName || "N/A"}
                       </p>
                     </div>
-                    {selectedRecord.resolvedAt ? (
-                      <div className="border-t border-cas-outline-variant/20 pt-2 text-cas-secondary font-bold">
-                        ✓ Đã thu hồi khoản thanh toán lúc: {selectedRecord.resolvedAt}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Orders Breakdown */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-cas-on-surface-variant">
-                      Chi tiết các đơn đặt trong phiên ({selectedRecord.billSnapshot.orders.length}{" "}
-                      lần gọi)
-                    </h3>
-
-                    {selectedRecord.billSnapshot.orders.map((ord, idx) => (
-                      <div
-                        className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/20 p-4 space-y-3"
-                        key={ord.orderNumber}
-                      >
-                        <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-cas-primary">
-                              Order #{idx + 1}: {ord.orderNumber}
-                            </span>
-                            <span className="text-cas-on-surface-variant">({ord.placedAt})</span>
-                          </div>
-                          <span className="font-bold">
-                            {ord.payableAmount.toLocaleString("vi-VN")}đ
-                          </span>
-                        </div>
-
-                        {ord.note ? (
-                          <p className="text-xs text-cas-secondary font-semibold italic">
-                            Ghi chú đơn: &quot;{ord.note}&quot;
-                          </p>
-                        ) : null}
-
-                        {/* Items list */}
-                        <ul className="divide-y divide-cas-outline-variant/15 text-sm">
-                          {ord.items.map((item, iIndex) => (
-                            <li
-                              className="py-2.5 first:pt-0 last:pb-0"
-                              key={`${item.name}-${iIndex}`}
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <p className="font-extrabold text-cas-on-surface">
-                                    {item.name}{" "}
-                                    <span className="text-cas-primary font-black">
-                                      x{item.quantity}
-                                    </span>
-                                  </p>
-                                  {item.options && item.options.length > 0 ? (
-                                    <ul className="mt-1 space-y-0.5 text-xs text-cas-on-surface-variant">
-                                      {item.options.map((opt, oIdx) => (
-                                        <li key={`${opt.name}-${oIdx}`}>
-                                          - {opt.groupName}:{" "}
-                                          <strong className="text-cas-on-surface">
-                                            {opt.name}
-                                          </strong>{" "}
-                                          {opt.unitPrice > 0
-                                            ? `(+${opt.unitPrice.toLocaleString("vi-VN")}đ)`
-                                            : ""}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  ) : null}
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <span className="font-extrabold">
-                                    {item.payableLineAmount.toLocaleString("vi-VN")}đ
-                                  </span>
-                                  <p className="text-[0.7rem] text-cas-on-surface-variant">
-                                    ({item.unitPrice.toLocaleString("vi-VN")}đ/món)
-                                  </p>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Bill Totals Summary */}
-                  <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 p-4 space-y-2 text-sm">
-                    <div className="flex items-center justify-between text-cas-on-surface-variant">
-                      <span>Tổng tiền món gốc</span>
-                      <span>
-                        {selectedRecord.billSnapshot.originalAmount.toLocaleString("vi-VN")}đ
-                      </span>
+                    <div>
+                      <span className="text-cas-on-surface-variant">SĐT khách:</span>
+                      <p className="font-bold">
+                        {selectedRecord.billSnapshot.customerPhone || "N/A"}
+                      </p>
                     </div>
+                    <div>
+                      <span className="text-cas-on-surface-variant">Thời gian đóng:</span>
+                      <p className="font-bold">
+                        {selectedRecord.closedAt} ({selectedRecord.createdDate})
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cas-on-surface-variant">Người báo cáo:</span>
+                      <p className="font-bold">{selectedRecord.reportedByName}</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-cas-outline-variant/20 pt-2">
+                    <span className="text-cas-on-surface-variant">
+                      Lý do ghi nhận chưa thanh toán:
+                    </span>
+                    <p className="font-semibold text-cas-error">
+                      &quot;{selectedRecord.reason}&quot;
+                    </p>
+                  </div>
+                  {selectedRecord.resolvedAt ? (
+                    <div className="border-t border-cas-outline-variant/20 pt-2 text-cas-secondary font-bold">
+                      ✓ Đã thu hồi khoản thanh toán lúc: {selectedRecord.resolvedAt}
+                    </div>
+                  ) : null}
+                </div>
 
-                    {selectedRecord.billSnapshot.voucherDiscount ? (
-                      <div className="flex items-center justify-between text-cas-secondary font-bold">
-                        <span>Giảm giá Voucher ({selectedRecord.billSnapshot.voucherCode})</span>
-                        <span>
-                          -{selectedRecord.billSnapshot.voucherDiscount.toLocaleString("vi-VN")}đ
+                {/* Orders Breakdown */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-cas-on-surface-variant">
+                    Chi tiết các đơn đặt trong phiên ({selectedRecord.billSnapshot.orders.length}{" "}
+                    lần gọi)
+                  </h3>
+
+                  {selectedRecord.billSnapshot.orders.map((ord, idx) => (
+                    <div
+                      className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/20 p-4 space-y-3"
+                      key={ord.orderNumber}
+                    >
+                      <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-cas-primary">
+                            Order #{idx + 1}: {ord.orderNumber}
+                          </span>
+                          <span className="text-cas-on-surface-variant">({ord.placedAt})</span>
+                        </div>
+                        <span className="font-bold">
+                          {ord.payableAmount.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
-                    ) : null}
 
-                    <div className="flex items-center justify-between border-t border-cas-outline-variant/30 pt-3 font-black text-lg">
-                      <span>TỔNG CẦN THANH TOÁN</span>
-                      <span className="text-cas-primary text-2xl">
-                        {selectedRecord.billSnapshot.payableAmount.toLocaleString("vi-VN")}đ
+                      {ord.note ? (
+                        <p className="text-xs text-cas-secondary font-semibold italic">
+                          Ghi chú đơn: &quot;{ord.note}&quot;
+                        </p>
+                      ) : null}
+
+                      {/* Items list */}
+                      <ul className="divide-y divide-cas-outline-variant/15 text-sm">
+                        {ord.items.map((item, iIndex) => (
+                          <li
+                            className="py-2.5 first:pt-0 last:pb-0"
+                            key={`${item.name}-${iIndex}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="font-extrabold text-cas-on-surface">
+                                  {item.name}{" "}
+                                  <span className="text-cas-primary font-black">
+                                    x{item.quantity}
+                                  </span>
+                                </p>
+                                {item.options && item.options.length > 0 ? (
+                                  <ul className="mt-1 space-y-0.5 text-xs text-cas-on-surface-variant">
+                                    {item.options.map((opt, oIdx) => (
+                                      <li key={`${opt.name}-${oIdx}`}>
+                                        - {opt.groupName}:{" "}
+                                        <strong className="text-cas-on-surface">{opt.name}</strong>{" "}
+                                        {opt.unitPrice > 0
+                                          ? `(+${opt.unitPrice.toLocaleString("vi-VN")}đ)`
+                                          : ""}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-extrabold">
+                                  {item.payableLineAmount.toLocaleString("vi-VN")}đ
+                                </span>
+                                <p className="text-[0.7rem] text-cas-on-surface-variant">
+                                  ({item.unitPrice.toLocaleString("vi-VN")}đ/món)
+                                </p>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bill Totals Summary */}
+                <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 p-4 space-y-2 text-sm">
+                  <div className="flex items-center justify-between text-cas-on-surface-variant">
+                    <span>Tổng tiền món gốc</span>
+                    <span>
+                      {selectedRecord.billSnapshot.originalAmount.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
+
+                  {selectedRecord.billSnapshot.voucherDiscount ? (
+                    <div className="flex items-center justify-between text-cas-secondary font-bold">
+                      <span>Giảm giá Voucher ({selectedRecord.billSnapshot.voucherCode})</span>
+                      <span>
+                        -{selectedRecord.billSnapshot.voucherDiscount.toLocaleString("vi-VN")}đ
                       </span>
                     </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between border-t border-cas-outline-variant/30 pt-3 font-black text-lg">
+                    <span>TỔNG CẦN THANH TOÁN</span>
+                    <span className="text-cas-primary text-2xl">
+                      {selectedRecord.billSnapshot.payableAmount.toLocaleString("vi-VN")}đ
+                    </span>
                   </div>
+                </div>
               </>
             </div>
 
@@ -855,7 +853,10 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
               <div>
                 <p className="text-xs font-bold text-cas-error">Xác nhận nghiệp vụ</p>
-                <h2 className="mt-1 text-lg font-black text-cas-on-surface" id="close-unpaid-session-title">
+                <h2
+                  className="mt-1 text-lg font-black text-cas-on-surface"
+                  id="close-unpaid-session-title"
+                >
                   Kết thúc phiên và ghi nhận chưa thanh toán
                 </h2>
               </div>
@@ -885,7 +886,9 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-bold text-cas-on-surface-variant">Lý do ghi nhận *</span>
+                <span className="text-xs font-bold text-cas-on-surface-variant">
+                  Lý do ghi nhận *
+                </span>
                 <textarea
                   className="mt-1.5 min-h-24 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
                   onChange={(event) => setUnpaidReason(event.target.value)}
@@ -894,9 +897,6 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
                   value={unpaidReason}
                 />
               </label>
-              <p className="rounded-xl bg-cas-error-container p-3 text-xs leading-relaxed text-cas-on-error-container">
-                Hệ thống sẽ tạo payment PENDING nếu cần, lưu bill snapshot, tạo khoản chưa thanh toán và đóng phiên để giải phóng bàn.
-              </p>
             </div>
 
             <div className="mt-5 flex justify-end gap-2">

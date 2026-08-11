@@ -19,6 +19,7 @@ const operatorTabs: OperatorTab[] = [
   { badge: 3, href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
   { badge: 3, href: "/operator/payments", icon: "payment", label: "Thanh toán" },
   { badge: 1, href: "/operator/unpaid", icon: "clock", label: "Chưa thanh toán" },
+  { badge: 1, href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
 ];
 
 export function OperatorTabNavigation() {
@@ -29,7 +30,7 @@ export function OperatorTabNavigation() {
       className="overflow-x-auto border-y border-cas-outline-variant/25 bg-cas-navigation px-4 backdrop-blur-xl sm:px-8 xl:px-12"
       aria-label="Điều hướng nhân viên"
     >
-      <div className="mx-auto flex min-w-max max-w-[100rem] gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-5">
+      <div className="mx-auto flex min-w-max max-w-[100rem] gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-6">
         {operatorTabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
@@ -49,7 +50,7 @@ export function OperatorTabNavigation() {
               {typeof tab.badge === "number" ? (
                 <span
                   className={`ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[0.7rem] font-black leading-none ${isActive ? "bg-cas-secondary text-white shadow-xs" : "bg-cas-primary/15 text-cas-primary"}`}
-                  aria-label={`${tab.badge} item`}
+                  aria-label={`${tab.badge} mục cần xử lý`}
                 >
                   {tab.badge}
                 </span>

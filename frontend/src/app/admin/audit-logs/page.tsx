@@ -70,6 +70,28 @@ export default function AdminAuditLogsPage() {
           </tbody>
         </table>
       </div>
+      <section className="rounded-3xl border border-cas-secondary/30 p-5">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-cas-secondary">
+          Định hướng phát triển
+        </p>
+        <h2 className="mt-2 text-lg font-black text-cas-on-surface">
+          Các tính năng sẽ phát triển trong tương lai
+        </h2>
+        <ul className="mt-4 grid gap-3 text-sm text-cas-on-surface-variant md:grid-cols-3">
+          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
+            <p className="font-black text-cas-on-surface">Chăm sóc khách hàng qua Zalo</p>
+            <p className="mt-1 text-xs">Kết nối CRM và các hoạt động hỗ trợ khách hàng.</p>
+          </li>
+          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
+            <p className="font-black text-cas-on-surface">Tích hợp trò chơi</p>
+            <p className="mt-1 text-xs">Bổ sung các trải nghiệm tương tác cho khách hàng.</p>
+          </li>
+          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
+            <p className="font-black text-cas-on-surface">Tính năng AI</p>
+            <p className="mt-1 text-xs">Mở rộng các tiện ích thông minh theo nhu cầu vận hành.</p>
+          </li>
+        </ul>
+      </section>
     </div>
   );
 }

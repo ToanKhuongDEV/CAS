@@ -5,6 +5,57 @@ import Link from "next/link";
 import { CasIcon } from "../../components/ui/cas-icon";
 
 type FilterMode = "date" | "month" | "year" | "range";
+type RevenueChartPeriod = "today" | "sevenDays" | "thirtyDays" | "thisMonth";
+
+const revenueChartData: Record<RevenueChartPeriod, { label: string; value: number }[]> = {
+  today: [
+    { label: "09h", value: 1.2 },
+    { label: "10h", value: 2.4 },
+    { label: "11h", value: 4.8 },
+    { label: "12h", value: 7.2 },
+    { label: "13h", value: 5.5 },
+    { label: "14h", value: 2.8 },
+    { label: "15h", value: 1.9 },
+    { label: "16h", value: 3.4 },
+    { label: "17h", value: 6.8 },
+    { label: "18h", value: 8 },
+    { label: "19h", value: 7.6 },
+    { label: "20h", value: 4.2 },
+    { label: "21h", value: 2.9 },
+    { label: "22h", value: 1.4 },
+  ],
+  sevenDays: [
+    { label: "03/08", value: 31.2 },
+    { label: "04/08", value: 36.8 },
+    { label: "05/08", value: 29.4 },
+    { label: "06/08", value: 42.1 },
+    { label: "07/08", value: 38.6 },
+    { label: "08/08", value: 45.2 },
+    { label: "09/08", value: 42.85 },
+  ],
+  thirtyDays: [
+    { label: "11/07", value: 28.6 },
+    { label: "16/07", value: 34.2 },
+    { label: "21/07", value: 39.5 },
+    { label: "26/07", value: 31.8 },
+    { label: "31/07", value: 43.1 },
+    { label: "05/08", value: 36.4 },
+    { label: "09/08", value: 42.85 },
+  ],
+  thisMonth: [
+    { label: "Tuần 1", value: 245.6 },
+    { label: "Tuần 2", value: 281.4 },
+    { label: "Tuần 3", value: 268.2 },
+    { label: "Tuần 4", value: 314.7 },
+  ],
+};
+
+const revenueChartPeriodLabels: Record<RevenueChartPeriod, string> = {
+  today: "Hôm nay",
+  sevenDays: "7 ngày",
+  thirtyDays: "30 ngày",
+  thisMonth: "Tháng này",
+};
 
 export default function AdminDashboardPage() {
   // State quản lý chế độ và thời gian chọn
@@ -14,6 +65,7 @@ export default function AdminDashboardPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
   const [startDate, setStartDate] = useState("2026-08-01");
   const [endDate, setEndDate] = useState("2026-08-09");
+  const [revenueChartPeriod, setRevenueChartPeriod] = useState<RevenueChartPeriod>("today");
 
   // Đưa ra nhãn mô tả khoảng thời gian đang lọc
   const getDisplayLabel = () => {
@@ -79,6 +131,20 @@ export default function AdminDashboardPage() {
   };
 
   const currentMetrics = getMetricsByFilter();
+  const chartData = revenueChartData[revenueChartPeriod];
+  const chartWidth = 680;
+  const chartHeight = 250;
+  const chartPadding = { top: 18, right: 16, bottom: 38, left: 42 };
+  const chartMax = Math.ceil(Math.max(...chartData.map((item) => item.value)) / 2) * 2;
+  const chartDrawableWidth = chartWidth - chartPadding.left - chartPadding.right;
+  const chartDrawableHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+  const chartPoints = chartData.map((item, index) => {
+    const x = chartPadding.left + (index / Math.max(chartData.length - 1, 1)) * chartDrawableWidth;
+    const y = chartPadding.top + (1 - item.value / chartMax) * chartDrawableHeight;
+    return { ...item, x, y };
+  });
+  const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
+  const areaPoints = `${chartPadding.left},${chartHeight - chartPadding.bottom} ${linePoints} ${chartWidth - chartPadding.right},${chartHeight - chartPadding.bottom}`;
 
   return (
     <div className="space-y-8">
@@ -244,67 +310,99 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Cột trái (7 columns): Biểu đồ Doanh thu & Báo cáo Sự cố ca trực */}
         <div className="space-y-8 lg:col-span-7">
-          {/* Biểu đồ doanh thu theo giờ */}
+          {/* Biểu đồ doanh thu theo thời gian */}
           <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
+            <div className="flex flex-col gap-4 border-b border-cas-outline-variant/20 pb-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-lg font-black text-cas-on-surface">
-                  Biểu đồ Doanh thu & Khung giờ cao điểm
-                </h2>
-                <p className="text-xs font-medium text-cas-on-surface-variant">
-                  Thống kê doanh thu từng khung giờ trong ngày (đơn vị: triệu VNĐ)
-                </p>
+                <h2 className="text-lg font-black text-cas-on-surface">Doanh thu theo thời gian</h2>
               </div>
-              <span className="rounded-xl bg-cas-primary/10 px-3 py-1 text-xs font-extrabold text-cas-primary">
-                Hôm nay
-              </span>
+              <select
+                aria-label="Khoảng thời gian biểu đồ doanh thu"
+                className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1.5 text-xs font-bold text-cas-on-surface focus:outline-hidden"
+                onChange={(event) =>
+                  setRevenueChartPeriod(event.target.value as RevenueChartPeriod)
+                }
+                value={revenueChartPeriod}
+              >
+                {(Object.keys(revenueChartPeriodLabels) as RevenueChartPeriod[]).map((period) => (
+                  <option key={period} value={period}>
+                    {revenueChartPeriodLabels[period]}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Trực quan hóa Biểu đồ Cột */}
-            <div className="mt-6 space-y-4">
-              <div className="flex h-48 items-end justify-between gap-2 border-b border-cas-outline-variant/30 pb-2 pt-4">
-                {[
-                  { hour: "10h", val: 2.1, max: 8 },
-                  { hour: "11h", val: 4.8, max: 8 },
-                  { hour: "12h", val: 7.2, max: 8 },
-                  { hour: "13h", val: 5.5, max: 8 },
-                  { hour: "14h", val: 2.8, max: 8 },
-                  { hour: "15h", val: 1.9, max: 8 },
-                  { hour: "16h", val: 3.4, max: 8 },
-                  { hour: "17h", val: 6.8, max: 8 },
-                  { hour: "18h", val: 8.0, max: 8 },
-                  { hour: "19h", val: 7.6, max: 8 },
-                  { hour: "20h", val: 4.2, max: 8 },
-                ].map((item, idx) => {
-                  const heightPercent = Math.round((item.val / item.max) * 100);
-                  const isPeak = item.val >= 7.0;
-
+            <div className="mt-6">
+              <svg
+                aria-label={`Biểu đồ doanh thu ${revenueChartPeriodLabels[revenueChartPeriod].toLowerCase()}`}
+                className="h-auto w-full overflow-visible"
+                role="img"
+                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+              >
+                <defs>
+                  <linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity="0.24" />
+                    <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                  const y = chartPadding.top + ratio * chartDrawableHeight;
+                  const value = Math.round(chartMax * (1 - ratio));
                   return (
-                    <div
-                      key={idx}
-                      className="group relative flex flex-1 flex-col items-center gap-1.5 h-full justify-end"
-                    >
-                      <div className="pointer-events-none absolute -top-8 z-10 hidden rounded-md bg-cas-on-surface px-2 py-1 text-[0.68rem] font-bold text-cas-surface shadow-md group-hover:block whitespace-nowrap">
-                        {item.val} triệu đ
-                      </div>
-                      <div
-                        style={{ height: `${heightPercent}%` }}
-                        className={`w-full max-w-7 rounded-t-lg transition-all duration-300 ${isPeak ? "bg-linear-to-t from-cas-primary to-rose-400 shadow-sm" : "bg-cas-secondary/40 group-hover:bg-cas-secondary"}`}
+                    <g key={ratio}>
+                      <line
+                        x1={chartPadding.left}
+                        x2={chartWidth - chartPadding.right}
+                        y1={y}
+                        y2={y}
+                        className="stroke-cas-outline-variant/45"
+                        strokeDasharray={ratio === 1 ? "0" : "4 4"}
                       />
-                      <span className="text-[0.7rem] font-bold text-cas-on-surface-variant">
-                        {item.hour}
-                      </span>
-                    </div>
+                      <text
+                        x={chartPadding.left - 8}
+                        y={y + 4}
+                        textAnchor="end"
+                        className="fill-cas-on-surface-variant text-[11px] font-medium"
+                      >
+                        {value}
+                      </text>
+                    </g>
                   );
                 })}
-              </div>
-              <div className="flex items-center justify-between text-xs font-bold text-cas-on-surface-variant">
-                <span className="flex items-center gap-2">
-                  <span className="size-3 rounded-sm bg-cas-primary" /> Khung giờ cao điểm (12h,
-                  18h-19h)
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="size-3 rounded-sm bg-cas-secondary/40" /> Khung giờ bình thường
+                <polygon fill="url(#revenue-area)" points={areaPoints} />
+                <polyline
+                  fill="none"
+                  points={linePoints}
+                  className="stroke-cas-primary"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="3"
+                />
+                {chartPoints.map((point) => (
+                  <g key={point.label} className="group">
+                    <title>{`${point.label}: ${point.value} triệu đồng`}</title>
+                    <circle
+                      cx={point.x}
+                      cy={point.y}
+                      r="4"
+                      className="fill-cas-surface stroke-cas-primary"
+                      strokeWidth="2.5"
+                    />
+                    <text
+                      x={point.x}
+                      y={chartHeight - 14}
+                      textAnchor="middle"
+                      className="fill-cas-on-surface-variant text-[11px] font-bold"
+                    >
+                      {point.label}
+                    </text>
+                  </g>
+                ))}
+              </svg>
+              <div className="mt-3 flex items-center justify-between text-xs font-medium text-cas-on-surface-variant">
+                <span>Đơn vị: triệu VNĐ</span>
+                <span className="font-bold text-cas-primary">
+                  {revenueChartPeriod === "today" ? "Doanh thu theo giờ" : "Xu hướng doanh thu"}
                 </span>
               </div>
             </div>
