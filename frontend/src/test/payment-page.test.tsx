@@ -27,7 +27,7 @@ describe("PaymentPage", () => {
     expect(screen.getByText("Tổng cần thanh toán")).toBeInTheDocument();
     expect(screen.getByText("170.000đ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" })).toBeEnabled();
-    expect(screen.getByRole("link", { name: "Thanh toán" })).toHaveAttribute("href", "/payment");
+    expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("href", "/");
     expect(screen.queryByText(/ngân hàng|mb bank|chuyển khoản/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /qr/i })).not.toBeInTheDocument();

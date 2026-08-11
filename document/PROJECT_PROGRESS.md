@@ -246,6 +246,12 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Bổ sung popup xác nhận trước khi chuyển dịch vụ thêm sang trạng thái đã thanh toán.
 - [x] Bổ sung thao tác hủy dịch vụ thêm khi khách không tiếp tục đặt, kèm popup xác nhận.
 - [x] Bổ sung validation hiển thị tại form tạo dịch vụ thêm: dữ liệu bắt buộc, giới hạn độ dài, SĐT và giá đã thỏa thuận hợp lệ (cho phép giá `0` với dịch vụ miễn phí).
+- [x] Bổ sung trường ghi chú tùy chọn khi tạo dịch vụ thêm, hiển thị trên card dịch vụ và dùng chung cho giao diện `ADMIN` và `OPERATOR`; cập nhật thiết kế `service_bookings`.
+- [x] Đồng bộ giao diện chi tiết món trong Giỏ hàng Customer với Đơn hàng, giữ thao tác điều chỉnh số lượng và xóa món.
+- [x] Đồng bộ giỏ món trong luồng `OPERATOR` tạo order hộ với giao diện chi tiết món Customer, bao gồm giá món gốc và từng option đã chọn.
+- [x] Hiển thị ghi chú chung của order trên trang Đơn hàng Customer.
+- [x] Giữ luồng Customer chuyển tới `/payment` để kiểm tra và gửi yêu cầu thanh toán; không hiển thị Thanh toán như một tab điều hướng riêng.
+- [x] Bổ sung dropdown chọn một voucher/promotion trên trang Đơn hàng Customer và tính tạm thời giá gốc, số tiền giảm, giá trị cần thanh toán ở frontend.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.

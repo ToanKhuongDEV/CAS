@@ -19,6 +19,7 @@ type ServiceBooking = {
   createdAt: string;
   createdByName: string;
   id: string;
+  note?: string;
   paymentStatus: PaymentStatus;
   serviceName: string;
 };
@@ -36,6 +37,7 @@ const initialBookings: ServiceBooking[] = [
     createdAt: "09:20 11/08/2026",
     createdByName: "Nguyễn Văn A",
     id: "service-001",
+    note: "Khách cần xác nhận lại thời gian tổ chức trước một ngày.",
     paymentStatus: "PAY_LATER",
     serviceName: "Đặt tiệc sinh nhật 12 khách",
   },
@@ -45,6 +47,7 @@ const initialBookings: ServiceBooking[] = [
     createdAt: "14:05 10/08/2026",
     createdByName: "Nguyễn Văn A",
     id: "service-002",
+    note: "Chuẩn bị bàn gần cửa sổ và hoàn tất trang trí trước 17:30.",
     paymentStatus: "PENDING",
     serviceName: "Set trang trí sự kiện tại bàn",
   },
@@ -54,6 +57,7 @@ const initialBookings: ServiceBooking[] = [
     createdAt: "11:40 09/08/2026",
     createdByName: "Trần Thị B",
     id: "service-003",
+    note: "Khách sẽ nhận dịch vụ tại quầy vào lúc 18:00.",
     paymentStatus: "PAID",
     serviceName: "Đặt trước combo liên hoan",
   },
@@ -103,6 +107,7 @@ export function OperatorServiceBookingsView({
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [serviceName, setServiceName] = useState("");
+  const [note, setNote] = useState("");
   const [agreedPrice, setAgreedPrice] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"PAY_LATER" | "PENDING">("PAY_LATER");
   const [message, setMessage] = useState<string | null>(null);
@@ -174,6 +179,7 @@ export function OperatorServiceBookingsView({
       createdAt,
       createdByName: mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
       id: `service-${Date.now()}`,
+      note: note.trim() || undefined,
       paymentStatus,
       serviceName: serviceName.trim(),
     };
@@ -186,6 +192,7 @@ export function OperatorServiceBookingsView({
     setClientName("");
     setClientPhone("");
     setServiceName("");
+    setNote("");
     setAgreedPrice("");
     setPaymentStatus("PAY_LATER");
     setCreateFormErrors({});
@@ -311,6 +318,9 @@ export function OperatorServiceBookingsView({
                 <p className="text-sm font-bold text-cas-on-surface-variant">
                   {client?.name} <span className="font-medium">· {client?.phone}</span>
                 </p>
+                {booking.note ? (
+                  <p className="text-sm text-cas-on-surface-variant">Ghi chú: {booking.note}</p>
+                ) : null}
                 <p className="text-xs text-cas-on-surface-variant">
                   Tạo bởi {booking.createdByName} · {booking.createdAt}
                 </p>
@@ -448,6 +458,15 @@ export function OperatorServiceBookingsView({
                     {createFormErrors.serviceName}
                   </p>
                 ) : null}
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-cas-on-surface-variant">Ghi chú</span>
+                <textarea
+                  className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="Ví dụ: Khách cần xác nhận thời gian trước một ngày"
+                  value={note}
+                />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-cas-on-surface-variant">

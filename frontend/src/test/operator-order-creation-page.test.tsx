@@ -56,7 +56,7 @@ describe("OperatorOrderCreationView", () => {
     // Check cart now has 2 items
     expect(screen.getByText("Món đã chọn")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Cấp 3")).toBeInTheDocument();
+    expect(screen.getByText("+ Cấp 3")).toBeInTheDocument();
 
     // Enter note
     const noteInput = screen.getByPlaceholderText(/Ví dụ: vui lòng phục vụ món cay sau/i);

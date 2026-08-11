@@ -391,6 +391,12 @@ export function OperatorOrderCreationView({
           name: item.name,
           imageSrc: item.imageSrc,
           imageAlt: item.imageAlt,
+          basePrice: item.basePrice,
+          optionSelections: (item.optionGroups ?? []).flatMap((group) =>
+            group.options
+              .filter((option) => payload.selectedOptionIds[group.id]?.includes(option.id))
+              .map((option) => ({ name: option.label, price: option.priceDelta })),
+          ),
           optionsSummary: payload.optionsSummary,
           unitPrice: payload.totalUnitPrice,
           quantity: 1,

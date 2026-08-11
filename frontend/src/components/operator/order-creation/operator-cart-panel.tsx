@@ -11,6 +11,8 @@ export type CartItem = {
   name: string;
   imageSrc: string;
   imageAlt: string;
+  basePrice: number;
+  optionSelections: { name: string; price: number }[];
   optionsSummary: string;
   unitPrice: number;
   quantity: number;
@@ -128,57 +130,75 @@ export function OperatorCartPanel({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {cartItems.map((item) => (
-              <article
-                key={item.cartItemId}
-                className="grid grid-cols-[5rem_1fr] gap-3 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)]"
-              >
-                <div className="relative min-h-20 overflow-hidden rounded-xl">
-                  <Image
-                    className="object-cover"
-                    src={item.imageSrc}
-                    alt={item.imageAlt}
-                    fill
-                    sizes="5rem"
-                  />
-                </div>
-
-                <div className="flex min-w-0 flex-col">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h5 className="line-clamp-2 text-sm leading-snug font-extrabold">
-                        {item.name}
-                      </h5>
-                      <p className="mt-0.5 text-[0.68rem] leading-relaxed text-cas-on-surface-variant">
-                        {item.optionsSummary}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveItem(item.cartItemId)}
-                      className="grid size-7 shrink-0 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
-                      aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
-                    >
-                      <CasIcon className="size-4" name="trash" />
-                    </button>
-                  </div>
-
-                  <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-                    <strong className="text-sm font-extrabold text-cas-primary">
-                      {formatPrice(item.unitPrice * item.quantity)}
-                    </strong>
-                    <ItemQuantityControl
-                      itemName={item.name}
-                      quantity={item.quantity}
-                      onDecrease={() => onUpdateQuantity(item.cartItemId, -1)}
-                      onIncrease={() => onUpdateQuantity(item.cartItemId, 1)}
+          <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)] sm:rounded-3xl sm:p-5">
+            <ul className="divide-y divide-cas-outline-variant/35">
+              {cartItems.map((item) => (
+                <li
+                  className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
+                  key={item.cartItemId}
+                >
+                  <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-cas-surface sm:size-20 sm:rounded-2xl">
+                    <Image
+                      className="object-cover"
+                      src={item.imageSrc}
+                      alt={item.imageAlt}
+                      fill
+                      sizes="(min-width: 640px) 5rem, 4rem"
                     />
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h5 className="line-clamp-1 text-sm font-extrabold sm:text-base">
+                      {item.name}
+                    </h5>
+                    <p className="mt-1 line-clamp-1 text-[0.72rem] text-cas-on-surface-variant sm:text-xs">
+                      x{item.quantity} · {item.optionsSummary}
+                    </p>
+                    <div className="mt-2 space-y-1 text-[0.72rem] leading-relaxed text-cas-on-surface-variant sm:text-xs">
+                      <p className="flex justify-between gap-3">
+                        <span>Giá món gốc</span>
+                        <span>
+                          {formatPrice(item.basePrice)}
+                          {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+                        </span>
+                      </p>
+                      {item.optionSelections.map((option) => (
+                        <p className="flex justify-between gap-3" key={option.name}>
+                          <span>+ {option.name}</span>
+                          <span>
+                            +{formatPrice(option.price)}
+                            {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <ItemQuantityControl
+                        itemName={item.name}
+                        quantity={item.quantity}
+                        onDecrease={() => onUpdateQuantity(item.cartItemId, -1)}
+                        onIncrease={() => onUpdateQuantity(item.cartItemId, 1)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onRemoveItem(item.cartItemId)}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
+                        aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
+                      >
+                        <CasIcon className="size-4" name="trash" />
+                        Xóa món
+                      </button>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <strong className="text-sm font-extrabold text-cas-primary sm:text-base">
+                      {formatPrice(item.unitPrice * item.quantity)}
+                    </strong>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </article>
         )}
 
         {/* Section Ghi chú chung - Identical to Customer Cart */}

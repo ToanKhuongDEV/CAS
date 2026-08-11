@@ -110,7 +110,9 @@ function CancellationItemDetails({ request }: { request: CancellationRequest }) 
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-4 text-sm">
-        <span className="font-bold text-cas-on-surface-variant">Số lượng yêu cầu: {request.quantity}</span>
+        <span className="font-bold text-cas-on-surface-variant">
+          Số lượng yêu cầu: {request.quantity}
+        </span>
         <span className="font-black text-cas-primary">{formatCurrency(requestedAmount)}</span>
       </div>
     </div>

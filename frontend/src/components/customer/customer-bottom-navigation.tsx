@@ -6,7 +6,7 @@ import { CasIcon } from "../ui/cas-icon";
 type NavigationItem = {
   href: string;
   icon: CasIconName;
-  id: "home" | "menu" | "orders" | "payment" | "settings";
+  id: "home" | "menu" | "orders" | "settings";
   label: string;
 };
 
@@ -22,28 +22,12 @@ const navigationItems: NavigationItem[] = [
 ];
 
 export function CustomerBottomNavigation({ activeItem }: CustomerBottomNavigationProps) {
-  const visibleItems =
-    activeItem === "payment"
-      ? [
-          ...navigationItems.slice(0, 3),
-          {
-            id: "payment" as const,
-            label: "Thanh toán",
-            icon: "payment" as const,
-            href: "/payment",
-          },
-          navigationItems[3],
-        ]
-      : navigationItems;
-
   return (
     <nav
-      className={`fixed inset-x-0 bottom-0 z-50 grid min-h-20 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:sticky md:top-24 md:z-20 md:w-52 lg:w-56 md:shrink-0 md:grid-cols-1 md:content-start md:gap-2.5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none ${
-        activeItem === "payment" ? "grid-cols-5" : "grid-cols-4"
-      }`}
+      className="fixed inset-x-0 bottom-0 z-50 grid min-h-20 grid-cols-4 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:sticky md:top-24 md:z-20 md:w-52 md:shrink-0 md:grid-cols-1 md:content-start md:gap-2.5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none lg:w-56"
       aria-label="Điều hướng chính"
     >
-      {visibleItems.map((item) => {
+      {navigationItems.map((item) => {
         const isActive = item.id === activeItem;
 
         return (

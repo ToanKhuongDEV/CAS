@@ -16,7 +16,7 @@ export default function PaymentPage() {
       <CustomerHeader tableName="Bàn 05" />
 
       <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
-        <CustomerBottomNavigation activeItem="payment" />
+        <CustomerBottomNavigation activeItem="orders" />
 
         <main className="mx-auto w-full max-w-[38rem] min-w-0 flex-1">
           <header className="text-center">

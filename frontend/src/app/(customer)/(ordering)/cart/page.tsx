@@ -16,7 +16,9 @@ const cartItems = [
     options: "Cấp độ 2, thêm xúc xích",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay đặc biệt đã chọn",
-    price: "55.000đ",
+    basePrice: "45.000đ",
+    toppings: [{ name: "Thêm xúc xích", price: "10.000đ" }],
+    total: "55.000đ",
     quantity: 1,
   },
   {
@@ -24,7 +26,9 @@ const cartItems = [
     options: "Sốt cay, phần vừa",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Phần gà rán giòn đã chọn",
-    price: "70.000đ",
+    basePrice: "35.000đ × 2",
+    toppings: [],
+    total: "70.000đ",
     quantity: 2,
   },
   {
@@ -32,7 +36,9 @@ const cartItems = [
     options: "50% đường, ít đá",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu đường đen đã chọn",
-    price: "45.000đ",
+    basePrice: "35.000đ",
+    toppings: [{ name: "Thêm trân châu", price: "10.000đ" }],
+    total: "45.000đ",
     quantity: 1,
   },
 ];
@@ -81,51 +87,60 @@ export default function CartPage() {
             </button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {cartItems.map((item, index) => (
-              <article
-                className="grid grid-cols-[6.5rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4"
-                key={item.name}
-              >
-                <div className="relative min-h-30 overflow-hidden rounded-2xl md:aspect-[4/3] md:min-h-0">
-                  <Image
-                    className="object-cover"
-                    src={item.imageSrc}
-                    alt={item.imageAlt}
-                    fill
-                    loading={index === 0 ? "eager" : "lazy"}
-                    priority={index === 0}
-                    sizes="(max-width: 767px) 6.5rem, (max-width: 1023px) 45vw, 30vw"
-                  />
-                </div>
+          <article className="rounded-2xl bg-cas-surface-container p-5 shadow-[0_5px_18px_var(--cas-shadow-color)] md:rounded-3xl md:p-7">
+            <ul className="divide-y divide-cas-outline-variant/35">
+              {cartItems.map((item, index) => (
+                <li className="flex items-start gap-4 py-4 md:py-5" key={item.name}>
+                  <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-cas-surface md:size-20 md:rounded-2xl">
+                    <Image
+                      className="object-cover"
+                      src={item.imageSrc}
+                      alt={item.imageAlt}
+                      fill
+                      loading={index === 0 ? "eager" : "lazy"}
+                      priority={index === 0}
+                      sizes="(min-width: 768px) 5rem, 4rem"
+                    />
+                  </div>
 
-                <div className="flex min-w-0 flex-col">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
-                        {item.name}
-                      </h3>
-                      <p className="mt-1 text-[0.68rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
-                        {item.options}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-1 text-sm font-extrabold md:text-base">
+                      {item.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-1 text-[0.72rem] text-cas-on-surface-variant md:text-xs">
+                      x{item.quantity} · {item.options}
+                    </p>
+                    <div className="mt-2 space-y-1 text-[0.72rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                      <p className="flex justify-between gap-3">
+                        <span>Giá món gốc</span>
+                        <span>{item.basePrice}</span>
                       </p>
+                      {item.toppings.map((topping) => (
+                        <p className="flex justify-between gap-3" key={topping.name}>
+                          <span>+ {topping.name}</span>
+                          <span>+{topping.price}</span>
+                        </p>
+                      ))}
                     </div>
-                    <button
-                      className="grid size-7 shrink-0 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
-                      type="button"
-                      aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
-                    >
-                      <CasIcon className="size-4" name="trash" />
-                    </button>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <ItemQuantityControl itemName={item.name} quantity={item.quantity} />
+                      <button
+                        aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                        type="button"
+                      >
+                        <CasIcon className="size-4" name="trash" />
+                        Xóa món
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                    <strong className="text-sm text-cas-primary md:text-base">{item.price}</strong>
-                    <ItemQuantityControl itemName={item.name} quantity={item.quantity} />
+                  <div className="shrink-0 text-right">
+                    <strong className="text-sm text-cas-primary md:text-base">{item.total}</strong>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </li>
+              ))}
+            </ul>
+          </article>
         </section>
 
         <section

@@ -135,7 +135,8 @@ export default function AdminCustomersPage() {
     );
   }, [fromDate, query, toDate]);
 
-  const selectedCustomer = mockCustomers.find((customer) => customer.id === selectedCustomerId) ?? null;
+  const selectedCustomer =
+    mockCustomers.find((customer) => customer.id === selectedCustomerId) ?? null;
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -182,7 +183,9 @@ export default function AdminCustomersPage() {
       <div className="overflow-hidden rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
         <div className="border-b border-cas-outline-variant/20 px-5 py-4">
           <h2 className="text-sm font-black text-cas-on-surface">Danh sách khách hàng</h2>
-          <p className="mt-1 text-xs text-cas-on-surface-variant">Chọn một khách để xem lịch sử phiên bàn.</p>
+          <p className="mt-1 text-xs text-cas-on-surface-variant">
+            Chọn một khách để xem lịch sử phiên bàn.
+          </p>
         </div>
 
         <div className="overflow-x-auto">
@@ -207,9 +210,15 @@ export default function AdminCustomersPage() {
                       <span className="font-black text-cas-on-surface">{customer.displayName}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-bold text-cas-on-surface-variant">{maskPhone(customer.phone)}</td>
-                  <td className="px-5 py-4 font-black text-cas-on-surface">{customer.sessions.length}</td>
-                  <td className="px-5 py-4 font-bold text-cas-on-surface-variant">{customer.lastVisitAt}</td>
+                  <td className="px-5 py-4 font-bold text-cas-on-surface-variant">
+                    {maskPhone(customer.phone)}
+                  </td>
+                  <td className="px-5 py-4 font-black text-cas-on-surface">
+                    {customer.sessions.length}
+                  </td>
+                  <td className="px-5 py-4 font-bold text-cas-on-surface-variant">
+                    {customer.lastVisitAt}
+                  </td>
                   <td className="px-5 py-4 text-right">
                     <button
                       className="rounded-lg px-3 py-1.5 text-xs font-black text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
@@ -229,7 +238,9 @@ export default function AdminCustomersPage() {
           <div className="px-5 py-12 text-center">
             <CasIcon className="mx-auto size-8 text-cas-on-surface-variant" name="users" />
             <p className="mt-3 text-sm font-black text-cas-on-surface">Không tìm thấy khách hàng</p>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">Thử lại bằng tên hoặc số điện thoại khác.</p>
+            <p className="mt-1 text-xs text-cas-on-surface-variant">
+              Thử lại bằng tên hoặc số điện thoại khác.
+            </p>
           </div>
         )}
       </div>
@@ -250,7 +261,10 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
       }}
       role="presentation"
     >
-      <section aria-labelledby="customer-detail-title" className="my-auto w-full max-w-3xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6">
+      <section
+        aria-labelledby="customer-detail-title"
+        className="my-auto w-full max-w-3xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
+      >
         <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
           <div className="flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary">
@@ -277,9 +291,13 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
         <div className="mt-5 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-cas-on-surface-variant">Tổng lượt mở bàn</p>
-            <p className="text-xl font-black text-cas-on-surface">{customer.sessions.length} lượt</p>
+            <p className="text-xl font-black text-cas-on-surface">
+              {customer.sessions.length} lượt
+            </p>
           </div>
-          <p className="text-right text-xs font-bold text-cas-on-surface-variant">Gần nhất: {customer.lastVisitAt}</p>
+          <p className="text-right text-xs font-bold text-cas-on-surface-variant">
+            Gần nhất: {customer.lastVisitAt}
+          </p>
         </div>
 
         <div className="mt-5 overflow-x-auto rounded-2xl border border-cas-outline-variant/25">
@@ -297,11 +315,17 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
               {customer.sessions.map((session) => (
                 <tr key={session.id}>
                   <td className="px-4 py-3 font-black text-cas-on-surface">{session.id}</td>
-                  <td className="px-4 py-3 font-bold text-cas-on-surface-variant">{session.openedAt}</td>
+                  <td className="px-4 py-3 font-bold text-cas-on-surface-variant">
+                    {session.openedAt}
+                  </td>
                   <td className="px-4 py-3 font-bold text-cas-on-surface">{session.table}</td>
-                  <td className="px-4 py-3 font-black text-cas-on-surface">{formatCurrency(session.totalAmount)}</td>
+                  <td className="px-4 py-3 font-black text-cas-on-surface">
+                    {formatCurrency(session.totalAmount)}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${statusClassName[session.paymentStatus]}`}>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${statusClassName[session.paymentStatus]}`}
+                    >
                       {statusLabel[session.paymentStatus]}
                     </span>
                   </td>
@@ -312,7 +336,8 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
         </div>
 
         <p className="mt-4 text-xs leading-relaxed text-cas-on-surface-variant">
-          Trang hiện dùng dữ liệu mẫu. Khi kết nối API, lịch sử hiển thị sẽ lấy từ session, order, payment và khoản chưa thanh toán thuộc đúng cửa hàng.
+          Trang hiện dùng dữ liệu mẫu. Khi kết nối API, lịch sử hiển thị sẽ lấy từ session, order,
+          payment và khoản chưa thanh toán thuộc đúng cửa hàng.
         </p>
       </section>
     </div>

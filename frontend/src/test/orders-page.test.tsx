@@ -1,7 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "../app/(customer)/orders/page";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 describe("OrdersPage", () => {
   it("lets a customer submit a cancellation request in the UI", () => {
@@ -16,6 +20,15 @@ describe("OrdersPage", () => {
       "href",
       "/menu",
     );
+    expect(screen.getByText("Ghi chú chung")).toBeInTheDocument();
+    expect(screen.getByText(/Vui lòng phục vụ món cay sau/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
+    const voucherSelect = screen.getByRole("combobox", { name: "Voucher / khuyến mãi" });
+    fireEvent.change(voucherSelect, { target: { value: "summer-10" } });
+    expect(screen.getByText("Giá gốc")).toBeInTheDocument();
+    expect(screen.getByText("Giảm giá (SUMMER10)")).toBeInTheDocument();
+    expect(screen.getByText("Giá trị cần thanh toán")).toBeInTheDocument();
+    expect(screen.getByText("153.000đ")).toBeInTheDocument();
     expect(screen.queryByText(/CAS đã ghi nhận lần gọi món này/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Yêu cầu hủy" })[0]);

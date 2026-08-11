@@ -692,6 +692,7 @@ Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của c�
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng cung cấp dịch vụ |
 | `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản khách liên quan tới dịch vụ |
 | `service_name` | `VARCHAR(255) NOT NULL` | Tên dịch vụ do `OPERATOR` hoặc `ADMIN` nhập sau khi thỏa thuận |
+| `note` | `TEXT NULL` | Ghi chú tùy chọn kèm theo dịch vụ |
 | `agreed_price` | `DECIMAL(15,2) NOT NULL` | Giá đã chốt, có thể bằng `0` với dịch vụ miễn phí; không lấy từ client |
 | `payment_status` | `VARCHAR(20) NOT NULL DEFAULT 'PAY_LATER'` | `PAY_LATER`, `PENDING`, `PAID` hoặc `CANCELLED` |
 | `created_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản tạo dịch vụ |
@@ -702,7 +703,7 @@ Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của c�
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại đã trao đổi qua Zalo. Backend tìm `client_accounts` theo số điện thoại: nếu đã có thì gắn `client_account_id` hiện có, nếu chưa có thì tạo tài khoản khách mới rồi gắn ID mới. Tên chỉ phục vụ hiển thị khi tạo tài khoản mới, không dùng để nhận diện hoặc ghép khách. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên chuyển record sang `CANCELLED`; record này không được xác nhận thanh toán. Không tạo `payments`, `bill_snapshot`, order món, table session hoặc yêu cầu thanh toán tại bàn cho luồng này.
+Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại đã trao đổi qua Zalo, cùng ghi chú nếu cần. Backend tìm `client_accounts` theo số điện thoại: nếu đã có thì gắn `client_account_id` hiện có, nếu chưa có thì tạo tài khoản khách mới rồi gắn ID mới. Tên chỉ phục vụ hiển thị khi tạo tài khoản mới, không dùng để nhận diện hoặc ghép khách. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên chuyển record sang `CANCELLED`; record này không được xác nhận thanh toán. Không tạo `payments`, `bill_snapshot`, order món, table session hoặc yêu cầu thanh toán tại bàn cho luồng này.
 
 ### 5.7. Vận hành
 
@@ -980,7 +981,7 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - `payments.amount` bằng tổng `orders.payable_amount` của table session tại thời điểm tạo payment.
 - Payment `PENDING` không có thông tin xác nhận; payment `PAID` phải có đủ `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
 - Payment chỉ chuyển từ `PENDING` sang `PAID`.
-- `service_bookings.agreed_price` không âm và `client_account_id` phải thuộc cùng `store_id`; giá `0` biểu thị dịch vụ miễn phí. `PAY_LATER`, `PENDING` và `CANCELLED` không có thông tin xác nhận; `PAID` phải có đủ `confirmed_by_account_id`, `confirmed_by_name` và `confirmed_at`. `CANCELLED` là trạng thái cuối và không thể chuyển sang thanh toán. Chỉ `OPERATOR` hoặc `ADMIN` được tạo dịch vụ, cập nhật thông tin/giá đã chốt, chuyển trạng thái thanh toán, xác nhận `PAID` hoặc hủy dịch vụ; mọi thao tác làm thay đổi `service_bookings` phải ghi `audit_logs` với `entity_type = SERVICE_BOOKING`.
+- `service_bookings.agreed_price` không âm và `client_account_id` phải thuộc cùng `store_id`; giá `0` biểu thị dịch vụ miễn phí. `note` là tùy chọn. `PAY_LATER`, `PENDING` và `CANCELLED` không có thông tin xác nhận; `PAID` phải có đủ `confirmed_by_account_id`, `confirmed_by_name` và `confirmed_at`. `CANCELLED` là trạng thái cuối và không thể chuyển sang thanh toán. Chỉ `OPERATOR` hoặc `ADMIN` được tạo dịch vụ, cập nhật tên dịch vụ/ghi chú/giá đã chốt, chuyển trạng thái thanh toán, xác nhận `PAID` hoặc hủy dịch vụ; mọi thao tác làm thay đổi `service_bookings` phải ghi `audit_logs` với `entity_type = SERVICE_BOOKING`.
 - Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
 - Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.

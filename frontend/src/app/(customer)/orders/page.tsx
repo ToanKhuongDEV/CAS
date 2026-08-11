@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CustomerBottomNavigation } from "../../../components/customer/customer-bottom-navigation";
 import { CustomerHeader } from "../../../components/customer/customer-header";
 import { CancellationRequestControl } from "../../../components/customer/cancellation-request-control";
+import { CustomerOrderVoucherSummary } from "../../../components/customer/customer-order-voucher-summary";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { CasButton } from "../../../components/ui/cas-button";
 
@@ -45,6 +46,8 @@ const submittedItems = [
     quantity: 1,
   },
 ];
+
+const orderNote = "Vui lòng phục vụ món cay sau và mang kèm thêm ớt tươi, khăn giấy.";
 
 export default function OrdersPage() {
   return (
@@ -153,17 +156,22 @@ export default function OrdersPage() {
               ))}
             </ul>
 
-            <div className="flex items-end justify-between gap-4 border-t border-cas-outline-variant/40 pt-5">
-              <div>
-                <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase md:text-xs">
-                  Tổng đơn vừa gửi
-                </p>
-                <p className="mt-1 text-xs text-cas-on-surface-variant md:text-sm">
-                  4 món · 3 loại
-                </p>
-              </div>
-              <strong className="text-xl text-cas-primary md:text-3xl">170.000đ</strong>
-            </div>
+            <section
+              className="border-t border-cas-outline-variant/40 pt-5"
+              aria-labelledby="order-note-title"
+            >
+              <h3
+                className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase md:text-xs"
+                id="order-note-title"
+              >
+                Ghi chú chung
+              </h3>
+              <p className="mt-2 rounded-xl bg-cas-surface px-3 py-2.5 text-sm leading-relaxed text-cas-on-surface-variant">
+                {orderNote}
+              </p>
+            </section>
+
+            <CustomerOrderVoucherSummary originalAmount={170000} />
           </article>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center md:gap-4">
