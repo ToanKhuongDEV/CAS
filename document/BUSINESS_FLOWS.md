@@ -48,7 +48,7 @@ Ngoài phạm vi hiện tại:
 
 Khách hàng không có tài khoản đăng nhập và không phải account role. Mọi chức năng quản trị chỉ dành cho `ADMIN`. `OPERATOR` không được truy cập chức năng quản trị và chỉ được thực hiện các nghiệp vụ vận hành thuộc phạm vi được cấp.
 
-Tài khoản nội bộ của quán được lưu trong `accounts`. Thông tin khách hàng nhập khi mở bàn được lưu riêng trong `client_accounts`.
+Tài khoản nội bộ của quán được nhận diện bằng email, lưu trong `accounts` và xác thực qua Firebase. Thông tin khách hàng được lưu riêng trong `client_accounts` và nhận diện theo số điện thoại trong phạm vi cửa hàng.
 
 Các giao diện đồng bộ thay đổi từ thiết bị khác bằng polling REST API. Thao tác do chính giao diện gửi đi được cập nhật ngay từ API response. Giai đoạn đầu không dùng SSE hoặc WebSocket.
 
@@ -60,17 +60,18 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 
 ### Luồng chính
 
-1. Người dùng nhập thông tin đăng nhập trên Frontend.
+1. Nhân viên nhập email trên Frontend.
 2. Frontend xác thực người dùng qua **Firebase Authentication**.
 3. Firebase phát hành ID Token cho Client.
 4. Client gửi Firebase ID Token lên CAS Backend trong HTTP Header (`Authorization: Bearer <Firebase_ID_Token>`).
-5. Backend verify Firebase ID Token, kiểm tra tài khoản tương ứng trong `accounts` và xác nhận trạng thái `ACTIVE`.
+5. Backend verify Firebase ID Token, dùng email đã xác thực để tìm tài khoản tương ứng trong `accounts` và xác nhận trạng thái `ACTIVE`.
 6. Hệ thống ghi nhận `last_login_at`.
 7. Người dùng được chuyển vào giao diện vận hành phù hợp với role.
 
 ### Quy tắc nghiệp vụ
 
 - Xác thực tài khoản vận hành sử dụng Firebase Authentication.
+- Email đã xác thực từ Firebase là định danh tài khoản vận hành; client không tự gửi email để backend tin cậy.
 - Backend sử dụng Firebase Admin SDK (hoặc thư viện xác thực Firebase) để verify Firebase ID Token.
 - Tài khoản `INACTIVE` không được phép truy cập hệ thống.
 - Role được lấy từ backend theo tài khoản trong database tương ứng với danh tính Firebase, client không được tự gửi role để quyết định quyền.
@@ -162,8 +163,8 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 - Trạng thái bàn trống hay đang có khách được suy ra từ session đang chiếm dụng, không lưu trong `dining_tables`.
 - Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` đều chiếm dụng bàn. Chỉ khi session `CLOSED` mới được tạo session mới cho cùng bàn.
 - Việc tạo session phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm.
-- Người đầu tiên mở session bàn phải nhập tên và số điện thoại.
-- Tên và số điện thoại này được lưu trong `client_accounts`, tách riêng với `accounts` của nhân viên/admin.
+- Người đầu tiên mở session bàn phải nhập tên và số điện thoại; số điện thoại là định danh khách trong phạm vi cửa hàng.
+- Hệ thống tìm hoặc tạo `client_accounts` theo số điện thoại; bảng này tách riêng với `accounts` nhận diện nhân viên/admin bằng email.
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
 - QR bàn là mã cố định được in và dán tại bàn.
 - QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
@@ -683,16 +684,19 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 
 1. Khách chọn dịch vụ đặt trước trên menu và mở Zalo bằng số hotline của cửa hàng.
 2. Khách và nhân viên thỏa thuận tên dịch vụ, giá và thời điểm thanh toán qua Zalo, ngoài CAS.
-3. `OPERATOR` hoặc `ADMIN` tìm hoặc tạo `client_accounts` theo số điện thoại đã trao đổi qua Zalo, sau đó tạo `service_booking` với `client_account_id`, tên dịch vụ và `agreed_price` đã chốt.
-4. Nếu thanh toán sau, record bắt đầu ở `PAY_LATER`.
-5. Nếu khách thanh toán ngay hoặc thanh toán sau đó, nhân viên chuyển record sang `PENDING`, tự xác minh giao dịch rồi xác nhận `PAID`.
-6. Hệ thống lưu người tạo, người xác nhận và thời điểm tương ứng, đồng thời ghi audit log.
+3. `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại của khách. Backend tìm `client_accounts` theo số điện thoại; nếu chưa có thì tạo mới, nếu đã có thì dùng lại ID hiện có. Tên không dùng để nhận diện khách.
+4. Hệ thống tạo `service_booking` với `client_account_id`, tên dịch vụ và `agreed_price` đã chốt.
+5. Nếu thanh toán sau, record bắt đầu ở `PAY_LATER`.
+6. Nếu khách thanh toán ngay hoặc thanh toán sau đó, nhân viên chuyển record sang `PENDING`, tự xác minh giao dịch rồi xác nhận `PAID`.
+7. Nếu khách không tiếp tục đặt dịch vụ, nhân viên đánh dấu record là `CANCELLED`; dịch vụ đã hủy không thể chuyển sang thanh toán.
+8. Hệ thống lưu người tạo, người xác nhận (nếu có) và thời điểm tương ứng, đồng thời ghi audit log.
 
 ### Quy tắc nghiệp vụ
 
 - Dịch vụ đặt trước không tạo table session, order món, payment, bill snapshot hoặc khoản chưa thanh toán.
-- Giá dịch vụ chỉ do `OPERATOR` hoặc `ADMIN` nhập từ kết quả thỏa thuận; client không gửi hoặc ghi đè giá.
+- Giá dịch vụ chỉ do `OPERATOR` hoặc `ADMIN` nhập từ kết quả thỏa thuận; client không gửi hoặc ghi đè giá. Giá có thể bằng `0` với dịch vụ miễn phí.
+- Số điện thoại là định danh duy nhất của khách trong cửa hàng; tên chỉ là thông tin hiển thị.
 - `ADMIN` có toàn bộ quyền thao tác của `OPERATOR` với dịch vụ đặt trước.
-- Mọi thao tác thay đổi dịch vụ đặt trước phải ghi audit log: tạo record, sửa tên dịch vụ/giá đã chốt, chuyển sang `PENDING` và xác nhận `PAID`.
+- Mọi thao tác thay đổi dịch vụ đặt trước phải ghi audit log: tạo record, sửa tên dịch vụ/giá đã chốt, chuyển sang `PENDING`, xác nhận `PAID` hoặc hủy `CANCELLED`.
 - CAS chỉ mở liên hệ Zalo theo `stores.phone`; không tích hợp, lưu hoặc đọc nội dung tin nhắn Zalo.
 - Việc xác minh thanh toán vẫn thủ công; CAS không tích hợp ngân hàng, VietQR hoặc dữ liệu giao dịch.

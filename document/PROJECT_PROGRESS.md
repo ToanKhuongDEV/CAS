@@ -25,6 +25,7 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Đồng bộ `DATABASE_DESIGN.md` với UI Admin Notifications: `target_role` dùng `OPERATOR`, `CUSTOMER` hoặc `BOTH`.
 - [x] Bổ sung thiết kế bảng trung gian `system_notification_recipients` để lưu trạng thái đã đọc/chưa đọc theo từng người nhận thông báo.
 - [x] Bổ sung `accounts.email` và unique constraint `uk_accounts_email` vào thiết kế tài khoản nhân viên.
+- [x] Chuẩn hóa định danh: khách hàng theo số điện thoại trong `client_accounts`, tài khoản vận hành theo email Firebase trong `accounts`.
 - [x] Bổ sung bảng `service_bookings` và luồng dịch vụ đặt trước chốt giá qua Zalo, thanh toán độc lập với table session và order món.
 - [x] Chuẩn hóa `service_bookings` chỉ tham chiếu `client_account_id`, không sao chép tên hoặc số điện thoại khách.
 - [x] Chuẩn hóa audit log bắt buộc cho mọi thao tác thay đổi dịch vụ đặt trước.
@@ -140,6 +141,8 @@ Ngày cập nhật gần nhất: 2026-08-11
 
 ## 6. Frontend
 
+- [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
+
 - [x] Khởi tạo Next.js, React và TypeScript.
 - [x] Tích hợp Tailwind CSS với PostCSS.
 - [x] Xây dựng trang chào mừng CAS cho quán ăn vặt/mỳ cay bằng Tailwind CSS theo thiết kế Stitch, có giao diện sáng/tối.
@@ -197,6 +200,7 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
+- [ ] Đồng bộ giao diện đăng nhập nhân viên từ số điện thoại/mật khẩu sang email qua Firebase Authentication.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
@@ -226,7 +230,11 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Tinh chỉnh thanh điều hướng Admin (`AdminTabNavigation`): hỗ trợ trượt ngang mượt mà (`overflow-x-auto`, `whitespace-nowrap`, `shrink-0`) trên mobile; đồng thời xử lý hiển thị popup menu con bằng `fixed` positioning giúp menu xổ ra tự do bên ngoài box, không bị cắt mép hay bắt người dùng kéo cuộn bên trong.
 - [x] Xây dựng giao diện quản lý khoản chưa thanh toán tại `/operator/unpaid`, bao gồm danh sách các bản ghi `unpaid_records`, bộ lọc trạng thái (`ALL`, `OPEN`, `RESOLVED`), Modal xem `bill_snapshot` chi tiết, thao tác kết thúc phiên bàn và ghi nhận chưa thanh toán với lý do bắt buộc, cùng nút chuyển đổi trạng thái đã thu tiền.
 - [x] Lược bỏ mô tả kỹ thuật về tạo payment và snapshot khỏi form ghi nhận chưa thanh toán.
-- [x] Xây dựng UI `OPERATOR` quản lý dịch vụ đặt trước tại `/operator/services` (tab “Dịch vụ thêm”): tạo dịch vụ sau khi chốt qua Zalo, chọn `client_account`, nhập giá đã thỏa thuận và cập nhật trạng thái thanh toán.
+- [x] Bổ sung popup xác nhận trước khi đánh dấu khoản chưa thanh toán là đã thu tiền.
+- [x] Xây dựng UI `OPERATOR` quản lý dịch vụ đặt trước tại `/operator/services` (tab “Dịch vụ thêm”): nhập tên/SĐT sau khi chốt qua Zalo, tìm hoặc tạo `client_account` theo SĐT, nhập giá đã thỏa thuận và cập nhật trạng thái thanh toán.
+- [x] Bổ sung popup xác nhận trước khi chuyển dịch vụ thêm sang trạng thái đã thanh toán.
+- [x] Bổ sung thao tác hủy dịch vụ thêm khi khách không tiếp tục đặt, kèm popup xác nhận.
+- [x] Bổ sung validation hiển thị tại form tạo dịch vụ thêm: dữ liệu bắt buộc, giới hạn độ dài, SĐT và giá đã thỏa thuận hợp lệ (cho phép giá `0` với dịch vụ miễn phí).
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
 - [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
@@ -257,6 +265,7 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Bổ sung đóng dropdown Nhãn món khi click bên ngoài và dùng `CasIcon` cho mũi tên xổ xuống.
 - [x] Loại bỏ ghi chú kỹ thuật về API Catalog khỏi popup quản lý món.
 - [x] Bổ sung UI chọn ảnh món và thiết lập thứ tự hiển thị trong popup Catalog, sẵn sàng để ghép API sau.
+- [x] Chuẩn hóa các ô nhập giá trong Catalog và Dịch vụ thêm theo định dạng dấu phẩy hàng nghìn (ví dụ `1,200,000`).
 - [x] Đổi Nhóm option áp dụng sang dropdown tick chọn nhiều, đồng bộ với Nhãn món.
 - [x] Chuyển lệnh phát triển Frontend sang Webpack để tránh lỗi cache/compaction của Turbopack khi format ghi nhiều file.
 - [x] Bổ sung cột Thứ tự hiển thị trong bảng danh sách Thực đơn tại `/admin/catalog`.

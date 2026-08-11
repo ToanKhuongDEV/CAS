@@ -692,8 +692,8 @@ Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của c�
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng cung cấp dịch vụ |
 | `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản khách liên quan tới dịch vụ |
 | `service_name` | `VARCHAR(255) NOT NULL` | Tên dịch vụ do `OPERATOR` hoặc `ADMIN` nhập sau khi thỏa thuận |
-| `agreed_price` | `DECIMAL(15,2) NOT NULL` | Giá đã chốt; không lấy từ client |
-| `payment_status` | `VARCHAR(20) NOT NULL DEFAULT 'PAY_LATER'` | `PAY_LATER`, `PENDING` hoặc `PAID` |
+| `agreed_price` | `DECIMAL(15,2) NOT NULL` | Giá đã chốt, có thể bằng `0` với dịch vụ miễn phí; không lấy từ client |
+| `payment_status` | `VARCHAR(20) NOT NULL DEFAULT 'PAY_LATER'` | `PAY_LATER`, `PENDING`, `PAID` hoặc `CANCELLED` |
 | `created_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản tạo dịch vụ |
 | `created_by_name` | `VARCHAR(150) NOT NULL` | Tên người tạo tại thời điểm thao tác |
 | `confirmed_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản xác nhận thanh toán |
@@ -702,7 +702,7 @@ Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của c�
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` tìm hoặc tạo `client_accounts` theo số điện thoại đã trao đổi qua Zalo, rồi chỉ lưu `client_account_id` trong record. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Không tạo `payments`, `bill_snapshot`, order món, table session hoặc yêu cầu thanh toán tại bàn cho luồng này.
+Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại đã trao đổi qua Zalo. Backend tìm `client_accounts` theo số điện thoại: nếu đã có thì gắn `client_account_id` hiện có, nếu chưa có thì tạo tài khoản khách mới rồi gắn ID mới. Tên chỉ phục vụ hiển thị khi tạo tài khoản mới, không dùng để nhận diện hoặc ghép khách. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên chuyển record sang `CANCELLED`; record này không được xác nhận thanh toán. Không tạo `payments`, `bill_snapshot`, order món, table session hoặc yêu cầu thanh toán tại bàn cho luồng này.
 
 ### 5.7. Vận hành
 
@@ -714,9 +714,7 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh tài khoản |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
-| `username` | `VARCHAR(100) NOT NULL` | Tên đăng nhập |
 | `email` | `VARCHAR(254) NOT NULL` | Email của tài khoản nhân viên |
-| `password_hash` | `VARCHAR(255) NOT NULL` | Mật khẩu đã băm |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên hiển thị |
 | `role` | `VARCHAR(20) NOT NULL` | Vai trò của tài khoản |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái tài khoản |
@@ -724,7 +722,7 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`accounts.email` là duy nhất trong toàn hệ thống và phải khớp email đã xác thực từ Firebase Authentication; dùng unique constraint `uk_accounts_email`.
+`accounts.email` là định danh của tài khoản vận hành, duy nhất trong toàn hệ thống và phải khớp email đã xác thực từ Firebase Authentication; dùng unique constraint `uk_accounts_email`. CAS không lưu mật khẩu nhân viên vì Firebase Authentication quản lý thông tin xác thực.
 
 Các role cơ bản:
 
@@ -736,15 +734,15 @@ Khách hàng không có tài khoản đăng nhập và không phải một giá 
 Authentication sử dụng Firebase Authentication:
 
 - Khách hàng không có tài khoản đăng nhập và không sử dụng authentication.
-- Tài khoản vận hành (`ADMIN`, `OPERATOR`) được quản lý và xác thực qua Firebase Authentication.
+- Tài khoản vận hành (`ADMIN`, `OPERATOR`) được nhận diện bằng email và xác thực qua Firebase Authentication.
 - Client truyền Firebase ID Token trong HTTP header `Authorization: Bearer <Firebase_ID_Token>`.
-- CAS Backend verify Firebase ID Token (sử dụng Firebase Admin SDK hoặc thư viện xác thực tương đương), trích xuất danh tính và phân quyền theo tài khoản & role (`ADMIN`, `OPERATOR`) lưu trong database.
+- CAS Backend verify Firebase ID Token (sử dụng Firebase Admin SDK hoặc thư viện xác thực tương đương), lấy email đã xác thực để tìm `accounts.email`, rồi phân quyền theo role (`ADMIN`, `OPERATOR`) lưu trong database.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
 - Backend phải kiểm tra role trên mọi API được bảo vệ; ma trận quyền chi tiết theo từng API được xác định trong API contract.
 
 #### `client_accounts`
 
-Lưu thông tin khách hàng mở phiên bàn hoặc đặt dịch vụ. Bảng này tách riêng với `accounts` vì khách hàng không phải tài khoản vận hành nội bộ của quán.
+Lưu thông tin khách hàng mở phiên bàn hoặc đặt dịch vụ. Khách được nhận diện theo `phone` trong phạm vi cửa hàng; bảng này tách riêng với `accounts` vì khách hàng không phải tài khoản vận hành nội bộ của quán.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -757,7 +755,7 @@ Lưu thông tin khách hàng mở phiên bàn hoặc đặt dịch vụ. Bảng 
 
 Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
 
-- Nếu `phone` đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó và có thể cập nhật `display_name`.
+- Nếu `phone` đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó; `display_name` không tham gia nhận diện hoặc ghép khách.
 - Nếu `phone` chưa tồn tại, hệ thống tạo `client_accounts` mới.
 - `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
 - `service_bookings` cũng dùng `client_account_id`; không sao chép tên hoặc số điện thoại vào bảng dịch vụ.
@@ -809,7 +807,7 @@ Trong đó:
 - `request_id` giúp gom các audit log được tạo trong cùng một request hoặc transaction nghiệp vụ.
 - `change_data` lưu toàn bộ thông tin cần thiết để xem lại thay đổi.
 
-`action` dùng các giá trị chữ hoa ổn định: `CREATED`, `UPDATED`, `STATUS_CHANGED`, `PRICE_CHANGED`, `QR_CREATED`, `QR_REVOKED`, `ORDER_CREATED_FOR_CUSTOMER`, `PREPARED_QUANTITY_UPDATED`, `CANCELLATION_RESOLVED`, `PAYMENT_CONFIRMED`, `UNPAID_RECORDED`, `SERVICE_BOOKING_CREATED`, `SERVICE_BOOKING_UPDATED`, `SERVICE_BOOKING_PAYMENT_PENDING`, `SERVICE_BOOKING_PAYMENT_CONFIRMED` và `SESSION_CLOSED`. Khi một use case tạo nhiều thay đổi, các log dùng cùng `request_id`.
+`action` dùng các giá trị chữ hoa ổn định: `CREATED`, `UPDATED`, `STATUS_CHANGED`, `PRICE_CHANGED`, `QR_CREATED`, `QR_REVOKED`, `ORDER_CREATED_FOR_CUSTOMER`, `PREPARED_QUANTITY_UPDATED`, `CANCELLATION_RESOLVED`, `PAYMENT_CONFIRMED`, `UNPAID_RECORDED`, `SERVICE_BOOKING_CREATED`, `SERVICE_BOOKING_UPDATED`, `SERVICE_BOOKING_PAYMENT_PENDING`, `SERVICE_BOOKING_PAYMENT_CONFIRMED`, `SERVICE_BOOKING_CANCELLED` và `SESSION_CLOSED`. Khi một use case tạo nhiều thay đổi, các log dùng cùng `request_id`.
 
 Các thao tác bắt buộc ghi audit log:
 
@@ -823,7 +821,7 @@ Các thao tác bắt buộc ghi audit log:
 - `CANCELLATION_REQUEST`: nhân viên đồng ý hoặc từ chối yêu cầu hủy món.
 - `PAYMENT`: xác nhận payment từ `PENDING` sang `PAID`.
 - `UNPAID_RECORD`: ghi nhận chưa thanh toán.
-- `SERVICE_BOOKING`: tạo dịch vụ, sửa tên dịch vụ/giá đã chốt, chuyển sang chờ thanh toán hoặc xác nhận thanh toán dịch vụ.
+- `SERVICE_BOOKING`: tạo dịch vụ, sửa tên dịch vụ/giá đã chốt, chuyển sang chờ thanh toán, xác nhận thanh toán hoặc hủy dịch vụ.
 - `TABLE_SESSION`: đóng session trong luồng ghi nhận chưa thanh toán.
 - `OPERATIONAL_INCIDENT`: cập nhật hoặc ghi chú xử lý sự cố.
 
@@ -919,7 +917,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Option value | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
 | Payment | `PENDING`, `PAID` |
-| Service booking payment | `PAY_LATER`, `PENDING`, `PAID` |
+| Service booking payment | `PAY_LATER`, `PENDING`, `PAID`, `CANCELLED` |
 | Promotion | `DRAFT`, `ACTIVE`, `INACTIVE` |
 | Promotion redemption | `COMPLETED`, `REVERSED` |
 | Account | `ACTIVE`, `INACTIVE` |
@@ -956,7 +954,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - `service_bookings`: unique `public_id`.
 - Confirm lặp trên payment đã `PAID` là thao tác đọc idempotent: không cập nhật dữ liệu và không tạo audit log mới.
 - Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
-- `accounts`: unique `store_id + username`.
+- `accounts`: unique `email` toàn hệ thống.
 - `client_accounts`: unique `store_id + phone`.
 - Tra cứu khách hàng dùng unique index `client_accounts(store_id, phone)` hiện có; index phục vụ tìm kiếm theo tên hoặc thống kê lịch sử chỉ được bổ sung sau khi có truy vấn triển khai và kiểm tra bằng `EXPLAIN`.
 - `promotions`: unique `public_id` và `store_id + code`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
@@ -982,7 +980,7 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - `payments.amount` bằng tổng `orders.payable_amount` của table session tại thời điểm tạo payment.
 - Payment `PENDING` không có thông tin xác nhận; payment `PAID` phải có đủ `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
 - Payment chỉ chuyển từ `PENDING` sang `PAID`.
-- `service_bookings.agreed_price` phải lớn hơn 0 và `client_account_id` phải thuộc cùng `store_id`. `PAY_LATER` và `PENDING` không có thông tin xác nhận; `PAID` phải có đủ `confirmed_by_account_id`, `confirmed_by_name` và `confirmed_at`. Chỉ `OPERATOR` hoặc `ADMIN` được tạo dịch vụ, cập nhật thông tin/giá đã chốt, chuyển trạng thái thanh toán hoặc xác nhận `PAID`; mọi thao tác làm thay đổi `service_bookings` phải ghi `audit_logs` với `entity_type = SERVICE_BOOKING`.
+- `service_bookings.agreed_price` không âm và `client_account_id` phải thuộc cùng `store_id`; giá `0` biểu thị dịch vụ miễn phí. `PAY_LATER`, `PENDING` và `CANCELLED` không có thông tin xác nhận; `PAID` phải có đủ `confirmed_by_account_id`, `confirmed_by_name` và `confirmed_at`. `CANCELLED` là trạng thái cuối và không thể chuyển sang thanh toán. Chỉ `OPERATOR` hoặc `ADMIN` được tạo dịch vụ, cập nhật thông tin/giá đã chốt, chuyển trạng thái thanh toán, xác nhận `PAID` hoặc hủy dịch vụ; mọi thao tác làm thay đổi `service_bookings` phải ghi `audit_logs` với `entity_type = SERVICE_BOOKING`.
 - Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
 - Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.

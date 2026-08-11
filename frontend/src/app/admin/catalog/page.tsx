@@ -45,6 +45,11 @@ const emptyDraft: ItemDraft = {
   createdAt: new Date().toISOString().split("T")[0],
 };
 
+function formatMoneyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? Number(digits).toLocaleString("en-US") : "";
+}
+
 const mockItems: MenuItem[] = [
   {
     id: 1,
@@ -134,6 +139,7 @@ export default function AdminCatalogPage() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [draft, setDraft] = useState<ItemDraft>(emptyDraft);
+  const [priceInput, setPriceInput] = useState(emptyDraft.price.toLocaleString("en-US"));
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const [isOptionGroupDropdownOpen, setIsOptionGroupDropdownOpen] = useState(false);
   const [imageFileName, setImageFileName] = useState("");
@@ -198,6 +204,7 @@ export default function AdminCatalogPage() {
     setModalMode(null);
     setSelectedItem(null);
     setDraft(emptyDraft);
+    setPriceInput(emptyDraft.price.toLocaleString("en-US"));
     setIsTagDropdownOpen(false);
     setIsOptionGroupDropdownOpen(false);
     setImageFileName("");
@@ -212,9 +219,16 @@ export default function AdminCatalogPage() {
       optionGroups: item.optionGroups ?? [],
       imageSrc: item.imageSrc ?? "",
     });
+    setPriceInput(item.price.toLocaleString("en-US"));
     setImagePreview(item.imageSrc ?? "");
     setImageFileName(item.imageSrc ? "Ảnh hiện tại" : "");
     setModalMode("edit");
+  };
+
+  const openCreateModal = () => {
+    setDraft(emptyDraft);
+    setPriceInput(emptyDraft.price.toLocaleString("en-US"));
+    setModalMode("create");
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,7 +301,7 @@ export default function AdminCatalogPage() {
             Thêm, chỉnh sửa món ăn, cài đặt giá, nhóm option và trạng thái SOLD_OUT.
           </p>
         </div>
-        <CasButton icon="plus" onClick={() => setModalMode("create")} variant="primary" size="md">
+        <CasButton icon="plus" onClick={openCreateModal} variant="primary" size="md">
           Thêm món mới
         </CasButton>
       </div>
@@ -614,17 +628,18 @@ export default function AdminCatalogPage() {
                   Giá niêm yết (đ)
                   <input
                     className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm text-cas-on-surface"
-                    min="0"
-                    onChange={(event) =>
+                    inputMode="numeric"
+                    onChange={(event) => {
+                      const formattedPrice = formatMoneyInput(event.target.value);
+                      setPriceInput(formattedPrice);
                       setDraft((current) => ({
                         ...current,
-                        price: Number(event.target.value),
-                      }))
-                    }
+                        price: Number(formattedPrice.replace(/,/g, "")),
+                      }));
+                    }}
                     required
-                    step="1000"
-                    type="number"
-                    value={draft.price}
+                    type="text"
+                    value={priceInput}
                   />
                 </label>
                 <label className="text-xs font-bold text-cas-on-surface-variant">

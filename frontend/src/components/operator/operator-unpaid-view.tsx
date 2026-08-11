@@ -324,6 +324,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
   const [selectedRecord, setSelectedRecord] = useState<UnpaidRecord | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isCloseSessionDialogOpen, setIsCloseSessionDialogOpen] = useState(false);
+  const [isResolveConfirmationOpen, setIsResolveConfirmationOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(openTableSessions[0].tableSessionId);
   const [unpaidReason, setUnpaidReason] = useState("");
 
@@ -379,6 +380,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
     setActionMessage(
       `Đã đánh dấu khoản chưa thanh toán của ${selectedRecord?.table || "bàn"} là ĐÃ THU TIỀN (RESOLVED).`,
     );
+    setIsResolveConfirmationOpen(false);
   }
 
   function handleCloseSessionAsUnpaid(event: React.FormEvent<HTMLFormElement>) {
@@ -822,7 +824,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
                 {selectedRecord.status === "OPEN" ? (
                   <button
                     className="rounded-xl bg-cas-secondary px-4 py-2.5 text-sm font-extrabold text-white transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    onClick={() => handleMarkAsResolved(selectedRecord.id)}
+                    onClick={() => setIsResolveConfirmationOpen(true)}
                     type="button"
                   >
                     ✓ Xác nhận đã thu tiền (RESOLVED)
@@ -833,6 +835,70 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
                   </span>
                 )}
               </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {isResolveConfirmationOpen && selectedRecord ? (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/55 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsResolveConfirmationOpen(false);
+          }}
+        >
+          <section
+            aria-describedby="resolve-unpaid-description"
+            aria-labelledby="resolve-unpaid-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            role="alertdialog"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cas-primary/10 text-cas-primary">
+                <CasIcon className="size-5" name="payment" />
+              </span>
+              <div>
+                <h2 className="text-lg font-black text-cas-on-surface" id="resolve-unpaid-title">
+                  Xác nhận đã thanh toán?
+                </h2>
+                <p
+                  className="mt-1 text-sm text-cas-on-surface-variant"
+                  id="resolve-unpaid-description"
+                >
+                  Hãy chỉ xác nhận khi đã kiểm tra khoản tiền của khách.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/40 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-cas-on-surface-variant">Bàn</span>
+                <strong className="text-cas-on-surface">{selectedRecord.table}</strong>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-cas-on-surface-variant">Số tiền</span>
+                <strong className="text-lg text-cas-primary">
+                  {selectedRecord.amountFormatted}
+                </strong>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                className="rounded-xl border border-cas-outline-variant/40 px-4 py-2.5 text-sm font-extrabold text-cas-on-surface transition hover:bg-cas-surface-container"
+                onClick={() => setIsResolveConfirmationOpen(false)}
+                type="button"
+              >
+                Hủy
+              </button>
+              <button
+                className="rounded-xl bg-cas-secondary px-4 py-2.5 text-sm font-extrabold text-cas-on-secondary transition hover:brightness-95"
+                onClick={() => handleMarkAsResolved(selectedRecord.id)}
+                type="button"
+              >
+                Xác nhận đã thanh toán
+              </button>
             </div>
           </section>
         </div>

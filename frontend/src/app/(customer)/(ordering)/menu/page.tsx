@@ -331,7 +331,7 @@ export default function MenuPage() {
 
         <CategoryNavigation categories={categories} />
 
-        <div className="mt-2" id="menu-list">
+        <div className="mt-2 pb-15 md:pb-28" id="menu-list">
           {categories.map((category) => {
             const categoryItems = menuItems.filter((item) => item.categoryId === category.id);
 

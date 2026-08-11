@@ -21,7 +21,7 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình, với các quyền hạn tính năng tách biệt:
 
 ### 3.1. Khách hàng (CLIENT / GUEST)
-_Không có tài khoản đăng nhập nội bộ hệ thống, danh tính gắn với phiên bàn qua token QR._
+_Không có tài khoản đăng nhập nội bộ hệ thống; khách được nhận diện bằng số điện thoại, còn QR token chỉ cấp quyền truy cập phiên bàn._
 - **Mở bàn:** Quét mã QR, điền tên và số điện thoại để khởi tạo phiên bàn. (Các thiết bị quét sau vào chung phiên).
 - **Xem menu:** Xem danh sách danh mục, món ăn, giá tiền, hình ảnh và gợi ý option.
 - **Gọi món:** Thêm món vào giỏ hàng và gửi order xuống bếp (có thể gọi thêm nhiều lần, cùng lúc qua nhiều thiết bị).
@@ -32,7 +32,7 @@ _Không có tài khoản đăng nhập nội bộ hệ thống, danh tính gắn
 - **Dịch vụ đặt trước:** Liên hệ Zalo qua hotline cửa hàng để thỏa thuận dịch vụ và giá; dịch vụ không đi vào giỏ hàng hoặc thanh toán tại bàn.
 
 ### 3.2. Nhân viên vận hành (OPERATOR)
-_Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được xác thực qua Firebase nhưng không có quyền vào trang cấu hình quán._
+_Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được nhận diện bằng email và xác thực qua Firebase nhưng không có quyền vào trang cấu hình quán._
 - **Giám sát toàn cảnh:** Xem trạng thái sơ đồ tất cả các bàn (trống, đang phục vụ, có cảnh báo chờ lâu, chờ thanh toán).
 - **Nghiệp vụ gọi món:** Xem chi tiết order từng bàn, gọi món hộ khách, hoặc đóng phiên bàn (chưa có món).
 - **Duyệt/Chủ động Hủy món:** Xác nhận hoặc từ chối yêu cầu hủy của khách. Quyền chủ động hủy món kèm lý do, bao gồm phương án **Làm lại món** (hủy lưu cờ `is_remade = TRUE` và tự động sinh order bồi thường) để xử lý món lỗi bể/vỡ.
@@ -228,7 +228,7 @@ CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ t
 
 ### 5.4. Dịch vụ đặt trước
 
-Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với table session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
+Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với table session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên đánh dấu dịch vụ `CANCELLED`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
 
 ## 6. Kiến trúc tổng thể
 
