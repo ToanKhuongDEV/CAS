@@ -6,12 +6,11 @@ import { CasIcon } from "../ui/cas-icon";
 
 type CustomerInformationErrors = {
   customerName?: string;
-  customerPhone?: string;
 };
 
 export type CustomerInformation = {
   customerName: string;
-  customerPhone: string;
+  customerPhone: string | null;
 };
 
 type CustomerInformationFormFieldsProps = {
@@ -26,7 +25,6 @@ export function CustomerInformationFormFields({
   submitLabel = "Mở phiên và xem thực đơn",
 }: CustomerInformationFormFieldsProps) {
   const customerNameInputRef = useRef<HTMLInputElement>(null);
-  const customerPhoneInputRef = useRef<HTMLInputElement>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [errors, setErrors] = useState<CustomerInformationErrors>({});
@@ -40,10 +38,6 @@ export function CustomerInformationFormFields({
       nextErrors.customerName = "Vui lòng nhập tên của bạn.";
     }
 
-    if (!customerPhone.trim()) {
-      nextErrors.customerPhone = "Vui lòng nhập số điện thoại.";
-    }
-
     setErrors(nextErrors);
 
     if (nextErrors.customerName) {
@@ -51,14 +45,9 @@ export function CustomerInformationFormFields({
       return;
     }
 
-    if (nextErrors.customerPhone) {
-      customerPhoneInputRef.current?.focus();
-      return;
-    }
-
     onSubmitCustomerInfo({
       customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
+      customerPhone: customerPhone.trim() || null,
     });
   };
 
@@ -103,7 +92,8 @@ export function CustomerInformationFormFields({
 
       <label className="mt-5 block" htmlFor={`${idPrefix}-phone`}>
         <span className="text-xs font-bold">
-          Số điện thoại <span aria-hidden="true">*</span>
+          Số điện thoại{" "}
+          <span className="font-medium text-cas-on-surface-variant">(không bắt buộc)</span>
         </span>
         <span className="relative mt-2 block">
           <CasIcon
@@ -111,7 +101,6 @@ export function CustomerInformationFormFields({
             name="phone"
           />
           <input
-            ref={customerPhoneInputRef}
             className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-phone`}
             name="customerPhone"
@@ -119,26 +108,14 @@ export function CustomerInformationFormFields({
             autoComplete="tel"
             inputMode="tel"
             maxLength={20}
-            required
             type="tel"
             value={customerPhone}
-            aria-describedby={errors.customerPhone ? `${idPrefix}-phone-error` : undefined}
-            aria-invalid={errors.customerPhone ? true : undefined}
             onChange={(event) => {
               setCustomerPhone(event.target.value);
-              if (errors.customerPhone) {
-                setErrors((currentErrors) => ({ ...currentErrors, customerPhone: undefined }));
-              }
             }}
           />
         </span>
       </label>
-      {errors.customerPhone ? (
-        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
-          {errors.customerPhone}
-        </p>
-      ) : null}
-
       <button
         className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
         type="submit"

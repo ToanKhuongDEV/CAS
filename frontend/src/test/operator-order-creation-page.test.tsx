@@ -113,17 +113,13 @@ describe("OperatorOrderCreationView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
 
-    expect(
-      screen.getByRole("heading", { name: "Thông tin khách tại Bàn 02" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Thông tin khách tại Bàn 02" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: /tên của bạn/i }), {
       target: { value: "Nguyễn Văn A" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: /số điện thoại/i }), {
-      target: { value: "0901234567" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Tạo phiên bàn và chọn món" }));
 
     expect(screen.getAllByText(/Bàn 02/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Khách lẻ/i)).toBeInTheDocument();
   });
 });

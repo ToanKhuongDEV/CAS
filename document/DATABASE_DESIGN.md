@@ -399,14 +399,14 @@ thay đổi sau này.
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng ở giao diện khách |
 | `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản khách đầu tiên mở phiên bàn |
 | `opened_by_customer_name` | `VARCHAR(150) NOT NULL` | Tên khách đầu tiên mở phiên bàn |
-| `opened_by_customer_phone` | `VARCHAR(20) NOT NULL` | Số điện thoại khách đầu tiên mở phiên bàn |
+| `opened_by_customer_phone` | `VARCHAR(20) NULL` | Số điện thoại khách đầu tiên mở phiên bàn; `NULL` khi là khách lẻ |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái phiên |
 | `payment_requested_at` | `DATETIME(3) NULL` | Thời điểm khách yêu cầu thanh toán, để trống khi chưa yêu cầu |
 | `closed_at` | `DATETIME(3) NULL` | Thời điểm đóng |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phiên bắt đầu |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Table session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là đang chiếm dụng bàn. Mỗi bàn chỉ được có tối đa một session đang chiếm dụng tại cùng một thời điểm. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session đang chiếm dụng, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
+Table session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là đang chiếm dụng bàn. Mỗi bàn chỉ được có tối đa một session đang chiếm dụng tại cùng một thời điểm. Người đầu tiên mở phiên bàn cần nhập tên, còn số điện thoại là tùy chọn. Nếu có số điện thoại, hệ thống tạo hoặc tìm `client_accounts` theo số đó; nếu không có, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`. Session luôn gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên; `opened_by_customer_phone` là `NULL` cho khách lẻ. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session đang chiếm dụng, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
 
 Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING`, không nhận thêm món và vẫn chiếm dụng bàn. Chỉ khi session được đóng mới có thể tạo session mới cho cùng bàn.
 
@@ -749,20 +749,21 @@ Lưu thông tin khách hàng mở phiên bàn hoặc đặt dịch vụ. Khách 
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh tài khoản khách |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
-| `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại khách |
+| `phone` | `VARCHAR(20) NULL` | Số điện thoại khách; `NULL` khi là khách lẻ |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên khách |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
+Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại tùy chọn:
 
-- Nếu `phone` đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó; `display_name` không tham gia nhận diện hoặc ghép khách.
-- Nếu `phone` chưa tồn tại, hệ thống tạo `client_accounts` mới.
+- Nếu có `phone` và số này đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó; `display_name` không tham gia nhận diện hoặc ghép khách.
+- Nếu có `phone` nhưng chưa tồn tại, hệ thống tạo `client_accounts` mới.
+- Nếu không có `phone`, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`; không dùng tên để ghép hoặc dùng lại khách lẻ giữa các phiên.
 - `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
 - `service_bookings` cũng dùng `client_account_id`; không sao chép tên hoặc số điện thoại vào bảng dịch vụ.
 - `opened_by_customer_name` và `opened_by_customer_phone` trong `table_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
 
-Module tra cứu khách hàng dành cho `ADMIN` dùng lại `client_accounts` cùng các quan hệ hiện có tới `table_sessions`, `orders`, `payments`, `unpaid_records` và `service_bookings`; không cần thêm bảng CRM. Danh sách khách chỉ trả dữ liệu nhận diện tối thiểu, số lượt mở bàn và thời điểm sử dụng gần nhất; thông tin chi tiết lịch sử được truy vấn khi `ADMIN` mở một khách cụ thể. Mọi truy vấn phải giới hạn theo `store_id`.
+Module tra cứu khách hàng dành cho `ADMIN` dùng lại `client_accounts` cùng các quan hệ hiện có tới `table_sessions`, `orders`, `payments`, `unpaid_records` và `service_bookings`; không cần thêm bảng CRM. Danh sách khách chỉ trả dữ liệu nhận diện tối thiểu, số lượt mở bàn và thời điểm sử dụng gần nhất; khách có `phone = NULL` hiển thị là `Khách lẻ` và không thể tìm bằng số điện thoại. Thông tin chi tiết lịch sử được truy vấn khi `ADMIN` mở một khách cụ thể. Mọi truy vấn phải giới hạn theo `store_id`.
 
 #### `operational_incidents`
 
@@ -956,7 +957,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - Confirm lặp trên payment đã `PAID` là thao tác đọc idempotent: không cập nhật dữ liệu và không tạo audit log mới.
 - Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
 - `accounts`: unique `email` toàn hệ thống.
-- `client_accounts`: unique `store_id + phone`.
+- `client_accounts`: unique `store_id + phone`; MySQL cho phép nhiều giá trị `NULL` trong unique constraint để mỗi khách lẻ có record riêng.
 - Tra cứu khách hàng dùng unique index `client_accounts(store_id, phone)` hiện có; index phục vụ tìm kiếm theo tên hoặc thống kê lịch sử chỉ được bổ sung sau khi có truy vấn triển khai và kiểm tra bằng `EXPLAIN`.
 - `promotions`: unique `public_id` và `store_id + code`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
 - `promotion_targets`: unique `promotion_id + target_type + target_id`.
@@ -1076,7 +1077,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Session `OPEN` và `PAYMENT_PENDING` đều chiếm dụng bàn.
 - Một bàn không bao giờ được có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm, kể cả khi có nhiều yêu cầu tạo session đồng thời.
 - Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng danh sách order.
-- Người đầu tiên mở session bàn cần nhập tên và số điện thoại; hệ thống tạo hoặc dùng lại `client_accounts`; người quét QR sau trong cùng session không cần nhập lại.
+- Người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn. Nếu không có số điện thoại, hệ thống tạo `client_accounts` khách lẻ với `phone = NULL`; người quét QR sau trong cùng session không cần nhập lại.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
 - Hệ thống không tách màn hình bếp và phục vụ.
 - Không lưu bảng lịch sử giá món riêng.

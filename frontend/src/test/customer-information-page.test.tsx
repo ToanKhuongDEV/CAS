@@ -25,7 +25,7 @@ describe("CustomerInformationPage", () => {
 
     expect(screen.getByRole("heading", { name: "Mở phiên gọi món" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Tên của bạn" })).toBeRequired();
-    expect(screen.getByRole("textbox", { name: "Số điện thoại" })).toBeRequired();
+    expect(screen.getByRole("textbox", { name: /Số điện thoại/i })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" })).toBeInTheDocument();
     expect(
       screen.getByText("Thông tin này được dùng để xác định người đại diện mở phiên bàn."),
@@ -33,13 +33,12 @@ describe("CustomerInformationPage", () => {
     expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr-ban-05");
   });
 
-  it("shows field errors and focuses the first invalid input", () => {
+  it("shows a name error and focuses the invalid input", () => {
     render(<CustomerInformationPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
 
     expect(screen.getByText("Vui lòng nhập tên của bạn.")).toBeInTheDocument();
-    expect(screen.getByText("Vui lòng nhập số điện thoại.")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Tên của bạn" })).toHaveFocus();
     expect(push).not.toHaveBeenCalled();
   });
@@ -49,9 +48,6 @@ describe("CustomerInformationPage", () => {
 
     fireEvent.change(screen.getByRole("textbox", { name: "Tên của bạn" }), {
       target: { value: "Nguyễn Văn A" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Số điện thoại" }), {
-      target: { value: "0901234567" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
 

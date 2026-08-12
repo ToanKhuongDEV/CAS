@@ -255,7 +255,7 @@ CREATE TABLE menu_item_option_groups (
 CREATE TABLE client_accounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     store_id BIGINT UNSIGNED NOT NULL,
-    phone VARCHAR(20) NOT NULL,
+    phone VARCHAR(20) NULL,
     display_name VARCHAR(150) NOT NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -275,7 +275,7 @@ CREATE TABLE table_sessions (
     public_id CHAR(36) NOT NULL,
     client_account_id BIGINT UNSIGNED NOT NULL,
     opened_by_customer_name VARCHAR(150) NOT NULL,
-    opened_by_customer_phone VARCHAR(20) NOT NULL,
+    opened_by_customer_phone VARCHAR(20) NULL,
     status VARCHAR(20) NOT NULL,
     payment_requested_at DATETIME(3) NULL,
     closed_at DATETIME(3) NULL,
@@ -698,4 +698,3 @@ CREATE TABLE system_notifications (
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
-

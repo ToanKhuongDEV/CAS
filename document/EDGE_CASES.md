@@ -40,24 +40,24 @@ Nhiều khách tại cùng bàn quét cùng QR.
 
 - Tất cả dùng chung table session đang `OPEN`.
 - Tất cả nhìn thấy cùng danh sách order của session.
-- Chỉ người đầu tiên mở session bàn cần nhập tên và số điện thoại.
+- Chỉ người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn.
 - Người quét QR sau trong cùng session không cần nhập lại thông tin.
-- Thông tin người đầu tiên được lưu trong `client_accounts` và gắn với session.
+- Thông tin người đầu tiên được lưu trong `client_accounts` và gắn với session; khi không có số điện thoại, đây là record khách lẻ có `phone = NULL`.
 - Khi tạo session cần chống race condition để một bàn không bao giờ có nhiều hơn một session `OPEN` tại cùng một thời điểm.
 
-## 5.1. Khách đầu tiên không nhập tên hoặc số điện thoại
+## 5.1. Khách đầu tiên không nhập tên
 
 **Trạng thái:** Đã chốt
 
 ### Tình huống
 
-Bàn chưa có session đang mở, khách đầu tiên quét QR nhưng bỏ qua hoặc nhập thiếu tên/SĐT.
+Bàn chưa có session đang mở, khách đầu tiên quét QR nhưng bỏ qua hoặc nhập thiếu tên.
 
 ### Cách xử lý
 
-- Không tạo session mới nếu thiếu tên hoặc số điện thoại.
-- Hiển thị form yêu cầu nhập đủ thông tin.
-- Chỉ sau khi có đủ tên và số điện thoại mới tạo hoặc tìm `client_accounts`, tạo session và mở menu.
+- Không tạo session mới nếu thiếu tên.
+- Hiển thị form yêu cầu nhập tên.
+- Nếu có số điện thoại, hệ thống tạo hoặc tìm `client_accounts` theo số đó. Nếu không có số điện thoại, hệ thống tạo `client_accounts` khách lẻ với `phone = NULL`, rồi tạo session và mở menu.
 
 ## 6. Khách gửi order nhiều lần
 
@@ -726,7 +726,7 @@ bộ.
 
 - Chỉ `ADMIN` được truy cập danh sách và chi tiết khách hàng; `OPERATOR` không được truy cập.
 - Backend luôn giới hạn `client_accounts`, table session, order, payment và `unpaid_records` theo `store_id` của tài khoản đăng nhập.
-- Danh sách khách chỉ trả số điện thoại đã che một phần; số đầy đủ chỉ được trả trong trang chi tiết khi cần thiết.
+- Danh sách khách chỉ trả số điện thoại đã che một phần khi có; khách có `phone = NULL` hiển thị là `Khách lẻ`. Số đầy đủ chỉ được trả trong trang chi tiết khi cần thiết.
 - Module chỉ đọc dữ liệu đã có; không cho sửa hoặc xóa khách hàng, order, payment hay lịch sử phiên bàn.
 - Không suy diễn module này thành CRM, phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân hoặc tiếp thị trực tiếp.
 

@@ -21,8 +21,8 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình, với các quyền hạn tính năng tách biệt:
 
 ### 3.1. Khách hàng (CLIENT / GUEST)
-_Không có tài khoản đăng nhập nội bộ hệ thống; khách được nhận diện bằng số điện thoại, còn QR token chỉ cấp quyền truy cập phiên bàn._
-- **Mở bàn:** Quét mã QR, điền tên và số điện thoại để khởi tạo phiên bàn. (Các thiết bị quét sau vào chung phiên).
+_Không có tài khoản đăng nhập nội bộ hệ thống; khách có số điện thoại được nhận diện theo số đó, còn khách không cung cấp số điện thoại là khách lẻ. QR token chỉ cấp quyền truy cập phiên bàn._
+- **Mở bàn:** Quét mã QR, điền tên để khởi tạo phiên bàn; số điện thoại là tùy chọn. (Các thiết bị quét sau vào chung phiên).
 - **Xem menu:** Xem danh sách danh mục, món ăn, giá tiền, hình ảnh và gợi ý option.
 - **Gọi món:** Thêm món vào giỏ hàng và gửi order xuống bếp (có thể gọi thêm nhiều lần, cùng lúc qua nhiều thiết bị).
 - **Hủy phiên bàn:** Được quyền đóng phiên bàn ngay lập tức nếu chưa gửi bất kỳ món nào xuống bếp.
@@ -162,7 +162,7 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 #### Tra cứu khách hàng cho Admin
 
 - `ADMIN` có thể tra cứu khách hàng đã mở bàn trong phạm vi cửa hàng, theo tên hoặc số điện thoại.
-- Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách.
+- Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách khi có, còn khách không có số điện thoại hiển thị là `Khách lẻ`.
 - Khi mở chi tiết, `ADMIN` có thể xem các table session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
 - Chức năng chỉ đọc dữ liệu hiện có, không cho sửa hoặc xóa thông tin khách, order, payment hay lịch sử phiên bàn.
 - `OPERATOR` không được truy cập chức năng này.

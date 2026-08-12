@@ -78,7 +78,10 @@ export function OperatorCartPanel({
               </div>
               {selectedTable.customerName && (
                 <p className="text-xs text-cas-on-surface-variant">
-                  Khách: {selectedTable.customerName} ({selectedTable.customerPhone})
+                  Khách: {selectedTable.customerName}
+                  {selectedTable.customerPhone
+                    ? ` (${selectedTable.customerPhone})`
+                    : " (Khách lẻ)"}
                 </p>
               )}
             </div>

@@ -8,7 +8,7 @@ export type TableOption = {
   code: string;
   label: string;
   customerName?: string;
-  customerPhone?: string;
+  customerPhone?: string | null;
   activeOrdersCount: number;
   status: "OPEN" | "EMPTY" | "PAYMENT_PENDING";
   openedAt?: string;
@@ -223,7 +223,7 @@ export function OperatorTableSelectModal({
                     <div className="mt-2 text-xs text-cas-on-surface-variant">
                       <p className="font-semibold text-cas-on-surface">{table.customerName}</p>
                       <p className="text-[0.7rem] text-cas-on-surface-variant/80">
-                        {table.customerPhone} • Mở lúc {table.openedAt}
+                        {table.customerPhone ?? "Khách lẻ"} • Mở lúc {table.openedAt}
                       </p>
                     </div>
                   )}

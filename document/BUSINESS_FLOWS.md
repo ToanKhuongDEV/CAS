@@ -48,7 +48,7 @@ Ngoài phạm vi hiện tại:
 
 Khách hàng không có tài khoản đăng nhập và không phải account role. Mọi chức năng quản trị chỉ dành cho `ADMIN`. `OPERATOR` không được truy cập chức năng quản trị và chỉ được thực hiện các nghiệp vụ vận hành thuộc phạm vi được cấp.
 
-Tài khoản nội bộ của quán được nhận diện bằng email, lưu trong `accounts` và xác thực qua Firebase. Thông tin khách hàng được lưu riêng trong `client_accounts` và nhận diện theo số điện thoại trong phạm vi cửa hàng.
+Tài khoản nội bộ của quán được nhận diện bằng email, lưu trong `accounts` và xác thực qua Firebase. Thông tin khách hàng được lưu riêng trong `client_accounts`: khách có số điện thoại được nhận diện theo số điện thoại trong phạm vi cửa hàng, còn khách không cung cấp số điện thoại là khách lẻ.
 
 Các giao diện đồng bộ thay đổi từ thiết bị khác bằng polling REST API. Thao tác do chính giao diện gửi đi được cập nhật ngay từ API response. Giai đoạn đầu không dùng SSE hoặc WebSocket.
 
@@ -124,7 +124,7 @@ Cho phép `ADMIN` tra cứu khách đã từng mở table session tại cửa h�
 1. `ADMIN` đăng nhập khu vực quản trị và mở danh sách khách hàng.
 2. Frontend yêu cầu danh sách khách trong phạm vi cửa hàng của tài khoản.
 3. Backend xác thực Firebase ID Token, kiểm tra role `ADMIN` và giới hạn dữ liệu theo `store_id`.
-4. Backend trả thông tin nhận diện tối thiểu của `client_accounts`, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại được che một phần ở danh sách.
+4. Backend trả thông tin nhận diện tối thiểu của `client_accounts`, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại được che một phần ở danh sách khi có, còn khách không có số điện thoại hiển thị là `Khách lẻ`.
 5. `ADMIN` có thể tìm theo tên hoặc số điện thoại, rồi mở một khách hàng để xem các `table_sessions` cùng order, payment hoặc `unpaid_records` liên quan.
 6. Frontend hiển thị dữ liệu lịch sử, trạng thái tải, danh sách trống và lỗi phù hợp.
 
@@ -134,7 +134,7 @@ Cho phép `ADMIN` tra cứu khách đã từng mở table session tại cửa h�
 - Đây là chức năng chỉ đọc, không cho sửa hoặc xóa `client_accounts`, table session, order, payment hay khoản chưa thanh toán.
 - Mọi truy vấn phải giới hạn theo `store_id`; không trả dữ liệu khách của cửa hàng khác.
 - Lịch sử dùng snapshot trong `table_sessions`, order và payment làm nguồn hiển thị; không thay đổi dữ liệu lịch sử khi `client_accounts.display_name` được cập nhật ở một phiên sau.
-- Danh sách không hiển thị đầy đủ số điện thoại; chỉ màn chi tiết mới được trả số điện thoại đầy đủ khi thật sự cần thiết.
+- Danh sách không hiển thị đầy đủ số điện thoại khi có; chỉ màn chi tiết mới được trả số điện thoại đầy đủ khi thật sự cần thiết. Khách có `phone = NULL` hiển thị là `Khách lẻ` và không thể tìm bằng số điện thoại.
 - Chức năng không bao gồm phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân, chiến dịch tiếp thị hay gửi thông báo theo từng khách.
 
 ## 5. Luồng quét QR và mở phiên bàn
@@ -150,10 +150,10 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 3. Hệ thống kiểm tra token tồn tại và có trạng thái `ACTIVE`.
 4. Hệ thống xác định `dining_tables` tương ứng.
 5. Nếu bàn đang có `table_sessions` trạng thái `OPEN`, hệ thống trả về session hiện tại.
-6. Nếu bàn chưa có session đang mở, hệ thống yêu cầu khách đầu tiên nhập tên và số điện thoại.
-7. Hệ thống tìm `client_accounts` theo số điện thoại trong cửa hàng hiện tại.
-8. Nếu chưa có, hệ thống tạo `client_accounts` mới.
-9. Hệ thống tạo `table_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn.
+6. Nếu bàn chưa có session đang mở, hệ thống yêu cầu khách đầu tiên nhập tên; số điện thoại là tùy chọn.
+7. Nếu khách cung cấp số điện thoại, hệ thống tìm `client_accounts` theo số điện thoại trong cửa hàng hiện tại.
+8. Nếu có số điện thoại nhưng chưa tồn tại, hệ thống tạo `client_accounts` mới; nếu không có số điện thoại, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`.
+9. Hệ thống tạo `table_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn; SĐT snapshot là `NULL` cho khách lẻ.
 10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu`.
 
 ### Quy tắc nghiệp vụ
@@ -163,8 +163,8 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 - Trạng thái bàn trống hay đang có khách được suy ra từ session đang chiếm dụng, không lưu trong `dining_tables`.
 - Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` đều chiếm dụng bàn. Chỉ khi session `CLOSED` mới được tạo session mới cho cùng bàn.
 - Việc tạo session phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm.
-- Người đầu tiên mở session bàn phải nhập tên và số điện thoại; số điện thoại là định danh khách trong phạm vi cửa hàng.
-- Hệ thống tìm hoặc tạo `client_accounts` theo số điện thoại; bảng này tách riêng với `accounts` nhận diện nhân viên/admin bằng email.
+- Người đầu tiên mở session bàn phải nhập tên; số điện thoại là tùy chọn. Khi không có số điện thoại, khách được ghi nhận là khách lẻ.
+- Nếu có số điện thoại, hệ thống tìm hoặc tạo `client_accounts` theo số đó; nếu không có, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`. Bảng này tách riêng với `accounts` nhận diện nhân viên/admin bằng email.
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
 - QR bàn là mã cố định được in và dán tại bàn.
 - QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
@@ -312,9 +312,6 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 
 ### Nội dung cần chốt
 
-- Khi bàn chưa có session `OPEN`, nhân viên có được mở session hộ hay không.
-- Nếu được mở session hộ, nhân viên phải thu thập tên/số điện thoại khách hay
-  hệ thống cho phép một loại session không có `client_account_id`.
 - API contract và route UI cụ thể cho thao tác chọn bàn, tạo order hộ.
 
 ## 8. Luồng gọi thêm món
