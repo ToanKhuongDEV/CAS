@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-11
+Ngày cập nhật gần nhất: 2026-08-12
 
 ## Quy ước
 
@@ -312,6 +312,16 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Đồng bộ thiết kế `stores` với UI Admin Settings: thông tin liên hệ, vị trí Google Maps, giờ hoạt động, slogan và ngưỡng cảnh báo bàn chờ lâu.
 - [x] Bổ sung footer trang Welcome Customer hiển thị các thông tin công khai của cửa hàng theo dữ liệu `stores`: tên, địa chỉ/vị trí, hotline, email và giờ hoạt động, kèm icon ngữ cảnh và dòng bản quyền.
 - [x] Điều chỉnh khoảng đệm cuối trang giỏ hàng Customer để thanh gửi món cố định không che khu vực ghi chú chung.
+- [x] Rà soát lại tài liệu nguồn: tổng quan, luồng nghiệp vụ, thiết kế database và các trường hợp biên.
+- [x] Bổ sung nhãn phân biệt dưới logo CAS trên header khu vực Admin và Vận hành.
+- [x] Cố định toàn bộ panel giỏ món bên phải trong màn Operator tạo order hộ và cho phép panel tự cuộn độc lập với menu.
+- [x] Đồng bộ UI xác nhận gửi món của Operator với trang Đơn hàng Customer: hiển thị bàn, thời gian và danh sách món vừa gửi, gồm option, số lượng và thành tiền.
+- [x] Bổ sung UI chọn voucher cho luồng Operator tạo order hộ; giỏ món và màn xác nhận hiển thị số tiền giảm cùng giá trị cần thanh toán tạm thời.
+- [x] Cho phép Operator chọn bàn trống tại màn tạo order hộ và xác nhận tạo phiên bàn mới trước khi chọn món.
+- [x] Tái sử dụng form thông tin khách (tên và SĐT) từ luồng quét QR khi Operator tạo phiên bàn mới trước khi tạo order hộ.
+- [x] Đổi card dịch vụ trong menu Customer thành “Đặt dịch vụ theo yêu cầu” và tách ghi chú chốt giá qua Zalo khỏi nút liên hệ.
+- [x] Bổ sung mục “Khác” và card “Đặt dịch vụ theo yêu cầu” vào menu tạo order hộ của Operator, tách biệt khỏi giỏ món tại bàn.
+- [x] Giữ thanh category cố định khi cuộn cho menu Customer và menu tạo order hộ của Operator, với offset phù hợp từng header và cập nhật đúng danh mục cuối trang.
 
 1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
@@ -326,3 +336,4 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [Luồng nghiệp vụ](BUSINESS_FLOWS.md)
 - [Thiết kế database](DATABASE_DESIGN.md)
 - [Các trường hợp biên](EDGE_CASES.md)
+  

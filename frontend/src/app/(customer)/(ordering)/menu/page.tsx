@@ -436,16 +436,16 @@ export default function MenuPage() {
                 </div>
                 <div className="flex min-w-0 flex-col">
                   <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
-                    Đặt tiệc và dịch vụ theo yêu cầu
+                    Đặt dịch vụ theo yêu cầu
                   </h3>
                   <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
                     Liên hệ nhân viên để trao đổi dịch vụ và chốt giá trước khi đặt.
                   </p>
-                  <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                    <span className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
+                  <div className="mt-auto pt-3">
+                    <p className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
                       Chốt giá qua Zalo
-                    </span>
-                    <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
+                    </p>
+                    <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
                       <CasIcon className="size-3.5" name="phone" />
                       Liên hệ: 0901 234 567
                     </span>

@@ -19,8 +19,9 @@ export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceL
               <span className="grid size-10 place-items-center rounded-xl bg-cas-primary text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)]">
                 <CasIcon className="size-5.5" name="restaurant" />
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col">
                 <span className="text-xl font-black tracking-tight text-cas-primary">CAS</span>
+                <span className="text-[0.68rem] font-semibold leading-none text-cas-on-surface-variant">Vận hành</span>
               </div>
             </div>
 

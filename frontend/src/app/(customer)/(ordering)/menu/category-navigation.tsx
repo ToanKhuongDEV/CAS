@@ -10,9 +10,14 @@ type Category = {
 type CategoryNavigationProps = {
   categories: Category[];
   className?: string;
+  stickyTopClass?: string;
 };
 
-export function CategoryNavigation({ categories, className }: CategoryNavigationProps) {
+export function CategoryNavigation({
+  categories,
+  className,
+  stickyTopClass = "top-16",
+}: CategoryNavigationProps) {
   const navigationRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const categoryLinkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
@@ -52,12 +57,16 @@ export function CategoryNavigation({ categories, className }: CategoryNavigation
       const activationLine = navigationBottom + 8;
       let nextCategoryId = sectionPositions[0].id;
 
-      for (const sectionPosition of sectionPositions) {
-        if (sectionPosition.top > activationLine) {
-          break;
-        }
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight) {
+        nextCategoryId = sectionPositions.at(-1)?.id ?? nextCategoryId;
+      } else {
+        for (const sectionPosition of sectionPositions) {
+          if (sectionPosition.top > activationLine) {
+            break;
+          }
 
-        nextCategoryId = sectionPosition.id;
+          nextCategoryId = sectionPosition.id;
+        }
       }
 
       setActiveCategoryId((currentCategoryId) =>
@@ -177,7 +186,7 @@ export function CategoryNavigation({ categories, className }: CategoryNavigation
   return (
     <nav
       ref={navigationRef}
-      className={`sticky top-16 z-30 border-y border-cas-outline-variant/30 bg-cas-surface/95 py-3 shadow-[0_8px_18px_var(--cas-shadow-color)] backdrop-blur-xl ${
+      className={`sticky ${stickyTopClass} z-30 border-y border-cas-outline-variant/30 bg-cas-surface/95 py-3 shadow-[0_8px_18px_var(--cas-shadow-color)] backdrop-blur-xl ${
         className ? className : "-mx-5 mt-6 md:-mx-10 md:px-10"
       }`}
       aria-label="Đi đến danh mục món"

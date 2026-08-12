@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Voucher = {
   code: string;
@@ -8,6 +8,13 @@ type Voucher = {
   id: string;
   label: string;
   type: "FIXED_AMOUNT_OFF" | "PERCENT_OFF";
+};
+
+export type VoucherSummary = {
+  discountAmount: number;
+  originalAmount: number;
+  payableAmount: number;
+  voucherCode?: string;
 };
 
 const availableVouchers: Voucher[] = [
@@ -31,7 +38,15 @@ function formatMoney(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 }
 
-export function CustomerOrderVoucherSummary({ originalAmount }: { originalAmount: number }) {
+type CustomerOrderVoucherSummaryProps = {
+  onSummaryChange?: (summary: VoucherSummary) => void;
+  originalAmount: number;
+};
+
+export function CustomerOrderVoucherSummary({
+  onSummaryChange,
+  originalAmount,
+}: CustomerOrderVoucherSummaryProps) {
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
 
   const selectedVoucher = availableVouchers.find((voucher) => voucher.id === selectedVoucherId);
@@ -47,6 +62,27 @@ export function CustomerOrderVoucherSummary({ originalAmount }: { originalAmount
   }, [originalAmount, selectedVoucher]);
   const payableAmount = originalAmount - discountAmount;
 
+  function publishSummary(voucherId: string) {
+    const voucher = availableVouchers.find((candidate) => candidate.id === voucherId);
+    const calculatedDiscount = voucher
+      ? voucher.type === "PERCENT_OFF"
+        ? Math.round((originalAmount * voucher.discountValue) / 100)
+        : voucher.discountValue
+      : 0;
+    const nextDiscountAmount = Math.min(calculatedDiscount, originalAmount);
+
+    onSummaryChange?.({
+      discountAmount: nextDiscountAmount,
+      originalAmount,
+      payableAmount: originalAmount - nextDiscountAmount,
+      voucherCode: voucher?.code,
+    });
+  }
+
+  useEffect(() => {
+    publishSummary(selectedVoucherId);
+  }, [originalAmount, selectedVoucherId]);
+
   return (
     <div className="border-t border-cas-outline-variant/40 pt-5">
       <label className="block" htmlFor="order-voucher">
@@ -56,7 +92,11 @@ export function CustomerOrderVoucherSummary({ originalAmount }: { originalAmount
         <select
           className="mt-2 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary"
           id="order-voucher"
-          onChange={(event) => setSelectedVoucherId(event.target.value)}
+          onChange={(event) => {
+            const voucherId = event.target.value;
+            setSelectedVoucherId(voucherId);
+            publishSummary(voucherId);
+          }}
           value={selectedVoucherId}
         >
           <option value="">Không áp dụng voucher</option>
