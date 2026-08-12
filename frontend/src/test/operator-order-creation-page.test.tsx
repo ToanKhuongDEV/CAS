@@ -83,4 +83,47 @@ describe("OperatorOrderCreationView", () => {
     // Context should now show Bàn 01
     expect(screen.getAllByText(/Bàn 01/i).length).toBeGreaterThan(0);
   });
+
+  it("applies a voucher to the operator cart total", async () => {
+    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    const chickenCard = screen.getByText("Gà rán giòn rụm").closest("article");
+    expect(chickenCard).not.toBeNull();
+    fireEvent.click(
+      within(chickenCard as HTMLElement).getByRole("button", {
+        name: /chọn tùy chọn cho gà rán giòn rụm/i,
+      }),
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: /voucher/i }), {
+      target: { value: "cas-20k" },
+    });
+
+    expect(await screen.findByText(/Cần thanh toán/)).toBeInTheDocument();
+    expect(screen.getAllByText(/15\.000/)).toHaveLength(2);
+  });
+
+  it("asks for confirmation before opening an empty table session", () => {
+    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /chọn bàn khác/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Bàn 02/i }));
+
+    expect(screen.getByRole("heading", { name: "Tạo phiên mới cho Bàn 02?" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Thông tin khách tại Bàn 02" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: /tên của bạn/i }), {
+      target: { value: "Nguyễn Văn A" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /số điện thoại/i }), {
+      target: { value: "0901234567" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tạo phiên bàn và chọn món" }));
+
+    expect(screen.getAllByText(/Bàn 02/i).length).toBeGreaterThan(0);
+  });
 });

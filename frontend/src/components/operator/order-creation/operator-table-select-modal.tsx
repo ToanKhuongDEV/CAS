@@ -93,15 +93,19 @@ export const availableTables: TableOption[] = [
 
 type OperatorTableSelectModalProps = {
   isOpen: boolean;
+  newlyOpenedTableIds: string[];
   selectedTableId: string;
   onClose: () => void;
+  onRequestNewSession: (table: TableOption) => void;
   onSelectTable: (table: TableOption) => void;
 };
 
 export function OperatorTableSelectModal({
   isOpen,
+  newlyOpenedTableIds,
   selectedTableId,
   onClose,
+  onRequestNewSession,
   onSelectTable,
 }: OperatorTableSelectModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,7 +172,7 @@ export function OperatorTableSelectModal({
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {filteredTables.map((table) => {
               const isSelected = table.id === selectedTableId;
-              const isOpenSession = table.status === "OPEN";
+              const isOpenSession = table.status === "OPEN" || newlyOpenedTableIds.includes(table.id);
               const isPendingPayment = table.status === "PAYMENT_PENDING";
               const isEmpty = table.status === "EMPTY";
 
@@ -176,10 +180,13 @@ export function OperatorTableSelectModal({
                 <button
                   key={table.id}
                   type="button"
-                  disabled={!isOpenSession}
+                  disabled={isPendingPayment}
                   onClick={() => {
                     if (isOpenSession) {
                       onSelectTable(table);
+                      onClose();
+                    } else if (isEmpty) {
+                      onRequestNewSession(table);
                       onClose();
                     }
                   }}
@@ -189,8 +196,8 @@ export function OperatorTableSelectModal({
                       : isOpenSession
                         ? "border-cas-outline-variant/30 bg-cas-glass hover:border-cas-secondary hover:bg-cas-secondary-container/10"
                         : isPendingPayment
-                          ? "cursor-not-allowed border-amber-500/30 bg-amber-500/5 opacity-70"
-                          : "cursor-not-allowed border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60"
+                          ? "cursor-not-allowed border-cas-tertiary/30 bg-cas-tertiary-container/15 opacity-70"
+                        : "cursor-pointer border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60 hover:opacity-100"
                   }`}
                 >
                   <div className="flex w-full items-center justify-between">
@@ -198,11 +205,11 @@ export function OperatorTableSelectModal({
                       {table.label}
                     </span>
                     {isOpenSession ? (
-                      <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[0.68rem] font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center rounded-full bg-cas-secondary-container/30 px-2 py-0.5 text-[0.68rem] font-bold text-cas-secondary">
                         Đang mở • {table.activeOrdersCount} đơn
                       </span>
                     ) : isPendingPayment ? (
-                      <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.68rem] font-bold text-amber-600 dark:text-amber-400">
+                      <span className="inline-flex items-center rounded-full bg-cas-tertiary-container/30 px-2 py-0.5 text-[0.68rem] font-bold text-cas-tertiary">
                         Chờ thanh toán
                       </span>
                     ) : (
@@ -222,14 +229,14 @@ export function OperatorTableSelectModal({
                   )}
 
                   {isPendingPayment && (
-                    <p className="mt-2 text-[0.7rem] text-amber-600 dark:text-amber-400">
+                    <p className="mt-2 text-[0.7rem] text-cas-tertiary">
                       Đang khóa gọi món do chờ xác nhận thanh toán
                     </p>
                   )}
 
-                  {isEmpty && (
+                  {isEmpty && !isOpenSession && (
                     <p className="mt-2 text-[0.7rem] text-cas-on-surface-variant/70">
-                      Chưa có khách quét QR mở bàn
+                      Chọn để tạo phiên bàn mới
                     </p>
                   )}
                 </button>

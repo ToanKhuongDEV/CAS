@@ -5,10 +5,15 @@ import { useMemo, useState } from "react";
 
 import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
 import {
+  CustomerInformationFormFields,
+  type CustomerInformation,
+} from "../../customer/customer-information-form-fields";
+import {
   AddToCartOptionDialog,
   type AddToCartPayload,
   type MenuOptionGroup,
 } from "../../customer/add-to-cart-option-dialog";
+import type { VoucherSummary } from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
@@ -21,6 +26,7 @@ const categories = [
   { id: "ca-phe", label: "Cà phê" },
   { id: "nuoc-giai-khat", label: "Nước giải khát" },
   { id: "an-vat", label: "Ăn vặt" },
+  { id: "additional-services", label: "Khác" },
 ];
 
 const spiceLevels = Array.from({ length: 8 }, (_, level) => ({
@@ -333,8 +339,12 @@ type OrderSuccessData = {
   tableLabel: string;
   itemCount: number;
   totalAmount: number;
+  originalAmount: number;
+  discountAmount: number;
   orderNote?: string;
   createdAt: string;
+  items: CartItem[];
+  voucherCode?: string;
 };
 
 type OperatorOrderCreationViewProps = {
@@ -350,12 +360,20 @@ export function OperatorOrderCreationView({
   });
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
+  const [isCustomerInformationFormOpen, setIsCustomerInformationFormOpen] = useState(false);
+  const [newlyOpenedTableIds, setNewlyOpenedTableIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderNote, setOrderNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
+  const [voucherSummary, setVoucherSummary] = useState<VoucherSummary>({
+    discountAmount: 0,
+    originalAmount: 0,
+    payableAmount: 0,
+  });
 
   const filteredMenuItems = useMemo(() => {
     if (!searchQuery.trim()) return menuItems;
@@ -430,6 +448,11 @@ export function OperatorOrderCreationView({
   const handleSubmitOrder = async () => {
     if (cartItems.length === 0 || isSubmitting) return;
 
+    const appliedVoucherSummary =
+      voucherSummary.originalAmount === totalCartAmount
+        ? voucherSummary
+        : { discountAmount: 0, originalAmount: totalCartAmount, payableAmount: totalCartAmount };
+
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -442,9 +465,13 @@ export function OperatorOrderCreationView({
       orderNumber: newOrderNumber,
       tableLabel: selectedTable.label,
       itemCount: totalCartCount,
-      totalAmount: totalCartAmount,
+      totalAmount: appliedVoucherSummary.payableAmount,
+      originalAmount: appliedVoucherSummary.originalAmount,
+      discountAmount: appliedVoucherSummary.discountAmount,
       orderNote: orderNote.trim() || undefined,
       createdAt: timeStr,
+      items: cartItems,
+      voucherCode: appliedVoucherSummary.voucherCode,
     });
 
     setIsSubmitting(false);
@@ -511,6 +538,7 @@ export function OperatorOrderCreationView({
           <CategoryNavigation
             categories={categories}
             className="w-full max-w-full rounded-2xl border border-cas-outline-variant/30 px-2 py-2.5 mt-2 mx-0 shadow-sm"
+            stickyTopClass="top-36"
           />
 
           {/* Continuous Long Menu List divided by Categories */}
@@ -524,7 +552,7 @@ export function OperatorOrderCreationView({
 
               return (
                 <section
-                  className="scroll-mt-32 border-t border-cas-outline-variant/55 py-5 first:border-t-0 md:py-6"
+                  className="scroll-mt-52 border-t border-cas-outline-variant/55 py-5 first:border-t-0 md:py-6"
                   id={category.id}
                   key={category.id}
                   aria-labelledby={`${category.id}-title`}
@@ -594,12 +622,48 @@ export function OperatorOrderCreationView({
                 </section>
               );
             })}
+
+            <section
+              className="scroll-mt-52 border-t border-cas-outline-variant/55 py-5 md:py-6"
+              id="additional-services"
+              aria-labelledby="additional-services-title"
+            >
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <h2 className="text-xl font-extrabold" id="additional-services-title">
+                  Khác
+                </h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <article className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4">
+                  <div className="grid min-h-32 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary md:aspect-[4/3] md:min-h-0">
+                    <CasIcon className="size-10" name="sparkle" />
+                  </div>
+                  <div className="flex min-w-0 flex-col">
+                    <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
+                      Đặt dịch vụ theo yêu cầu
+                    </h3>
+                    <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                      Liên hệ nhân viên để trao đổi dịch vụ và chốt giá trước khi đặt.
+                    </p>
+                    <div className="mt-auto pt-3">
+                      <p className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
+                        Chốt giá qua Zalo
+                      </p>
+                      <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
+                        <CasIcon className="size-3.5" name="phone" />
+                        Liên hệ: 0901 234 567
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
           </div>
         </div>
 
         {/* Right Column: Persistent Cart Panel on Desktop */}
         <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
-          <div className="sticky top-20 max-h-[calc(100vh-6rem)]">
+          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start">
             <OperatorCartPanel
               selectedTable={selectedTable}
               cartItems={cartItems}
@@ -611,6 +675,8 @@ export function OperatorOrderCreationView({
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
+              onVoucherSummaryChange={setVoucherSummary}
+              voucherSummary={voucherSummary}
             />
           </div>
         </aside>
@@ -639,7 +705,7 @@ export function OperatorOrderCreationView({
       {isMobileDrawerOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-cas-on-surface/60 backdrop-blur-xs lg:hidden">
           <div className="flex-1" onClick={() => setIsMobileDrawerOpen(false)} />
-          <div className="max-h-[85vh] overflow-hidden rounded-t-[2rem] bg-cas-surface shadow-2xl">
+          <div className="h-[85vh] max-h-[85vh] overflow-hidden rounded-t-[2rem] bg-cas-surface shadow-2xl">
             <OperatorCartPanel
               selectedTable={selectedTable}
               cartItems={cartItems}
@@ -654,6 +720,8 @@ export function OperatorOrderCreationView({
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
+              onVoucherSummaryChange={setVoucherSummary}
+              voucherSummary={voucherSummary}
               onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
             />
           </div>
@@ -663,13 +731,105 @@ export function OperatorOrderCreationView({
       {/* Table Selector Modal */}
       <OperatorTableSelectModal
         isOpen={isTableModalOpen}
+        newlyOpenedTableIds={newlyOpenedTableIds}
         selectedTableId={selectedTable.id}
         onClose={() => setIsTableModalOpen(false)}
+        onRequestNewSession={(table) => {
+          setPendingSessionTable(table);
+          setIsTableModalOpen(false);
+        }}
         onSelectTable={(table) => {
           setSelectedTable(table);
           setIsTableModalOpen(false);
         }}
       />
+
+      {pendingSessionTable && !isCustomerInformationFormOpen && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-table-session-title"
+        >
+          <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
+            <span className="grid size-12 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
+              <CasIcon className="size-6" name="table" />
+            </span>
+            <p className="mt-4 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Phiên bàn mới
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="new-table-session-title">
+              Tạo phiên mới cho {pendingSessionTable.label}?
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
+              Nhân viên sẽ bắt đầu phiên phục vụ mới tại bàn này trước khi tạo order hộ.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                className="min-h-12 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold text-cas-on-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                onClick={() => setPendingSessionTable(null)}
+              >
+                Quay lại
+              </button>
+              <button
+                type="button"
+                className="min-h-12 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                onClick={() => {
+                  setIsCustomerInformationFormOpen(true);
+                }}
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingSessionTable && isCustomerInformationFormOpen && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-customer-information-title"
+        >
+          <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
+            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Tạo phiên bàn mới
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="operator-customer-information-title">
+              Thông tin khách tại {pendingSessionTable.label}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
+              Nhập thông tin người đại diện để bắt đầu phiên phục vụ.
+            </p>
+            <div className="mt-5">
+              <CustomerInformationFormFields
+                idPrefix="operator-customer"
+                submitLabel="Tạo phiên bàn và chọn món"
+                onSubmitCustomerInfo={(information: CustomerInformation) => {
+                  setSelectedTable({
+                    ...pendingSessionTable,
+                    customerName: information.customerName,
+                    customerPhone: information.customerPhone,
+                    status: "OPEN",
+                  });
+                  setNewlyOpenedTableIds((current) => [...current, pendingSessionTable.id]);
+                  setIsCustomerInformationFormOpen(false);
+                  setPendingSessionTable(null);
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              className="mt-3 w-full rounded-xl px-4 py-2 text-sm font-bold text-cas-on-surface-variant hover:text-cas-on-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              onClick={() => setIsCustomerInformationFormOpen(false)}
+            >
+              Quay lại
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Order Success Dialog */}
       {successOrderData && (
@@ -677,13 +837,14 @@ export function OperatorOrderCreationView({
           className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="operator-order-success-title"
         >
-          <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-6 shadow-2xl">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
             <div className="flex flex-col items-center text-center">
-              <span className="grid size-14 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <span className="grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
                 <CasIcon className="size-8" name="check" />
               </span>
-              <h3 className="mt-4 text-xl font-extrabold text-cas-on-surface">
+              <h3 className="mt-4 text-xl font-extrabold text-cas-on-surface" id="operator-order-success-title">
                 Tạo order thành công!
               </h3>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
@@ -691,7 +852,52 @@ export function OperatorOrderCreationView({
               </p>
             </div>
 
-            <div className="mt-5 space-y-2 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-4 text-xs">
+            <section className="mt-5 grid grid-cols-2 gap-3" aria-label="Thông tin order vừa gửi">
+              <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+                <CasIcon className="size-6 text-cas-secondary" name="table" />
+                <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+                  Bàn phục vụ
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
+                  {successOrderData.tableLabel}
+                </p>
+              </article>
+              <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+                <CasIcon className="size-6 text-cas-tertiary" name="clock" />
+                <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+                  Thời gian gửi
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
+                  {successOrderData.createdAt}
+                </p>
+              </article>
+            </section>
+
+            <article className="mt-4 rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+              <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-3">
+                <h4 className="text-base font-extrabold text-cas-on-surface">Chi tiết món đã gọi</h4>
+                <span className="rounded-full bg-cas-secondary-container/30 px-3 py-1 text-xs font-extrabold text-cas-secondary">
+                  {successOrderData.itemCount} món
+                </span>
+              </div>
+              <ul className="divide-y divide-cas-outline-variant/35">
+                {successOrderData.items.map((item) => (
+                  <li className="flex items-start justify-between gap-4 py-3" key={item.cartItemId}>
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">{item.name}</p>
+                      <p className="mt-1 text-xs text-cas-on-surface-variant">
+                        x{item.quantity} · {item.optionsSummary}
+                      </p>
+                    </div>
+                    <strong className="shrink-0 text-sm text-cas-primary">
+                      {formatPrice(item.unitPrice * item.quantity)}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <div className="mt-4 space-y-2 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-4 text-xs">
               <div className="flex justify-between">
                 <span className="text-cas-on-surface-variant">Mã đơn:</span>
                 <span className="font-mono font-bold text-cas-on-surface">
@@ -720,8 +926,16 @@ export function OperatorOrderCreationView({
                   </span>
                 </div>
               )}
+              {successOrderData.discountAmount > 0 && (
+                <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-cas-on-surface-variant">
+                  <span>Giảm giá{successOrderData.voucherCode ? ` (${successOrderData.voucherCode})` : ""}:</span>
+                  <span className="font-bold text-cas-secondary">
+                    -{formatPrice(successOrderData.discountAmount)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-sm font-extrabold">
-                <span>Tổng tiền:</span>
+                <span>{successOrderData.discountAmount > 0 ? "Cần thanh toán:" : "Tổng tiền:"}</span>
                 <span className="text-cas-primary">
                   {formatPrice(successOrderData.totalAmount)}
                 </span>
