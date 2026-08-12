@@ -336,3 +336,4 @@ Ngày cập nhật gần nhất: 2026-08-12
 - [Luồng nghiệp vụ](BUSINESS_FLOWS.md)
 - [Thiết kế database](DATABASE_DESIGN.md)
 - [Các trường hợp biên](EDGE_CASES.md)
+  
