@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: cas-backend
   datasource:
@@ -26,6 +28,7 @@ mybatis:
     map-underscore-to-camel-case: true
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: vn.cas
+  type-handlers-package: vn.cas.common.infrastructure.mybatis
 
 server:
   port: ${SERVER_PORT:8080}
@@ -42,5 +45,7 @@ management:
         enabled: true
 
 cas:
+  firebase:
+    service-account-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
   web:
     frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3000}

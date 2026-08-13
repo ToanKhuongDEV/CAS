@@ -293,6 +293,32 @@ trực tiếp trên nền trang thay vì nằm trong một thanh sidebar liền 
 
 Các module được tổ chức trong cùng một backend và có thể tách hoặc mở rộng khi hệ thống phát triển.
 
+### 6.2.1. Cấu trúc thư mục backend
+
+```text
+backend/
+├── src/main/java/vn/cas/
+│   ├── CasApplication.java       # Điểm khởi động Spring Boot
+│   ├── common/                   # Thành phần dùng chung
+│   │   ├── config/               # CORS, Security và cấu hình kỹ thuật
+│   │   ├── contract/             # Hằng số endpoint và API message
+│   │   ├── security/             # Firebase filter, principal và xử lý quyền
+│   │   ├── web/                  # Request ID, lỗi API và web component chung
+│   │   └── infrastructure/       # Adapter kỹ thuật dùng chung, ví dụ MyBatis type handler
+│   ├── storetable/ catalog/ ordering/ payment/ operation/
+│   │   └── domain/ application/ infrastructure/ api/  # Mỗi module nghiệp vụ
+├── src/main/resources/
+│   ├── application.yml           # Cấu hình Spring Boot và import `.env` local
+│   ├── db/migration/             # Flyway migration, là nguồn schema database
+│   └── mapper/                   # MyBatis XML query với danh sách cột tường minh
+└── src/test/                     # Unit và integration test
+```
+
+`domain` giữ model và quy tắc nghiệp vụ; `application` điều phối use case và
+transaction; `infrastructure` chứa MyBatis, Redis hoặc dịch vụ ngoài; `api`
+chứa controller và request/response. `.env` chỉ dành cho cấu hình local, không
+được commit; môi trường deploy dùng biến môi trường tương ứng.
+
 ### 6.3. Giao tiếp và đồng bộ trạng thái
 
 - Frontend gọi REST API để thực hiện các thao tác và nhận kết quả trực tiếp.

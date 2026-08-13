@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-12
+Ngày cập nhật gần nhất: 2026-08-13
 
 ## Quy ước
 
@@ -21,15 +21,8 @@ Ngày cập nhật gần nhất: 2026-08-12
 - [x] Tổng hợp các trường hợp biên nghiệp vụ.
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 - [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
-- [x] Rà soát lộ trình và các tính năng dự kiến triển khai trong tương lai ngày 2026-08-11.
-- [x] Rà soát toàn bộ tài liệu nguồn của dự án ngày 2026-08-12.
-- [x] Đồng bộ `DATABASE_DESIGN.md` với UI Admin Notifications: `target_role` dùng `OPERATOR`, `CUSTOMER` hoặc `BOTH`.
-- [x] Bổ sung thiết kế bảng trung gian `system_notification_recipients` để lưu trạng thái đã đọc/chưa đọc theo từng người nhận thông báo.
-- [x] Bổ sung `accounts.email` và unique constraint `uk_accounts_email` vào thiết kế tài khoản nhân viên.
-- [x] Chuẩn hóa định danh: khách có số điện thoại theo `client_accounts.phone`, khách không có số điện thoại là khách lẻ (`phone = NULL`); tài khoản vận hành theo email Firebase trong `accounts`.
-- [x] Bổ sung bảng `service_bookings` và luồng dịch vụ đặt trước chốt giá qua Zalo, thanh toán độc lập với table session và order món.
-- [x] Chuẩn hóa `service_bookings` chỉ tham chiếu `client_account_id`, không sao chép tên hoặc số điện thoại khách.
-- [x] Chuẩn hóa audit log bắt buộc cho mọi thao tác thay đổi dịch vụ đặt trước.
+- [x] Rà soát lại toàn bộ tài liệu nguồn và đối chiếu nền mã backend ngày 2026-08-13.
+- [x] Bổ sung mô tả ngắn cấu trúc thư mục backend và vai trò các nhóm file trong tài liệu tổng quan.
 - [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
 - [x] Bổ sung yêu cầu in hóa đơn thanh toán và phiếu bếp qua máy in kết nối nội bộ (LAN/USB) vào `OVERALL.md` và `EDGE_CASES.md`.
 - [x] Bổ sung yêu cầu chế độ offline-first cho giao diện vận hành (Operation) với hàng đợi đồng bộ cục bộ vào `OVERALL.md` và `EDGE_CASES.md`. Các thao tác tài chính (PAID, đóng bill, voucher quota, hoàn tiền) vẫn bắt buộc online.
@@ -111,6 +104,15 @@ Ngày cập nhật gần nhất: 2026-08-12
 - [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
 - [x] Tạo Flyway migration khởi tạo schema nền tảng.
 - [x] Cập nhật trực tiếp V1 DDL khi schema chưa được áp dụng ở bất kỳ môi trường nào: cập nhật bảng `promotions` (`code VARCHAR(50)`, `uk_promotions_store_code`, loại bỏ `min_quantity`, `priority` và `is_stackable`), bổ sung bảng `system_notifications` cùng foreign keys & unique constraints; không tạo migration V2.
+- [x] Rà soát và cập nhật trực tiếp V1 DDL khi chưa áp dụng: bổ sung `categories.category_type`; chuyển `accounts` sang định danh `firebase_uid` và loại bỏ dữ liệu mật khẩu nội bộ; chuẩn hóa `dining_tables` unique theo `store_id + code`; đồng bộ notification broadcast theo `OPERATOR`, `CUSTOMER`, `BOTH` và bỏ cờ `is_read` toàn cục.
+- [x] Bổ sung trực tiếp V1 DDL khi chưa áp dụng: `preparation_batch_completions` cho idempotency bền vững của hoàn thành theo mẻ, và `system_notification_recipients` để lưu trạng thái `UNREAD`/`READ` theo từng Operator hoặc table session đang nhận notification.
+- [x] Bổ sung `CHECK` constraint cho `system_notification_recipients`, bảo đảm mỗi recipient tham chiếu đúng một `account` hoặc `table_session`.
+- [x] Bổ sung `store_id` và composite foreign key trong Catalog (`menu_items`, `menu_item_tags`, `menu_item_option_groups`) để database chặn liên kết món, tag hoặc option group chéo cửa hàng.
+- [x] Loại bỏ `promotions.code` và unique constraint liên quan khỏi V1; `promotion_codes` là nguồn duy nhất của mã khuyến mãi, cho phép promotion không cần mã hoặc có nhiều mã.
+- [x] Đồng bộ `DATABASE_DESIGN.md` theo V1 DDL: bổ sung các cột audit/status/public ID còn thiếu, mô tả đầy đủ bảng notification và recipient, cùng unique constraint, trạng thái và quan hệ liên quan.
+- [x] Loại bỏ các index đơn dư thừa đã được composite unique index bao phủ: `dining_tables(store_id)`, `tags(store_id)` và `client_accounts(store_id)`; index theo `created_at` sẽ được quyết định bằng `EXPLAIN ANALYZE` khi có query thực tế.
+- [x] Làm rõ quy tắc `promotion_targets`: backend phân luồng `target_type` và kiểm tra `target_id` tồn tại trong `menu_items` hoặc `categories`, đồng thời thuộc cùng store với promotion, trước khi ghi dữ liệu.
+- [x] Thay index đơn bằng composite index theo thời gian cho audit log, lịch sử table session của khách hàng và notification recipient để hỗ trợ truy vấn mới nhất trước.
 - [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
 - [x] Cập nhật tài liệu sang mô hình khuyến mãi 5 bảng `promotions`,
       `promotion_codes`, `promotion_targets`, `promotion_redemptions` và
@@ -132,198 +134,51 @@ Ngày cập nhật gần nhất: 2026-08-12
 
 ## 5. Backend
 
+### Kế hoạch triển khai
+
+#### Giai đoạn 0 — Nền tảng đã có
+
 - [x] Khởi tạo dự án Java 21, Spring Boot và Maven.
 - [x] Thêm Maven Wrapper cho backend.
 - [x] Cấu hình MySQL, Redis, MyBatis và Flyway.
 
-### Kế hoạch triển khai Backend
+#### Giai đoạn 1 — Thành phần dùng chung và bảo mật
 
-Thứ tự dưới đây tuân theo quan hệ phụ thuộc của dữ liệu và nghiệp vụ. Không tạo
-endpoint, schema hoặc quy tắc mới ngoài tài liệu đã chốt; mỗi phase chỉ bắt đầu
-khi các mục phụ thuộc của phase trước đã hoàn tất và được kiểm thử.
+- [x] Chuẩn hóa API error, request ID và Jakarta Bean Validation tại API boundary.
+- [x] Gom hằng số API endpoint và message dùng chung vào `common.contract`.
+- [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
+- [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
+- [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
+- [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
 
-Các endpoint dưới đây là danh sách dự kiến bám theo các màn hình UI hiện có,
-không phải API contract cuối cùng. Toàn bộ endpoint vận hành/quản trị dùng
-`Authorization: Bearer <Firebase_ID_Token>`; endpoint Customer phải dùng ngữ
-cảnh table session được chốt tại Phase 0, không tin `tableId` hoặc `sessionId`
-do client tự suy diễn. Phân trang, lọc và payload chi tiết được chốt cùng API
-contract của từng phase.
+#### Giai đoạn 2 — Dữ liệu cửa hàng và thực đơn
 
-#### Phase 0 — Chốt nền tảng triển khai
+- [ ] Xây dựng module Store & Table.
+- [ ] Xây dựng module Catalog.
 
-- [ ] Đối chiếu `V1__create_base_20260701.sql` với `DATABASE_DESIGN.md` và chốt
-      nguồn đúng trước khi migration được áp dụng; xử lý các điểm lệch hiện có về
-      dữ liệu `stores`, định danh/xác thực `accounts` và các bảng/cột liên quan.
-- [ ] Chốt API contract tối thiểu cho từng luồng đã có tài liệu nghiệp vụ: mã
-      lỗi, phân trang/lọc, định dạng thời gian `+07:00`, idempotency và dữ liệu
-      công khai/nhạy cảm trả về. Không triển khai các phạm vi đang `Cần chốt`.
-- [ ] Thiết lập khung kỹ thuật dùng chung: transaction boundary, quy ước MyBatis
-      mapper với danh sách cột tường minh, mapping lỗi API nhất quán, validation
-      Jakarta tại API boundary và xử lý timezone `Asia/Ho_Chi_Minh`.
-- [ ] Thiết lập nền tảng kiểm thử: unit test cho domain/use case và integration
-      test MyBatis/Flyway với MySQL Testcontainers; bổ sung fixture tối thiểu chỉ
-      sau khi schema được chốt.
+#### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
 
-Endpoint dự kiến:
+- [ ] Xây dựng luồng QR, mở/dùng chung/hủy table session khi chưa có order.
+- [ ] Xây dựng module Ordering.
+- [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
+      quy tắc tạo order hiện có và ghi audit log.
+- [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
 
-- `GET /api/v1/status`
-- `GET /api/v1/me`
+#### Giai đoạn 4 — Thanh toán và khuyến mãi
 
-#### Phase 1 — Xác thực, phân quyền và audit dùng chung
+- [ ] Xây dựng module Payment.
+- [ ] Xây dựng áp dụng khuyến mãi, snapshot `bill_discounts` và redemption khi payment `PAID`.
 
-- [ ] Tích hợp xác minh Firebase ID Token cho tài khoản vận hành và ánh xạ
-      `ADMIN`/`OPERATOR` theo dữ liệu tài khoản của CAS.
-- [ ] Áp dụng phân quyền tại API boundary; luôn lấy identity, role và store từ
-      token đã xác minh, không nhận các giá trị này từ client.
-- [ ] Xây dựng thành phần ghi `audit_logs` dùng chung cho các thao tác quan trọng
-      đã được tài liệu yêu cầu; kiểm thử không phát sinh audit log trùng cho thao
-      tác idempotent.
+#### Giai đoạn 5 — Vận hành và tra cứu
 
-Endpoint dự kiến:
+- [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
+- [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
+- [ ] Viết unit test và integration test.
+- [ ] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
 
-- `GET /api/v1/me`
-- `GET /api/v1/accounts?role=OPERATOR` (ADMIN)
-- `POST /api/v1/accounts`, `PATCH /api/v1/accounts/{accountId}` (ADMIN)
-- `GET /api/v1/audit-logs?entityType=&actorId=&from=&to=` (ADMIN)
+#### Ngoài kế hoạch cho đến khi chốt yêu cầu
 
-#### Phase 2 — Store, bàn và QR
-
-- [ ] Xây dựng module Store & Table: quản lý thông tin cửa hàng, bàn và vòng đời
-      QR cố định (`ACTIVE`/`REVOKED`) theo quyền `ADMIN`.
-- [ ] Xây dựng truy vấn QR công khai, kiểm tra QR hợp lệ và cơ chế khóa/unique
-      index để một bàn chỉ có một QR `ACTIVE`.
-- [ ] Kiểm thử phân quyền, QR bị thu hồi/không tồn tại và các race condition khi
-      phát hành hoặc thay QR.
-
-Endpoint dự kiến:
-
-- `GET /api/v1/store`
-- `PUT /api/v1/store` (ADMIN)
-- `GET /api/v1/tables?code=` (ADMIN/OPERATOR)
-- `POST /api/v1/tables` (ADMIN)
-- `PATCH /api/v1/tables/{tableId}` (ADMIN)
-- `POST /api/v1/tables/{tableId}/qr-codes` (ADMIN)
-- `PATCH /api/v1/table-qr-codes/{token}/revoke` (ADMIN)
-- `GET /api/v1/table-qr-codes/{token}` (Customer)
-
-#### Phase 3 — Catalog
-
-- [ ] Xây dựng module Catalog cho categories, menu items, tags, option groups,
-      option values và liên kết menu-option; hỗ trợ trạng thái hiển thị/bán hàng
-      đúng tài liệu.
-- [ ] Xây dựng API menu công khai và API quản trị theo `ADMIN`, luôn trả dữ liệu
-      từ các query DTO chuyên dụng và không dùng `SELECT *`.
-- [ ] Kiểm thử validation option, item `SOLD_OUT`/`INACTIVE`, snapshot giá và
-      các ràng buộc liên kết catalog đã được thiết kế.
-
-Endpoint dự kiến:
-
-- `GET /api/v1/categories`
-- `GET /api/v1/menu-items?name=&categoryId=&availabilityStatus=`
-- `GET /api/v1/menu-items/{menuItemId}`
-- `POST /api/v1/categories`, `PATCH /api/v1/categories/{categoryId}` (ADMIN)
-- `POST /api/v1/menu-items`, `PATCH /api/v1/menu-items/{menuItemId}` (ADMIN)
-- `POST /api/v1/option-groups`, `PATCH /api/v1/option-groups/{optionGroupId}` (ADMIN)
-- `POST /api/v1/option-groups/{optionGroupId}/values`, `PATCH /api/v1/option-values/{optionValueId}` (ADMIN)
-- `POST /api/v1/tags`, `PATCH /api/v1/tags/{tagId}` (ADMIN)
-
-#### Phase 4 — Table session, order và hủy món
-
-- [ ] Xây dựng mở/tra cứu table session từ QR; khách đầu tiên cung cấp tên/SĐT,
-      các thiết bị sau dùng chung session và không tạo hai session chiếm dụng một
-      bàn.
-- [ ] Xây dựng tạo order Customer với snapshot món/option/giá do server nạp,
-      `idempotency_key` và `request_fingerprint`; chỉ nhận order vào session
-      `OPEN`.
-- [ ] Xây dựng use case `OPERATOR` tạo order hộ khách, dùng lại quy tắc tạo order
-      và ghi audit log.
-- [ ] Xây dựng yêu cầu hủy, duyệt/từ chối hủy, hủy chủ động và luồng làm lại;
-      thực hiện trong transaction để số lượng đã hủy/làm xong luôn hợp lệ.
-- [ ] Xây dựng truy vấn FIFO món còn cần làm và use case ghi nhận hoàn thành theo
-      mẻ, có idempotency bền vững, khóa phù hợp và phân bổ về các dòng order.
-- [ ] Kiểm thử đầy đủ retry, thao tác đồng thời, session đã đóng/payment pending,
-      thay đổi giá hoặc trạng thái catalog và các edge case order/hủy món đã chốt.
-
-Endpoint dự kiến:
-
-- `POST /api/v1/table-qr-codes/{token}/sessions` (Customer mở/nhận session)
-- `GET /api/v1/table-sessions/current`
-- `PATCH /api/v1/table-sessions/current/cancel` (chỉ khi chưa có order)
-- `GET /api/v1/table-sessions/current/orders`
-- `POST /api/v1/table-sessions/current/orders`
-- `POST /api/v1/table-sessions/current/cancellation-requests`
-- `PATCH /api/v1/cancellation-requests/{publicId}` (OPERATOR)
-- `POST /api/v1/operations/table-sessions/{publicId}/orders` (OPERATOR)
-- `GET /api/v1/operations/orders?tableCode=&pendingOnly=` (OPERATOR)
-- `GET /api/v1/operations/orders/{publicId}` (OPERATOR)
-- `GET /api/v1/operations/preparation-items` (OPERATOR)
-- `POST /api/v1/operations/preparation-items/complete` (OPERATOR)
-
-#### Phase 5 — Promotion, payment và khoản chưa thanh toán
-
-- [ ] Xây dựng đánh giá promotion hợp lệ và chọn tối đa một promotion cho bill;
-      backend tự tính discount, kiểm tra store/quota và làm tròn `HALF_UP`.
-- [ ] Xây dựng yêu cầu thanh toán: khóa session, tính lại bill từ snapshot order,
-      tạo duy nhất payment `PENDING` cùng `bill_snapshot`/`bill_discounts` và
-      chuyển session sang `PAYMENT_PENDING`.
-- [ ] Xây dựng xác nhận `PAID` idempotent, đóng session, tạo redemption và resolve
-      `unpaid_records` trong cùng transaction; xác nhận lấy từ Firebase identity.
-- [ ] Xây dựng luồng ghi nhận chưa thanh toán: dùng/tạo payment `PENDING`, tạo
-      `unpaid_records` snapshot bất biến, đóng session và ghi audit log.
-- [ ] Kiểm thử payment đồng thời/retry, payment sau unpaid, snapshot bất biến,
-      quota promotion và các quy tắc không tích hợp ngân hàng/loa giao dịch.
-
-Endpoint dự kiến:
-
-- `GET /api/v1/table-sessions/current/promotions?code=`
-- `POST /api/v1/table-sessions/current/payments`
-- `GET /api/v1/table-sessions/current/payment`
-- `GET /api/v1/payments?status=PENDING` (OPERATOR)
-- `POST /api/v1/payments/{publicId}/confirm` (OPERATOR)
-- `POST /api/v1/table-sessions/{publicId}/unpaid-records` (ADMIN/OPERATOR)
-- `GET /api/v1/unpaid-records?status=` (ADMIN/OPERATOR)
-- `GET /api/v1/unpaid-records/{publicId}` (ADMIN/OPERATOR)
-- `GET /api/v1/promotions?status=` (ADMIN)
-- `POST /api/v1/promotions`, `PATCH /api/v1/promotions/{publicId}` (ADMIN)
-- `GET /api/v1/promotions/{publicId}/redemptions` (ADMIN)
-
-#### Phase 6 — Nghiệp vụ vận hành và tra cứu
-
-- [ ] Xây dựng dashboard/truy vấn vận hành: trạng thái bàn, order FIFO, cảnh báo
-      chờ lâu do backend tính và danh sách payment/unpaid theo quyền.
-- [ ] Xây dựng operational incidents, service bookings và system notifications
-      đúng role, vòng đời và audit log đã chốt.
-- [ ] Xây dựng module tra cứu khách hàng chỉ đọc cho `ADMIN`, giới hạn theo store,
-      che số điện thoại ở danh sách và dùng dữ liệu lịch sử hiện có.
-- [ ] Chỉ triển khai cấu hình ngưỡng cảnh báo bàn chờ lâu sau khi vị trí lưu,
-      validation, API contract và fallback backend được chốt.
-
-Endpoint dự kiến:
-
-- `GET /api/v1/operations/dashboard` (OPERATOR)
-- `GET /api/v1/operations/tables?status=&longWaiting=` (OPERATOR)
-- `GET /api/v1/operational-incidents?from=&to=` (ADMIN)
-- `POST /api/v1/operational-incidents` (OPERATOR)
-- `GET /api/v1/service-bookings?paymentStatus=` (ADMIN/OPERATOR)
-- `POST /api/v1/service-bookings`, `PATCH /api/v1/service-bookings/{publicId}` (ADMIN/OPERATOR)
-- `POST /api/v1/service-bookings/{publicId}/confirm` (ADMIN/OPERATOR)
-- `POST /api/v1/service-bookings/{publicId}/cancel` (ADMIN/OPERATOR)
-- `GET /api/v1/system-notifications?unreadOnly=`
-- `POST /api/v1/system-notifications` (ADMIN)
-- `PATCH /api/v1/system-notifications/{notificationId}/read`
-- `GET /api/v1/customers?name=&phone=&from=&to=` (ADMIN)
-- `GET /api/v1/customers/{clientAccountId}` (ADMIN)
-- `GET /api/v1/reports?...` (ADMIN, chỉ sau khi phạm vi report được chốt)
-
-#### Phase 7 — Hoàn thiện và bàn giao
-
-- [ ] Hoàn thiện API error, validation, logging vận hành, health checks và tài
-      liệu chạy/kiểm thử backend.
-- [ ] Bổ sung dữ liệu mẫu phục vụ phát triển/kiểm thử sau khi schema ổn định.
-- [ ] Chạy toàn bộ unit test, integration test và migration trên MySQL 8.4; kiểm
-      tra regression các luồng QR → order → payment và quyền `ADMIN`/`OPERATOR`.
-- [ ] Cập nhật checklist tiến độ, rủi ro còn lại và API contract tương ứng khi
-      từng phase hoàn tất.
+- [ ] Không triển khai module danh sách `report`, cấu hình ngưỡng cảnh báo chờ lâu, hoặc mở session hộ bởi `OPERATOR` cho đến khi tài liệu chốt mô hình dữ liệu và API contract.
 
 ## 6. Frontend
 

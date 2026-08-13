@@ -23,7 +23,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Tạo và xem Báo cáo sự cố phát sinh (OPERATOR tạo, ADMIN xem).
 - Admin tra cứu khách hàng đã mở bàn và lịch sử sử dụng bàn.
 - Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
-- Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/ADMIN nhận thông báo).
+- Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/CUSTOMER nhận thông báo).
 - Ghi nhận dịch vụ đặt trước được chốt qua Zalo và thanh toán độc lập với phiên bàn.
 
 Ngoài phạm vi hiện tại:
@@ -658,10 +658,11 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 
 ### Luồng chính
 
-1. `ADMIN` tạo thông báo mới tại giao diện quản trị với tiêu đề (`title`), nội dung (`content`), loại thông báo (`type`: `INFO`, `WARNING`, `URGENT`) và đối tượng nhận (`target_role`: `ALL`, `OPERATOR`, `ADMIN`).
-2. Hệ thống lưu thông báo vào cơ sở dữ liệu với trạng thái khởi tạo.
-3. Giao diện vận hành (`OPERATOR` / `ADMIN`) nhận thông báo thông qua cơ chế Polling REST API.
-4. Người dùng có thể đánh dấu thông báo là đã đọc (`is_read = TRUE`).
+1. `ADMIN` tạo thông báo mới tại giao diện quản trị với tiêu đề (`title`), nội dung (`content`), loại thông báo (`type`: `INFO`, `WARNING`, `URGENT`) và đối tượng nhận (`target_role`: `OPERATOR`, `CUSTOMER`, `BOTH`).
+2. Trong cùng transaction, hệ thống lưu notification và tạo `system_notification_recipients`: một record cho mỗi Operator `ACTIVE` khi target có `OPERATOR`, hoặc một record cho mỗi table session `OPEN`/`PAYMENT_PENDING` khi target có `CUSTOMER`.
+3. Giao diện Customer và Operator nhận thông báo qua Polling REST API theo recipient của mình.
+4. Khi người nhận xem thông báo, backend chuyển recipient từ `UNREAD` sang `READ` và lưu `read_at`; thao tác lặp lại không làm thay đổi `read_at`.
+5. Table session đã `CLOSED` chỉ giữ lịch sử nhận thông báo cũ, không nhận notification được phát hành sau thời điểm đóng.
 
 ### Quy tắc nghiệp vụ
 
