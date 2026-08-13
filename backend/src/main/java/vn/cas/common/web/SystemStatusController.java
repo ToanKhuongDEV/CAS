@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import vn.cas.common.contract.ApiMessages;
+import vn.cas.common.contract.ApiPaths;
+
 @RestController
-@RequestMapping("/api/v1/status")
+@RequestMapping(ApiPaths.STATUS)
 public class SystemStatusController {
 
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -25,7 +28,7 @@ public class SystemStatusController {
     public ResponseEntity<SystemStatusResponse> getStatus() {
         return ResponseEntity.ok(new SystemStatusResponse(
                 applicationName,
-                "UP",
+                ApiMessages.SERVICE_STATUS_UP,
                 OffsetDateTime.now(BUSINESS_ZONE)));
     }
 

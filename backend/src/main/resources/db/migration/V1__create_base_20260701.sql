@@ -15,8 +15,7 @@ CREATE TABLE stores (
 CREATE TABLE accounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     store_id BIGINT UNSIGNED NOT NULL,
-    username VARCHAR(100) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    firebase_uid VARCHAR(128) NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     role VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
@@ -24,7 +23,7 @@ CREATE TABLE accounts (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    CONSTRAINT uk_accounts_store_username UNIQUE (store_id, username),
+    CONSTRAINT uk_accounts_firebase_uid UNIQUE (firebase_uid),
     KEY idx_accounts_store_id (store_id),
     CONSTRAINT fk_accounts_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
@@ -42,8 +41,7 @@ CREATE TABLE dining_tables (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    CONSTRAINT uk_dining_tables_code UNIQUE (code),
-    KEY idx_dining_tables_store_id (store_id),
+    CONSTRAINT uk_dining_tables_store_code UNIQUE (store_id, code),
     KEY idx_dining_tables_created_by (created_by),
     CONSTRAINT fk_dining_tables_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
@@ -82,6 +80,7 @@ CREATE TABLE categories (
     store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
     description TEXT NULL,
+    category_type VARCHAR(20) NOT NULL,
     display_order INT UNSIGNED NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_by BIGINT UNSIGNED NULL,
@@ -90,6 +89,7 @@ CREATE TABLE categories (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_categories_store_name UNIQUE (store_id, name),
+    KEY idx_categories_id_store (id, store_id),
     KEY idx_categories_menu (store_id, status, display_order),
     KEY idx_categories_created_by (created_by),
     KEY idx_categories_updated_by (updated_by),
@@ -109,6 +109,7 @@ CREATE TABLE categories (
 CREATE TABLE menu_items (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     category_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
     description TEXT NULL,
     price DECIMAL(15, 2) NOT NULL,
@@ -121,12 +122,12 @@ CREATE TABLE menu_items (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    KEY idx_menu_items_category_id (category_id),
+    KEY idx_menu_items_id_store (id, store_id),
     KEY idx_menu_items_menu (category_id, availability_status, display_order),
     KEY idx_menu_items_created_by (created_by),
     KEY idx_menu_items_updated_by (updated_by),
-    CONSTRAINT fk_menu_items_category
-        FOREIGN KEY (category_id) REFERENCES categories (id)
+    CONSTRAINT fk_menu_items_category_store
+        FOREIGN KEY (category_id, store_id) REFERENCES categories (id, store_id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_menu_items_creator
         FOREIGN KEY (created_by) REFERENCES accounts (id)
@@ -147,7 +148,7 @@ CREATE TABLE tags (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_tags_store_name UNIQUE (store_id, name),
-    KEY idx_tags_store_id (store_id),
+    KEY idx_tags_id_store (id, store_id),
     CONSTRAINT fk_tags_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
@@ -158,14 +159,16 @@ CREATE TABLE tags (
 CREATE TABLE menu_item_tags (
     menu_item_id BIGINT UNSIGNED NOT NULL,
     tag_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (menu_item_id, tag_id),
-    KEY idx_menu_item_tags_tag_id (tag_id),
-    CONSTRAINT fk_menu_item_tags_menu_item
-        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+    KEY idx_menu_item_tags_menu_item_store (menu_item_id, store_id),
+    KEY idx_menu_item_tags_tag_store (tag_id, store_id),
+    CONSTRAINT fk_menu_item_tags_menu_item_store
+        FOREIGN KEY (menu_item_id, store_id) REFERENCES menu_items (id, store_id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_menu_item_tags_tag
-        FOREIGN KEY (tag_id) REFERENCES tags (id)
+    CONSTRAINT fk_menu_item_tags_tag_store
+        FOREIGN KEY (tag_id, store_id) REFERENCES tags (id, store_id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
@@ -186,6 +189,7 @@ CREATE TABLE option_groups (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_option_groups_store_name UNIQUE (store_id, name),
+    KEY idx_option_groups_id_store (id, store_id),
     KEY idx_option_groups_store (store_id, status, display_order),
     KEY idx_option_groups_created_by (created_by),
     KEY idx_option_groups_updated_by (updated_by),
@@ -236,17 +240,19 @@ CREATE TABLE menu_item_option_groups (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     menu_item_id BIGINT UNSIGNED NOT NULL,
     option_group_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
     display_order INT UNSIGNED NOT NULL DEFAULT 0,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_menu_item_option_groups UNIQUE (menu_item_id, option_group_id),
-    KEY idx_menu_item_option_groups_option_group_id (option_group_id),
+    KEY idx_menu_item_option_groups_menu_item_store (menu_item_id, store_id),
+    KEY idx_menu_item_option_groups_option_group_store (option_group_id, store_id),
     KEY idx_menu_item_option_groups_menu (menu_item_id, display_order),
-    CONSTRAINT fk_menu_item_option_groups_menu_item
-        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+    CONSTRAINT fk_menu_item_option_groups_menu_item_store
+        FOREIGN KEY (menu_item_id, store_id) REFERENCES menu_items (id, store_id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_menu_item_option_groups_option_group
-        FOREIGN KEY (option_group_id) REFERENCES option_groups (id)
+    CONSTRAINT fk_menu_item_option_groups_option_group_store
+        FOREIGN KEY (option_group_id, store_id) REFERENCES option_groups (id, store_id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
@@ -261,7 +267,6 @@ CREATE TABLE client_accounts (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_client_accounts_store_phone UNIQUE (store_id, phone),
-    KEY idx_client_accounts_store_id (store_id),
     CONSTRAINT fk_client_accounts_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
@@ -292,7 +297,7 @@ CREATE TABLE table_sessions (
     CONSTRAINT uk_table_sessions_public_id UNIQUE (public_id),
     CONSTRAINT uk_table_sessions_occupying_table UNIQUE (occupying_table_id),
     KEY idx_table_sessions_table_id (table_id),
-    KEY idx_table_sessions_client_account_id (client_account_id),
+    KEY idx_table_sessions_client_account_created_at (client_account_id, created_at),
     CONSTRAINT fk_table_sessions_table
         FOREIGN KEY (table_id) REFERENCES dining_tables (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -378,6 +383,37 @@ CREATE TABLE order_item_options (
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_order_item_options_option_value
         FOREIGN KEY (option_value_id) REFERENCES option_values (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE preparation_batch_completions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    option_configuration_hash CHAR(64) NOT NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    requested_quantity INT UNSIGNED NOT NULL,
+    allocation_snapshot JSON NOT NULL,
+    completed_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_preparation_batch_completions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_preparation_batch_completions_store_idempotency
+        UNIQUE (store_id, idempotency_key),
+    KEY idx_preparation_batch_completions_menu_item_id (menu_item_id),
+    KEY idx_preparation_batch_completions_completed_by (completed_by_account_id),
+    CONSTRAINT fk_preparation_batch_completions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_preparation_batch_completions_menu_item
+        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_preparation_batch_completions_completed_by
+        FOREIGN KEY (completed_by_account_id) REFERENCES accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
@@ -490,8 +526,8 @@ CREATE TABLE audit_logs (
     description VARCHAR(1000) NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    KEY idx_audit_logs_store_id (store_id),
-    KEY idx_audit_logs_actor_account_id (actor_account_id),
+    KEY idx_audit_logs_store_created_at (store_id, created_at),
+    KEY idx_audit_logs_actor_created_at (actor_account_id, created_at),
     CONSTRAINT fk_audit_logs_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -530,7 +566,6 @@ CREATE TABLE promotions (
     public_id CHAR(36) NOT NULL,
     store_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(150) NOT NULL,
-    code VARCHAR(50) NOT NULL,
     promotion_type VARCHAR(30) NOT NULL,
     discount_value DECIMAL(15, 2) NULL,
     max_discount_amount DECIMAL(15, 2) NULL,
@@ -544,7 +579,6 @@ CREATE TABLE promotions (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_promotions_public_id UNIQUE (public_id),
-    CONSTRAINT uk_promotions_store_code UNIQUE (store_id, code),
     KEY idx_promotions_store_status_period (store_id, status, start_at, end_at),
     CONSTRAINT fk_promotions_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
@@ -681,8 +715,7 @@ CREATE TABLE system_notifications (
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
     type VARCHAR(20) NOT NULL DEFAULT 'INFO',
-    target_role VARCHAR(20) NOT NULL DEFAULT 'ALL',
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    target_role VARCHAR(20) NOT NULL DEFAULT 'BOTH',
     created_by BIGINT UNSIGNED NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -699,3 +732,37 @@ CREATE TABLE system_notifications (
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
+CREATE TABLE system_notification_recipients (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    notification_id BIGINT UNSIGNED NOT NULL,
+    account_id BIGINT UNSIGNED NULL,
+    table_session_id BIGINT UNSIGNED NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'UNREAD',
+    read_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT chk_notification_recipients_exactly_one_recipient CHECK (
+        (account_id IS NOT NULL AND table_session_id IS NULL)
+        OR (account_id IS NULL AND table_session_id IS NOT NULL)
+    ),
+    CONSTRAINT uk_notification_recipients_notification_account
+        UNIQUE (notification_id, account_id),
+    CONSTRAINT uk_notification_recipients_notification_session
+        UNIQUE (notification_id, table_session_id),
+    KEY idx_notification_recipients_account_status_created_at
+        (account_id, status, created_at),
+    KEY idx_notification_recipients_session_status_created_at
+        (table_session_id, status, created_at),
+    CONSTRAINT fk_notification_recipients_notification
+        FOREIGN KEY (notification_id) REFERENCES system_notifications (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_notification_recipients_account
+        FOREIGN KEY (account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_notification_recipients_table_session
+        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
