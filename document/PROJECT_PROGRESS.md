@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-11
+Ngày cập nhật gần nhất: 2026-08-13
 
 ## Quy ước
 
@@ -21,6 +21,8 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Tổng hợp các trường hợp biên nghiệp vụ.
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 - [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
+- [x] Rà soát lại toàn bộ tài liệu nguồn và đối chiếu nền mã backend ngày 2026-08-13.
+- [x] Bổ sung mô tả ngắn cấu trúc thư mục backend và vai trò các nhóm file trong tài liệu tổng quan.
 - [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
 
 ## 2. Các quyết định nghiệp vụ đã chốt
@@ -100,6 +102,15 @@ Ngày cập nhật gần nhất: 2026-08-11
 - [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
 - [x] Tạo Flyway migration khởi tạo schema nền tảng.
 - [x] Cập nhật trực tiếp V1 DDL khi schema chưa được áp dụng ở bất kỳ môi trường nào: cập nhật bảng `promotions` (`code VARCHAR(50)`, `uk_promotions_store_code`, loại bỏ `min_quantity`, `priority` và `is_stackable`), bổ sung bảng `system_notifications` cùng foreign keys & unique constraints; không tạo migration V2.
+- [x] Rà soát và cập nhật trực tiếp V1 DDL khi chưa áp dụng: bổ sung `categories.category_type`; chuyển `accounts` sang định danh `firebase_uid` và loại bỏ dữ liệu mật khẩu nội bộ; chuẩn hóa `dining_tables` unique theo `store_id + code`; đồng bộ notification broadcast theo `OPERATOR`, `CUSTOMER`, `BOTH` và bỏ cờ `is_read` toàn cục.
+- [x] Bổ sung trực tiếp V1 DDL khi chưa áp dụng: `preparation_batch_completions` cho idempotency bền vững của hoàn thành theo mẻ, và `system_notification_recipients` để lưu trạng thái `UNREAD`/`READ` theo từng Operator hoặc table session đang nhận notification.
+- [x] Bổ sung `CHECK` constraint cho `system_notification_recipients`, bảo đảm mỗi recipient tham chiếu đúng một `account` hoặc `table_session`.
+- [x] Bổ sung `store_id` và composite foreign key trong Catalog (`menu_items`, `menu_item_tags`, `menu_item_option_groups`) để database chặn liên kết món, tag hoặc option group chéo cửa hàng.
+- [x] Loại bỏ `promotions.code` và unique constraint liên quan khỏi V1; `promotion_codes` là nguồn duy nhất của mã khuyến mãi, cho phép promotion không cần mã hoặc có nhiều mã.
+- [x] Đồng bộ `DATABASE_DESIGN.md` theo V1 DDL: bổ sung các cột audit/status/public ID còn thiếu, mô tả đầy đủ bảng notification và recipient, cùng unique constraint, trạng thái và quan hệ liên quan.
+- [x] Loại bỏ các index đơn dư thừa đã được composite unique index bao phủ: `dining_tables(store_id)`, `tags(store_id)` và `client_accounts(store_id)`; index theo `created_at` sẽ được quyết định bằng `EXPLAIN ANALYZE` khi có query thực tế.
+- [x] Làm rõ quy tắc `promotion_targets`: backend phân luồng `target_type` và kiểm tra `target_id` tồn tại trong `menu_items` hoặc `categories`, đồng thời thuộc cùng store với promotion, trước khi ghi dữ liệu.
+- [x] Thay index đơn bằng composite index theo thời gian cho audit log, lịch sử table session của khách hàng và notification recipient để hỗ trợ truy vấn mới nhất trước.
 - [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
 - [x] Cập nhật tài liệu sang mô hình khuyến mãi 5 bảng `promotions`,
       `promotion_codes`, `promotion_targets`, `promotion_redemptions` và
@@ -113,21 +124,51 @@ Ngày cập nhật gần nhất: 2026-08-11
 
 ## 5. Backend
 
+### Kế hoạch triển khai
+
+#### Giai đoạn 0 — Nền tảng đã có
+
 - [x] Khởi tạo dự án Java 21, Spring Boot và Maven.
 - [x] Thêm Maven Wrapper cho backend.
 - [x] Cấu hình MySQL, Redis, MyBatis và Flyway.
+
+#### Giai đoạn 1 — Thành phần dùng chung và bảo mật
+
+- [x] Chuẩn hóa API error, request ID và Jakarta Bean Validation tại API boundary.
+- [x] Gom hằng số API endpoint và message dùng chung vào `common.contract`.
+- [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
+- [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
+- [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
+- [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
+
+#### Giai đoạn 2 — Dữ liệu cửa hàng và thực đơn
+
 - [ ] Xây dựng module Store & Table.
 - [ ] Xây dựng module Catalog.
+
+#### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
+
+- [ ] Xây dựng luồng QR, mở/dùng chung/hủy table session khi chưa có order.
 - [ ] Xây dựng module Ordering.
 - [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
       quy tắc tạo order hiện có và ghi audit log.
 - [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
+
+#### Giai đoạn 4 — Thanh toán và khuyến mãi
+
 - [ ] Xây dựng module Payment.
-- [ ] Xây dựng authentication và phân quyền theo role.
-- [ ] Xây dựng audit log.
-- [ ] Chuẩn hóa API error và validation.
+- [ ] Xây dựng áp dụng khuyến mãi, snapshot `bill_discounts` và redemption khi payment `PAID`.
+
+#### Giai đoạn 5 — Vận hành và tra cứu
+
+- [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
+- [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.
 - [ ] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
+
+#### Ngoài kế hoạch cho đến khi chốt yêu cầu
+
+- [ ] Không triển khai module danh sách `report`, cấu hình ngưỡng cảnh báo chờ lâu, hoặc mở session hộ bởi `OPERATOR` cho đến khi tài liệu chốt mô hình dữ liệu và API contract.
 
 ## 6. Frontend
 
