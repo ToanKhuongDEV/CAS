@@ -820,7 +820,7 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`accounts.email` là định danh của tài khoản vận hành, duy nhất trong toàn hệ thống và phải khớp email đã xác thực từ Firebase Authentication; dùng unique constraint `uk_accounts_email`. CAS không lưu mật khẩu nhân viên vì Firebase Authentication quản lý thông tin xác thực.
+`accounts.firebase_uid` là định danh duy nhất của tài khoản vận hành trong toàn hệ thống. CAS không lưu email hoặc mật khẩu nhân viên; Firebase Authentication quản lý thông tin xác thực.
 
 Các role cơ bản:
 
@@ -926,39 +926,6 @@ Các thao tác bắt buộc ghi audit log:
 
 Không ghi audit log cho mở trang, tìm kiếm, lọc, xem dữ liệu, thao tác Customer thông thường hoặc retry không làm thay đổi dữ liệu; đặc biệt, confirm lặp trên payment đã `PAID` không tạo log mới.
 
-#### `system_notifications`
-
-Lưu thông báo hệ thống do `ADMIN` phát hành. `target_role` mô tả nhóm đối tượng mà Admin chọn trên giao diện; trạng thái đọc không lưu trên bảng này mà lưu theo từng người nhận ở `system_notification_recipients`.
-
-| Cột | Kiểu dữ liệu | Ý nghĩa |
-|---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh thông báo |
-| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng phát hành thông báo |
-| `title` | `VARCHAR(255) NOT NULL` | Tiêu đề thông báo |
-| `content` | `TEXT NOT NULL` | Nội dung chi tiết |
-| `type` | `VARCHAR(20) NOT NULL` | Mức độ: `INFO`, `WARNING` hoặc `URGENT` |
-| `target_role` | `VARCHAR(20) NOT NULL` | Đối tượng UI chọn: `OPERATOR`, `CUSTOMER` hoặc `BOTH` |
-| `created_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản `ADMIN` phát hành |
-| `created_by_name` | `VARCHAR(150) NOT NULL` | Tên người phát hành tại thời điểm tạo |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phát hành |
-| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
-
-#### `system_notification_recipients`
-
-Bảng trung gian lưu trạng thái đọc riêng của từng người nhận. Một record là một thông báo dành cho đúng một tài khoản vận hành hoặc một tài khoản khách; không dùng cờ `is_read` chung trên `system_notifications`.
-
-| Cột | Kiểu dữ liệu | Ý nghĩa |
-|---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh record người nhận |
-| `system_notification_id` | `BIGINT UNSIGNED NOT NULL` | Thông báo được nhận |
-| `account_id` | `BIGINT UNSIGNED NULL` | Người nhận là tài khoản vận hành |
-| `client_account_id` | `BIGINT UNSIGNED NULL` | Người nhận là tài khoản khách |
-| `is_read` | `BOOLEAN NOT NULL DEFAULT FALSE` | `FALSE`: chưa đọc; `TRUE`: đã đọc |
-| `read_at` | `DATETIME(3) NULL` | Thời điểm đánh dấu đã đọc; để trống khi chưa đọc |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo record người nhận |
-
-Backend kiểm tra chính xác một trong hai cột `account_id` hoặc `client_account_id` có giá trị. Tạo unique constraint cho từng loại người nhận: `system_notification_id + account_id` và `system_notification_id + client_account_id`; không được tạo hai record trạng thái cho cùng một người nhận và cùng một thông báo. Foreign key tới `system_notifications`, `accounts` và `client_accounts` dùng `ON DELETE RESTRICT`.
-
 ## 6. Quan hệ chính
 
 | Quan hệ | Loại |
@@ -999,7 +966,7 @@ Backend kiểm tra chính xác một trong hai cột `account_id` hoặc `client
 | Store — System notification | Một - nhiều |
 | System notification — System notification recipient | Một - nhiều |
 | Account — System notification recipient | Một - nhiều (khi người nhận là nhân viên) |
-| Client account — System notification recipient | Một - nhiều (khi người nhận là khách hàng) |
+| Table session — System notification recipient | Một - nhiều (khi người nhận là khách hàng) |
 
 ## 7. Trạng thái dữ liệu
 

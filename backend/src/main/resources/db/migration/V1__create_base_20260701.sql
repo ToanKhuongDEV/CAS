@@ -1,8 +1,14 @@
 CREATE TABLE stores (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     name VARCHAR(150) NOT NULL,
-    address VARCHAR(500) NULL,
-    phone VARCHAR(20) NULL,
+    address VARCHAR(500) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    google_maps_location VARCHAR(2048) NULL,
+    open_time TIME NOT NULL,
+    close_time TIME NOT NULL,
+    welcome_slogan VARCHAR(500) NULL,
+    long_wait_warning_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 25,
     timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -556,6 +562,44 @@ CREATE TABLE operational_incidents (
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_operational_incidents_creator
         FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE service_bookings (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    client_account_id BIGINT UNSIGNED NOT NULL,
+    service_name VARCHAR(255) NOT NULL,
+    note TEXT NULL,
+    agreed_price DECIMAL(15, 2) NOT NULL,
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'PAY_LATER',
+    created_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_by_name VARCHAR(150) NOT NULL,
+    confirmed_by_account_id BIGINT UNSIGNED NULL,
+    confirmed_by_name VARCHAR(150) NULL,
+    confirmed_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_service_bookings_public_id UNIQUE (public_id),
+    KEY idx_service_bookings_store_id (store_id),
+    KEY idx_service_bookings_client_account_id (client_account_id),
+    KEY idx_service_bookings_created_by (created_by_account_id),
+    KEY idx_service_bookings_confirmed_by (confirmed_by_account_id),
+    CONSTRAINT fk_service_bookings_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_client_account
+        FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_creator
+        FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_confirmer
+        FOREIGN KEY (confirmed_by_account_id) REFERENCES accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4

@@ -127,9 +127,13 @@ Ngày cập nhật gần nhất: 2026-08-13
 - [x] Cho phép Customer và OPERATOR mở phiên bàn với số điện thoại tùy chọn;
       khách không có số điện thoại được lưu là khách lẻ (`client_accounts.phone`
       và `table_sessions.opened_by_customer_phone` bằng `NULL`).
-- [ ] Đồng bộ V1 với thiết kế database đã chốt trước khi migration được áp dụng:
-      Firebase `accounts`, thông tin/cấu hình `stores`, `categories.category_type`,
-      `service_bookings` và `system_notification_recipients`.
+- [x] Đồng bộ V1 với thiết kế database đã chốt trước khi migration được áp dụng:
+      Firebase `accounts`, `categories.category_type`, `service_bookings` và
+      `system_notification_recipients`.
+- [x] Đồng bộ cấu hình `stores` vào V1: thông tin liên hệ/vị trí, giờ hoạt động,
+      slogan và `long_wait_warning_minutes`.
+- [ ] Chốt API contract, giới hạn validation và fallback backend cho cấu hình
+      ngưỡng cảnh báo chờ lâu.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend

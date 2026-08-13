@@ -426,7 +426,7 @@ chủ động kiểm tra và hỗ trợ.
   thuộc diện cảnh báo.
 - Cảnh báo không tạo trạng thái riêng cho `orders` hoặc `table_sessions`; kết
   quả được suy ra từ `order_items.prepared_quantity`.
-- Ngưỡng thời gian cảnh báo do `ADMIN` cấu hình.
+- Ngưỡng thời gian cảnh báo do `ADMIN` cấu hình và được lưu tại `stores.long_wait_warning_minutes`.
 - Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng.
 - UI dùng tạm ngưỡng `25` phút cho đến khi API cấu hình Admin được tích hợp.
 - Backend phải dùng giá trị cấu hình đáng tin cậy; client Operation không được
