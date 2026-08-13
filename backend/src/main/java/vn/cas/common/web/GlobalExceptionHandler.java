@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiError> handleApiException(ApiException exception, HttpServletRequest request) {
-        return response(exception.status(), exception.code(), exception.getMessage(), request, Map.of());
+        return response(exception.status(), exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -41,7 +41,6 @@ public class GlobalExceptionHandler {
         }
         return response(
                 HttpStatus.BAD_REQUEST,
-                ApiMessages.VALIDATION_FAILED_CODE,
                 ApiMessages.VALIDATION_FAILED,
                 request,
                 fieldErrors);
@@ -51,7 +50,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleBadRequest(Exception exception, HttpServletRequest request) {
         return response(
                 HttpStatus.BAD_REQUEST,
-                ApiMessages.INVALID_REQUEST_CODE,
                 ApiMessages.INVALID_REQUEST,
                 request,
                 Map.of());
@@ -61,7 +59,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAuthentication(AuthenticationException exception, HttpServletRequest request) {
         return response(
                 HttpStatus.UNAUTHORIZED,
-                ApiMessages.UNAUTHENTICATED_CODE,
                 ApiMessages.UNAUTHENTICATED,
                 request,
                 Map.of());
@@ -71,7 +68,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException exception, HttpServletRequest request) {
         return response(
                 HttpStatus.FORBIDDEN,
-                ApiMessages.FORBIDDEN_CODE,
                 ApiMessages.FORBIDDEN,
                 request,
                 Map.of());
@@ -81,7 +77,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
         return response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                ApiMessages.INTERNAL_ERROR_CODE,
                 ApiMessages.INTERNAL_ERROR,
                 request,
                 Map.of());
@@ -89,7 +84,6 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiError> response(
             HttpStatus status,
-            String code,
             String message,
             HttpServletRequest request,
             Map<String, String> fieldErrors) {
@@ -97,7 +91,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ApiError(
                 OffsetDateTime.now(BUSINESS_ZONE),
                 status.value(),
-                code,
                 message,
                 request.getRequestURI(),
                 requestId == null ? null : requestId.toString(),

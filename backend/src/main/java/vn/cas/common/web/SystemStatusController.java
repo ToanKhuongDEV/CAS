@@ -3,7 +3,10 @@ package vn.cas.common.web;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,11 +28,15 @@ public class SystemStatusController {
     }
 
     @GetMapping
-    public ResponseEntity<SystemStatusResponse> getStatus() {
-        return ResponseEntity.ok(new SystemStatusResponse(
-                applicationName,
-                ApiMessages.SERVICE_STATUS_UP,
-                OffsetDateTime.now(BUSINESS_ZONE)));
+    public ResponseEntity<ApiResponse<SystemStatusResponse>> getStatus(HttpServletRequest request) {
+        return ApiResponses.success(
+                HttpStatus.OK,
+                ApiMessages.SERVICE_STATUS_RETRIEVED,
+                new SystemStatusResponse(
+                        applicationName,
+                        ApiMessages.SERVICE_STATUS_UP,
+                        OffsetDateTime.now(BUSINESS_ZONE)),
+                request);
     }
 
     public record SystemStatusResponse(

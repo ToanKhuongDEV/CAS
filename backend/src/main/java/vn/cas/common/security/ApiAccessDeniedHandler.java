@@ -31,7 +31,6 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
                 response,
                 request,
                 HttpStatus.FORBIDDEN,
-                ApiMessages.FORBIDDEN_CODE,
                 ApiMessages.FORBIDDEN);
     }
 }

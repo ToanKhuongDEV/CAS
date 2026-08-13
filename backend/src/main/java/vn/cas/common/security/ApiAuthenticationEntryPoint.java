@@ -40,7 +40,6 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 response,
                 request,
                 HttpStatus.UNAUTHORIZED,
-                ApiMessages.UNAUTHENTICATED_CODE,
                 ApiMessages.UNAUTHENTICATED);
     }
 
@@ -48,7 +47,6 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             HttpServletRequest request,
             HttpStatus status,
-            String code,
             String message) throws IOException {
         UUID requestId = (UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME);
         response.setStatus(status.value());
@@ -56,7 +54,6 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         objectMapper.writeValue(response.getOutputStream(), new ApiError(
                 OffsetDateTime.now(BUSINESS_ZONE),
                 status.value(),
-                code,
                 message,
                 request.getRequestURI(),
                 requestId == null ? null : requestId.toString(),

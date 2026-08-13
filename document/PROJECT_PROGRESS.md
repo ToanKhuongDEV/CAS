@@ -149,6 +149,7 @@ Ngày cập nhật gần nhất: 2026-08-13
 #### Giai đoạn 1 — Thành phần dùng chung và bảo mật
 
 - [x] Chuẩn hóa API error, request ID và Jakarta Bean Validation tại API boundary.
+- [x] Chuẩn hóa wrapper response: success gồm `status`, `message`, `data`, `requestId`; error dùng cùng metadata nhưng không có `data`.
 - [x] Gom hằng số API endpoint và message dùng chung vào `common.contract`.
 - [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
 - [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.

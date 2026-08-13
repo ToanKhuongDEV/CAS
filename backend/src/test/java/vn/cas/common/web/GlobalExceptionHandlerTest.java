@@ -19,12 +19,12 @@ class GlobalExceptionHandlerTest {
         request.setAttribute(RequestId.ATTRIBUTE_NAME, requestId);
 
         var response = handler.handleApiException(
-                new ApiException(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT", "Request payload differs"),
+                new ApiException(HttpStatus.CONFLICT, "Request payload differs"),
                 request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
+        assertThat(response.getBody().message()).isEqualTo("Request payload differs");
         assertThat(response.getBody().requestId()).isEqualTo(requestId.toString());
         assertThat(response.getBody().fieldErrors()).isEmpty();
     }
