@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.store.infrastructure.persistence.mybatis.StoreSettingsMapper">
+
+    <select id="findLongWaitWarningMinutesByStoreId" resultType="java.lang.Integer">
+        SELECT long_wait_warning_minutes
+        FROM stores
+        WHERE id = #{storeId}
+    </select>
+
+    <update id="updateLongWaitWarningMinutes">
+        UPDATE stores
+        SET long_wait_warning_minutes = #{longWaitWarningMinutes}
+        WHERE id = #{storeId}
+    </update>
+</mapper>

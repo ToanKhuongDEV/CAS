@@ -305,12 +305,13 @@ backend/
 │   │   ├── security/             # Firebase filter, principal và xử lý quyền
 │   │   ├── web/                  # Request ID, lỗi API và web component chung
 │   │   └── infrastructure/       # Adapter kỹ thuật dùng chung, ví dụ MyBatis type handler
-│   ├── storetable/ catalog/ ordering/ payment/ operation/
+│   ├── store/ catalog/ ordering/ payment/ operation/
 │   │   └── domain/ application/ infrastructure/ api/  # Mỗi module nghiệp vụ
 ├── src/main/resources/
 │   ├── application.yml           # Cấu hình Spring Boot và import `.env` local
 │   ├── db/migration/             # Flyway migration, là nguồn schema database
 │   └── mapper/                   # MyBatis XML query với danh sách cột tường minh
+├── worker/                       # Dành trước cho worker tác vụ nền; chưa là Maven module
 └── src/test/                     # Unit và integration test
 ```
 
@@ -319,11 +320,15 @@ transaction; `infrastructure` chứa MyBatis, Redis hoặc dịch vụ ngoài; `
 chứa controller và request/response. `.env` chỉ dành cho cấu hình local, không
 được commit; môi trường deploy dùng biến môi trường tương ứng.
 
+Worker được để dành cho các tác vụ nền khi có yêu cầu đã chốt. Ở giai đoạn hiện
+tại, `backend/worker/` chỉ là vị trí dự phòng, không chứa application chạy độc lập
+và không làm thay đổi build hay runtime của API.
+
 ### 6.3. Giao tiếp và đồng bộ trạng thái
 
 - Frontend gọi REST API để thực hiện các thao tác và nhận kết quả trực tiếp.
 - Các màn hình Customer, Operation và Admin dùng polling để lấy thay đổi phát sinh từ thiết bị khác, gồm order mới, yêu cầu hủy, yêu cầu thanh toán, trạng thái payment và khoản chưa thanh toán.
-- Dashboard Operation dùng polling để cập nhật danh sách bàn chờ lâu; thời gian chờ được backend tính từ `orders.created_at` của order cũ nhất còn món chưa làm xong trong session bàn.
+- Dashboard Operation dùng polling để cập nhật danh sách bàn chờ lâu; thời gian chờ được backend tính từ `orders.created_at` của order cũ nhất còn món chưa làm xong trong session bàn. Ngưỡng do `ADMIN` cấu hình; `0` tắt cảnh báo và backend dùng `25` phút nếu không đọc được cấu hình hợp lệ.
 - Menu không polling liên tục; backend luôn kiểm tra lại trạng thái món và option khi khách submit order.
 - Giai đoạn đầu không dùng SSE, WebSocket hoặc Redis Pub/Sub.
 - Chu kỳ polling là cấu hình kỹ thuật được xác định khi triển khai và kiểm thử thực tế.

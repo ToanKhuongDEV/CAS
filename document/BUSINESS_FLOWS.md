@@ -271,7 +271,8 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 1. `OPERATOR` đăng nhập khu vực vận hành.
 2. Nhân viên mở chức năng tạo order hộ và chọn bàn cần phục vụ.
 3. Backend xác thực tài khoản `OPERATOR`, phạm vi cửa hàng và tìm table session
-   `OPEN` đang chiếm dụng bàn.
+   `OPEN` đang chiếm dụng bàn. Nếu bàn chưa có session `OPEN`, nhân viên nhập tên
+   khách bắt buộc và số điện thoại tùy chọn để backend tạo table session mới.
 4. Nhân viên xem menu hiện hành, chọn món, số lượng và các option hợp lệ.
 5. Nhân viên quản lý giỏ món và nhập ghi chú chung cho order nếu khách yêu cầu.
 6. Giao diện tạo `idempotency_key` mới và gửi order cho table session đã chọn.
@@ -289,8 +290,10 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 - Phạm vi “chức năng như Customer” trong luồng này gồm xem menu, chọn món và
   option, giỏ món, ghi chú chung, gửi order và gọi thêm món; không mặc nhiên cấp
   cho `OPERATOR` các thao tác chỉ dành cho Customer ngoài mục đích tạo order hộ.
-- Chỉ tạo order hộ vào table session đang `OPEN`; session
-  `PAYMENT_PENDING` hoặc `CLOSED` không được nhận thêm món.
+- `OPERATOR` được phép mở table session mới cho bàn chưa có session đang chiếm dụng.
+  Tên khách là bắt buộc, số điện thoại là tùy chọn; backend tìm hoặc tạo
+  `client_accounts` theo cùng quy tắc của luồng quét QR và lưu snapshot thông tin
+  người mở phiên. Session `PAYMENT_PENDING` hoặc `CLOSED` không được nhận thêm món.
 - Nhân viên không được ghi đè giá món, giá option, tổng tiền, store, danh tính
   tài khoản thực hiện hoặc thứ tự FIFO.
 - Backend phải tải menu, giá, quyền, table session và quan hệ cửa hàng từ dữ
@@ -304,15 +307,14 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 
 ### Ngoại lệ
 
-- Bàn không tồn tại, không thuộc cửa hàng của tài khoản hoặc không có session
-  `OPEN`: không tạo order.
+- Bàn không tồn tại hoặc không thuộc cửa hàng của tài khoản: không tạo session hay order.
 - Dữ liệu menu thay đổi trong lúc nhân viên chọn món: backend kiểm tra lại tại
   thời điểm submit và từ chối dữ liệu không còn hợp lệ.
 - Tài khoản không có role hoặc trạng thái hợp lệ: từ chối thao tác.
 
 ### Nội dung cần chốt
 
-- API contract và route UI cụ thể cho thao tác chọn bàn, tạo order hộ.
+- API contract và route UI cụ thể cho thao tác chọn bàn, mở session và tạo order hộ.
 
 ## 8. Luồng gọi thêm món
 
@@ -427,10 +429,49 @@ chủ động kiểm tra và hỗ trợ.
 - Cảnh báo không tạo trạng thái riêng cho `orders` hoặc `table_sessions`; kết
   quả được suy ra từ `order_items.prepared_quantity`.
 - Ngưỡng thời gian cảnh báo do `ADMIN` cấu hình và được lưu tại `stores.long_wait_warning_minutes`.
-- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng.
-- UI dùng tạm ngưỡng `25` phút cho đến khi API cấu hình Admin được tích hợp.
+- API cấu hình dùng `GET` và `PUT /api/v1/admin/store/settings/long-wait-warning`; chỉ `ADMIN` được cập nhật giá trị `longWaitWarningMinutes`.
+- Giá trị `0` tắt cảnh báo; giá trị bật cảnh báo phải nằm trong khoảng từ `1` đến `1440` phút. Giá trị khác bị từ chối tại API boundary.
+- Nếu backend không đọc được cấu hình hợp lệ, backend dùng ngưỡng dự phòng `25` phút.
+- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng đang áp dụng; khi ngưỡng bằng `0`, backend không trả bàn nào là chờ lâu.
+- Mỗi lần `ADMIN` cập nhật ngưỡng phải được ghi vào `audit_logs`.
 - Backend phải dùng giá trị cấu hình đáng tin cậy; client Operation không được
   gửi hoặc ghi đè ngưỡng khi truy vấn danh sách cảnh báo.
+
+### API contract cấu hình ngưỡng chờ lâu
+
+- `GET /api/v1/admin/store/settings/long-wait-warning` trả HTTP `200` với
+  wrapper success dùng chung; `data` chỉ gồm `longWaitWarningMinutes`. Nếu
+  backend không đọc được cấu hình hợp lệ, giá trị trong response là `25`.
+
+```json
+{
+  "status": 200,
+  "message": "Long-wait warning setting retrieved.",
+  "data": {
+    "longWaitWarningMinutes": 25
+  },
+  "requestId": "c2105e5e-64c9-4c18-a8ec-4a4edbfad5cf"
+}
+```
+
+- `PUT /api/v1/admin/store/settings/long-wait-warning` nhận body chỉ gồm
+  `longWaitWarningMinutes`, trả HTTP `200` với giá trị đã lưu và phải ghi audit
+  log. Giá trị `0` tắt cảnh báo, giá trị từ `1` đến `1440` bật cảnh báo.
+
+```json
+{
+  "status": 200,
+  "message": "Long-wait warning setting updated.",
+  "data": {
+    "longWaitWarningMinutes": 0
+  },
+  "requestId": "c2105e5e-64c9-4c18-a8ec-4a4edbfad5cf"
+}
+```
+
+- Lỗi validation dùng HTTP `400` và `ApiError` chung, với
+  `fieldErrors.longWaitWarningMinutes`; xác thực và phân quyền lỗi lần lượt
+  dùng HTTP `401` và `403` cùng contract lỗi chung.
 
 ## 9. Luồng yêu cầu hủy món
 

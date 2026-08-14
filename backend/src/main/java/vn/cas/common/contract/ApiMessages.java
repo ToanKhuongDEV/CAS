@@ -4,6 +4,8 @@ public final class ApiMessages {
 
     public static final String SERVICE_STATUS_UP = "UP";
     public static final String SERVICE_STATUS_RETRIEVED = "Service status retrieved.";
+    public static final String LONG_WAIT_WARNING_SETTING_RETRIEVED = "Long-wait warning setting retrieved.";
+    public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Long-wait warning setting updated.";
 
     public static final String VALIDATION_FAILED = "Request validation failed";
     public static final String INVALID_REQUEST = "Request is invalid";

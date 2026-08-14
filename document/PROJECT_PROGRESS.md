@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-13
+Ngày cập nhật gần nhất: 2026-08-14
 
 ## Quy ước
 
@@ -22,6 +22,7 @@ Ngày cập nhật gần nhất: 2026-08-13
 - [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
 - [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
 - [x] Rà soát lại toàn bộ tài liệu nguồn và đối chiếu nền mã backend ngày 2026-08-13.
+- [x] Rà soát tài liệu nguồn và nền mã backend để chuẩn bị kế hoạch triển khai ngày 2026-08-14.
 - [x] Bổ sung mô tả ngắn cấu trúc thư mục backend và vai trò các nhóm file trong tài liệu tổng quan.
 - [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
 - [x] Bổ sung yêu cầu in hóa đơn thanh toán và phiếu bếp qua máy in kết nối nội bộ (LAN/USB) vào `OVERALL.md` và `EDGE_CASES.md`.
@@ -132,8 +133,12 @@ Ngày cập nhật gần nhất: 2026-08-13
       `system_notification_recipients`.
 - [x] Đồng bộ cấu hình `stores` vào V1: thông tin liên hệ/vị trí, giờ hoạt động,
       slogan và `long_wait_warning_minutes`.
-- [ ] Chốt API contract, giới hạn validation và fallback backend cho cấu hình
-      ngưỡng cảnh báo chờ lâu.
+- [x] Chốt API contract, giới hạn validation và fallback backend cho cấu hình
+      ngưỡng cảnh báo chờ lâu: `GET`/`PUT
+      /api/v1/admin/store/settings/long-wait-warning`, chỉ
+      `ADMIN`, `0` tắt cảnh báo, giá trị bật trong khoảng `1`–`1440` phút và
+      fallback backend là `25` phút khi không đọc được cấu hình hợp lệ; response
+      success dùng `ApiResponse` với `data.longWaitWarningMinutes`.
 - [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend
@@ -155,10 +160,14 @@ Ngày cập nhật gần nhất: 2026-08-13
 - [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
 - [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
 - [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
+- [x] Tạo thư mục dự phòng `backend/worker/` cho worker tác vụ nền trong tương lai; chưa tạo Maven module hoặc cấu hình runtime.
 
 #### Giai đoạn 2 — Dữ liệu cửa hàng và thực đơn
 
 - [ ] Xây dựng module Store & Table.
+- [x] Xây dựng API `GET`/`PUT /api/v1/admin/store/settings/long-wait-warning`: chỉ
+      `ADMIN`, validation `0`–`1440`, fallback đọc `25`, ghi audit log và test
+      service/controller.
 - [ ] Xây dựng module Catalog.
 
 #### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
@@ -180,10 +189,11 @@ Ngày cập nhật gần nhất: 2026-08-13
 - [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.
 - [ ] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
+- [ ] Xây dựng module danh sách `report` cho `ADMIN` sau cùng, sau khi phạm vi và API contract được chốt.
 
 #### Ngoài kế hoạch cho đến khi chốt yêu cầu
 
-- [ ] Không triển khai module danh sách `report`, cấu hình ngưỡng cảnh báo chờ lâu, hoặc mở session hộ bởi `OPERATOR` cho đến khi tài liệu chốt mô hình dữ liệu và API contract.
+- [ ] Module danh sách `report` được thực hiện sau cùng, sau khi phạm vi và API contract được chốt.
 
 ## 6. Frontend
 
@@ -300,7 +310,7 @@ Ngày cập nhật gần nhất: 2026-08-13
 - [x] Bổ sung dropdown chọn một voucher/promotion trên trang Đơn hàng Customer và tính tạm thời giá gốc, số tiền giảm, giá trị cần thanh toán ở frontend.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
-- [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu; vị trí lưu, giới hạn validation, API contract và fallback backend vẫn `Cần chốt`.
+- [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu theo contract đã chốt.
 - [ ] Viết component test và end-to-end test.
 - [x] Xây dựng giao diện Admin tra cứu khách hàng tại `/admin/customers`, gồm tìm kiếm theo tên/SĐT, che số điện thoại ở danh sách và xem lịch sử phiên bàn dạng chỉ đọc bằng dữ liệu mẫu.
 - [x] Bổ sung section định hướng phát triển cuối trang `/admin/audit-logs`: chăm sóc khách hàng qua Zalo, trò chơi và tính năng AI.

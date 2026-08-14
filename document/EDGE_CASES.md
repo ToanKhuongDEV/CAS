@@ -364,7 +364,7 @@ Khách hoặc lượt khách mới quét lại QR sau khi session cũ đã `CLOS
 
 ## 21.1. Cảnh báo bàn chờ lâu từ order cũ nhất chưa hoàn thành
 
-**Trạng thái:** Đã chốt một phần
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
@@ -380,16 +380,10 @@ có nhiều order và mỗi order có thể đã hoàn thành một phần hoặ
 - Kết quả hoàn thành được suy ra từ `order_items.prepared_quantity`, không lưu
   trạng thái riêng trong `orders`.
 - Frontend không tự phân loại bàn chờ lâu; backend là nguồn quyết định.
-- Ngưỡng cảnh báo do `ADMIN` cấu hình.
-- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng.
-- UI dùng tạm ngưỡng `25` phút cho đến khi tích hợp cấu hình từ backend.
-
-### Nội dung cần chốt
-
-- Vị trí lưu bền vững giá trị cấu hình và API contract quản lý cấu hình.
-- Giá trị nhỏ nhất, lớn nhất và cách validation khi `ADMIN` cập nhật ngưỡng.
-- Hành vi khi cấu hình chưa tồn tại hoặc không đọc được; giá trị fallback phía
-  backend chưa được chốt.
+- Ngưỡng cảnh báo do `ADMIN` cấu hình tại `stores.long_wait_warning_minutes` qua `GET` và `PUT /api/v1/admin/store/settings/long-wait-warning`; cả hai response thành công dùng wrapper chung với `data.longWaitWarningMinutes`, mỗi lần cập nhật phải ghi `audit_logs`.
+- Giá trị `0` tắt cảnh báo. Giá trị bật cảnh báo phải từ `1` đến `1440` phút; API từ chối giá trị ngoài khoảng này.
+- Nếu backend không đọc được cấu hình hợp lệ, backend dùng fallback `25` phút.
+- Bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng đang áp dụng; khi ngưỡng bằng `0`, backend không trả bàn nào là chờ lâu.
 
 ## 21.2. Admin xem danh sách report
 
@@ -480,8 +474,10 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 
 - `OPERATOR` được dùng các chức năng xem menu, chọn món/option, giỏ món, ghi chú
   chung, gửi order và gọi thêm món để tạo order hộ.
-- Chỉ cho phép tạo order khi bàn thuộc đúng cửa hàng và có table session
-  `OPEN`.
+- Khi bàn thuộc đúng cửa hàng nhưng chưa có table session `OPEN`, `OPERATOR` được
+  phép mở session mới trước khi tạo order; tên khách là bắt buộc, số điện thoại là
+  tùy chọn. Backend tìm hoặc tạo `client_accounts` và lưu snapshot thông tin người
+  mở phiên theo cùng quy tắc của luồng quét QR.
 - Backend áp dụng cùng validation menu, option, giá, idempotency và FIFO như
   order do Customer gửi.
 - Order tạo hộ xuất hiện trong cùng danh sách order và hóa đơn của table
@@ -493,9 +489,6 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 
 ### Nội dung cần chốt
 
-- Nhân viên có được mở table session hộ khi bàn chưa có session `OPEN` hay
-  không.
-- Nếu có, yêu cầu thông tin khách và cách gắn `client_account_id`.
 - Có cần hiển thị nguồn “Khách tự gọi” hoặc “Nhân viên tạo hộ” trong lịch sử hay
   không; nếu cần truy vấn trực tiếp thì phải chốt thay đổi mô hình dữ liệu.
 

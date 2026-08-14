@@ -1058,7 +1058,7 @@ Database không tạo `CHECK` constraint cho các quy tắc nghiệp vụ dướ
 - Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
 - Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.
-- `stores.long_wait_warning_minutes` phải nằm trong khoảng từ `5` đến `120` phút.
+- `stores.long_wait_warning_minutes` nhận `0` để tắt cảnh báo; giá trị bật cảnh báo phải nằm trong khoảng từ `1` đến `1440` phút. Backend dùng `25` khi không đọc được cấu hình hợp lệ.
 - `stores.open_time` và `stores.close_time` được diễn giải theo `stores.timezone`; backend không được suy diễn giờ mở/đóng cửa khi chưa có quy tắc ngày trong tuần hoặc ngày nghỉ được thiết kế riêng.
 
 ### 8.4. Unique constraint có điều kiện
