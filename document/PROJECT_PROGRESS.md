@@ -77,7 +77,9 @@ Ngày cập nhật gần nhất: 2026-08-14
 - [x] CI/CD sử dụng GitHub Actions.
 - [x] Môi trường production được triển khai trên một VPS.
 - [x] Chốt frontend và backend chạy trong cùng Docker Compose network trên VPS.
+- [x] Chốt môi trường phát triển chạy backend, frontend và MySQL local; Redis dùng Redis Cloud. Docker Compose chỉ dùng khi triển khai production.
 - [x] Chốt authentication sử dụng Firebase Authentication.
+- [x] Bổ sung role `SUPER_ADMIN`; role này có quyền tạo account `ADMIN` qua API.
 - [x] Chốt Firebase Authentication là cơ chế xác thực chính cho tài khoản vận hành (ADMIN và OPERATOR); Client gửi Firebase ID Token và Backend verify token để phân quyền.
 - [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
 - [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
@@ -161,6 +163,11 @@ Ngày cập nhật gần nhất: 2026-08-14
 - [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
 - [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
 - [x] Tạo thư mục dự phòng `backend/worker/` cho worker tác vụ nền trong tương lai; chưa tạo Maven module hoặc cấu hình runtime.
+- [x] Chuẩn hóa cURL/Postman cho kiểm thử thủ công API; Firebase ID Token chỉ dùng trong môi trường local và không lưu repository.
+- [x] Loại bỏ Bruno collection theo quyết định dùng Postman/cURL.
+- [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
+- [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,
+      Flyway, audit log, Bruno và kiểm thử dành riêng cho backend.
 
 #### Giai đoạn 2 — Dữ liệu cửa hàng và thực đơn
 
@@ -185,6 +192,7 @@ Ngày cập nhật gần nhất: 2026-08-14
 
 #### Giai đoạn 5 — Vận hành và tra cứu
 
+- [x] Xây dựng API `POST /api/v1/admin/employees` và `DELETE /api/v1/admin/employees/{employeeId}` cho `ADMIN`; xóa chuyển account `OPERATOR` sang `INACTIVE` và ghi audit log.
 - [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
 - [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.
@@ -351,10 +359,11 @@ Ngày cập nhật gần nhất: 2026-08-14
 
 ## 7. Hạ tầng và triển khai
 
-- [x] Tạo cấu hình Docker cho môi trường phát triển.
+- [x] Tạo cấu hình Docker Compose phục vụ triển khai production.
 - [x] Chốt Cloudinary làm dịch vụ lưu trữ hình ảnh.
 - [x] Chốt GitHub Actions làm nền tảng CI/CD.
 - [x] Chốt triển khai production trên một VPS.
+- [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
 - [ ] Tích hợp upload và quản lý hình ảnh với Cloudinary.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
 - [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
