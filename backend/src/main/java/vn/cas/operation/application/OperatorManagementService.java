@@ -10,27 +10,43 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.ApiException;
 import vn.cas.operation.infrastructure.persistence.mybatis.CreateOperatorAccountCommand;
 import vn.cas.operation.infrastructure.persistence.mybatis.OperationalAccountMapper;
+import vn.cas.operation.infrastructure.firebase.FirebaseUserProvisioner;
 
 @Service
 public class OperatorManagementService {
     private final OperationalAccountMapper accountMapper;
     private final AuditLogService auditLogService;
-    public OperatorManagementService(OperationalAccountMapper accountMapper, AuditLogService auditLogService) {
+    private final FirebaseUserProvisioner firebaseUserProvisioner;
+
+    public OperatorManagementService(
+            OperationalAccountMapper accountMapper,
+            AuditLogService auditLogService,
+            FirebaseUserProvisioner firebaseUserProvisioner) {
         this.accountMapper = accountMapper;
         this.auditLogService = auditLogService;
+        this.firebaseUserProvisioner = firebaseUserProvisioner;
     }
+
     @Transactional
-    public Operator create(OperationalPrincipal principal, String firebaseUid, String displayName, UUID requestId) {
-        if (accountMapper.existsByFirebaseUid(firebaseUid)) {
-            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS);
-        }
+    public Operator create(
+            OperationalPrincipal principal,
+            String email,
+            String initialPassword,
+            String displayName,
+            UUID requestId) {
+        var firebaseUid = firebaseUserProvisioner.createUser(email, initialPassword, displayName);
         var command = new CreateOperatorAccountCommand(principal.storeId(), firebaseUid, displayName);
-        try { accountMapper.insertOperatorAccount(command); }
-        catch (DataIntegrityViolationException exception) {
+        try {
+            accountMapper.insertOperatorAccount(command);
+            auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,
+                    "{\"role\":\"OPERATOR\"}", principal.accountId(), principal.displayName(), "Created operator account"));
+        } catch (DataIntegrityViolationException exception) {
+            firebaseUserProvisioner.deleteUser(firebaseUid);
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS);
+        } catch (RuntimeException exception) {
+            firebaseUserProvisioner.deleteUser(firebaseUid);
+            throw exception;
         }
-        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,
-                "{\"role\":\"OPERATOR\"}", principal.accountId(), principal.displayName(), "Created operator account"));
         return new Operator(command.getId(), firebaseUid, displayName, "ACTIVE");
     }
     @Transactional

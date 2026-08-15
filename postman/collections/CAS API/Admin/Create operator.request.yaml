@@ -8,7 +8,8 @@ body:
   type: text
   content: |-
     {
-      "firebaseUid": "firebase-operator-uid",
+      "email": "operator@example.com",
+      "initialPassword": "replace-with-operator-password",
       "displayName": "Cashier One"
     }
 order: 3000

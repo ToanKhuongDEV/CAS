@@ -194,7 +194,7 @@ Ngày cập nhật gần nhất: 2026-08-15
 
 #### Giai đoạn 5 — Vận hành và tra cứu
 
-- [x] Xây dựng API `POST /api/v1/admin/operators` và `DELETE /api/v1/admin/operators/{operatorId}` cho `ADMIN`; xóa chuyển account `OPERATOR` sang `INACTIVE` và ghi audit log.
+- [x] Xây dựng API `POST /api/v1/admin/operators` và `DELETE /api/v1/admin/operators/{operatorId}` cho `ADMIN`; tạo Operator qua Firebase Admin SDK bằng email và mật khẩu ban đầu, xóa chuyển account `OPERATOR` sang `INACTIVE` và ghi audit log.
 - [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
 - [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.

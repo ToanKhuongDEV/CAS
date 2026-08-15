@@ -11,6 +11,7 @@ public final class ApiMessages {
     public static final String OPERATOR_CREATED = "Operator created.";
     public static final String OPERATOR_DEACTIVATED = "Operator deactivated.";
     public static final String OPERATOR_NOT_FOUND = "Operator not found.";
+    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Operator email is already registered.";
     public static final String FIREBASE_UID_ALREADY_EXISTS = "Firebase UID is already registered.";
     public static final String ADMIN_CREATED = "Admin created.";
 

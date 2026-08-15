@@ -2,6 +2,7 @@ package vn.cas.operation.api;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
@@ -33,7 +34,12 @@ public class OperatorManagementController {
     @PostMapping
     public ResponseEntity<ApiResponse<OperatorResponse>> create(@AuthenticationPrincipal OperationalPrincipal principal,
             @Valid @RequestBody CreateOperatorRequest body, HttpServletRequest request) {
-        var operator = operatorService.create(principal, body.firebaseUid(), body.displayName(), (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        var operator = operatorService.create(
+                principal,
+                body.email(),
+                body.initialPassword(),
+                body.displayName(),
+                (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
         return ApiResponses.success(HttpStatus.CREATED, ApiMessages.OPERATOR_CREATED,
                 new OperatorResponse(operator.id(), operator.firebaseUid(), operator.displayName(), operator.status()), request);
     }
@@ -44,7 +50,10 @@ public class OperatorManagementController {
         return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_DEACTIVATED, null, request);
     }
 
-    public record CreateOperatorRequest(@NotBlank @Size(max = 128) String firebaseUid, @NotBlank @Size(max = 150) String displayName) { }
+    public record CreateOperatorRequest(
+            @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Size(min = 6, max = 128) String initialPassword,
+            @NotBlank @Size(max = 150) String displayName) { }
 
     public record OperatorResponse(long id, String firebaseUid, String displayName, String status) { }
 }

@@ -45,7 +45,7 @@ public class FirebaseAdminTokenVerifier implements FirebaseTokenVerifier {
         }
     }
 
-    private FirebaseAuth firebaseAuth() {
+    FirebaseAuth firebaseAuth() {
         synchronized (FirebaseAdminTokenVerifier.class) {
             if (FirebaseApp.getApps().isEmpty()) {
                 try {
