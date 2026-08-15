@@ -989,7 +989,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Promotion | `DRAFT`, `ACTIVE`, `INACTIVE` |
 | Promotion redemption | `COMPLETED`, `REVERSED` |
 | Account | `ACTIVE`, `INACTIVE` |
-| Account role | `ADMIN`, `OPERATOR` |
+| Account role | `SUPER_ADMIN`, `ADMIN`, `OPERATOR` |
 
 ## 8. Ràng buộc và index cơ bản
 

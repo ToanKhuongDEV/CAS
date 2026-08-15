@@ -24,7 +24,7 @@ import vn.cas.common.web.RequestId;
 import vn.cas.store.application.LongWaitWarningSettingService;
 
 @RestController
-@RequestMapping(ApiPaths.ADMIN_STORE_SETTINGS_LONG_WAIT_WARNING)
+@RequestMapping(ApiPaths.Store.LONG_WAIT_WARNING)
 public class LongWaitWarningSettingController {
 
     private final LongWaitWarningSettingService settingService;

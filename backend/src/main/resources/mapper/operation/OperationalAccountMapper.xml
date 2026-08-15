@@ -21,4 +21,27 @@
         WHERE id = #{accountId}
           AND status = 'ACTIVE'
     </update>
+
+    <select id="existsByFirebaseUid" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM accounts WHERE firebase_uid = #{firebaseUid})
+    </select>
+
+    <insert id="insertOperatorAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO accounts (store_id, firebase_uid, display_name, role, status)
+        VALUES (#{storeId}, #{firebaseUid}, #{displayName}, 'OPERATOR', 'ACTIVE')
+    </insert>
+
+    <insert id="insertAdminAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO accounts (store_id, firebase_uid, display_name, role, status)
+        VALUES (#{storeId}, #{firebaseUid}, #{displayName}, 'ADMIN', 'ACTIVE')
+    </insert>
+
+    <update id="deactivateOperatorAccount">
+        UPDATE accounts
+        SET status = 'INACTIVE'
+        WHERE id = #{accountId}
+          AND store_id = #{storeId}
+          AND role = 'OPERATOR'
+          AND status = 'ACTIVE'
+    </update>
 </mapper>

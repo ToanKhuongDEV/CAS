@@ -28,8 +28,8 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(ApiPaths.STATUS, ApiPaths.ACTUATOR_HEALTH, ApiPaths.ACTUATOR_INFO).permitAll()
-                        .requestMatchers(ApiPaths.ADMIN_PATTERN).hasRole("ADMIN")
-                        .requestMatchers(ApiPaths.OPERATION_PATTERN).hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(ApiPaths.ADMIN_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(ApiPaths.OPERATOR_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.store.infrastructure.persistence.mybatis.DiningTableMapper">
+
+    <select id="existsByStoreIdAndCode" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM dining_tables
+            WHERE store_id = #{storeId}
+              AND code = #{code}
+        )
+    </select>
+
+    <insert id="insertDiningTable" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dining_tables (
+            store_id,
+            code,
+            capacity,
+            created_by
+        ) VALUES (
+            #{storeId},
+            #{code},
+            #{capacity},
+            #{createdBy}
+        )
+    </insert>
+
+    <insert id="insertActiveQrCode">
+        INSERT INTO table_qr_codes (
+            table_id,
+            token,
+            status,
+            issued_at,
+            revoked_at
+        ) VALUES (
+            #{tableId},
+            #{token},
+            'ACTIVE',
+            #{issuedAt},
+            NULL
+        )
+    </insert>
+</mapper>
