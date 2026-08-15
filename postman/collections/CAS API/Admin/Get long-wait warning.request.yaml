@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/admin/store/settings/long-wait-warning"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 2000

@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/admin/employees/{{employeeId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 4000

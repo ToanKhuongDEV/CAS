@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/admin/tables"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "code": 5,
+      "capacity": 4
+    }
+order: 1000

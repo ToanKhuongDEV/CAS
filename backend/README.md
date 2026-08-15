@@ -20,11 +20,41 @@ GET http://localhost:8080/api/v1/status
 GET http://localhost:8080/actuator/health
 ```
 
-## Kiểm thử thủ công với Bruno
+## Kiểm thử thủ công với Postman
 
-Mở thư mục `bruno/` bằng Bruno. Chọn environment `local`, sau đó nhập
-Firebase ID Token của tài khoản `ADMIN` vào biến cục bộ `firebaseIdToken` để gọi
-các request trong `bruno/requests/admin`. Không lưu token vào collection.
+Với Postman Native Git, mở thư mục gốc repository trong Local View; Postman đọc
+collection từ `postman/collections/` và environment template từ
+`postman/environments/`. Chỉ nhập Firebase token vào Current Value trong
+Postman; không commit token.
+
+Điền `firebaseWebApiKey`, `firebaseEmail` và `firebasePassword`, sau đó chạy
+request `Authentication/Firebase email/password login`. Request tự lưu Firebase
+`idToken` vào `firebaseIdToken` để dùng cho các API CAS.
+
+Đặt Firebase ID Token trong biến shell local, không commit token vào repository:
+
+```powershell
+$env:CAS_FIREBASE_ID_TOKEN = "<Firebase ID Token>"
+```
+
+Ví dụ tạo bàn:
+
+```powershell
+curl.exe -X POST http://localhost:8080/api/v1/admin/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"code\":5,\"capacity\":4}"
+```
+
+Postman có thể import trực tiếp lệnh cURL này.
+
+Các lệnh khác:
+
+```powershell
+curl.exe http://localhost:8080/actuator/health
+curl.exe http://localhost:8080/actuator/health/db
+curl.exe http://localhost:8080/actuator/health/redis
+curl.exe http://localhost:8080/actuator/health/firebase
+curl.exe -X POST http://localhost:8080/api/v1/admin/employees -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"firebaseUid\":\"firebase-operator-uid\",\"displayName\":\"Cashier One\"}"
+curl.exe -X DELETE http://localhost:8080/api/v1/admin/employees/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+```
 
 ## Kiểm thử
 

@@ -57,13 +57,12 @@ Do not organize the entire application into shared technical packages such as
 
 ## Test Order
 
-- For every new or changed backend API endpoint, add or update the corresponding
-  request in the `bruno/` collection.
-- Keep secrets, including Firebase ID Tokens, only in local Bruno environment
-  variables; never commit them to a `.bru` file or collection metadata.
-- When the required services are available, execute the relevant Bruno request
-  before completing the task. Otherwise, state why the manual API check was not
-  run and the remaining risk.
+- For every new or changed backend API endpoint, add or update its cURL example
+  in `backend/README.md` for Postman/manual testing.
+- Keep Firebase ID Tokens only in local shell or Postman environments; never
+  commit them to the repository.
+- When services are available, execute the relevant cURL/Postman request before
+  completing the task. Otherwise, state the remaining risk.
 
 
 ## Do Not Edit Manually

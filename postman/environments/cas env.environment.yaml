@@ -1,0 +1,14 @@
+name: CAS env
+values:
+  - key: baseUrl
+    value: ''
+  - key: firebaseWebApiKey
+    value: ''
+  - key: token_super_admin
+    value: ''
+  - key: token_admin
+    value: ''
+  - key: token_operator
+    value: ''
+  - key: firebaseIdToken
+    value: ''

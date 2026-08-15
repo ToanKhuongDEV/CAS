@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/actuator/health/db"
+method: GET
+order: 3000

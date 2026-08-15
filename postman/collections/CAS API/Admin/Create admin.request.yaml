@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/admin/admins"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "firebaseUid": "firebase-admin-uid",
+      "displayName": "Admin Two"
+    }
+order: 5000

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/actuator/health/redis"
+method: GET
+order: 4000
