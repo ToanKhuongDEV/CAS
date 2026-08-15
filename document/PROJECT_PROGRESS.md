@@ -1,12 +1,14 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-14
+Ngày cập nhật gần nhất: 2026-08-15
 
 ## Quy ước
 
 - `[x]`: Đã hoàn thành và đã được xác nhận.
 - `[ ]`: Chưa hoàn thành.
 - Mỗi khi phạm vi hoặc thiết kế thay đổi, cập nhật checklist này trong cùng pull request hoặc commit.
+- Commit sử dụng định dạng `<prefix>(<scope>): <description>`; chỉ dùng prefix
+  `add`, `update`, `chore`, hoặc `delete`, và scope là `be`, `fe`, hoặc `docs`.
 
 ## 1. Phân tích và tài liệu
 
