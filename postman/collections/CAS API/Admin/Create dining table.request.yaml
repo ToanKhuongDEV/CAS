@@ -1,8 +1,9 @@
 $kind: http-request
+name: Create dining table
 url: "{{baseUrl}}/api/v1/admin/tables"
 method: POST
 headers:
-  Authorization: Bearer {{firebaseIdToken}}
+  Authorization: Bearer {{token_admin}}
   Content-Type: application/json
 body:
   type: text

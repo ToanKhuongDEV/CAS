@@ -52,8 +52,8 @@ curl.exe http://localhost:8080/actuator/health
 curl.exe http://localhost:8080/actuator/health/db
 curl.exe http://localhost:8080/actuator/health/redis
 curl.exe http://localhost:8080/actuator/health/firebase
-curl.exe -X POST http://localhost:8080/api/v1/admin/employees -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"firebaseUid\":\"firebase-operator-uid\",\"displayName\":\"Cashier One\"}"
-curl.exe -X DELETE http://localhost:8080/api/v1/admin/employees/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/admin/operators -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"firebaseUid\":\"firebase-operator-uid\",\"displayName\":\"Cashier One\"}"
+curl.exe -X DELETE http://localhost:8080/api/v1/admin/operators/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
 ## Kiểm thử

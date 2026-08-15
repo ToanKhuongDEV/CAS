@@ -37,11 +37,11 @@ public final class ApiPaths {
         }
     }
 
-    public static final class Employee {
-        private static final String PRE_FIX = API_ADMIN_PREFIX + "/employees";
-        public static final String EMPLOYEE_COMMON = PRE_FIX;
-        public static final String EMPLOYEE_ID = PRE_FIX + "/{employeeId}";
-        private Employee() { }
+    public static final class Operator {
+        private static final String PRE_FIX = API_ADMIN_PREFIX + "/operators";
+        public static final String OPERATOR_COMMON = PRE_FIX;
+        public static final String OPERATOR_ID = PRE_FIX + "/{operatorId}";
+        private Operator() { }
     }
 
     public static final class AdminAccount {

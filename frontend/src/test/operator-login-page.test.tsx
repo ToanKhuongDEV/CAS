@@ -18,7 +18,7 @@ describe("OperatorLoginPage", () => {
     cleanup();
   });
 
-  it("renders and validates the employee login form", () => {
+  it("renders and validates the operator login form", () => {
     render(<OperatorLoginPage />);
 
     expect(screen.getByRole("heading", { name: "Đăng nhập nhân viên" })).toBeInTheDocument();

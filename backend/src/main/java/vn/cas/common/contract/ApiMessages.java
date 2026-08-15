@@ -8,9 +8,9 @@ public final class ApiMessages {
     public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Long-wait warning setting updated.";
     public static final String DINING_TABLE_CREATED = "Dining table created.";
     public static final String DINING_TABLE_CODE_ALREADY_EXISTS = "Dining table code already exists.";
-    public static final String EMPLOYEE_CREATED = "Employee created.";
-    public static final String EMPLOYEE_DEACTIVATED = "Employee deactivated.";
-    public static final String EMPLOYEE_NOT_FOUND = "Employee not found.";
+    public static final String OPERATOR_CREATED = "Operator created.";
+    public static final String OPERATOR_DEACTIVATED = "Operator deactivated.";
+    public static final String OPERATOR_NOT_FOUND = "Operator not found.";
     public static final String FIREBASE_UID_ALREADY_EXISTS = "Firebase UID is already registered.";
     public static final String ADMIN_CREATED = "Admin created.";
 

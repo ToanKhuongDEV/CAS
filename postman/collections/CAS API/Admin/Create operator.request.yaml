@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/admin/employees"
+url: "{{baseUrl}}/api/v1/admin/operators"
 method: POST
 headers:
   Authorization: Bearer {{firebaseIdToken}}

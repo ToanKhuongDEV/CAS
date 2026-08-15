@@ -74,7 +74,7 @@ Customer is an actor, not an `accounts.role`. The current system has no kitchen/
 Out of scope for the current frontend unless explicitly requested:
 
 - Inventory management
-- Employee scheduling and attendance
+- Operator scheduling and attendance
 - Multi-branch management
 - Zalo integration
 - CRM
@@ -912,4 +912,3 @@ Do not:
 - **Colors**: Always use the design tokens defined in `frontend/src/app/globals.css` (e.g., `cas-primary`, `cas-error`, `cas-secondary`, `cas-tertiary`, `cas-on-surface`, `cas-on-surface-variant`, `cas-surface`, `cas-outline-variant`, etc.). Never use raw Tailwind color utilities such as `red-500`, `emerald-500`, `rose-500`, `amber-500`, `slate-500`, or any other hardcoded palette color. If a new color is genuinely needed and no existing token fits, ask the user for approval before adding it to `globals.css`.
 - **Fonts**: Always use the system font stack defined via `--font-cas` in `globals.css`, applied globally through the `font-sans` Tailwind utility on `<body>`. Never declare a custom `font-family`, import a separate Google Font, or use any Tailwind font utility other than `font-sans`. If a new typeface is required, ask the user for approval before adding it.
 - Minimize additions to the design system. Reuse existing tokens first. Adding new tokens or colors requires explicit user approval.
-

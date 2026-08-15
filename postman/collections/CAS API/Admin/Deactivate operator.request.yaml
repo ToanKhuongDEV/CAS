@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/admin/employees/{{employeeId}}"
+url: "{{baseUrl}}/api/v1/admin/operators/{{operatorId}}"
 method: DELETE
 headers:
   Authorization: Bearer {{firebaseIdToken}}

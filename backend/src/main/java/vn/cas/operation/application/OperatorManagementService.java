@@ -12,15 +12,15 @@ import vn.cas.operation.infrastructure.persistence.mybatis.CreateOperatorAccount
 import vn.cas.operation.infrastructure.persistence.mybatis.OperationalAccountMapper;
 
 @Service
-public class EmployeeManagementService {
+public class OperatorManagementService {
     private final OperationalAccountMapper accountMapper;
     private final AuditLogService auditLogService;
-    public EmployeeManagementService(OperationalAccountMapper accountMapper, AuditLogService auditLogService) {
+    public OperatorManagementService(OperationalAccountMapper accountMapper, AuditLogService auditLogService) {
         this.accountMapper = accountMapper;
         this.auditLogService = auditLogService;
     }
     @Transactional
-    public Employee create(OperationalPrincipal principal, String firebaseUid, String displayName, UUID requestId) {
+    public Operator create(OperationalPrincipal principal, String firebaseUid, String displayName, UUID requestId) {
         if (accountMapper.existsByFirebaseUid(firebaseUid)) {
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS);
         }
@@ -31,15 +31,15 @@ public class EmployeeManagementService {
         }
         auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,
                 "{\"role\":\"OPERATOR\"}", principal.accountId(), principal.displayName(), "Created operator account"));
-        return new Employee(command.getId(), firebaseUid, displayName, "ACTIVE");
+        return new Operator(command.getId(), firebaseUid, displayName, "ACTIVE");
     }
     @Transactional
-    public void deactivate(OperationalPrincipal principal, long employeeId, UUID requestId) {
-        if (accountMapper.deactivateOperatorAccount(employeeId, principal.storeId()) != 1) {
-            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.EMPLOYEE_NOT_FOUND);
+    public void deactivate(OperationalPrincipal principal, long operatorId, UUID requestId) {
+        if (accountMapper.deactivateOperatorAccount(operatorId, principal.storeId()) != 1) {
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.OPERATOR_NOT_FOUND);
         }
-        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "DEACTIVATE", "ACCOUNT", employeeId, "Employee " + employeeId,
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "DEACTIVATE", "ACCOUNT", operatorId, "Operator " + operatorId,
                 "{\"status\":\"INACTIVE\"}", principal.accountId(), principal.displayName(), "Deactivated operator account"));
     }
-    public record Employee(long id, String firebaseUid, String displayName, String status) { }
+    public record Operator(long id, String firebaseUid, String displayName, String status) { }
 }
