@@ -398,11 +398,11 @@ Danh sách dưới đây phản ánh các công nghệ đã được chốt và 
 | Ngôn ngữ frontend | TypeScript ^5.9.0 | Kiểm tra kiểu tĩnh cho frontend |
 | Quản lý package frontend | npm, package-lock v3 | Cài đặt và khóa phiên bản dependency |
 | Cơ sở dữ liệu | MySQL 8.4 | Lưu dữ liệu nghiệp vụ bền vững |
-| Cache/dữ liệu tạm thời | Redis 7.4 Alpine | Cache và dữ liệu tạm thời; không phải nguồn dữ liệu bền vững |
-| Môi trường phát triển | Docker Compose | Khởi chạy MySQL và Redis cục bộ |
+| Cache/dữ liệu tạm thời | Redis Cloud (phát triển), Redis 7.4 Alpine (production) | Cache và dữ liệu tạm thời; không phải nguồn dữ liệu bền vững |
+| Môi trường phát triển | Backend, frontend và MySQL local; Redis Cloud | Phát triển không dùng Docker Compose |
 | Lưu trữ hình ảnh | Cloudinary (đã chốt, chưa cấu hình) | Lưu trữ hình ảnh menu |
 | CI/CD | GitHub Actions (đã chốt, chưa cấu hình workflow) | Tự động kiểm tra và triển khai ứng dụng |
-| Môi trường production | Một VPS, Docker Compose (đã chốt, chưa cấu hình) | Frontend và backend chạy trong cùng Docker Compose network |
+| Môi trường production | Một VPS, Docker Compose (đã chốt, chưa cấu hình) | Các service triển khai bằng Docker Compose |
 
 ### 7.2. Thư viện backend
 

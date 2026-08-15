@@ -14,17 +14,14 @@ Khách chỉ cần quét QR ở bàn, xem menu trên điện thoại, chọn mó
 
 ## Khởi chạy môi trường phát triển
 
-Khởi động MySQL và Redis:
-
-```bash
-docker compose up -d mysql redis
-```
+Môi trường phát triển chạy backend, frontend và MySQL cục bộ. Redis dùng Redis
+Cloud; cấu hình kết nối chỉ đặt trong `backend/.env` local và không được commit.
 
 Chạy backend:
 
 ```bash
 cd backend
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Chạy frontend trong terminal khác:

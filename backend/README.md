@@ -4,16 +4,13 @@ Backend modular monolith sử dụng Java 21, Spring Boot, Maven, MyBatis, MySQL
 
 ## Chạy local
 
-Khởi động MySQL và Redis từ thư mục gốc:
-
-```bash
-docker compose up -d mysql redis
-```
+Môi trường phát triển dùng MySQL local và Redis Cloud. Cấu hình `DB_*` và
+`REDIS_*` được đặt trong `backend/.env` local, không được commit.
 
 Chạy backend:
 
 ```bash
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 API kiểm tra trạng thái:
@@ -22,6 +19,12 @@ API kiểm tra trạng thái:
 GET http://localhost:8080/api/v1/status
 GET http://localhost:8080/actuator/health
 ```
+
+## Kiểm thử thủ công với Bruno
+
+Mở thư mục `bruno/` bằng Bruno. Chọn environment `local`, sau đó nhập
+Firebase ID Token của tài khoản `ADMIN` vào biến cục bộ `firebaseIdToken` để gọi
+các request trong `bruno/requests/admin`. Không lưu token vào collection.
 
 ## Kiểm thử
 
