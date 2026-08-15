@@ -37,6 +37,14 @@ public class FirebaseAdminTokenVerifier implements FirebaseTokenVerifier {
         }
     }
 
+    public void verifyAvailability() {
+        try {
+            firebaseAuth().listUsers(null, 1);
+        } catch (FirebaseAuthException exception) {
+            throw new AuthenticationServiceException(ApiMessages.FIREBASE_AUTH_UNAVAILABLE, exception);
+        }
+    }
+
     private FirebaseAuth firebaseAuth() {
         synchronized (FirebaseAdminTokenVerifier.class) {
             if (FirebaseApp.getApps().isEmpty()) {
