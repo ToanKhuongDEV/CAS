@@ -1,0 +1,21 @@
+meta {
+  name: Create dining table
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/tables
+  body: json
+}
+
+headers {
+  Authorization: Bearer {{firebaseIdToken}}
+}
+
+body:json {
+  {
+    "code": 5,
+    "capacity": 4
+  }
+}
