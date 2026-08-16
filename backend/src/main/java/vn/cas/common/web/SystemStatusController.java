@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import vn.cas.common.contract.ApiMessages;
-import vn.cas.common.contract.ApiPaths;
+import vn.cas.common.constants.ApiMessages;
+import vn.cas.common.constants.ApiPaths;
+import vn.cas.common.response.ApiResponse;
+import vn.cas.common.response.ApiResponses;
 
 @RestController
 @RequestMapping(ApiPaths.STATUS)

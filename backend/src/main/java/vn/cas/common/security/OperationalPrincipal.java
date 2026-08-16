@@ -1,6 +1,6 @@
 package vn.cas.common.security;
 
-import vn.cas.operation.domain.OperationalAccount;
+import vn.cas.operation.model.OperationalAccount;
 
 public record OperationalPrincipal(
         long accountId,

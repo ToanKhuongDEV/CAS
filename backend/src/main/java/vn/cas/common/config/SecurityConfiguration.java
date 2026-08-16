@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import vn.cas.common.security.ApiAccessDeniedHandler;
 import vn.cas.common.security.ApiAuthenticationEntryPoint;
 import vn.cas.common.security.FirebaseAuthenticationFilter;
-import vn.cas.common.contract.ApiPaths;
+import vn.cas.common.constants.ApiPaths;
 
 @Configuration
 @EnableWebSecurity

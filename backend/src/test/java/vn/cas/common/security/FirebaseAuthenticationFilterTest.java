@@ -18,10 +18,10 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import vn.cas.common.web.RequestId;
-import vn.cas.operation.domain.AccountRole;
-import vn.cas.operation.domain.OperationalAccount;
-import vn.cas.operation.infrastructure.firebase.FirebaseTokenVerifier;
-import vn.cas.operation.infrastructure.persistence.mybatis.OperationalAccountMapper;
+import vn.cas.operation.model.AccountRole;
+import vn.cas.operation.model.OperationalAccount;
+import vn.cas.operation.service.firebase.FirebaseTokenVerifier;
+import vn.cas.operation.mapper.OperationalAccountMapper;
 
 class FirebaseAuthenticationFilterTest {
 

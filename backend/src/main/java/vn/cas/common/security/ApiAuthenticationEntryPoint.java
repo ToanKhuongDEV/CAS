@@ -16,9 +16,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
-import vn.cas.common.web.ApiError;
+import vn.cas.common.response.ApiError;
 import vn.cas.common.web.RequestId;
-import vn.cas.common.contract.ApiMessages;
+import vn.cas.common.constants.ApiMessages;
 
 @Component
 public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {

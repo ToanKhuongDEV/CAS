@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="vn.cas.store.infrastructure.persistence.mybatis.DiningTableMapper">
+<mapper namespace="vn.cas.store.mapper.DiningTableMapper">
 
     <select id="existsByStoreIdAndCode" resultType="boolean">
         SELECT EXISTS(

@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="vn.cas.store.infrastructure.persistence.mybatis.StoreSettingsMapper">
+<mapper namespace="vn.cas.store.mapper.StoreSettingsMapper">
 
     <select id="findLongWaitWarningMinutesByStoreId" resultType="java.lang.Integer">
         SELECT long_wait_warning_minutes

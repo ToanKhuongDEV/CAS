@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="vn.cas.operation.infrastructure.persistence.mybatis.AuditLogMapper">
+<mapper namespace="vn.cas.operation.mapper.AuditLogMapper">
 
-    <insert id="insert" parameterType="vn.cas.operation.application.AuditLogCommand">
+    <insert id="insert" parameterType="vn.cas.operation.dto.AuditLogCommand">
         INSERT INTO audit_logs (
             store_id,
             request_id,
@@ -18,7 +18,7 @@
             description
         ) VALUES (
             #{storeId},
-            #{requestId,javaType=java.util.UUID,jdbcType=CHAR,typeHandler=vn.cas.common.infrastructure.mybatis.UuidTypeHandler},
+            #{requestId,javaType=java.util.UUID,jdbcType=CHAR,typeHandler=vn.cas.common.persistence.UuidTypeHandler},
             #{action},
             #{entityType},
             #{entityId},

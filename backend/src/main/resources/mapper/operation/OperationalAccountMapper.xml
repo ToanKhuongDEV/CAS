@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="vn.cas.operation.infrastructure.persistence.mybatis.OperationalAccountMapper">
+<mapper namespace="vn.cas.operation.mapper.OperationalAccountMapper">
 
-    <select id="findActiveByFirebaseUid" resultType="vn.cas.operation.domain.OperationalAccount">
+    <select id="findActiveByFirebaseUid" resultType="vn.cas.operation.model.OperationalAccount">
         SELECT id,
                store_id,
                firebase_uid,

@@ -147,6 +147,11 @@ Ngày cập nhật gần nhất: 2026-08-15
 
 ## 5. Backend
 
+- [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
+      `operation`) theo các package `controller`, `service`, `mapper`, `model`,
+      `dto` và `exception`; cập nhật tài liệu kiến trúc; giữ nguyên API contract,
+      schema và hành vi nghiệp vụ.
+
 ### Kế hoạch triển khai
 
 #### Giai đoạn 0 — Nền tảng đã có
@@ -159,7 +164,9 @@ Ngày cập nhật gần nhất: 2026-08-15
 
 - [x] Chuẩn hóa API error, request ID và Jakarta Bean Validation tại API boundary.
 - [x] Chuẩn hóa wrapper response: success gồm `status`, `message`, `data`, `requestId`; error dùng cùng metadata nhưng không có `data`.
-- [x] Gom hằng số API endpoint và message dùng chung vào `common.contract`.
+- [x] Chuẩn hóa thành phần dùng chung theo `common.config`, `common.exception`,
+      `common.response`, `common.constants`, `common.persistence`,
+      `common.security` và `common.web`.
 - [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
 - [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
 - [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.

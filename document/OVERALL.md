@@ -301,12 +301,20 @@ backend/
 │   ├── CasApplication.java       # Điểm khởi động Spring Boot
 │   ├── common/                   # Thành phần dùng chung
 │   │   ├── config/               # CORS, Security và cấu hình kỹ thuật
-│   │   ├── contract/             # Hằng số endpoint và API message
+│   │   ├── exception/            # Exception và xử lý lỗi tập trung
+│   │   ├── response/             # API response và error response dùng chung
+│   │   ├── constants/            # Hằng số endpoint và API message
+│   │   ├── persistence/          # Thành phần persistence chung, ví dụ MyBatis type handler
 │   │   ├── security/             # Firebase filter, principal và xử lý quyền
-│   │   ├── web/                  # Request ID, lỗi API và web component chung
-│   │   └── infrastructure/       # Adapter kỹ thuật dùng chung, ví dụ MyBatis type handler
-│   ├── store/ catalog/ ordering/ payment/ operation/
-│   │   └── domain/ application/ infrastructure/ api/  # Mỗi module nghiệp vụ
+│   │   └── web/                  # Request ID, filter và controller dùng chung
+│   ├── store/ operation/                              # Module nghiệp vụ đã triển khai
+│   │   ├── controller/            # REST controller theo từng module
+│   │   ├── service/               # Service, use case và transaction
+│   │   ├── mapper/                # MyBatis mapper và thao tác persistence
+│   │   ├── model/                 # Model, enum và quy tắc nghiệp vụ
+│   │   ├── dto/                   # Request, response, command và query DTO
+│   │   └── exception/             # Exception đặc thù của module
+│   └── catalog/ ordering/ payment/ # Chỉ có package module, chưa có mã nguồn
 ├── src/main/resources/
 │   ├── application.yml           # Cấu hình Spring Boot và import `.env` local
 │   ├── db/migration/             # Flyway migration, là nguồn schema database
@@ -315,10 +323,19 @@ backend/
 └── src/test/                     # Unit và integration test
 ```
 
-`domain` giữ model và quy tắc nghiệp vụ; `application` điều phối use case và
-transaction; `infrastructure` chứa MyBatis, Redis hoặc dịch vụ ngoài; `api`
-chứa controller và request/response. `.env` chỉ dành cho cấu hình local, không
-được commit; môi trường deploy dùng biến môi trường tương ứng.
+Trong mỗi module, `controller` tiếp nhận REST request, `service` điều phối use
+case và transaction, `mapper` chứa MyBatis mapper, `model` giữ model/enum/quy
+tắc nghiệp vụ, `dto` chứa dữ liệu trao đổi và `exception` chứa lỗi đặc thù.
+Các tích hợp ngoài thuộc module được đặt bên trong `service` khi cần, ví dụ
+`operation/service/firebase`. `.env` chỉ dành cho cấu hình local, không được
+commit; môi trường deploy dùng biến môi trường tương ứng.
+
+Các module chưa có mã nguồn như `catalog`, `ordering` và `payment` chỉ giữ
+package module tổng; các package con được tạo khi bắt đầu triển khai theo cấu
+trúc ở trên.
+
+`common/util` và `common/validation` chỉ được tạo khi có utility hoặc custom
+Bean Validation dùng chung thực sự cần tái sử dụng.
 
 Worker được để dành cho các tác vụ nền khi có yêu cầu đã chốt. Ở giai đoạn hiện
 tại, `backend/worker/` chỉ là vị trí dự phòng, không chứa application chạy độc lập

@@ -11,7 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
-import vn.cas.common.contract.ApiMessages;
+import vn.cas.common.constants.ApiMessages;
 
 @Component
 public class ApiAccessDeniedHandler implements AccessDeniedHandler {
