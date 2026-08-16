@@ -6,14 +6,14 @@ import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 
 type FormErrors = {
+  email?: string;
   password?: string;
-  phone?: string;
 };
 
 export function OperatorLoginForm() {
   const router = useRouter();
   const [errors, setErrors] = useState<FormErrors>({});
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -21,8 +21,10 @@ export function OperatorLoginForm() {
 
     const nextErrors: FormErrors = {};
 
-    if (!phone.trim()) {
-      nextErrors.phone = "Vui lòng nhập số điện thoại.";
+    if (!email.trim()) {
+      nextErrors.email = "Vui lòng nhập email.";
+    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+      nextErrors.email = "Email không hợp lệ.";
     }
 
     if (!password) {
@@ -38,34 +40,34 @@ export function OperatorLoginForm() {
 
   return (
     <form className="mt-8" noValidate onSubmit={handleSubmit}>
-      <label className="block" htmlFor="operator-phone">
-        <span className="text-sm font-bold">Số điện thoại</span>
+      <label className="block" htmlFor="operator-email">
+        <span className="text-sm font-bold">Email</span>
         <span className="relative mt-2 block">
           <CasIcon
             className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cas-on-surface-variant"
-            name="phone"
+            name="mail"
           />
           <input
             className="h-13 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
-            id="operator-phone"
-            name="phone"
-            placeholder="Nhập số điện thoại"
-            type="tel"
-            autoComplete="tel"
-            value={phone}
-            aria-describedby={errors.phone ? "operator-phone-error" : undefined}
-            aria-invalid={Boolean(errors.phone)}
+            id="operator-email"
+            name="email"
+            placeholder="Nhập email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            aria-describedby={errors.email ? "operator-email-error" : undefined}
+            aria-invalid={Boolean(errors.email)}
             onChange={(event) => {
-              setPhone(event.target.value);
+              setEmail(event.target.value);
             }}
           />
         </span>
-        {errors.phone ? (
+        {errors.email ? (
           <span
             className="mt-2 block text-xs font-medium text-cas-primary"
-            id="operator-phone-error"
+            id="operator-email-error"
           >
-            {errors.phone}
+            {errors.email}
           </span>
         ) : null}
       </label>

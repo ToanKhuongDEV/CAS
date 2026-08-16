@@ -381,7 +381,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
-- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng số điện thoại và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
+- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
 - [ ] Đồng bộ giao diện đăng nhập nhân viên từ số điện thoại/mật khẩu sang email qua Firebase Authentication.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
