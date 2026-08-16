@@ -66,11 +66,11 @@ Cho phép tài khoản hợp lệ truy cập giao diện vận hành.
 4. Client gửi Firebase ID Token lên CAS Backend trong HTTP Header (`Authorization: Bearer <Firebase_ID_Token>`).
 5. Backend verify Firebase ID Token, dùng email đã xác thực để tìm tài khoản tương ứng trong `accounts` và xác nhận trạng thái `ACTIVE`.
 
-Khi `ADMIN` tạo tài khoản `OPERATOR`, Client gửi `email`, `initialPassword` và
-`displayName` đến `POST /api/v1/admin/operators`. CAS Backend kiểm tra quyền
-`ADMIN`, gọi Firebase Admin SDK để tạo Firebase user, rồi lưu Firebase UID trả
-về vào `accounts.firebase_uid` với role cố định `OPERATOR` và `store_id` của
-ADMIN đang đăng nhập. Client không gửi role để backend tin cậy.
+Khi `ADMIN` tạo tài khoản `OPERATOR`, Client gửi `email` và `displayName` đến
+`POST /api/v1/admin/operators`. CAS Backend kiểm tra quyền `ADMIN`, gán mật khẩu
+mặc định ở server, gọi Firebase Admin SDK để tạo Firebase user, rồi lưu Firebase
+UID trả về vào `accounts.firebase_uid` với role cố định `OPERATOR` và `store_id`
+của ADMIN đang đăng nhập. Client không gửi role để backend tin cậy.
 6. Hệ thống ghi nhận `last_login_at`.
 7. Người dùng được chuyển vào giao diện vận hành phù hợp với role.
 

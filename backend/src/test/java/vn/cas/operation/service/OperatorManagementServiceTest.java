@@ -27,7 +27,7 @@ class OperatorManagementServiceTest {
 
     @Test
     void shouldCreateFirebaseUserThenPersistOperatorAccount() {
-        when(firebaseUserProvisioner.createUser("operator@example.com", "password1", "Operator One"))
+        when(firebaseUserProvisioner.createUser("operator@example.com", "password123", "Operator One"))
                 .thenReturn("firebase-operator-1");
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateOperatorAccountCommand.class).setId(12L);
@@ -35,7 +35,7 @@ class OperatorManagementServiceTest {
         }).when(accountMapper).insertOperatorAccount(any());
 
         var result = service.create(
-                principal, "operator@example.com", "password1", "Operator One", UUID.randomUUID());
+                principal, "operator@example.com", "Operator One", UUID.randomUUID());
 
         assertThat(result)
                 .extracting(OperatorManagementService.Operator::id,
@@ -51,5 +51,6 @@ class OperatorManagementServiceTest {
                         CreateOperatorAccountCommand::getDisplayName)
                 .containsExactly(2L, "firebase-operator-1", "Operator One");
         verify(auditLogService).record(any());
+        verify(firebaseUserProvisioner).createUser("operator@example.com", "password123", "Operator One");
     }
 }

@@ -15,6 +15,8 @@ import vn.cas.operation.service.firebase.FirebaseUserProvisioner;
 
 @Service
 public class OperatorManagementService {
+    private static final String DEFAULT_OPERATOR_PASSWORD = "password123";
+
     private final OperationalAccountMapper accountMapper;
     private final AuditLogService auditLogService;
     private final FirebaseUserProvisioner firebaseUserProvisioner;
@@ -32,10 +34,9 @@ public class OperatorManagementService {
     public Operator create(
             OperationalPrincipal principal,
             String email,
-            String initialPassword,
             String displayName,
             UUID requestId) {
-        var firebaseUid = firebaseUserProvisioner.createUser(email, initialPassword, displayName);
+        var firebaseUid = firebaseUserProvisioner.createUser(email, DEFAULT_OPERATOR_PASSWORD, displayName);
         var command = new CreateOperatorAccountCommand(principal.storeId(), firebaseUid, displayName);
         try {
             accountMapper.insertOperatorAccount(command);
