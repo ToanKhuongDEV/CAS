@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 
 type OperatorAccount = {
+  email: string;
   id: number;
   fullName: string;
   phone: string;
@@ -14,6 +15,7 @@ type OperatorAccount = {
 
 const mockOperators: OperatorAccount[] = [
   {
+    email: "nguyenvana@example.com",
     id: 1,
     fullName: "Nguyễn Văn A",
     phone: "0901234567",
@@ -22,6 +24,7 @@ const mockOperators: OperatorAccount[] = [
     createdAt: "2026-01-15",
   },
   {
+    email: "tranthib@example.com",
     id: 2,
     fullName: "Trần Thị B",
     phone: "0912345678",
@@ -30,6 +33,7 @@ const mockOperators: OperatorAccount[] = [
     createdAt: "2026-02-01",
   },
   {
+    email: "lethib@example.com",
     id: 3,
     fullName: "Lê Văn C",
     phone: "0987654321",
@@ -39,11 +43,19 @@ const mockOperators: OperatorAccount[] = [
   },
 ];
 
+type CreateOperatorErrors = {
+  displayName?: string;
+  email?: string;
+  phone?: string;
+};
+
 export default function AdminOperatorsPage() {
   const [operators, setOperators] = useState<OperatorAccount[]>(mockOperators);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [name, setName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [createErrors, setCreateErrors] = useState<CreateOperatorErrors>({});
 
   const toggleLock = (id: number) => {
     setOperators((prev) =>
@@ -55,18 +67,49 @@ export default function AdminOperatorsPage() {
 
   const handleAddOperator = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone) return;
+
+    const normalizedDisplayName = displayName.trim();
+    const normalizedEmail = email.trim();
+    const normalizedPhone = phone.trim();
+    const nextErrors: CreateOperatorErrors = {};
+
+    if (!normalizedDisplayName) {
+      nextErrors.displayName = "Vui lòng nhập họ và tên nhân viên.";
+    } else if (normalizedDisplayName.length > 150) {
+      nextErrors.displayName = "Họ và tên tối đa 150 ký tự.";
+    }
+
+    if (!normalizedEmail) {
+      nextErrors.email = "Vui lòng nhập email.";
+    } else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      nextErrors.email = "Email không hợp lệ.";
+    } else if (normalizedEmail.length > 254) {
+      nextErrors.email = "Email tối đa 254 ký tự.";
+    }
+
+    if (!normalizedPhone) {
+      nextErrors.phone = "Vui lòng nhập số điện thoại liên hệ.";
+    } else if (normalizedPhone.length > 20) {
+      nextErrors.phone = "Số điện thoại tối đa 20 ký tự.";
+    }
+
+    setCreateErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     const newOp: OperatorAccount = {
+      email: normalizedEmail,
       id: Date.now(),
-      fullName: name,
-      phone,
+      fullName: normalizedDisplayName,
+      phone: normalizedPhone,
       role: "OPERATOR",
       status: "ACTIVE",
       createdAt: "2026-08-08",
     };
     setOperators([...operators, newOp]);
-    setName("");
+    setDisplayName("");
+    setEmail("");
     setPhone("");
+    setCreateErrors({});
     setShowAddForm(false);
   };
 
@@ -98,6 +141,7 @@ export default function AdminOperatorsPage() {
         >
           <form
             onSubmit={handleAddOperator}
+            noValidate
             className="my-auto w-full max-w-lg space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -115,30 +159,69 @@ export default function AdminOperatorsPage() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-cas-on-surface-variant">
+                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-display-name">
                   Họ và Tên Nhân viên:
                 </label>
                 <input
+                  aria-describedby={createErrors.displayName ? "operator-display-name-error" : undefined}
+                  aria-invalid={Boolean(createErrors.displayName)}
                   type="text"
+                  id="operator-display-name"
                   placeholder="Nhập họ tên..."
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
                   required
                 />
+                {createErrors.displayName ? (
+                  <p className="mt-1 text-cas-error" id="operator-display-name-error">
+                    {createErrors.displayName}
+                  </p>
+                ) : null}
               </div>
               <div>
-                <label className="block font-bold text-cas-on-surface-variant">
-                  Số điện thoại đăng nhập:
+                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-email">
+                  Email đăng nhập:
                 </label>
                 <input
+                  aria-describedby={createErrors.email ? "operator-email-error" : undefined}
+                  aria-invalid={Boolean(createErrors.email)}
+                  type="email"
+                  id="operator-email"
+                  placeholder="Nhập email..."
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  maxLength={254}
+                  required
+                />
+                {createErrors.email ? (
+                  <p className="mt-1 text-cas-error" id="operator-email-error">
+                    {createErrors.email}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-phone">
+                  Số điện thoại liên hệ:
+                </label>
+                <input
+                  aria-describedby={createErrors.phone ? "operator-phone-error" : undefined}
+                  aria-invalid={Boolean(createErrors.phone)}
                   type="text"
+                  id="operator-phone"
                   placeholder="Nhập SĐT..."
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  maxLength={20}
                   required
                 />
+                {createErrors.phone ? (
+                  <p className="mt-1 text-cas-error" id="operator-phone-error">
+                    {createErrors.phone}
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
