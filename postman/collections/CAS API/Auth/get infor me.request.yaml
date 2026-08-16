@@ -1,0 +1,14 @@
+$kind: http-request
+name: get infor me
+url: "{{baseUrl}}/api/v1/auth/me"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+tests:
+  - |
+    pm.test("returns the authenticated account", () => {
+      pm.response.to.have.status(200);
+      const response = pm.response.json();
+      pm.expect(response.data.role).to.be.oneOf(["ADMIN", "OPERATOR", "SUPER_ADMIN"]);
+    });
+order: 2000

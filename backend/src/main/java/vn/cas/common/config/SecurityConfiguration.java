@@ -28,6 +28,7 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(ApiPaths.STATUS, ApiPaths.ACTUATOR_HEALTH, ApiPaths.ACTUATOR_INFO).permitAll()
+                        .requestMatchers(ApiPaths.AUTH_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
                         .requestMatchers(ApiPaths.ADMIN_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(ApiPaths.OPERATOR_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
                         .anyRequest().permitAll())

@@ -7,10 +7,12 @@ public final class ApiPaths {
     public static final String API_ADMIN_PREFIX = API_V1_PREFIX + "/admin";
     public static final String API_OPERATOR_PREFIX = API_V1_PREFIX + "/operator";
     public static final String API_CUSTOMER_PREFIX = API_V1_PREFIX + "/customer";
+    public static final String API_AUTH_PREFIX = API_V1_PREFIX + "/auth";
 
     public static final String STATUS = API_V1_PREFIX + "/status";
     public static final String ADMIN_PATTERN = API_ADMIN_PREFIX + "/**";
     public static final String OPERATOR_PATTERN = API_OPERATOR_PREFIX + "/**";
+    public static final String AUTH_PATTERN = API_AUTH_PREFIX + "/**";
     public static final String ACTUATOR_HEALTH = "/actuator/health";
     public static final String ACTUATOR_INFO = "/actuator/info";
 
@@ -48,5 +50,12 @@ public final class ApiPaths {
         private static final String PRE_FIX = API_ADMIN_PREFIX + "/admins";
         public static final String ADMIN_COMMON = PRE_FIX;
         private AdminAccount() { }
+    }
+
+    public static final class Auth {
+        public static final String CURRENT_ACCOUNT = API_AUTH_PREFIX + "/me";
+
+        private Auth() {
+        }
     }
 }
