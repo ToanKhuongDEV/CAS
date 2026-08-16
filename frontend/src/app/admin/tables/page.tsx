@@ -4,6 +4,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { useToast } from "../../../components/ui/toast-provider";
 
 type TableItem = {
   code: number;
@@ -21,6 +22,7 @@ const mockTables: TableItem[] = [
 ];
 
 export default function AdminTablesPage() {
+  const { showToast } = useToast();
   const [tables, setTables] = useState<TableItem[]>(mockTables);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTableCode, setNewTableCode] = useState<string>("");
@@ -38,7 +40,7 @@ export default function AdminTablesPage() {
 
     // Kiểm tra trùng mã bàn
     if (tables.some((t) => t.code === codeNum)) {
-      alert(`Bàn số ${codeNum} đã tồn tại trong hệ thống!`);
+      showToast({ message: `Bàn số ${codeNum} đã tồn tại trong hệ thống.`, type: "warning" });
       return;
     }
 
@@ -54,11 +56,13 @@ export default function AdminTablesPage() {
     setTables([...tables, newTab]);
     setNewTableCode("");
     setShowAddForm(false);
+    showToast({ message: `Đã tạo Bàn ${formattedCode}.`, type: "success" });
   };
 
   const handleDeleteTable = (id: number) => {
     setTables((prev) => prev.filter((t) => t.id !== id));
     setDeletingTable(null);
+    showToast({ message: "Đã xóa bàn khỏi danh sách.", type: "success" });
   };
 
   const downloadQRCode = (tableCode: number) => {
