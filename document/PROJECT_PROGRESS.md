@@ -155,7 +155,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 
 - [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS.
 - [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị.
-- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication.
+- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại.
 - [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log.
 - [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn.
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu.
@@ -272,6 +272,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
 - [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
 - [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
+- [x] Thêm Flyway V2 cho `accounts.email` và `accounts.phone` (`NOT NULL`, unique); backfill account cũ bằng giá trị placeholder duy nhất và cập nhật luồng tạo account mới để lưu đủ hai trường.
 - [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,
       Flyway, audit log, Bruno và kiểm thử dành riêng cho backend.
 

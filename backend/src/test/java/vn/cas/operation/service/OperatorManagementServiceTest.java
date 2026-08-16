@@ -35,7 +35,7 @@ class OperatorManagementServiceTest {
         }).when(accountMapper).insertOperatorAccount(any());
 
         var result = service.create(
-                principal, "operator@example.com", "Operator One", UUID.randomUUID());
+                principal, "operator@example.com", "0901234567", "Operator One", UUID.randomUUID());
 
         assertThat(result)
                 .extracting(OperatorManagementService.Operator::id,
@@ -48,8 +48,10 @@ class OperatorManagementServiceTest {
         assertThat(commandCaptor.getValue())
                 .extracting(CreateOperatorAccountCommand::getStoreId,
                         CreateOperatorAccountCommand::getFirebaseUid,
+                        CreateOperatorAccountCommand::getEmail,
+                        CreateOperatorAccountCommand::getPhone,
                         CreateOperatorAccountCommand::getDisplayName)
-                .containsExactly(2L, "firebase-operator-1", "Operator One");
+                .containsExactly(2L, "firebase-operator-1", "operator@example.com", "0901234567", "Operator One");
         verify(auditLogService).record(any());
         verify(firebaseUserProvisioner).createUser("operator@example.com", "password123", "Operator One");
     }

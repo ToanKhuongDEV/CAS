@@ -20,10 +20,10 @@ public class AdminAccountService {
         this.accountMapper = accountMapper; this.auditLogService = auditLogService;
     }
     @Transactional
-    public AdminAccount create(OperationalPrincipal principal, String firebaseUid, String displayName, UUID requestId) {
+    public AdminAccount create(OperationalPrincipal principal, String firebaseUid, String email, String phone, String displayName, UUID requestId) {
         if (!"SUPER_ADMIN".equals(principal.role())) throw new ApiException(HttpStatus.FORBIDDEN, ApiMessages.FORBIDDEN);
         if (accountMapper.existsByFirebaseUid(firebaseUid)) throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS);
-        var command = new CreateAdminAccountCommand(principal.storeId(), firebaseUid, displayName);
+        var command = new CreateAdminAccountCommand(principal.storeId(), firebaseUid, email, phone, displayName);
         try { accountMapper.insertAdminAccount(command); }
         catch (DataIntegrityViolationException exception) { throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS); }
         auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,

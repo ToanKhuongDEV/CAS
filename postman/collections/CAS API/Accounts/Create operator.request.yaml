@@ -9,6 +9,7 @@ body:
   content: |-
     {
       "email": "operator@example.com",
+      "phone": "0901234567",
       "displayName": "Cashier One"
     }
 order: 3000

@@ -9,6 +9,8 @@ body:
   content: |-
     {
       "firebaseUid": "firebase-admin-uid",
+      "email": "admin@example.com",
+      "phone": "0901234567",
       "displayName": "Admin Two"
     }
 order: 5000

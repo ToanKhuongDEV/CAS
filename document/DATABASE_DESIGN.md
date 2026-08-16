@@ -813,6 +813,8 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh tài khoản |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
 | `firebase_uid` | `VARCHAR(128) NOT NULL` | UID của tài khoản trên Firebase Authentication, duy nhất toàn hệ thống |
+| `email` | `VARCHAR(254) NOT NULL` | Email đăng nhập, duy nhất toàn hệ thống |
+| `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại liên hệ, duy nhất toàn hệ thống; không dùng để đăng nhập |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên hiển thị |
 | `role` | `VARCHAR(20) NOT NULL` | Vai trò của tài khoản |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái tài khoản |
@@ -820,10 +822,11 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`accounts.firebase_uid` là định danh duy nhất của tài khoản vận hành trong toàn hệ thống. CAS không lưu email hoặc mật khẩu nhân viên; Firebase Authentication quản lý thông tin xác thực.
+`accounts.firebase_uid`, `accounts.email` và `accounts.phone` đều là định danh duy nhất của tài khoản vận hành trong toàn hệ thống. CAS không lưu mật khẩu nhân viên; Firebase Authentication quản lý thông tin xác thực.
 
 Các role cơ bản:
 
+- `SUPER_ADMIN`: của developer tạo tài khoản admin
 - `ADMIN`: thực hiện toàn bộ chức năng quản trị cấu hình hệ thống và dữ liệu.
 - `OPERATOR`: chỉ xử lý nghiệp vụ vận hành như order và xác nhận trạng thái thanh toán.
 

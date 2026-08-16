@@ -37,6 +37,7 @@ public class OperatorManagementController {
         var operator = operatorService.create(
                 principal,
                 body.email(),
+                body.phone(),
                 body.displayName(),
                 (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
         return ApiResponses.success(HttpStatus.CREATED, ApiMessages.OPERATOR_CREATED,
@@ -51,6 +52,7 @@ public class OperatorManagementController {
 
     public record CreateOperatorRequest(
             @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Size(max = 20) String phone,
             @NotBlank @Size(max = 150) String displayName) { }
 
     public record OperatorResponse(long id, String firebaseUid, String displayName, String status) { }

@@ -35,7 +35,7 @@ class FirebaseAuthenticationFilterTest {
         FirebaseTokenVerifier tokenVerifier = token -> "firebase-user-1";
         OperationalAccountMapper accountMapper = mock(OperationalAccountMapper.class);
         when(accountMapper.findActiveByFirebaseUid("firebase-user-1")).thenReturn(Optional.of(
-                new OperationalAccount(7L, 2L, "firebase-user-1", "Operator One", AccountRole.OPERATOR)));
+                new OperationalAccount(7L, 2L, "firebase-user-1", "operator@example.com", "0901234567", "Operator One", AccountRole.OPERATOR)));
         var filter = new FirebaseAuthenticationFilter(
                 tokenVerifier,
                 accountMapper,

@@ -34,10 +34,11 @@ public class OperatorManagementService {
     public Operator create(
             OperationalPrincipal principal,
             String email,
+            String phone,
             String displayName,
             UUID requestId) {
         var firebaseUid = firebaseUserProvisioner.createUser(email, DEFAULT_OPERATOR_PASSWORD, displayName);
-        var command = new CreateOperatorAccountCommand(principal.storeId(), firebaseUid, displayName);
+        var command = new CreateOperatorAccountCommand(principal.storeId(), firebaseUid, email, phone, displayName);
         try {
             accountMapper.insertOperatorAccount(command);
             auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,
