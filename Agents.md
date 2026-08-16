@@ -70,6 +70,8 @@ Do not organize the entire application into shared technical packages such as
 
 ## Conventions
 - Upon completing a task, you must update the PROJECT_PROGRESS.md file.
+- For every new or changed backend API, add a concise summary of the API to
+  `document/PROJECT_PROGRESS.md` under `## 5. Backend ### Các api đã làm `.
 - Do not read files or directories listed in .gitignore.
 - Do not create a Git commit unless the user explicitly requests it.
 - When a Git commit is authorized, use exactly this format:

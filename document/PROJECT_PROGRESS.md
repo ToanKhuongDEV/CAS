@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-15
+Ngày cập nhật gần nhất: 2026-08-16
 
 ## Quy ước
 
@@ -151,6 +151,101 @@ Ngày cập nhật gần nhất: 2026-08-15
       `operation`) theo các package `controller`, `service`, `mapper`, `model`,
       `dto` và `exception`; cập nhật tài liệu kiến trúc; giữ nguyên API contract,
       schema và hành vi nghiệp vụ.
+### Các API đã làm
+
+- [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS.
+- [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị.
+- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication.
+- [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log.
+- [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn.
+- [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu.
+- [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
+
+#### Danh sách API theo luồng nghiệp vụ
+
+Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết kế dữ liệu và các màn hình frontend đang dùng dữ liệu mẫu. `[x]` là API đã làm; `[ ]` là API chưa làm và chưa tự gán method/path, trừ các route đã được chốt ở trên. Mỗi dòng tương ứng một chức năng API.
+
+- [ ] **Store:** xem thông tin cửa hàng.
+- [ ] **Store:** cập nhật toàn bộ thông tin cửa hàng (tên, liên hệ, vị trí, giờ hoạt động, slogan và trạng thái) từ một form.
+- [x] **Store:** xem ngưỡng cảnh báo bàn chờ lâu.
+- [x] **Store:** cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
+- [ ] **Bàn và QR:** xem danh sách bàn.
+- [ ] **Bàn và QR:** xem QR đang hoạt động của bàn.
+- [ ] **Bàn và QR:** tải QR của bàn để in hoặc lưu.
+- [ ] **Bàn và QR:** xóa bàn.
+- [ ] **Category:** xem danh sách category.
+- [ ] **Category:** thêm category.
+- [ ] **Category:** sửa category.
+- [ ] **Category:** xóa category.
+- [ ] **Tag:** xem danh sách tag.
+- [ ] **Tag:** thêm tag.
+- [ ] **Tag:** sửa tag.
+- [ ] **Tag:** xóa tag.
+- [ ] **Món:** xem danh sách món.
+- [ ] **Món:** xem chi tiết món.
+- [ ] **Món:** thêm món.
+- [ ] **Món:** sửa món, gồm category, tag, nhóm option, giá, trạng thái, thứ tự hiển thị và ảnh Cloudinary, từ một form.
+- [ ] **Món:** cập nhật hàng loạt trạng thái `ACTIVE`, `INACTIVE` hoặc `SOLD_OUT`.
+- [ ] **Nhóm option:** xem danh sách nhóm option.
+- [ ] **Nhóm option:** xem chi tiết nhóm option.
+- [ ] **Nhóm option:** thêm nhóm option.
+- [ ] **Nhóm option:** sửa nhóm option.
+- [ ] **Nhóm option:** xóa nhóm option.
+- [ ] **Option value:** thêm option value.
+- [ ] **Option value:** xóa option value.
+- [ ] **Catalog gọi món:** xem category hiển thị cho Customer/`OPERATOR`.
+- [ ] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
+- [ ] **Catalog gọi món:** xem danh sách món còn bán cho Customer/`OPERATOR`.
+- [ ] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
+- [ ] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
+- [ ] **Table session:** lấy ngữ cảnh session hiện tại của Customer.
+- [ ] **Table session:** xem trạng thái session hiện tại của Customer.
+- [ ] **Table session:** hủy session chưa có order.
+- [ ] **Order:** tạo order bởi Customer.
+- [ ] **Order:** tạo order hộ bởi `OPERATOR`.
+- [ ] **Order:** xem danh sách order của session.
+- [ ] **Order:** xem chi tiết order.
+- [ ] **Bill:** xem bill hiện tại của session.
+- [ ] **Chế biến:** xem danh sách bàn chờ lâu.
+- [ ] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
+- [ ] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
+- [ ] **Yêu cầu hủy món:** tạo yêu cầu hủy món.
+- [ ] **Yêu cầu hủy món:** xem danh sách yêu cầu hủy món.
+- [ ] **Yêu cầu hủy món:** xem chi tiết yêu cầu hủy món.
+- [ ] **Yêu cầu hủy món:** xử lý yêu cầu bằng quyết định từ chối, hủy hoàn toàn hoặc làm lại (`is_remade`).
+- [ ] **Payment:** tạo payment `PENDING` từ bill do server tính.
+- [ ] **Payment:** xem trạng thái payment của session.
+- [ ] **Payment:** xem danh sách payment chờ xác nhận.
+- [ ] **Payment:** xem chi tiết payment và bill snapshot.
+- [ ] **Payment:** xác nhận payment thành `PAID`.
+- [ ] **Khoản chưa thanh toán:** ghi nhận khoản chưa thanh toán và đóng session.
+- [ ] **Khoản chưa thanh toán:** xem danh sách khoản chưa thanh toán.
+- [ ] **Khoản chưa thanh toán:** xem chi tiết khoản chưa thanh toán.
+- [ ] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
+- [ ] **Promotion:** xem danh sách promotion.
+- [ ] **Promotion:** xem chi tiết promotion.
+- [ ] **Promotion:** thêm promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
+- [ ] **Promotion:** sửa promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
+- [ ] **Promotion:** đổi trạng thái `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
+- [ ] **Promotion áp dụng bill:** xem promotion hợp lệ và discount dự kiến.
+- [ ] **Promotion áp dụng bill:** chọn promotion cho bill.
+- [ ] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
+- [ ] **Dịch vụ đặt trước:** xem danh sách booking.
+- [ ] **Dịch vụ đặt trước:** tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`.
+- [ ] **Dịch vụ đặt trước:** xác nhận booking thành `PAID`.
+- [ ] **Dịch vụ đặt trước:** hủy booking thành `CANCELLED`.
+- [ ] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
+- [ ] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
+- [ ] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
+- [ ] **Thông báo hệ thống:** `ADMIN` tạo thông báo.
+- [ ] **Thông báo hệ thống:** `ADMIN` xóa thông báo.
+- [ ] **Thông báo hệ thống:** Customer/Operator xem danh sách notification của mình, gồm số chưa đọc.
+- [ ] **Thông báo hệ thống:** Customer/Operator đánh dấu một notification là đã đọc.
+- [ ] **Thông báo hệ thống:** Customer/Operator đánh dấu tất cả notification là đã đọc.
+- [ ] **Audit log:** `ADMIN` xem danh sách audit log.
+- [ ] **Tra cứu khách hàng:** `ADMIN` tìm kiếm và xem danh sách khách trong store.
+- [ ] **Tra cứu khách hàng:** `ADMIN` xem chi tiết khách, gồm lịch sử session, order, payment và khoản chưa thanh toán.
+- [ ] **Ngoài danh sách:** API danh sách `report` chưa được liệt kê vì loại report, dữ liệu, bộ lọc và API contract đều đang `Cần chốt`.
 
 ### Kế hoạch triển khai
 
@@ -175,6 +270,8 @@ Ngày cập nhật gần nhất: 2026-08-15
 - [x] Chuẩn hóa cURL/Postman cho kiểm thử thủ công API; Firebase ID Token chỉ dùng trong môi trường local và không lưu repository.
 - [x] Loại bỏ Bruno collection theo quyết định dùng Postman/cURL.
 - [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
+- [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
+- [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
 - [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,
       Flyway, audit log, Bruno và kiểm thử dành riêng cho backend.
 
