@@ -1,9 +1,11 @@
 $kind: http-request
-name: Firebase email/password login
+name: login
 url: https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseWebApiKey}}
 method: POST
 headers:
   Content-Type: application/json
+queryParams:
+  key: "{{firebaseWebApiKey}}"
 body:
   type: json
   content: |-

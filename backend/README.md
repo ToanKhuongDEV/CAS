@@ -28,7 +28,7 @@ collection từ `postman/collections/` và environment template từ
 Postman; không commit token.
 
 Điền `firebaseWebApiKey`, `firebaseEmail` và `firebasePassword`, sau đó chạy
-request `Authentication/Firebase email/password login`. Request tự lưu Firebase
+request `Auth/Firebase email/password login`. Request tự lưu Firebase
 `idToken` vào `firebaseIdToken` để dùng cho các API CAS.
 
 Đặt Firebase ID Token trong biến shell local, không commit token vào repository:

@@ -9,7 +9,6 @@ body:
   content: |-
     {
       "email": "operator@example.com",
-      "initialPassword": "replace-with-operator-password",
       "displayName": "Cashier One"
     }
 order: 3000
