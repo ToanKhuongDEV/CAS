@@ -4,19 +4,30 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
+import {
+  signInOperationalUser,
+  signOutOperationalUser,
+  type OperationalRole,
+} from "../../../../lib/auth/operational-auth";
 
 type FormErrors = {
   email?: string;
   password?: string;
 };
 
-export function OperatorLoginForm() {
+type OperationalLoginFormProps = {
+  expectedRole: Extract<OperationalRole, "ADMIN" | "OPERATOR">;
+};
+
+export function OperatorLoginForm({ expectedRole }: OperationalLoginFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [formError, setFormError] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors: FormErrors = {};
@@ -32,9 +43,34 @@ export function OperatorLoginForm() {
     }
 
     setErrors(nextErrors);
+    setFormError(undefined);
 
-    if (Object.keys(nextErrors).length === 0) {
-      router.push("/operator/dashboard");
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const account = await signInOperationalUser(email.trim(), password);
+      const canAccessArea =
+        account.role === expectedRole || (expectedRole === "ADMIN" && account.role === "SUPER_ADMIN");
+      if (!canAccessArea) {
+        await signOutOperationalUser();
+        setFormError(
+          expectedRole === "ADMIN"
+            ? "Tài khoản này không có quyền truy cập khu vực quản trị."
+            : "Tài khoản này không có quyền truy cập khu vực nhân viên.",
+        );
+        return;
+      }
+
+      router.push(expectedRole === "ADMIN" ? "/admin" : "/operator/dashboard");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Không thể đăng nhập. Vui lòng thử lại.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -100,12 +136,18 @@ export function OperatorLoginForm() {
 
       <CasButton
         className="mt-6 w-full shadow-[0_8px_20px_var(--cas-shadow-color)]"
+        disabled={isSubmitting}
         size="lg"
         type="submit"
       >
-        Đăng nhập
+        {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
         <CasIcon className="size-5" name="arrow" />
       </CasButton>
+      {formError ? (
+        <p className="mt-4 text-sm font-medium text-cas-primary" role="alert">
+          {formError}
+        </p>
+      ) : null}
     </form>
   );
 }

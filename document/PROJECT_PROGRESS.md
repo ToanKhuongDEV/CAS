@@ -154,6 +154,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 ### Các API đã làm
 
 - [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS.
+- [x] `GET /api/v1/auth/me`: trả danh tính và role tài khoản vận hành đã xác thực để frontend điều hướng theo quyền.
 - [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị.
 - [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại.
 - [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log.
@@ -382,7 +383,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
-- [ ] Đồng bộ giao diện đăng nhập nhân viên từ số điện thoại/mật khẩu sang email qua Firebase Authentication.
+- [x] Đồng bộ đăng nhập `OPERATOR` và bổ sung `/admin/login` qua Firebase Authentication; frontend xác nhận role qua `GET /api/v1/auth/me` trước khi điều hướng vào khu vực tương ứng.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo

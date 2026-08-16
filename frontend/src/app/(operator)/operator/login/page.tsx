@@ -20,7 +20,7 @@ export default function OperatorLoginPage() {
           Nhập thông tin tài khoản để tiếp tục xử lý order và thanh toán.
         </p>
 
-        <OperatorLoginForm />
+        <OperatorLoginForm expectedRole="OPERATOR" />
       </section>
     </main>
   );
