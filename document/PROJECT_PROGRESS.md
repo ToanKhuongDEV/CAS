@@ -91,6 +91,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 - [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
 - [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
+- [x] Bật CORS trong Spring Security, áp dụng whitelist `FRONTEND_ORIGIN` cho frontend gọi CAS Backend trực tiếp.
 - [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
 - [x] Chốt CAS Backend chỉ quản lý yêu cầu và trạng thái thanh toán, không tích hợp VietQR/ngân hàng.
 
@@ -383,7 +384,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
-- [x] Đồng bộ đăng nhập `OPERATOR` và bổ sung `/admin/login` qua Firebase Authentication; frontend xác nhận role qua `GET /api/v1/auth/me` trước khi điều hướng vào khu vực tương ứng.
+- [x] Đồng bộ đăng nhập `OPERATOR` và bổ sung `/admin/login` toàn màn hình qua Firebase Authentication; frontend xác nhận role qua `GET /api/v1/auth/me` trước khi điều hướng vào khu vực tương ứng.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
@@ -490,6 +491,9 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung nhãn phân biệt dưới logo CAS trên header khu vực Admin và Vận hành.
 - [x] Cố định toàn bộ panel giỏ món bên phải trong màn Operator tạo order hộ và cho phép panel tự cuộn độc lập với menu.
 - [x] Đồng bộ UI xác nhận gửi món của Operator với trang Đơn hàng Customer: hiển thị bàn, thời gian và danh sách món vừa gửi, gồm option, số lượng và thành tiền.
+- [x] Bổ sung toast dùng chung toàn ứng dụng cho thông báo thành công, lỗi, cảnh báo và thông tin; áp dụng thay `alert` tại màn quản lý bàn Admin.
+- [x] Hiển thị lỗi đăng nhập qua toast: lỗi Firebase sai thông tin đăng nhập được chuyển sang tiếng Việt, lỗi Firebase kỹ thuật khác giữ nguyên để debug, còn lỗi CAS Backend lấy trực tiếp `message` do backend cấu hình.
+- [x] Bổ sung nút mắt bật/tắt hiển thị mật khẩu tại form đăng nhập dùng chung cho Admin và Operator.
 - [x] Bổ sung UI chọn voucher cho luồng Operator tạo order hộ; giỏ món và màn xác nhận hiển thị số tiền giảm cùng giá trị cần thanh toán tạm thời.
 - [x] Cho phép Operator chọn bàn trống tại màn tạo order hộ và xác nhận tạo phiên bàn mới trước khi chọn món.
 - [x] Tái sử dụng form thông tin khách (tên và SĐT) từ luồng quét QR khi Operator tạo phiên bàn mới trước khi tạo order hộ.

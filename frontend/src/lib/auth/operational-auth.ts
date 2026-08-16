@@ -33,11 +33,11 @@ export async function signInOperationalUser(
       },
     });
 
+    const body: unknown = await response.json().catch(() => undefined);
     if (!response.ok) {
-      throw new Error("Tài khoản không có quyền truy cập CAS hoặc đã bị khóa.");
+      throw new Error(getBackendErrorMessage(body, response.statusText));
     }
 
-    const body: unknown = await response.json();
     if (!isCurrentOperationalAccountResponse(body)) {
       throw new Error("Phản hồi xác thực từ CAS không hợp lệ.");
     }
@@ -47,6 +47,20 @@ export async function signInOperationalUser(
     await signOut(auth);
     throw error;
   }
+}
+
+function getBackendErrorMessage(body: unknown, fallbackMessage: string) {
+  if (
+    body &&
+    typeof body === "object" &&
+    "message" in body &&
+    typeof body.message === "string" &&
+    body.message.trim()
+  ) {
+    return body.message;
+  }
+
+  return fallbackMessage || "Backend returned an invalid error response.";
 }
 
 export async function signOutOperationalUser() {

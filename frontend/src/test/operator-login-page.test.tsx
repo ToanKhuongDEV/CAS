@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorLoginPage from "../app/(operator)/operator/login/page";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { signInOperationalUser } from "../lib/auth/operational-auth";
 
 const push = vi.fn();
@@ -25,11 +26,18 @@ describe("OperatorLoginPage", () => {
   });
 
   it("renders and validates the operator login form", () => {
-    render(<OperatorLoginPage />);
+    render(
+      <ToastProvider>
+        <OperatorLoginPage />
+      </ToastProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: "Đăng nhập nhân viên" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Email" })).toHaveAttribute("type", "email");
     expect(screen.getByLabelText("Mật khẩu")).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Hiện mật khẩu" }));
+    expect(screen.getByLabelText("Mật khẩu")).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Ẩn mật khẩu" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Đăng nhập" }));
 
@@ -44,7 +52,11 @@ describe("OperatorLoginPage", () => {
       displayName: "Operator One",
       role: "OPERATOR",
     });
-    render(<OperatorLoginPage />);
+    render(
+      <ToastProvider>
+        <OperatorLoginPage />
+      </ToastProvider>,
+    );
 
     fireEvent.change(screen.getByRole("textbox", { name: "Email" }), {
       target: { value: "operator@example.com" },
