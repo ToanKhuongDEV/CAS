@@ -65,10 +65,13 @@ export type UnpaidRecord = {
 };
 
 type UnpaidViewMode = "admin" | "operator";
+const minimumOpenMinutesStorageKey = "cas.unpaid.minimum-open-minutes";
+const defaultMinimumOpenMinutes = 120;
 
 type OpenTableSession = {
   amount: number;
   billNumber: string;
+  openedDurationMinutes: number;
   table: string;
   tableSessionId: string;
 };
@@ -77,12 +80,14 @@ const openTableSessions: OpenTableSession[] = [
   {
     amount: 218000,
     billNumber: "BILL-20260810-006",
+    openedDurationMinutes: 138,
     table: "Bàn 06",
     tableSessionId: "session-b06-20260810",
   },
   {
     amount: 146000,
     billNumber: "BILL-20260810-010",
+    openedDurationMinutes: 85,
     table: "Bàn 10",
     tableSessionId: "session-b10-20260810",
   },
@@ -318,9 +323,40 @@ const initialUnpaidRecords: UnpaidRecord[] = [
   },
 ];
 
+function formatOpenedDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours === 0) {
+    return `${remainingMinutes} phút`;
+  }
+
+  return remainingMinutes > 0 ? `${hours} giờ ${remainingMinutes} phút` : `${hours} giờ`;
+}
+
+function getCachedMinimumOpenMinutes() {
+  if (typeof window === "undefined") {
+    return defaultMinimumOpenMinutes;
+  }
+
+  const storedValue = window.sessionStorage.getItem(minimumOpenMinutesStorageKey);
+  if (storedValue === null) {
+    return defaultMinimumOpenMinutes;
+  }
+
+  const cachedValue = Number(storedValue);
+  return Number.isInteger(cachedValue) && cachedValue >= 0 && cachedValue <= 10000
+    ? cachedValue
+    : defaultMinimumOpenMinutes;
+}
+
 export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMode }) {
   const [records, setRecords] = useState<UnpaidRecord[]>(initialUnpaidRecords);
   const [filterStatus, setFilterStatus] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
+  const [minimumOpenMinutesInput, setMinimumOpenMinutesInput] = useState(() =>
+    String(getCachedMinimumOpenMinutes()),
+  );
+  const [minimumOpenMinutes, setMinimumOpenMinutes] = useState(getCachedMinimumOpenMinutes);
   const [selectedRecord, setSelectedRecord] = useState<UnpaidRecord | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isCloseSessionDialogOpen, setIsCloseSessionDialogOpen] = useState(false);
@@ -349,10 +385,21 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
     };
   }, [selectedRecord]);
 
+  useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      setMinimumOpenMinutes(Number(minimumOpenMinutesInput) || 0);
+    }, 300);
+
+    return () => window.clearTimeout(debounceTimer);
+  }, [minimumOpenMinutesInput]);
+
   const filteredRecords = records.filter((r) => {
     if (filterStatus === "ALL") return true;
     return r.status === filterStatus;
   });
+  const sessionsNeedingFollowUp = openTableSessions.filter(
+    (session) => session.openedDurationMinutes >= minimumOpenMinutes,
+  );
 
   function handleMarkAsResolved(recordId: string) {
     const now = new Date();
@@ -442,6 +489,28 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <label className="flex items-center gap-2 rounded-xl border border-cas-outline-variant/30 bg-cas-surface px-3 py-1.5 text-xs font-bold text-cas-on-surface-variant shadow-sm w-48  ">
+            Mở bàn từ
+            <input
+              aria-label="Số phút mở bàn tối thiểu"
+              className="w-10 bg-transparent text-right font-extrabold text-cas-on-surface outline-none"
+              inputMode="numeric"
+              max="10000"
+              min="0"
+              onChange={(event) => {
+                const digitsOnly = event.target.value.replace(/\D/g, "");
+                const normalizedValue = digitsOnly.replace(/^0+(?=\d)/, "");
+                const nextValue = normalizedValue ? String(Math.min(Number(normalizedValue), 10000)) : "";
+                setMinimumOpenMinutesInput(nextValue);
+                window.sessionStorage.setItem(minimumOpenMinutesStorageKey, nextValue || "0");
+              }}
+              step="1"
+              type="number"
+              value={minimumOpenMinutesInput}
+            />
+            phút
+          </label>
+
           {/* Filter Tabs */}
           <div className="flex items-center gap-1 rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-1.5 shadow-sm">
             <button
@@ -495,12 +564,12 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             Phiên bàn cần xử lý
           </h2>
           <p className="mt-1 text-xs text-cas-on-surface-variant">
-            Chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
+            Hiển thị bàn đã mở từ {minimumOpenMinutes} phút; chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
           </p>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {openTableSessions.map((session) => (
+          {sessionsNeedingFollowUp.map((session) => (
             <article
               className="rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-4"
               key={session.tableSessionId}
@@ -510,6 +579,9 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
                   <p className="text-base font-black text-cas-on-surface">{session.table}</p>
                   <p className="mt-1 text-xs font-bold text-cas-on-surface-variant">
                     {session.billNumber} · {session.amount.toLocaleString("vi-VN")}đ
+                  </p>
+                  <p className="mt-1 text-xs text-cas-on-surface-variant">
+                    Đã mở {formatOpenedDuration(session.openedDurationMinutes)}
                   </p>
                 </div>
                 <span className="rounded-full bg-cas-tertiary-container/30 px-2.5 py-1 text-[0.68rem] font-black text-cas-tertiary">
@@ -528,6 +600,11 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
               </button>
             </article>
           ))}
+          {sessionsNeedingFollowUp.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4 text-sm text-cas-on-surface-variant md:col-span-2">
+              Không có bàn nào đã mở từ {minimumOpenMinutes} phút.
+            </p>
+          ) : null}
         </div>
       </section>
 

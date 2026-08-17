@@ -169,6 +169,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 - [ ] **Store:** xem thông tin cửa hàng.
 - [ ] **Store:** cập nhật toàn bộ thông tin cửa hàng (tên, liên hệ, vị trí, giờ hoạt động, slogan và trạng thái) từ một form.
+- [ ] **Store:** lưu logo cửa hàng qua Cloudinary và trả URL logo trong dữ liệu cấu hình cửa hàng.
 - [x] **Store:** xem ngưỡng cảnh báo bàn chờ lâu.
 - [x] **Store:** cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
 - [ ] **Bàn và QR:** xem danh sách bàn.
@@ -433,7 +434,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung section định hướng phát triển cuối trang `/admin/audit-logs`: chăm sóc khách hàng qua Zalo, trò chơi và tính năng AI.
 
 - [x] Căn chỉnh popup submenu của `AdminTabNavigation` bám ngay dưới thanh điều hướng, loại bỏ khoảng hở do `fixed` positioning bị ảnh hưởng bởi backdrop blur.
-- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` (mô tả phụ: "Quản lý thông tin cửa hàng và tham số vận hành") hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`) cùng nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên Admin & Operator Header.
+- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` (mô tả phụ: "Quản lý thông tin cửa hàng và tham số vận hành") hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`), xem trước logo cục bộ cùng nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên Admin & Operator Header.
 - [x] Cập nhật form tạo `OPERATOR` tại `/admin/operators`: bắt buộc họ tên, email đăng nhập và số điện thoại liên hệ; validation khớp các cột `NOT NULL` của `accounts` và giới hạn độ dài DDL.
 - [x] Sửa lỗi active route trùng lặp ở `AdminTabNavigation`: áp dụng thuật toán so khớp tiền tố chính xác nhất (`isRouteActive`), khắc phục triệt để tình trạng mục "Món ăn" (`/admin/catalog`) luôn bị tô xanh đồng thời khi chọn các submenu như "Danh mục", "Nhóm & giá trị Option", "Nhãn món".
 - [x] Gỡ bỏ hoàn toàn phần Cấu hình Banner & Thông báo Khuyến mãi (Popup Banner, Header Ticker, Gợi ý giỏ hàng) khỏi trang `/admin/vouchers`, tối ưu hóa trang thành giao diện chuyên biệt cho **Quản lý Mã giảm giá (Voucher)**.
@@ -500,6 +501,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Đổi card dịch vụ trong menu Customer thành “Đặt dịch vụ theo yêu cầu” và tách ghi chú chốt giá qua Zalo khỏi nút liên hệ.
 - [x] Bổ sung mục “Khác” và card “Đặt dịch vụ theo yêu cầu” vào menu tạo order hộ của Operator, tách biệt khỏi giỏ món tại bàn.
 - [x] Giữ thanh category cố định khi cuộn cho menu Customer và menu tạo order hộ của Operator, với offset phù hợp từng header và cập nhật đúng danh mục cuối trang.
+- [x] Bổ sung menu tài khoản trên header Admin và Operator: hiển thị email, số điện thoại từ Firebase profile (hoặc trạng thái chưa cập nhật) và đăng xuất về đúng trang đăng nhập.
+- [x] Bổ sung bộ lọc thời gian mở bàn trên màn khoản chưa thanh toán dùng chung cho Admin và Operator; mặc định chỉ hiển thị các phiên đã mở từ 120 phút để nhân viên theo dõi trước khi ghi nhận khoản chưa thanh toán, chuẩn hóa số 0 đầu, giới hạn 10.000 phút, debounce 300 ms và lưu giá trị theo phiên trình duyệt khi chuyển trang.
 
 1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.

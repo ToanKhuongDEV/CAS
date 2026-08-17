@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 
@@ -162,6 +162,7 @@ export default function AdminSettingsPage() {
     "Thưởng thức Mỳ Cay & Đồ Uống Chuẩn Vị, Gọi Món QR Siêu Tốc!",
   );
   const [storeStatus, setStoreStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
 
   // State cho Tham số Vận hành & Cảnh báo
@@ -178,6 +179,23 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setSavedOpsMsg("Đã lưu tham số vận hành thành công!");
     setTimeout(() => setSavedOpsMsg(""), 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) {
+        URL.revokeObjectURL(logoPreviewUrl);
+      }
+    };
+  }, [logoPreviewUrl]);
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    setLogoPreviewUrl(URL.createObjectURL(selectedFile));
   };
 
   return (
@@ -218,6 +236,47 @@ export default function AdminSettingsPage() {
             </div>
 
             <form onSubmit={handleSaveStoreInfo} className="mt-6 space-y-5 text-xs">
+              <div>
+                <label className="block font-extrabold text-cas-on-surface mb-2">Logo cửa hàng</label>
+                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4">
+                  <div
+                    aria-label="Xem trước logo cửa hàng"
+                    className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cas-primary/10 bg-cover bg-center text-cas-primary"
+                    role="img"
+                    style={logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined}
+                  >
+                    {logoPreviewUrl ? null : <CasIcon className="size-9" name="restaurant" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-cas-on-surface">Logo hiển thị trên các khu vực thương hiệu của quán.</p>
+                    <p className="mt-1 text-cas-on-surface-variant">
+                      Chọn ảnh PNG, JPG, WEBP hoặc SVG. Ảnh hiện chỉ được xem trước trên trình duyệt.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-cas-primary px-3 py-2 font-extrabold text-cas-on-primary transition hover:brightness-110">
+                        <CasIcon className="size-4" name="edit" />
+                        Chọn logo
+                        <input
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          className="sr-only"
+                          onChange={handleLogoChange}
+                          type="file"
+                        />
+                      </label>
+                      {logoPreviewUrl ? (
+                        <button
+                          className="rounded-xl px-3 py-2 font-extrabold text-cas-on-surface-variant transition hover:bg-cas-on-surface/5 hover:text-cas-on-surface"
+                          onClick={() => setLogoPreviewUrl(null)}
+                          type="button"
+                        >
+                          Dùng logo mặc định
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Tên Cửa hàng */}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-1">
