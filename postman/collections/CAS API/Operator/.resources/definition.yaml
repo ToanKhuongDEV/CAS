@@ -1,1 +1,3 @@
-﻿$kind: collection`norder: 1000
+$kind: collection
+name: Operator
+order: 1000

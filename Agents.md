@@ -76,7 +76,7 @@ Do not organize the entire application into shared technical packages such as
 - Do not create a Git commit unless the user explicitly requests it.
 - When a Git commit is authorized, use exactly this format:
   `<prefix>(<scope>): <description>`. The only allowed prefixes are `add`,
-  `update`, `chore`, and `delete`; the scope must be `be`, `fe`, or `docs`.
+  `update`, `chore`, and `delete`; the scope must be `be`, `fe`, `docs`, or `chore`.
   For example: `add(be): add account, operator, and table management APIs`.
 - If anything is unclear, ask for the user's approval before implementing it. Do not guess.
 - Use explicit MyBatis column lists; never use `SELECT *`. Use dedicated query
