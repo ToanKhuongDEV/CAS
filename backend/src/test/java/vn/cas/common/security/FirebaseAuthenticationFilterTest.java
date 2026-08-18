@@ -70,7 +70,7 @@ class FirebaseAuthenticationFilterTest {
 
         assertThat(chainCalled).isFalse();
         assertThat(response.getStatus()).isEqualTo(401);
-        assertThat(response.getContentAsString()).contains("Authentication is required");
+        assertThat(response.getContentAsString()).contains("Vui lòng đăng nhập để tiếp tục.");
     }
 
     private MockHttpServletRequest authenticatedRequest() {

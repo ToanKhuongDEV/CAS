@@ -1,0 +1,15 @@
+$kind: http-request
+name: Open table session from QR
+url: "{{baseUrl}}/api/v1/customer/table-sessions/resolve-qr"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "qrToken": "{{customerQrToken}}",
+      "customerName": "{{customerName}}",
+      "customerPhone": "{{customerPhone}}"
+    }
+order: 2000

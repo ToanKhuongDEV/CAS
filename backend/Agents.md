@@ -368,7 +368,7 @@ When a schema change affects application code, update all applicable:
 * API DTOs;
 * validation;
 * tests;
-* Bruno requests;
+* Postman requests;
 * documentation.
 
 ---
@@ -569,7 +569,7 @@ behavior in domain code.
 * Do not read secret-bearing ignored files such as `.env`, credential files,
   private key files, local secret stores, or generated credential files unless
   the user explicitly requests it and the task requires it.
-* Do not expose secret values in logs, code, tests, Bruno requests, summaries,
+* Do not expose secret values in logs, code, tests, Postman requests, summaries,
   or documentation.
 * Do not inspect build-output directories such as `target/` unless required to
   diagnose a build or test problem.
@@ -625,22 +625,23 @@ Every behavior change must be verified at the appropriate level.
 
 ---
 
-## Bruno API Checks
+## Postman API Checks
 
-The `bruno/` collection is the canonical executable API-check collection for
-backend endpoints.
+The Postman Native Git collection in `postman/collections/` is the canonical
+executable API-check collection for backend endpoints. The local environment
+template is stored in `postman/environments/`.
 
 For every new backend endpoint:
 
-* add the corresponding Bruno request.
+* add the corresponding Postman request.
 
 For every changed backend endpoint:
 
-* update the corresponding Bruno request.
+* update the corresponding Postman request.
 
-Do not leave obsolete Bruno requests after an API contract changes.
+Do not leave obsolete Postman requests after an API contract changes.
 
-Each Bruno request must verify:
+Each Postman request must verify:
 
 * expected HTTP status;
 * relevant response fields;
@@ -648,14 +649,13 @@ Each Bruno request must verify:
 
 A successful HTTP connection alone is not sufficient verification.
 
-Group Bruno requests by business feature.
+Group Postman requests by business feature.
 
 Example:
 
 ```text
-bruno/
-├─ bruno.json
-├─ requests/
+postman/
+├─ collections/
 │  ├─ auth/
 │  ├─ store/
 │  ├─ catalog/
@@ -663,10 +663,10 @@ bruno/
 │  ├─ payment/
 │  └─ operation/
 └─ environments/
-   └─ local.bru
+   └─ local.postman_environment.json
 ```
 
-Add or update multi-step Bruno flows when a change affects a complete business
+Add or update multi-step Postman flows when a change affects a complete business
 process.
 
 Important flows may include:
@@ -702,11 +702,11 @@ Examples:
 
 Do not make automated API checks depend on mutable production data.
 
-Where practical, create or resolve required test data as part of the Bruno flow.
+Where practical, create or resolve required test data as part of the Postman flow.
 
-Store environment-specific values in Bruno environments.
+Store environment-specific values in Postman environments.
 
-Store the following only in local/private Bruno environments:
+Store the following only in local/private Postman environments:
 
 * Firebase ID Tokens;
 * credentials;
@@ -716,25 +716,24 @@ Store the following only in local/private Bruno environments:
 
 Never commit secrets to:
 
-* `.bru` files;
-* shared Bruno environment files;
+* shared Postman environment files;
 * collection metadata;
 * repository configuration.
 
 When MySQL, Redis, and the backend are available:
 
-* execute the relevant Bruno request for the endpoint change;
-* execute the relevant Bruno business flow when the behavior spans multiple
+* execute the relevant Postman request for the endpoint change;
+* execute the relevant Postman business flow when the behavior spans multiple
   endpoints.
 
-If Bruno verification cannot be executed, report:
+If Postman verification cannot be executed, report:
 
 * what was not run;
 * why it could not be run;
 * what behavior remains unverified;
 * the remaining risk.
 
-Do not claim an endpoint or flow is verified when the corresponding Bruno check
+Do not claim an endpoint or flow is verified when the corresponding Postman check
 was skipped.
 
 ---
@@ -804,7 +803,7 @@ successfully.
    * services/use cases;
    * database constraints;
    * tests;
-   * Bruno requests;
+   * Postman requests;
    * documentation.
 5. Choose the smallest safe change that fully solves the task.
 
@@ -823,7 +822,7 @@ successfully.
 1. Review all changed files.
 2. Run relevant unit tests.
 3. Run relevant integration tests.
-4. Run relevant Bruno API checks.
+4. Run relevant Postman API checks.
 5. Run the applicable Maven verification command when the scope warrants it.
 6. Review migration and SQL impact when applicable.
 7. Verify no secrets were introduced.
@@ -915,7 +914,7 @@ After completing a backend task, clearly report:
 * what changed;
 * which files were modified;
 * tests that were actually executed;
-* Bruno checks that were actually executed;
+* Postman checks that were actually executed;
 * Maven commands that were actually executed;
 * schema or migration impact;
 * API-contract impact;
@@ -948,9 +947,9 @@ A backend task is complete only when all applicable conditions are satisfied:
 * relevant unit tests pass;
 * relevant integration tests pass;
 * concurrency-sensitive behavior is tested when applicable;
-* relevant Bruno endpoint checks are updated;
-* relevant Bruno business-flow checks are updated;
-* relevant Bruno checks were executed when the environment allowed it;
+* relevant Postman endpoint checks are updated;
+* relevant Postman business-flow checks are updated;
+* relevant Postman checks were executed when the environment allowed it;
 * Maven verification was run when the environment allowed it;
 * no secrets were committed or exposed;
 * required audit logging is present;

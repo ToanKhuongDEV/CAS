@@ -163,6 +163,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu.
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
 - [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`.
+- [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session.
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -275,6 +276,9 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Loại bỏ Bruno collection theo quyết định dùng Postman/cURL.
 - [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
 - [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
+- [x] Chuẩn hóa `backend/Agents.md` dùng Postman Native Git thay cho Bruno trong quy ước API checks và kiểm thử thủ công.
+- [x] Việt hóa toàn bộ message phản hồi API và message validation mặc định của backend để frontend hiển thị trực tiếp qua toast.
+- [x] Bổ sung Postman Native Git requests cho Customer resolve QR, mở/dùng chung table session và xem session hiện tại.
 - [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
 - [x] Thêm Flyway V2 cho `accounts.email` và `accounts.phone` (`NOT NULL`, unique); backfill account cũ bằng giá trị placeholder duy nhất và cập nhật luồng tạo account mới để lưu đủ hai trường.
 - [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,

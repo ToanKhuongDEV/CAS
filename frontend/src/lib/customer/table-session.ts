@@ -28,6 +28,18 @@ export async function resolveCustomerTableSession(
   return body.data;
 }
 
+export async function getCurrentCustomerTableSession(): Promise<CustomerTableSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/table-sessions/current`, {
+    credentials: "include",
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isCustomerTableSessionResolutionResponse(body)) {
+    throw new Error("Không tìm thấy phiên bàn hiện tại.");
+  }
+
+  return body.data;
+}
+
 function isCustomerTableSessionResolutionResponse(
   value: unknown,
 ): value is ApiResponse<CustomerTableSessionResolution> {

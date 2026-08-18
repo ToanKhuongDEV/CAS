@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,7 +26,7 @@ import vn.cas.store.model.CustomerTableSessionResolution;
 import vn.cas.store.service.CustomerTableSessionService;
 
 @RestController
-@RequestMapping(ApiPaths.CustomerTableSession.RESOLVE_QR)
+@RequestMapping(ApiPaths.CustomerTableSession.COMMON)
 public class CustomerTableSessionController {
 
     static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
@@ -35,7 +37,7 @@ public class CustomerTableSessionController {
         this.customerTableSessionService = customerTableSessionService;
     }
 
-    @PostMapping
+    @PostMapping("/resolve-qr")
     public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> resolveQr(
             @Valid @RequestBody ResolveQrRequest resolveQrRequest,
             HttpServletRequest request,
@@ -47,6 +49,18 @@ public class CustomerTableSessionController {
         if (resolution.sessionPublicId() != null) {
             response.addHeader(HttpHeaders.SET_COOKIE, customerSessionCookie(resolution.sessionPublicId(), request.isSecure()).toString());
         }
+        return ApiResponses.success(
+                HttpStatus.OK,
+                ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
+                CustomerTableSessionResponse.from(resolution),
+                request);
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> getCurrent(
+            @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            HttpServletRequest request) {
+        var resolution = customerTableSessionService.getCurrent(sessionPublicId);
         return ApiResponses.success(
                 HttpStatus.OK,
                 ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,

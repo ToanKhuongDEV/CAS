@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { CasIcon } from "../ui/cas-icon";
-import { resolveCustomerTableSession } from "../../lib/customer/table-session";
+import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
 
 const tableQrTokenKey = "cas.tableQrToken";
 
@@ -14,12 +14,8 @@ export function CustomerCartSubmitButton() {
     const tableQrToken = window.sessionStorage.getItem(tableQrTokenKey);
     if (tableQrToken) {
       try {
-        const resolution = await resolveCustomerTableSession(tableQrToken);
-        router.push(
-          resolution.customerInformationRequired
-            ? `/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`
-            : "/orders",
-        );
+        await getCurrentCustomerTableSession();
+        router.push("/orders");
       } catch {
         router.push(`/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`);
       }

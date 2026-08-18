@@ -51,6 +51,7 @@ khi chưa có phiên `OPEN` tại bàn; các thiết bị quét sau chỉ gửi 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
 ```
 
 Các lệnh khác:

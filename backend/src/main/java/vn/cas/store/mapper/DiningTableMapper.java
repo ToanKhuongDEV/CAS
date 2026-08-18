@@ -23,6 +23,8 @@ public interface DiningTableMapper {
 
     CustomerTableSessionLookup findTableSessionByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
 
+    CustomerTableSessionLookup findCurrentTableSessionByPublicId(@Param("sessionPublicId") String sessionPublicId);
+
     Long findClientAccountIdByStoreIdAndPhone(
             @Param("storeId") long storeId,
             @Param("phone") String phone);

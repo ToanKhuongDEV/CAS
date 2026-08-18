@@ -60,6 +60,19 @@
         FOR UPDATE
     </select>
 
+    <select id="findCurrentTableSessionByPublicId"
+            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            table_sessions.public_id AS sessionPublicId,
+            table_sessions.status AS sessionStatus
+        FROM table_sessions
+        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        WHERE table_sessions.public_id = #{sessionPublicId}
+    </select>
+
     <select id="findClientAccountIdByStoreIdAndPhone" resultType="long">
         SELECT id
         FROM client_accounts

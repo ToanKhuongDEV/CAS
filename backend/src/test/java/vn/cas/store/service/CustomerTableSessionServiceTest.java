@@ -63,4 +63,15 @@ class CustomerTableSessionServiceTest {
         verify(diningTableMapper).insertOpenCustomerTableSession(
                 anyLong(), any(), anyLong(), any(), any());
     }
+
+    @Test
+    void shouldReturnCurrentSessionFromItsPublicId() {
+        when(diningTableMapper.findCurrentTableSessionByPublicId("session-public-id"))
+                .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
+
+        var result = service.getCurrent("session-public-id");
+
+        assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
+        assertThat(result.tableCode()).isEqualTo(5L);
+    }
 }

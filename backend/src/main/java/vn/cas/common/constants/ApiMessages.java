@@ -3,30 +3,31 @@ package vn.cas.common.constants;
 public final class ApiMessages {
 
     public static final String SERVICE_STATUS_UP = "UP";
-    public static final String SERVICE_STATUS_RETRIEVED = "Service status retrieved.";
-    public static final String LONG_WAIT_WARNING_SETTING_RETRIEVED = "Long-wait warning setting retrieved.";
-    public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Long-wait warning setting updated.";
-    public static final String DINING_TABLE_CREATED = "Dining table created.";
-    public static final String DINING_TABLE_CODE_ALREADY_EXISTS = "Dining table code already exists.";
-    public static final String OPERATOR_CREATED = "Operator created.";
-    public static final String OPERATOR_DEACTIVATED = "Operator deactivated.";
-    public static final String OPERATOR_NOT_FOUND = "Operator not found.";
-    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Operator email is already registered.";
-    public static final String FIREBASE_UID_ALREADY_EXISTS = "Firebase UID is already registered.";
-    public static final String ADMIN_CREATED = "Admin created.";
-    public static final String CUSTOMER_TABLE_SESSION_RESOLVED = "Customer table session resolved.";
-    public static final String INVALID_TABLE_QR_CODE = "Table QR code is invalid or inactive.";
+    public static final String SERVICE_STATUS_RETRIEVED = "Đã lấy trạng thái hoạt động của hệ thống.";
+    public static final String LONG_WAIT_WARNING_SETTING_RETRIEVED = "Đã lấy cấu hình cảnh báo bàn chờ lâu.";
+    public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Đã cập nhật cấu hình cảnh báo bàn chờ lâu.";
+    public static final String DINING_TABLE_CREATED = "Đã tạo bàn ăn.";
+    public static final String DINING_TABLE_CODE_ALREADY_EXISTS = "Mã bàn đã tồn tại.";
+    public static final String OPERATOR_CREATED = "Đã tạo tài khoản nhân viên.";
+    public static final String OPERATOR_DEACTIVATED = "Đã vô hiệu hóa tài khoản nhân viên.";
+    public static final String OPERATOR_NOT_FOUND = "Không tìm thấy tài khoản nhân viên.";
+    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Email này đã được đăng ký cho tài khoản nhân viên.";
+    public static final String FIREBASE_UID_ALREADY_EXISTS = "Tài khoản Firebase này đã được đăng ký.";
+    public static final String ADMIN_CREATED = "Đã tạo tài khoản quản trị viên.";
+    public static final String CUSTOMER_TABLE_SESSION_RESOLVED = "Đã xác thực phiên bàn của khách.";
+    public static final String INVALID_TABLE_QR_CODE = "Mã QR của bàn không hợp lệ hoặc đã ngừng hoạt động.";
+    public static final String CUSTOMER_TABLE_SESSION_REQUIRED = "Vui lòng quét mã QR của bàn để tiếp tục.";
 
-    public static final String VALIDATION_FAILED = "Request validation failed";
-    public static final String INVALID_REQUEST = "Request is invalid";
-    public static final String UNAUTHENTICATED = "Authentication is required";
-    public static final String FORBIDDEN = "You do not have permission for this operation";
-    public static final String INTERNAL_ERROR = "An unexpected error occurred";
+    public static final String VALIDATION_FAILED = "Dữ liệu gửi lên chưa hợp lệ.";
+    public static final String INVALID_REQUEST = "Yêu cầu không hợp lệ.";
+    public static final String UNAUTHENTICATED = "Vui lòng đăng nhập để tiếp tục.";
+    public static final String FORBIDDEN = "Bạn không có quyền thực hiện thao tác này.";
+    public static final String INTERNAL_ERROR = "Hệ thống gặp sự cố. Vui lòng thử lại sau.";
 
-    public static final String INVALID_FIREBASE_TOKEN = "Firebase ID Token is invalid";
-    public static final String FIREBASE_CREDENTIALS_UNAVAILABLE = "Firebase Admin credentials are unavailable";
-    public static final String FIREBASE_AUTH_UNAVAILABLE = "Firebase Authentication is unavailable";
-    public static final String OPERATIONAL_ACCOUNT_UNAVAILABLE = "Operational account is unavailable";
+    public static final String INVALID_FIREBASE_TOKEN = "Phiên đăng nhập không hợp lệ.";
+    public static final String FIREBASE_CREDENTIALS_UNAVAILABLE = "Dịch vụ xác thực hiện chưa sẵn sàng.";
+    public static final String FIREBASE_AUTH_UNAVAILABLE = "Không thể kết nối dịch vụ xác thực. Vui lòng thử lại sau.";
+    public static final String OPERATIONAL_ACCOUNT_UNAVAILABLE = "Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.";
 
     private ApiMessages() {
     }

@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get current table session
+url: "{{baseUrl}}/api/v1/customer/table-sessions/current"
+method: GET
+order: 3000

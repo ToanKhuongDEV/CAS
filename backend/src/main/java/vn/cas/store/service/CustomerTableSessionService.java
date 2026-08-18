@@ -55,6 +55,23 @@ public class CustomerTableSessionService {
         return new CustomerTableSessionResolution(ResolutionStatus.OPEN, sessionPublicId, tableSession.tableCode());
     }
 
+    @Transactional(readOnly = true)
+    public CustomerTableSessionResolution getCurrent(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        }
+
+        var tableSession = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
+        if (tableSession == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        }
+
+        return new CustomerTableSessionResolution(
+                ResolutionStatus.valueOf(tableSession.sessionStatus()),
+                tableSession.sessionPublicId(),
+                tableSession.tableCode());
+    }
+
     private long findOrCreateClientAccount(long storeId, CustomerTableSessionResolutionCommand command) {
         if (command.customerPhone() != null) {
             Long existingId = diningTableMapper.findClientAccountIdByStoreIdAndPhone(storeId, command.customerPhone());

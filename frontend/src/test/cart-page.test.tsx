@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CartPage from "../app/(customer)/(ordering)/cart/page";
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
-import { resolveCustomerTableSession } from "../lib/customer/table-session";
+import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
 
 const push = vi.fn();
 
@@ -12,14 +12,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("../lib/customer/table-session", () => ({
-  resolveCustomerTableSession: vi.fn(),
+  getCurrentCustomerTableSession: vi.fn(),
 }));
 
 describe("CartPage", () => {
   beforeEach(() => {
     push.mockClear();
     window.sessionStorage.clear();
-    vi.mocked(resolveCustomerTableSession).mockReset();
+    vi.mocked(getCurrentCustomerTableSession).mockReset();
   });
 
   it("renders the selected items and shared order note", () => {
@@ -47,11 +47,7 @@ describe("CartPage", () => {
 
   it("returns to the customer information page before submitting an order", async () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
-    vi.mocked(resolveCustomerTableSession).mockResolvedValue({
-      customerInformationRequired: true,
-      sessionStatus: "CUSTOMER_INFORMATION_REQUIRED",
-      tableCode: 5,
-    });
+    vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("Session not found"));
     render(
       <OrderingLayout>
         <CartPage />
@@ -65,9 +61,9 @@ describe("CartPage", () => {
     );
   });
 
-  it("submits the order when the QR already resolves to an open table session", async () => {
+  it("submits the order when this device has an active table session", async () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
-    vi.mocked(resolveCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "OPEN",
       tableCode: 5,
