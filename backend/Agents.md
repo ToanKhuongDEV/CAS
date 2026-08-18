@@ -649,6 +649,10 @@ Each Postman request must verify:
 
 A successful HTTP connection alone is not sufficient verification.
 
+When a request has a body, set its Postman body type to `JSON`, with
+`Content-Type: application/json`. Do not use the `Text` body type for JSON API
+payloads.
+
 Group Postman requests by business feature.
 
 Example:

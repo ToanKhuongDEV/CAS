@@ -279,6 +279,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
 - [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
 - [x] Chuẩn hóa `backend/Agents.md` dùng Postman Native Git thay cho Bruno trong quy ước API checks và kiểm thử thủ công.
+- [x] Quy định Postman request có body JSON phải dùng body type `JSON`, không dùng `Text`.
 - [x] Việt hóa toàn bộ message phản hồi API và message validation mặc định của backend để frontend hiển thị trực tiếp qua toast.
 - [x] Bổ sung Postman Native Git requests cho Customer resolve QR, mở/dùng chung table session và xem session hiện tại.
 - [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
