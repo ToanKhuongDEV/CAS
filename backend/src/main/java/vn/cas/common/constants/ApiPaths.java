@@ -39,6 +39,15 @@ public final class ApiPaths {
         }
     }
 
+    public static final class CustomerTableSession {
+        private static final String PRE_FIX = API_CUSTOMER_PREFIX + "/table-sessions";
+
+        public static final String RESOLVE_QR = PRE_FIX + "/resolve-qr";
+
+        private CustomerTableSession() {
+        }
+    }
+
     public static final class Operator {
         private static final String PRE_FIX = API_ADMIN_PREFIX + "/operators";
         public static final String OPERATOR_COMMON = PRE_FIX;

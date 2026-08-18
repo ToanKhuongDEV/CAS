@@ -45,6 +45,14 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/tables -H "Authorization: Be
 
 Postman có thể import trực tiếp lệnh cURL này.
 
+Ví dụ quét QR để lấy hoặc tham gia phiên bàn Customer. Chỉ gửi `customerName`
+khi chưa có phiên `OPEN` tại bàn; các thiết bị quét sau chỉ gửi `qrToken`:
+
+```powershell
+curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+```
+
 Các lệnh khác:
 
 ```powershell

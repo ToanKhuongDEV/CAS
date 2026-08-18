@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import vn.cas.store.dto.CreateDiningTableCommand;
+import vn.cas.store.dto.CreateClientAccountCommand;
+import vn.cas.store.model.CustomerTableSessionLookup;
 
 @Mapper
 public interface DiningTableMapper {
@@ -18,4 +20,19 @@ public interface DiningTableMapper {
             @Param("tableId") long tableId,
             @Param("token") String token,
             @Param("issuedAt") LocalDateTime issuedAt);
+
+    CustomerTableSessionLookup findTableSessionByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
+
+    Long findClientAccountIdByStoreIdAndPhone(
+            @Param("storeId") long storeId,
+            @Param("phone") String phone);
+
+    int insertClientAccount(CreateClientAccountCommand command);
+
+    int insertOpenCustomerTableSession(
+            @Param("tableId") long tableId,
+            @Param("publicId") String publicId,
+            @Param("clientAccountId") long clientAccountId,
+            @Param("customerName") String customerName,
+            @Param("customerPhone") String customerPhone);
 }

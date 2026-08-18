@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { OperationalRouteGuard } from "../../../../components/auth/operational-route-guard";
 import { OperatorHeaderNotifications } from "../../../../components/operator/operator-header-notifications";
 import { OperatorTabNavigation } from "../../../../components/operator/operator-tab-navigation";
 import { CasIcon } from "../../../../components/ui/cas-icon";
@@ -12,7 +13,8 @@ type OperatorWorkspaceLayoutProps = {
 
 export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceLayoutProps) {
   return (
-    <main className="min-h-screen bg-cas-surface text-cas-on-surface">
+    <OperationalRouteGuard area="OPERATOR">
+      <main className="min-h-screen bg-cas-surface text-cas-on-surface">
       <div className="sticky top-0 z-40 shadow-xs">
         <header className="relative z-50 bg-cas-header px-4 py-4 backdrop-blur-xl sm:px-8 xl:px-12 border-b border-cas-outline-variant/15">
           <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4">
@@ -43,6 +45,7 @@ export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceL
       </div>
 
       <div className="mx-auto max-w-[100rem] px-4 py-7 sm:px-8 sm:py-9 xl:px-12">{children}</div>
-    </main>
+      </main>
+    </OperationalRouteGuard>
   );
 }

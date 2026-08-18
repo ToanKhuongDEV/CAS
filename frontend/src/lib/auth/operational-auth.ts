@@ -1,4 +1,10 @@
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  browserSessionPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from "firebase/auth";
 
 import { getFirebaseAuth } from "./firebase";
 
@@ -22,31 +28,38 @@ export async function signInOperationalUser(
   password: string,
 ): Promise<CurrentOperationalAccount> {
   const auth = getFirebaseAuth();
+  await setPersistence(auth, browserSessionPersistence);
   const credential = await signInWithEmailAndPassword(auth, email, password);
 
   try {
-    const idToken = await credential.user.getIdToken();
-    const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-
-    const body: unknown = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      throw new Error(getBackendErrorMessage(body, response.statusText));
-    }
-
-    if (!isCurrentOperationalAccountResponse(body)) {
-      throw new Error("Phản hồi xác thực từ CAS không hợp lệ.");
-    }
-
-    return body.data;
+    return await getCurrentOperationalAccount(credential.user);
   } catch (error) {
     await signOut(auth);
     throw error;
   }
+}
+
+export async function getCurrentOperationalAccount(
+  user: User,
+): Promise<CurrentOperationalAccount> {
+  const idToken = await user.getIdToken();
+  const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok) {
+    throw new Error(getBackendErrorMessage(body, response.statusText));
+  }
+
+  if (!isCurrentOperationalAccountResponse(body)) {
+    throw new Error("Phản hồi xác thực từ CAS không hợp lệ.");
+  }
+
+  return body.data;
 }
 
 function getBackendErrorMessage(body: unknown, fallbackMessage: string) {

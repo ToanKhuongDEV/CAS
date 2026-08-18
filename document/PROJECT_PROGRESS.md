@@ -162,6 +162,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 - [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn.
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu.
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
+- [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`.
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -200,7 +201,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
 - [ ] **Catalog gọi món:** xem danh sách món còn bán cho Customer/`OPERATOR`.
 - [ ] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
-- [ ] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
+- [x] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
 - [ ] **Table session:** lấy ngữ cảnh session hiện tại của Customer.
 - [ ] **Table session:** xem trạng thái session hiện tại của Customer.
 - [ ] **Table session:** hủy session chưa có order.
@@ -289,7 +290,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 #### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
 
-- [ ] Xây dựng luồng QR, mở/dùng chung/hủy table session khi chưa có order.
+- [ ] Hoàn thiện luồng QR, mở/dùng chung/hủy table session khi chưa có order (đã có resolve QR, mở/dùng chung session).
 - [ ] Xây dựng module Ordering.
 - [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
       quy tắc tạo order hiện có và ghi audit log.
@@ -498,6 +499,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung UI chọn voucher cho luồng Operator tạo order hộ; giỏ món và màn xác nhận hiển thị số tiền giảm cùng giá trị cần thanh toán tạm thời.
 - [x] Cho phép Operator chọn bàn trống tại màn tạo order hộ và xác nhận tạo phiên bàn mới trước khi chọn món.
 - [x] Tái sử dụng form thông tin khách (tên và SĐT) từ luồng quét QR khi Operator tạo phiên bàn mới trước khi tạo order hộ.
+- [x] Bảo vệ toàn bộ trang Admin và Operator bằng Firebase session cùng kiểm tra danh tính/role qua CAS Backend; phiên đăng nhập chỉ duy trì trong phiên trình duyệt.
+- [x] Yêu cầu Customer hoàn tất nhập thông tin mở phiên bàn trước khi gửi món từ Giỏ hàng; sau khi hợp lệ, quay lại Giỏ hàng để tiếp tục gửi order.
 - [x] Đổi card dịch vụ trong menu Customer thành “Đặt dịch vụ theo yêu cầu” và tách ghi chú chốt giá qua Zalo khỏi nút liên hệ.
 - [x] Bổ sung mục “Khác” và card “Đặt dịch vụ theo yêu cầu” vào menu tạo order hộ của Operator, tách biệt khỏi giỏ món tại bàn.
 - [x] Giữ thanh category cố định khi cuộn cho menu Customer và menu tạo order hộ của Operator, với offset phù hợp từng header và cập nhật đúng danh mục cuối trang.

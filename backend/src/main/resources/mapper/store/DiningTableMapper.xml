@@ -42,4 +42,62 @@
             NULL
         )
     </insert>
+
+    <select id="findTableSessionByActiveQrTokenForUpdate"
+            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            table_sessions.public_id AS sessionPublicId,
+            table_sessions.status AS sessionStatus
+        FROM table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
+            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        WHERE table_qr_codes.token = #{qrToken}
+          AND table_qr_codes.status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="findClientAccountIdByStoreIdAndPhone" resultType="long">
+        SELECT id
+        FROM client_accounts
+        WHERE store_id = #{storeId}
+          AND phone = #{phone}
+    </select>
+
+    <insert id="insertClientAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_accounts (
+            store_id,
+            phone,
+            display_name
+        ) VALUES (
+            #{storeId},
+            #{customerPhone},
+            #{customerName}
+        )
+    </insert>
+
+    <insert id="insertOpenCustomerTableSession">
+        INSERT INTO table_sessions (
+            table_id,
+            public_id,
+            client_account_id,
+            opened_by_customer_name,
+            opened_by_customer_phone,
+            status,
+            payment_requested_at,
+            closed_at
+        ) VALUES (
+            #{tableId},
+            #{publicId},
+            #{clientAccountId},
+            #{customerName},
+            #{customerPhone},
+            'OPEN',
+            NULL,
+            NULL
+        )
+    </insert>
 </mapper>

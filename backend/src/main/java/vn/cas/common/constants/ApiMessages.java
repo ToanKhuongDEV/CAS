@@ -14,6 +14,8 @@ public final class ApiMessages {
     public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Operator email is already registered.";
     public static final String FIREBASE_UID_ALREADY_EXISTS = "Firebase UID is already registered.";
     public static final String ADMIN_CREATED = "Admin created.";
+    public static final String CUSTOMER_TABLE_SESSION_RESOLVED = "Customer table session resolved.";
+    public static final String INVALID_TABLE_QR_CODE = "Table QR code is invalid or inactive.";
 
     public static final String VALIDATION_FAILED = "Request validation failed";
     public static final String INVALID_REQUEST = "Request is invalid";
