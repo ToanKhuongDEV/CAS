@@ -1,15 +1,16 @@
 $kind: http-request
+name: Create operator
 url: "{{baseUrl}}/api/v1/admin/operators"
 method: POST
 headers:
   Authorization: Bearer {{firebaseIdToken}}
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      "email": "operator@example.com",
-      "phone": "0901234567",
+      "email": "kxtdumbo+operator4@gmail.com",
+      "phone": "0901234564",
       "displayName": "Cashier One"
     }
 order: 3000

@@ -5,9 +5,9 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
-      "qrToken": "{{customerQrToken}}"
+      "qrToken": "8d0c01c6b4e2488da9b71e30f7ad000444444444444444444444444444444444"
     }
 order: 1000

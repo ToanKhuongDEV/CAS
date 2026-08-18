@@ -12,9 +12,3 @@ values:
     value: ''
   - key: firebaseIdToken
     value: ''
-  - key: customerQrToken
-    value: ''
-  - key: customerName
-    value: 'Customer One'
-  - key: customerPhone
-    value: ''

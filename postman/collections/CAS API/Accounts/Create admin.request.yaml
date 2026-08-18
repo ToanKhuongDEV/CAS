@@ -1,11 +1,12 @@
 $kind: http-request
+name: Create admin
 url: "{{baseUrl}}/api/v1/admin/admins"
 method: POST
 headers:
   Authorization: Bearer {{firebaseIdToken}}
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
       "firebaseUid": "firebase-admin-uid",

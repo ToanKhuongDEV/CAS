@@ -3,10 +3,10 @@ name: Create dining table
 url: "{{baseUrl}}/api/v1/admin/tables"
 method: POST
 headers:
-  Authorization: Bearer {{token_admin}}
+  Authorization: Bearer {{firebaseIdToken}}
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
       "code": 5,

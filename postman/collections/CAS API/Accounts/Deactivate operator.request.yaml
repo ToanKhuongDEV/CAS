@@ -1,5 +1,6 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/admin/operators/{{operatorId}}"
+name: Deactivate operator
+url: "{{baseUrl}}/api/v1/admin/operators/4"
 method: DELETE
 headers:
   Authorization: Bearer {{firebaseIdToken}}

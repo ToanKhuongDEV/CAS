@@ -10,7 +10,8 @@ body:
   type: json
   content: |-
     {
-      "email": "khuongxuantoan@gmail.com",
+    //   "email": "khuongxuantoan@gmail.com",
+      "email": "khuongxuantoan+operator@gmail.com",
       "password": "password123",
       "returnSecureToken": true
     }
