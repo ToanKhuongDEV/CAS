@@ -1,0 +1,11 @@
+$kind: http-request
+name: Create option value
+url: "{{baseUrl}}/api/v1/admin/catalog/option-groups/{{catalogOptionGroupId}}/values"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman value","extraPrice":0,"isDefault":false,"displayOrder":999,"status":"ACTIVE"}'
+order: 18000

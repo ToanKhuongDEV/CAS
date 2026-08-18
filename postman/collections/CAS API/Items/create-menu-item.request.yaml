@@ -1,0 +1,11 @@
+$kind: http-request
+name: Create menu item
+url: "{{baseUrl}}/api/v1/admin/catalog/items"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"categoryId":{{catalogCategoryId}},"name":"Postman item","price":25000,"availabilityStatus":"ACTIVE","displayOrder":999,"tagIds":[],"optionGroups":[]}'
+order: 20000

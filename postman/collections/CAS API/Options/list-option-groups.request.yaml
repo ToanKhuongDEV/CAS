@@ -1,0 +1,7 @@
+$kind: http-request
+name: List option groups
+url: "{{baseUrl}}/api/v1/admin/catalog/option-groups"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 15000

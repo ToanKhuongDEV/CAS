@@ -1,0 +1,7 @@
+$kind: http-request
+name: Delete option value
+url: "{{baseUrl}}/api/v1/admin/catalog/option-values/{{catalogOptionValueId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 19000

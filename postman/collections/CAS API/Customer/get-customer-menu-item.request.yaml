@@ -1,0 +1,5 @@
+$kind: http-request
+name: Customer get menu item
+url: "{{baseUrl}}/api/v1/customer/catalog/items/{{catalogItemId}}"
+method: GET
+order: 28000

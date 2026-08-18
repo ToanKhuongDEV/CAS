@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get admin menu item
+url: "{{baseUrl}}/api/v1/admin/catalog/items/{{catalogItemId}}"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 22000

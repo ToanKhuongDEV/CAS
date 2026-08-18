@@ -1,0 +1,5 @@
+$kind: http-request
+name: Customer list tags
+url: "{{baseUrl}}/api/v1/customer/catalog/tags"
+method: GET
+order: 26000

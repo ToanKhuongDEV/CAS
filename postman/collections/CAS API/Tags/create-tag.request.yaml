@@ -1,0 +1,11 @@
+$kind: http-request
+name: Create tag
+url: "{{baseUrl}}/api/v1/admin/catalog/tags"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman tag","status":"ACTIVE"}'
+order: 10000

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Update option group
+url: "{{baseUrl}}/api/v1/admin/catalog/option-groups/{{catalogOptionGroupId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman option updated","selectionType":"SINGLE","minSelect":0,"maxSelect":1,"displayOrder":999,"status":"ACTIVE"}'
+order: 16000

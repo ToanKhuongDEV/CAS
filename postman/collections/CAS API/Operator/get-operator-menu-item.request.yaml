@@ -1,0 +1,7 @@
+$kind: http-request
+name: Operator get menu item
+url: "{{baseUrl}}/api/v1/operator/catalog/items/{{catalogItemId}}"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 27000

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Update tag
+url: "{{baseUrl}}/api/v1/admin/catalog/tags/{{catalogTagId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman tag updated","status":"ACTIVE"}'
+order: 12000

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Delete tag
+url: "{{baseUrl}}/api/v1/admin/catalog/tags/{{catalogTagId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 13000
