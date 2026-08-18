@@ -148,6 +148,8 @@ Ngày cập nhật gần nhất: 2026-08-16
 
 ## 5. Backend
 
+- [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món dùng lại asset demo trong `frontend/public/images/welcome`.
+
 - [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
       `operation`) theo các package `controller`, `service`, `mapper`, `model`,
       `dto` và `exception`; cập nhật tài liệu kiến trúc; giữ nguyên API contract,
