@@ -72,6 +72,18 @@ public class CustomerTableSessionService {
                 tableSession.tableCode());
     }
 
+    @Transactional(readOnly = true)
+    public long getCurrentStoreId(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        }
+        var session = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
+        if (session == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        }
+        return session.storeId();
+    }
+
     private long findOrCreateClientAccount(long storeId, CustomerTableSessionResolutionCommand command) {
         if (command.customerPhone() != null) {
             Long existingId = diningTableMapper.findClientAccountIdByStoreIdAndPhone(storeId, command.customerPhone());

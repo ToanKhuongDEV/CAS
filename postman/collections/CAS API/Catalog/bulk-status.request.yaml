@@ -1,0 +1,11 @@
+$kind: http-request
+name: Bulk item status
+url: "{{baseUrl}}/api/v1/admin/catalog/items/bulk-status"
+method: PATCH
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"itemIds":[{{catalogItemId}}],"status":"SOLD_OUT"}'
+order: 7000

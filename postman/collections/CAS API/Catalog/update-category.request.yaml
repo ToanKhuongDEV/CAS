@@ -1,0 +1,11 @@
+$kind: http-request
+name: Update category
+url: "{{baseUrl}}/api/v1/admin/catalog/categories/{{catalogCategoryId}}"
+method: PUT
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman category updated","displayOrder":999,"status":"ACTIVE"}'
+order: 4000

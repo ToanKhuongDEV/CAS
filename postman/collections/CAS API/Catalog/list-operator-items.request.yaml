@@ -1,0 +1,7 @@
+$kind: http-request
+name: Operator list items
+url: "{{baseUrl}}/api/v1/operator/catalog/items"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 8000

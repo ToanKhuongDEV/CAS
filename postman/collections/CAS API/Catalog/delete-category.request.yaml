@@ -1,0 +1,7 @@
+$kind: http-request
+name: Delete category
+url: "{{baseUrl}}/api/v1/admin/catalog/categories/{{catalogCategoryId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 5000

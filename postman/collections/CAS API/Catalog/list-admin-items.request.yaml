@@ -1,0 +1,7 @@
+$kind: http-request
+name: List admin items
+url: "{{baseUrl}}/api/v1/admin/catalog/items"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 6000

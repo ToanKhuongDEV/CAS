@@ -391,8 +391,8 @@ Giao diện Operation hỗ trợ chế độ offline có giới hạn để duy 
 
 ### 6.5. Tích hợp dịch vụ ngoài
 
-- Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary.
-- Khi admin quản lý ảnh món, CAS Backend nhận file, kiểm tra quyền và upload ảnh lên Cloudinary bằng authenticated API. Backend lưu `image_url` và `image_storage_key` vào MySQL.
+- Frontend xin chữ ký upload ngắn hạn từ CAS Backend rồi upload trực tiếp ảnh món lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
+- Khi admin lưu món, Frontend gửi URL hiển thị và Cloudinary public ID về CAS Backend; Backend kiểm tra quyền và lưu `image_url`, `image_storage_key` vào MySQL.
 - Số tiền của payment được CAS Backend tính từ tổng `orders.payable_amount`; frontend không được gửi một số tiền để backend tin cậy.
 - CAS không tích hợp VietQR, dịch vụ ngân hàng hoặc loa báo giao dịch. Nhân viên dùng tín hiệu “ting ting” bên ngoài CAS để xác minh chuyển khoản trước khi bấm xác nhận; CAS chỉ cập nhật trạng thái nghiệp vụ.
 - Cloudinary được cô lập trong infrastructure adapter; domain không phụ thuộc trực tiếp vào SDK hoặc provider.

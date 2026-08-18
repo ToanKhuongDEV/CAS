@@ -49,3 +49,9 @@ cas:
     service-account-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
   web:
     frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+    upload-preset: ${CLOUDINARY_UPLOAD_PRESET:}
+    root-folder: ${CLOUDINARY_ROOT_FOLDER:cas/menu}

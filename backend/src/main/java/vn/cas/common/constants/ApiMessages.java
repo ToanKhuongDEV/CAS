@@ -17,6 +17,10 @@ public final class ApiMessages {
     public static final String CUSTOMER_TABLE_SESSION_RESOLVED = "Đã xác thực phiên bàn của khách.";
     public static final String INVALID_TABLE_QR_CODE = "Mã QR của bàn không hợp lệ hoặc đã ngừng hoạt động.";
     public static final String CUSTOMER_TABLE_SESSION_REQUIRED = "Vui lòng quét mã QR của bàn để tiếp tục.";
+    public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
+    public static final String CATALOG_RESOURCE_IN_USE = "Dữ liệu thực đơn đang được sử dụng nên không thể xóa.";
+    public static final String INVALID_CATALOG_IMAGE = "Ảnh món không thuộc Cloudinary của cửa hàng.";
+    public static final String CLOUDINARY_NOT_CONFIGURED = "Cloudinary chưa được cấu hình.";
 
     public static final String VALIDATION_FAILED = "Dữ liệu gửi lên chưa hợp lệ.";
     public static final String INVALID_REQUEST = "Yêu cầu không hợp lệ.";

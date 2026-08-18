@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Cloudinary upload signature
+url: "{{baseUrl}}/api/v1/admin/catalog/images/upload-signature"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 2000

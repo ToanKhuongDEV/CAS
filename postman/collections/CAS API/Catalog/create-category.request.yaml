@@ -1,0 +1,11 @@
+$kind: http-request
+name: Create category
+url: "{{baseUrl}}/api/v1/admin/catalog/categories"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Postman category","categoryType":"REGULAR","displayOrder":999,"status":"ACTIVE"}'
+order: 1000

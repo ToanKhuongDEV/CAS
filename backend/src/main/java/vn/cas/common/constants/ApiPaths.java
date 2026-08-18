@@ -69,4 +69,11 @@ public final class ApiPaths {
         private Auth() {
         }
     }
+
+    public static final class Catalog {
+        public static final String ADMIN = API_ADMIN_PREFIX + "/catalog";
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/catalog";
+        public static final String CUSTOMER = API_CUSTOMER_PREFIX + "/catalog";
+        private Catalog() { }
+    }
 }

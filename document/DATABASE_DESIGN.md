@@ -331,7 +331,7 @@ Category loại `OPTION` không hiển thị như danh mục món chính trên g
 `menu_items.store_id` phải khớp `categories.store_id`. Composite FK của
 `menu_item_option_groups` tiếp tục bảo đảm menu item và option group cùng cửa hàng.
 
-Ảnh món được quản lý qua CAS Backend. Backend nhận file từ giao diện admin, upload lên Cloudinary bằng authenticated API, sau đó lưu URL hiển thị vào `image_url` và khóa asset vào `image_storage_key`. Frontend không upload trực tiếp lên Cloudinary.
+Ảnh món được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do CAS Backend cấp. Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào `image_url` và `image_storage_key`; API secret không rời Backend.
 
 ### 5.3. Khuyến mãi và snapshot discount
 
@@ -1175,7 +1175,7 @@ Thiết kế hiện tại chưa bao gồm:
 - QR bàn là mã cố định được in và dán tại bàn; hệ thống không tạo QR thanh toán.
 - CAS không lưu số tài khoản, mã hoặc tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hay mã tham chiếu giao dịch.
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
-- Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
+- Frontend upload ảnh món trực tiếp lên Cloudinary bằng chữ ký ngắn hạn từ Backend, rồi lưu URL/public ID qua API Catalog.
 - Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
 - Khuyến mãi dùng đúng 5 bảng: `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`, thay cho bảng `vouchers` đơn giản. Tất cả record promotion/redemption/discount snapshot có `store_id`. `promotions` hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`.
 - Điều kiện cơ bản `min_bill_amount`, thời gian hiệu lực và quota nằm trực tiếp tại `promotions`. `promotion_targets` dùng `target_type` và `target_id` để giới hạn phạm vi theo món hoặc danh mục. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn sẽ được bổ sung ở giai đoạn mở rộng.
