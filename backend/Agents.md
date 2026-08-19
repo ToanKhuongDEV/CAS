@@ -474,6 +474,23 @@ component.
 * Do not use `System.out.println` for normal application logging.
 * Use appropriate log levels.
 * Avoid noisy logs in frequently executed loops and polling endpoints.
+* Use SLF4J with Spring Boot's default Logback implementation. Services and
+  controllers should log business or integration failures directly with
+  Lombok `@Slf4j` where that keeps the source concise.
+* Use a filter or interceptor for request ID propagation and HTTP access logs.
+  Access logs must include `requestId`, HTTP method, path, response status and
+  duration; include authenticated `accountId` and `storeId` when available.
+* The centralized exception handler must log handled API failures at `WARN` and
+  unhandled exceptions at `ERROR` with the original exception. Do not add
+  repetitive controller `try/catch` blocks for standard errors.
+* Use `DEBUG` for diagnostic details, `INFO` for successful HTTP access and
+  important lifecycle events, `WARN` for expected failures or rejected
+  requests, and `ERROR` for unexpected failures or unavailable dependencies.
+* Keep structured log fields limited to safe identifiers such as `requestId`,
+  `accountId`, `storeId`, public business IDs, operation name and status.
+* Use AOP only for deliberate cross-cutting concerns such as method timing,
+  audit integration or narrowly scoped tracing. Do not use it to log every
+  method invocation.
 * Log useful identifiers where safe, such as:
 
   * correlation/request ID;
@@ -493,6 +510,8 @@ Never log:
 * cookies;
 * payment credentials;
 * full sensitive customer information.
+* raw request or response payloads unless an approved, redacted diagnostic use
+  case requires them.
 
 ---
 

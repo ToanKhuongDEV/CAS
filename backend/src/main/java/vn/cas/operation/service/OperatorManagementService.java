@@ -1,6 +1,7 @@
 package vn.cas.operation.service;
 
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import vn.cas.operation.mapper.OperationalAccountMapper;
 import vn.cas.operation.service.firebase.FirebaseUserProvisioner;
 
 @Service
+@Slf4j
 public class OperatorManagementService {
     private static final String DEFAULT_OPERATOR_PASSWORD = "password123";
 
@@ -44,9 +46,18 @@ public class OperatorManagementService {
             auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CREATE", "ACCOUNT", command.getId(), displayName,
                     "{\"role\":\"OPERATOR\"}", principal.accountId(), principal.displayName(), "Created operator account"));
         } catch (DataIntegrityViolationException exception) {
+            log.warn(
+                    "Operator account creation failed while persisting CAS account: requestId={}, actorAccountId={}",
+                    requestId,
+                    principal.accountId());
             firebaseUserProvisioner.deleteUser(firebaseUid);
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.FIREBASE_UID_ALREADY_EXISTS);
         } catch (RuntimeException exception) {
+            log.error(
+                    "Operator account creation failed while persisting CAS account: requestId={}, actorAccountId={}",
+                    requestId,
+                    principal.accountId(),
+                    exception);
             firebaseUserProvisioner.deleteUser(firebaseUid);
             throw exception;
         }

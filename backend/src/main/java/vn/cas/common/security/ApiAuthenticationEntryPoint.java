@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import vn.cas.common.response.ApiError;
@@ -24,6 +26,7 @@ import vn.cas.common.constants.ApiMessages;
 public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiAuthenticationEntryPoint.class);
 
     private final ObjectMapper objectMapper;
 
@@ -36,6 +39,12 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authenticationException) throws IOException {
+        LOGGER.warn(
+                "Authentication failed: requestId={}, method={}, path={}, reason={}",
+                request.getAttribute(RequestId.ATTRIBUTE_NAME),
+                request.getMethod(),
+                request.getRequestURI(),
+                authenticationException.getClass().getSimpleName());
         writeError(
                 response,
                 request,

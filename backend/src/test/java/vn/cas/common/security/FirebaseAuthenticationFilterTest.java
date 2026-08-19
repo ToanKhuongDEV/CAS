@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -43,10 +44,15 @@ class FirebaseAuthenticationFilterTest {
         var request = authenticatedRequest();
         var response = new MockHttpServletResponse();
         var chainCalled = new AtomicBoolean();
+        var requestPrincipal = new AtomicReference<Object>();
 
-        filter.doFilter(request, response, (servletRequest, servletResponse) -> chainCalled.set(true));
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            chainCalled.set(true);
+            requestPrincipal.set(servletRequest.getAttribute(OperationalPrincipal.class.getName()));
+        });
 
         assertThat(chainCalled).isTrue();
+        assertThat(requestPrincipal.get()).isInstanceOf(OperationalPrincipal.class);
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting("authority")
                 .containsExactly("ROLE_OPERATOR");

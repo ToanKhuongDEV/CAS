@@ -57,6 +57,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             var account = operationalAccountMapper.findActiveByFirebaseUid(firebaseUid)
                     .orElseThrow(() -> new BadCredentialsException(ApiMessages.OPERATIONAL_ACCOUNT_UNAVAILABLE));
             var principal = OperationalPrincipal.from(account);
+            request.setAttribute(OperationalPrincipal.class.getName(), principal);
             var authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,

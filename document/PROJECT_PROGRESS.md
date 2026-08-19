@@ -149,6 +149,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 ## 5. Backend
 
 - [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món dùng lại asset demo trong `frontend/public/images/welcome`.
+- [x] Bổ sung hai account demo `ADMIN` và `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
 
 - [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
       `operation`) theo các package `controller`, `service`, `mapper`, `model`,
@@ -271,6 +272,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
       `common.response`, `common.constants`, `common.persistence`,
       `common.security` và `common.web`.
 - [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
+- [x] Bổ sung application logging tiếng Anh cho mọi API failure, lỗi xác thực/từ chối quyền/tạo tài khoản `OPERATOR`/Firebase/exception chưa xử lý, cùng HTTP access log và thời gian xử lý; log chỉ chứa request ID và định danh an toàn.
 - [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
 - [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
 - [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
@@ -280,6 +282,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
 - [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
 - [x] Chuẩn hóa `backend/Agents.md` dùng Postman Native Git thay cho Bruno trong quy ước API checks và kiểm thử thủ công.
+- [x] Bổ sung quy ước application logging trong `backend/Agents.md`: SLF4J/Logback, level log, structured fields an toàn, HTTP access/timing và giới hạn AOP.
 - [x] Quy định Postman request có body JSON phải dùng body type `JSON`, không dùng `Text`.
 - [x] Việt hóa toàn bộ message phản hồi API và message validation mặc định của backend để frontend hiển thị trực tiếp qua toast.
 - [x] Bổ sung Postman Native Git requests cho Customer resolve QR, mở/dùng chung table session và xem session hiện tại.
