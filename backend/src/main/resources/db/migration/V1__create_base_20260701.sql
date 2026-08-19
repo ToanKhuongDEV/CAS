@@ -95,7 +95,7 @@ CREATE TABLE categories (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_categories_store_name UNIQUE (store_id, name),
-    KEY idx_categories_id_store (id, store_id),
+    CONSTRAINT uk_categories_id_store UNIQUE (id, store_id),
     KEY idx_categories_menu (store_id, status, display_order),
     KEY idx_categories_created_by (created_by),
     KEY idx_categories_updated_by (updated_by),
@@ -128,7 +128,7 @@ CREATE TABLE menu_items (
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    KEY idx_menu_items_id_store (id, store_id),
+    CONSTRAINT uk_menu_items_id_store UNIQUE (id, store_id),
     KEY idx_menu_items_menu (category_id, availability_status, display_order),
     KEY idx_menu_items_created_by (created_by),
     KEY idx_menu_items_updated_by (updated_by),
@@ -154,7 +154,7 @@ CREATE TABLE tags (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_tags_store_name UNIQUE (store_id, name),
-    KEY idx_tags_id_store (id, store_id),
+    CONSTRAINT uk_tags_id_store UNIQUE (id, store_id),
     CONSTRAINT fk_tags_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
@@ -195,7 +195,7 @@ CREATE TABLE option_groups (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_option_groups_store_name UNIQUE (store_id, name),
-    KEY idx_option_groups_id_store (id, store_id),
+    CONSTRAINT uk_option_groups_id_store UNIQUE (id, store_id),
     KEY idx_option_groups_store (store_id, status, display_order),
     KEY idx_option_groups_created_by (created_by),
     KEY idx_option_groups_updated_by (updated_by),
