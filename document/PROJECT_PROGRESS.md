@@ -182,33 +182,32 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] **Bàn và QR:** xem QR đang hoạt động của bàn.
 - [ ] **Bàn và QR:** tải QR của bàn để in hoặc lưu.
 - [ ] **Bàn và QR:** xóa bàn.
-- [ ] **Category:** xem danh sách category.
-- [ ] **Category:** thêm category.
-- [ ] **Category:** sửa category.
-- [ ] **Category:** xóa category.
-- [ ] **Tag:** xem danh sách tag.
-- [ ] **Tag:** thêm tag.
-- [ ] **Tag:** sửa tag.
-- [ ] **Tag:** xóa tag.
-- [ ] **Món:** xem danh sách món.
-- [ ] **Món:** xem chi tiết món.
-- [ ] **Món:** thêm món.
-- [ ] **Món:** sửa món, gồm category, tag, nhóm option, giá, trạng thái, thứ tự hiển thị và ảnh Cloudinary, từ một form.
-- [ ] **Món:** cập nhật hàng loạt trạng thái `ACTIVE`, `INACTIVE` hoặc `SOLD_OUT`.
-- [ ] **Nhóm option:** xem danh sách nhóm option.
-- [ ] **Nhóm option:** xem chi tiết nhóm option.
-- [ ] **Nhóm option:** thêm nhóm option.
-- [ ] **Nhóm option:** sửa nhóm option.
-- [ ] **Nhóm option:** xóa nhóm option.
-- [ ] **Option value:** thêm option value.
-- [ ] **Option value:** xóa option value.
-- [ ] **Catalog gọi món:** xem category hiển thị cho Customer/`OPERATOR`.
-- [ ] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
-- [ ] **Catalog gọi món:** xem danh sách món còn bán cho Customer/`OPERATOR`.
-- [ ] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
+- [x] **Category:** xem danh sách category.
+- [x] **Category:** thêm category.
+- [x] **Category:** sửa category.
+- [x] **Category:** xóa category.
+- [x] **Tag:** xem danh sách tag.
+- [x] **Tag:** thêm tag.
+- [x] **Tag:** sửa tag.
+- [x] **Tag:** xóa tag.
+- [x] **Món:** xem danh sách món.
+- [x] **Món:** xem chi tiết món.
+- [x] **Món:** thêm món.
+- [x] **Món:** sửa món, gồm category, tag, nhóm option, giá, trạng thái, thứ tự hiển thị và ảnh Cloudinary, từ một form.
+- [x] **Món:** cập nhật hàng loạt trạng thái `ACTIVE`, `INACTIVE` hoặc `SOLD_OUT`.
+- [x] **Nhóm option:** xem danh sách nhóm option.
+- [x] **Nhóm option:** xem chi tiết nhóm option.
+- [x] **Nhóm option:** thêm nhóm option.
+- [x] **Nhóm option:** sửa nhóm option.
+- [x] **Nhóm option:** xóa nhóm option.
+- [x] **Option value:** thêm option value.
+- [x] **Option value:** xóa option value.
+- [x] **Catalog gọi món:** xem category hiển thị cho Customer/`OPERATOR`.
+- [x] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
+- [x] **Catalog gọi món:** xem danh sách món còn bán cho Customer/`OPERATOR`.
+- [x] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
 - [x] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
-- [ ] **Table session:** lấy ngữ cảnh session hiện tại của Customer.
-- [ ] **Table session:** xem trạng thái session hiện tại của Customer.
+- [x] **Table session:** lấy ngữ cảnh và trạng thái session hiện tại của Customer.
 - [ ] **Table session:** hủy session chưa có order.
 - [ ] **Order:** tạo order bởi Customer.
 - [ ] **Order:** tạo order hộ bởi `OPERATOR`.
@@ -297,12 +296,13 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Xây dựng API `GET`/`PUT /api/v1/admin/store/settings/long-wait-warning`: chỉ
       `ADMIN`, validation `0`–`1440`, fallback đọc `25`, ghi audit log và test
       service/controller.
-- [ ] Xây dựng module Catalog.
+- [x] Xây dựng module Catalog.
 
 #### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
 
 - [ ] Hoàn thiện luồng QR, mở/dùng chung/hủy table session khi chưa có order (đã có resolve QR, mở/dùng chung session).
 - [ ] Xây dựng module Ordering.
+- [ ] Sau khi hoàn tất cấu hình và kiểm thử Cloudinary: hoàn thiện Ordering cho Customer (tạo order idempotent, xem order/bill và hủy session chưa có order) trước các use case chế biến và thanh toán.
 - [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
       quy tắc tạo order hiện có và ghi audit log.
 - [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
@@ -487,7 +487,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Chốt GitHub Actions làm nền tảng CI/CD.
 - [x] Chốt triển khai production trên một VPS.
 - [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
-- [ ] Tích hợp upload và quản lý hình ảnh với Cloudinary.
+- [ ] Ưu tiên tiếp theo: hoàn tất tích hợp Cloudinary cho ảnh món — tạo/cấu hình upload preset và thư mục, đặt secret ngoài repository, kiểm thử upload ký trực tiếp từ Frontend, rồi lưu và kiểm tra `imageUrl`/`imageStorageKey` khi tạo hoặc sửa món.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
 - [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
 - [ ] Cấu hình logging, theo dõi lỗi và health check.
