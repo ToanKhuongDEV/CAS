@@ -45,7 +45,10 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/tables -H "Authorization: Be
 
 Postman có thể import trực tiếp lệnh cURL này.
 
-Ví dụ quản lý Catalog và xin chữ ký upload ảnh Cloudinary:
+Ví dụ quản lý Catalog và xin chữ ký upload ảnh Cloudinary. Response của endpoint
+chứa `cloudName`, `apiKey`, `timestamp`, `signature`, `folder`, `publicId` và
+`uploadPreset`; Frontend dùng các giá trị này để upload trực tiếp ảnh lên
+Cloudinary, rồi gửi `secure_url` và `public_id` khi tạo hoặc sửa món:
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Đồ uống\",\"categoryType\":\"REGULAR\",\"displayOrder\":1,\"status\":\"ACTIVE\"}"

@@ -26,6 +26,8 @@ public interface CatalogMapper {
     int deleteOptionValue(@Param("storeId") long storeId, @Param("id") long id);
     List<CatalogMenuItem> findMenuItems(@Param("storeId") long storeId, @Param("publicOnly") boolean publicOnly);
     CatalogMenuItem findMenuItem(@Param("storeId") long storeId, @Param("id") long id, @Param("publicOnly") boolean publicOnly);
+    List<CatalogTag> findMenuItemTags(@Param("menuItemId") long menuItemId);
+    List<CatalogOptionGroup> findMenuItemOptionGroups(@Param("menuItemId") long menuItemId);
     int insertMenuItem(@Param("storeId") long storeId, @Param("categoryId") long categoryId, @Param("name") String name, @Param("description") String description, @Param("price") java.math.BigDecimal price, @Param("imageUrl") String imageUrl, @Param("imageStorageKey") String imageStorageKey, @Param("availabilityStatus") String availabilityStatus, @Param("displayOrder") int displayOrder, @Param("actorId") long actorId);
     int updateMenuItem(@Param("storeId") long storeId, @Param("id") long id, @Param("categoryId") long categoryId, @Param("name") String name, @Param("description") String description, @Param("price") java.math.BigDecimal price, @Param("imageUrl") String imageUrl, @Param("imageStorageKey") String imageStorageKey, @Param("availabilityStatus") String availabilityStatus, @Param("displayOrder") int displayOrder, @Param("actorId") long actorId);
     int bulkUpdateMenuItemStatus(@Param("storeId") long storeId, @Param("ids") List<Long> ids, @Param("status") String status, @Param("actorId") long actorId);
