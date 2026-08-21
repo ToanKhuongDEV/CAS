@@ -92,7 +92,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 - [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
 - [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
 - [x] Bật CORS trong Spring Security, áp dụng whitelist `FRONTEND_ORIGIN` cho frontend gọi CAS Backend trực tiếp.
-- [x] Chốt CAS Backend upload ảnh lên Cloudinary bằng authenticated API.
+- [x] Chốt luồng upload ảnh món có chữ ký: CAS Backend cấp chữ ký ngắn hạn, Frontend upload trực tiếp ảnh lên Cloudinary, rồi gửi URL hiển thị và public ID về Backend khi lưu món.
 - [x] Chốt CAS Backend chỉ quản lý yêu cầu và trạng thái thanh toán, không tích hợp VietQR/ngân hàng.
 
 ## 4. Thiết kế database
@@ -167,7 +167,7 @@ Ngày cập nhật gần nhất: 2026-08-16
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
 - [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`.
 - [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `ADMIN` xin chữ ký upload Cloudinary để Frontend upload ảnh trực tiếp.
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món.
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -479,6 +479,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung bộ lọc Sắp xếp (Sorting dropdown) theo Thứ tự hiển thị, Giá niêm yết và Ngày tạo tại `/admin/catalog`.
 - [x] Hoàn thiện tính năng Sửa tên và Xóa nhóm option, xóa thẻ giá trị option tại `/admin/catalog/options` và Sửa/Xửa danh mục món tại `/admin/catalog/categories`.
 - [x] Tích hợp thư viện `qrcode.react` để hiển thị ảnh mã QR thực tế và hỗ trợ tải ảnh QR (PNG) cho từng bàn ăn tại `/admin/tables`.
+- [x] Cập nhật regression test Frontend theo UI hiện tại: luồng xác nhận khoản chưa thanh toán, bill thanh toán và sáu tab điều hướng Operator; toàn bộ `npm run test` đạt 20 file / 38 test.
 
 ## 7. Hạ tầng và triển khai
 
@@ -487,7 +488,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Chốt GitHub Actions làm nền tảng CI/CD.
 - [x] Chốt triển khai production trên một VPS.
 - [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
-- [ ] Ưu tiên tiếp theo: hoàn tất tích hợp Cloudinary cho ảnh món — tạo/cấu hình upload preset và thư mục, đặt secret ngoài repository, kiểm thử upload ký trực tiếp từ Frontend, rồi lưu và kiểm tra `imageUrl`/`imageStorageKey` khi tạo hoặc sửa món.
+- [x] Hoàn thiện nền tảng upload ảnh món Cloudinary: CAS Backend ký request, Frontend upload trực tiếp khi Admin lưu món và giữ `secure_url`/`public_id`; Backend chỉ chấp nhận asset đúng Cloudinary và public ID được ký cho store.
+- [x] Kết nối trang Admin Catalog với API Catalog: tải danh mục/tag/option/món, lưu `imageUrl`/`imageStorageKey` đã upload khi tạo hoặc sửa món và cập nhật trạng thái hàng loạt qua Backend.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
 - [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
 - [ ] Cấu hình logging, theo dõi lỗi và health check.

@@ -69,7 +69,7 @@ Customer is an actor, not an `accounts.role`. The current system has no kitchen/
 - Frontend communicates only with CAS Backend.
 - State created by another device is synchronized using REST polling.
 - SSE, WebSocket, and Redis Pub/Sub are not part of the initial frontend architecture.
-- Frontend never uploads directly to Cloudinary.
+- Với ảnh món, Frontend xin chữ ký upload ngắn hạn từ CAS Backend rồi upload trực tiếp lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
 
 Out of scope for the current frontend unless explicitly requested:
 
@@ -483,8 +483,8 @@ Polling rules:
 - Do not rely solely on stale cached menu data during order submission.
 - Images must include meaningful alternative text.
 - Use image dimensions or aspect ratios to avoid layout shifts.
-- Admin sends image files to CAS Backend. Frontend must not upload directly to Cloudinary.
-- Store and render only the finalized media URL returned by the backend.
+- Admin xin chữ ký upload từ CAS Backend rồi upload ảnh món trực tiếp lên Cloudinary. Khi lưu món, Frontend gửi `secure_url` và `public_id` về CAS Backend.
+- Store and render only the finalized media URL returned by Cloudinary và được Backend chấp nhận.
 
 ### 11.3. Ordering
 
@@ -789,7 +789,7 @@ Feature flags
 Observability configuration
 ```
 
-Do not add Cloudinary credentials or upload presets to frontend environment variables. CAS Backend owns the integration and returns finalized media data.
+Do not add Cloudinary credentials or upload presets to frontend environment variables. CAS Backend chỉ cấp chữ ký upload ngắn hạn; API secret luôn ở Backend.
 
 ---
 
@@ -826,7 +826,7 @@ Treat all browser input and external data as untrusted.
 - Use CSRF protection according to the backend authentication model.
 - Do not log sensitive payment or authentication data.
 - Do not trust role, price, total, order status, or payment status supplied only by the browser.
-- Do not call Cloudinary APIs directly from browser code.
+- Không gọi Cloudinary API trực tiếp từ browser ngoài luồng upload ảnh món có chữ ký do CAS Backend cấp.
 
 ---
 
