@@ -56,9 +56,7 @@ describe("CartPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
 
-    await vi.waitFor(() =>
-      expect(push).toHaveBeenCalledWith("/table/qr-ban-05?returnTo=%2Fcart"),
-    );
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/table/qr-ban-05?returnTo=%2Fcart"));
   });
 
   it("submits the order when this device has an active table session", async () => {

@@ -172,7 +172,8 @@ export function OperatorTableSelectModal({
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {filteredTables.map((table) => {
               const isSelected = table.id === selectedTableId;
-              const isOpenSession = table.status === "OPEN" || newlyOpenedTableIds.includes(table.id);
+              const isOpenSession =
+                table.status === "OPEN" || newlyOpenedTableIds.includes(table.id);
               const isPendingPayment = table.status === "PAYMENT_PENDING";
               const isEmpty = table.status === "EMPTY";
 
@@ -197,7 +198,7 @@ export function OperatorTableSelectModal({
                         ? "border-cas-outline-variant/30 bg-cas-glass hover:border-cas-secondary hover:bg-cas-secondary-container/10"
                         : isPendingPayment
                           ? "cursor-not-allowed border-cas-tertiary/30 bg-cas-tertiary-container/15 opacity-70"
-                        : "cursor-pointer border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60 hover:opacity-100"
+                          : "cursor-pointer border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60 hover:opacity-100"
                   }`}
                 >
                   <div className="flex w-full items-center justify-between">

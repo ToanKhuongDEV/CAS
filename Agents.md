@@ -99,7 +99,7 @@ Do not organize the entire application into shared technical packages such as
 - Do not manually edit generated files, including OpenAPI or code-generation outputs.
 - Do not delete existing files, code, comments, tests, or configurations unless explicitly required.
 - Keep changes minimal and focused. Do not format or modify unrelated files.
-- After completing the implementation, run the project's formatting command (for frontend: npx prettier --write src/ or npm run format).
+- After completing any code implementation, run the shared formatter from the repository root: `.\scripts\format.ps1`.
 - Clearly report assumptions, modified files, important decisions, and any remaining risks.
 
 ## Frontend Design System

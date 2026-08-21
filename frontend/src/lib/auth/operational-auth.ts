@@ -39,9 +39,7 @@ export async function signInOperationalUser(
   }
 }
 
-export async function getCurrentOperationalAccount(
-  user: User,
-): Promise<CurrentOperationalAccount> {
+export async function getCurrentOperationalAccount(user: User): Promise<CurrentOperationalAccount> {
   const idToken = await user.getIdToken();
   const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
     cache: "no-store",

@@ -159,11 +159,16 @@ export default function AdminOperatorsPage() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-display-name">
+                <label
+                  className="block font-bold text-cas-on-surface-variant"
+                  htmlFor="operator-display-name"
+                >
                   Họ và Tên Nhân viên:
                 </label>
                 <input
-                  aria-describedby={createErrors.displayName ? "operator-display-name-error" : undefined}
+                  aria-describedby={
+                    createErrors.displayName ? "operator-display-name-error" : undefined
+                  }
                   aria-invalid={Boolean(createErrors.displayName)}
                   type="text"
                   id="operator-display-name"
@@ -180,7 +185,10 @@ export default function AdminOperatorsPage() {
                 ) : null}
               </div>
               <div>
-                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-email">
+                <label
+                  className="block font-bold text-cas-on-surface-variant"
+                  htmlFor="operator-email"
+                >
                   Email đăng nhập:
                 </label>
                 <input
@@ -202,7 +210,10 @@ export default function AdminOperatorsPage() {
                 ) : null}
               </div>
               <div>
-                <label className="block font-bold text-cas-on-surface-variant" htmlFor="operator-phone">
+                <label
+                  className="block font-bold text-cas-on-surface-variant"
+                  htmlFor="operator-phone"
+                >
                   Số điện thoại liên hệ:
                 </label>
                 <input

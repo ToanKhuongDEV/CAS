@@ -1,7 +1,4 @@
 package vn.cas.store.dto;
 
 public record CustomerTableSessionResolutionCommand(
-        String qrToken,
-        String customerName,
-        String customerPhone) {
-}
+    String qrToken, String customerName, String customerPhone) {}

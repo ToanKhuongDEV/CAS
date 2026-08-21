@@ -136,7 +136,9 @@ export function OperatorCartPanel({
               <span className="grid size-12 place-items-center rounded-2xl bg-cas-outline-variant/20 text-cas-on-surface-variant/60">
                 <CasIcon className="size-6" name="basket" />
               </span>
-              <p className="mt-3 text-sm font-bold text-cas-on-surface">Chưa có món nào trong đơn</p>
+              <p className="mt-3 text-sm font-bold text-cas-on-surface">
+                Chưa có món nào trong đơn
+              </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant/80">
                 Nhấp chọn món ở danh mục bên trái để đưa món vào đơn
               </p>
@@ -244,7 +246,8 @@ export function OperatorCartPanel({
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[0.68rem] font-semibold text-cas-on-surface-variant">
-              {voucherSummary.discountAmount > 0 ? "Cần thanh toán" : "Tạm tính"} ({totalItemCount} món)
+              {voucherSummary.discountAmount > 0 ? "Cần thanh toán" : "Tạm tính"} ({totalItemCount}{" "}
+              món)
             </p>
             <strong className="text-lg font-extrabold text-cas-primary">
               {formatPrice(voucherSummary.payableAmount)}

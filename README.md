@@ -36,6 +36,20 @@ npm run dev
 - Backend status: `http://localhost:8080/api/v1/status`
 - Backend health: `http://localhost:8080/actuator/health`
 
+## Format code
+
+Run the shared formatter from the project root:
+
+```powershell
+.\scripts\format.ps1
+```
+
+Validate formatting without modifying files:
+
+```powershell
+.\scripts\format.ps1 -Check
+```
+
 ## CAS giúp quán giải quyết gì?
 
 - Giảm việc ghi order bằng giấy hoặc nhập tay nhiều lần.

@@ -116,7 +116,10 @@ export function OperationalAccountMenu({
               </div>
             </div>
             <div className="flex items-start gap-2.5">
-              <CasIcon className="mt-0.5 size-4 shrink-0 text-cas-on-surface-variant" name="phone" />
+              <CasIcon
+                className="mt-0.5 size-4 shrink-0 text-cas-on-surface-variant"
+                name="phone"
+              />
               <div className="min-w-0">
                 <dt className="text-cas-on-surface-variant">Số điện thoại</dt>
                 <dd className="mt-0.5 font-semibold">{phone}</dd>

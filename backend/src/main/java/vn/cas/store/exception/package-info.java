@@ -1,4 +1,2 @@
-/**
- * Store-specific exceptions.
- */
+/** Store-specific exceptions. */
 package vn.cas.store.exception;

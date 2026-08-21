@@ -758,7 +758,10 @@ export function OperatorOrderCreationView({
             <p className="mt-4 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
               Phiên bàn mới
             </p>
-            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="new-table-session-title">
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="new-table-session-title"
+            >
               Tạo phiên mới cho {pendingSessionTable.label}?
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
@@ -797,7 +800,10 @@ export function OperatorOrderCreationView({
             <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
               Tạo phiên bàn mới
             </p>
-            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="operator-customer-information-title">
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="operator-customer-information-title"
+            >
               Thông tin khách tại {pendingSessionTable.label}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
@@ -844,7 +850,10 @@ export function OperatorOrderCreationView({
               <span className="grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
                 <CasIcon className="size-8" name="check" />
               </span>
-              <h3 className="mt-4 text-xl font-extrabold text-cas-on-surface" id="operator-order-success-title">
+              <h3
+                className="mt-4 text-xl font-extrabold text-cas-on-surface"
+                id="operator-order-success-title"
+              >
                 Tạo order thành công!
               </h3>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
@@ -875,7 +884,9 @@ export function OperatorOrderCreationView({
 
             <article className="mt-4 rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-3">
-                <h4 className="text-base font-extrabold text-cas-on-surface">Chi tiết món đã gọi</h4>
+                <h4 className="text-base font-extrabold text-cas-on-surface">
+                  Chi tiết món đã gọi
+                </h4>
                 <span className="rounded-full bg-cas-secondary-container/30 px-3 py-1 text-xs font-extrabold text-cas-secondary">
                   {successOrderData.itemCount} món
                 </span>
@@ -884,7 +895,9 @@ export function OperatorOrderCreationView({
                 {successOrderData.items.map((item) => (
                   <li className="flex items-start justify-between gap-4 py-3" key={item.cartItemId}>
                     <div className="min-w-0">
-                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">{item.name}</p>
+                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">
+                        {item.name}
+                      </p>
                       <p className="mt-1 text-xs text-cas-on-surface-variant">
                         x{item.quantity} · {item.optionsSummary}
                       </p>
@@ -928,14 +941,19 @@ export function OperatorOrderCreationView({
               )}
               {successOrderData.discountAmount > 0 && (
                 <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-cas-on-surface-variant">
-                  <span>Giảm giá{successOrderData.voucherCode ? ` (${successOrderData.voucherCode})` : ""}:</span>
+                  <span>
+                    Giảm giá
+                    {successOrderData.voucherCode ? ` (${successOrderData.voucherCode})` : ""}:
+                  </span>
                   <span className="font-bold text-cas-secondary">
                     -{formatPrice(successOrderData.discountAmount)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-sm font-extrabold">
-                <span>{successOrderData.discountAmount > 0 ? "Cần thanh toán:" : "Tổng tiền:"}</span>
+                <span>
+                  {successOrderData.discountAmount > 0 ? "Cần thanh toán:" : "Tổng tiền:"}
+                </span>
                 <span className="text-cas-primary">
                   {formatPrice(successOrderData.totalAmount)}
                 </span>

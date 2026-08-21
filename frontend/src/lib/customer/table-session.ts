@@ -50,12 +50,12 @@ function isCustomerTableSessionResolutionResponse(
   const { data } = value;
   return Boolean(
     data &&
-      typeof data === "object" &&
-      "customerInformationRequired" in data &&
-      typeof data.customerInformationRequired === "boolean" &&
-      "sessionStatus" in data &&
-      (data.sessionStatus === "CUSTOMER_INFORMATION_REQUIRED" ||
-        data.sessionStatus === "OPEN" ||
-        data.sessionStatus === "PAYMENT_PENDING"),
+    typeof data === "object" &&
+    "customerInformationRequired" in data &&
+    typeof data.customerInformationRequired === "boolean" &&
+    "sessionStatus" in data &&
+    (data.sessionStatus === "CUSTOMER_INFORMATION_REQUIRED" ||
+      data.sessionStatus === "OPEN" ||
+      data.sessionStatus === "PAYMENT_PENDING"),
   );
 }

@@ -34,7 +34,9 @@ describe("AdminOperatorsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận Tạo" }));
 
-    expect(screen.queryByRole("heading", { name: "Thêm Tài khoản Nhân viên Mới" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Thêm Tài khoản Nhân viên Mới" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Phạm Minh D")).toBeInTheDocument();
   });
 });

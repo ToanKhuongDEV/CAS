@@ -237,20 +237,27 @@ export default function AdminSettingsPage() {
 
             <form onSubmit={handleSaveStoreInfo} className="mt-6 space-y-5 text-xs">
               <div>
-                <label className="block font-extrabold text-cas-on-surface mb-2">Logo cửa hàng</label>
+                <label className="block font-extrabold text-cas-on-surface mb-2">
+                  Logo cửa hàng
+                </label>
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4">
                   <div
                     aria-label="Xem trước logo cửa hàng"
                     className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cas-primary/10 bg-cover bg-center text-cas-primary"
                     role="img"
-                    style={logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined}
+                    style={
+                      logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined
+                    }
                   >
                     {logoPreviewUrl ? null : <CasIcon className="size-9" name="restaurant" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-cas-on-surface">Logo hiển thị trên các khu vực thương hiệu của quán.</p>
+                    <p className="font-bold text-cas-on-surface">
+                      Logo hiển thị trên các khu vực thương hiệu của quán.
+                    </p>
                     <p className="mt-1 text-cas-on-surface-variant">
-                      Chọn ảnh PNG, JPG, WEBP hoặc SVG. Ảnh hiện chỉ được xem trước trên trình duyệt.
+                      Chọn ảnh PNG, JPG, WEBP hoặc SVG. Ảnh hiện chỉ được xem trước trên trình
+                      duyệt.
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-cas-primary px-3 py-2 font-extrabold text-cas-on-primary transition hover:brightness-110">

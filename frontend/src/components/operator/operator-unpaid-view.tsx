@@ -500,7 +500,9 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
               onChange={(event) => {
                 const digitsOnly = event.target.value.replace(/\D/g, "");
                 const normalizedValue = digitsOnly.replace(/^0+(?=\d)/, "");
-                const nextValue = normalizedValue ? String(Math.min(Number(normalizedValue), 10000)) : "";
+                const nextValue = normalizedValue
+                  ? String(Math.min(Number(normalizedValue), 10000))
+                  : "";
                 setMinimumOpenMinutesInput(nextValue);
                 window.sessionStorage.setItem(minimumOpenMinutesStorageKey, nextValue || "0");
               }}
@@ -564,7 +566,8 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             Phiên bàn cần xử lý
           </h2>
           <p className="mt-1 text-xs text-cas-on-surface-variant">
-            Hiển thị bàn đã mở từ {minimumOpenMinutes} phút; chỉ kết thúc phiên khi khách đã rời đi và chưa được xác nhận thanh toán.
+            Hiển thị bàn đã mở từ {minimumOpenMinutes} phút; chỉ kết thúc phiên khi khách đã rời đi
+            và chưa được xác nhận thanh toán.
           </p>
         </div>
 
