@@ -20,8 +20,8 @@ describe("OperatorPaymentsPage", () => {
     const dialog = screen.getByRole("dialog", {
       name: "Xác nhận thanh toán",
     });
-    expect(within(dialog).getByText("Bàn 05")).toBeInTheDocument();
-    expect(within(dialog).getByText("170.000đ")).toBeInTheDocument();
+    expect(within(dialog).getByText("Bàn 05", { selector: "p" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Số tiền").parentElement).toHaveTextContent("170.000đ");
     expect(within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i)).toBeInTheDocument();
 
     fireEvent.click(

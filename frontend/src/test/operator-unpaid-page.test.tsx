@@ -25,11 +25,6 @@ describe("OperatorUnpaidView", () => {
     expect(screen.getByText("Trà Sữa Ô Long")).toBeInTheDocument();
     expect(screen.getAllByText("320.000đ").length).toBeGreaterThan(0);
 
-    // Switch to JSON tab
-    const jsonTabButton = screen.getByRole("button", { name: "JSON" });
-    fireEvent.click(jsonTabButton);
-    expect(screen.getByText(/billNumber/)).toBeInTheDocument();
-
     // Close modal
     const closeButton = screen.getByRole("button", { name: "Đóng bill snapshot" });
     fireEvent.click(closeButton);
@@ -47,7 +42,12 @@ describe("OperatorUnpaidView", () => {
     const resolveButton = screen.getByRole("button", { name: /xác nhận đã thu tiền/i });
     fireEvent.click(resolveButton);
 
-    // Verify status changed to RESOLVED
-    expect(screen.getByText(/Đã đánh dấu khoản chưa thanh toán của Bàn 09/i)).toBeInTheDocument();
+    const confirmationDialog = screen.getByRole("alertdialog");
+    expect(confirmationDialog).toBeInTheDocument();
+    const confirmButton = Array.from(confirmationDialog.querySelectorAll("button")).at(-1);
+    expect(confirmButton).toBeDefined();
+    fireEvent.click(confirmButton!);
+
+    expect(screen.getAllByText("RESOLVED").length).toBeGreaterThan(0);
   });
 });

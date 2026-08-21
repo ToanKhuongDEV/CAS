@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("OperatorTabNavigation", () => {
-  it("renders five separate routes and keeps the parent tab active on order detail", () => {
+  it("renders six separate routes and keeps the parent tab active on order detail", () => {
     render(<OperatorTabNavigation />);
 
     const expectedTabs = [
@@ -17,6 +17,7 @@ describe("OperatorTabNavigation", () => {
       [/Hủy món/, "/operator/cancellations"],
       [/Thanh toán/, "/operator/payments"],
       [/Chưa thanh toán/, "/operator/unpaid"],
+      [/Dịch vụ thêm/, "/operator/services"],
     ] as const;
 
     expectedTabs.forEach(([nameRegex, href]) => {
@@ -28,6 +29,6 @@ describe("OperatorTabNavigation", () => {
     );
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(screen.getAllByText("3")).toHaveLength(2);
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getAllByText("1")).toHaveLength(2);
   });
 });
