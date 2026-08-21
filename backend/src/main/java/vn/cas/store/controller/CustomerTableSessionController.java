@@ -27,75 +27,59 @@ import vn.cas.store.service.CustomerTableSessionService;
 @RequestMapping(ApiPaths.CustomerTableSession.COMMON)
 public class CustomerTableSessionController {
 
-  static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
+    static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
 
-  private final CustomerTableSessionService customerTableSessionService;
+    private final CustomerTableSessionService customerTableSessionService;
 
-  public CustomerTableSessionController(CustomerTableSessionService customerTableSessionService) {
-    this.customerTableSessionService = customerTableSessionService;
-  }
-
-  @PostMapping("/resolve-qr")
-  public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> resolveQr(
-      @Valid @RequestBody ResolveQrRequest resolveQrRequest,
-      HttpServletRequest request,
-      HttpServletResponse response) {
-    var resolution =
-        customerTableSessionService.resolveQr(
-            new CustomerTableSessionResolutionCommand(
-                resolveQrRequest.qrToken(),
-                normalize(resolveQrRequest.customerName()),
-                normalize(resolveQrRequest.customerPhone())));
-    if (resolution.sessionPublicId() != null) {
-      response.addHeader(
-          HttpHeaders.SET_COOKIE,
-          customerSessionCookie(resolution.sessionPublicId(), request.isSecure()).toString());
+    public CustomerTableSessionController(CustomerTableSessionService customerTableSessionService) {
+        this.customerTableSessionService = customerTableSessionService;
     }
-    return ApiResponses.success(
-        HttpStatus.OK,
-        ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
-        CustomerTableSessionResponse.from(resolution),
-        request);
-  }
 
-  @GetMapping("/current")
-  public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> getCurrent(
-      @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
-      HttpServletRequest request) {
-    var resolution = customerTableSessionService.getCurrent(sessionPublicId);
-    return ApiResponses.success(
-        HttpStatus.OK,
-        ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
-        CustomerTableSessionResponse.from(resolution),
-        request);
-  }
-
-  private static String normalize(String value) {
-    return value == null || value.isBlank() ? null : value.trim();
-  }
-
-  private static ResponseCookie customerSessionCookie(String sessionPublicId, boolean secure) {
-    return ResponseCookie.from(CUSTOMER_SESSION_COOKIE, sessionPublicId)
-        .httpOnly(true)
-        .secure(secure)
-        .sameSite("Lax")
-        .path(ApiPaths.API_CUSTOMER_PREFIX)
-        .build();
-  }
-
-  public record ResolveQrRequest(
-      @NotBlank @Size(max = 64) String qrToken,
-      @Size(max = 150) String customerName,
-      @Size(max = 20) String customerPhone) {}
-
-  public record CustomerTableSessionResponse(
-      boolean customerInformationRequired, String sessionStatus, Long tableCode) {
-
-    static CustomerTableSessionResponse from(CustomerTableSessionResolution resolution) {
-      return new CustomerTableSessionResponse(
-          resolution.requiresCustomerInformation(),
-          resolution.status().name(),
-          resolution.tableCode());
+    @PostMapping("/resolve-qr")
+    public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> resolveQr(
+            @Valid @RequestBody ResolveQrRequest resolveQrRequest, HttpServletRequest request,
+            HttpServletResponse response) {
+        var resolution = customerTableSessionService
+                .resolveQr(new CustomerTableSessionResolutionCommand(resolveQrRequest.qrToken(),
+                        normalize(resolveQrRequest.customerName()),
+                        normalize(resolveQrRequest.customerPhone())));
+        if (resolution.sessionPublicId() != null) {
+            response.addHeader(HttpHeaders.SET_COOKIE,
+                    customerSessionCookie(resolution.sessionPublicId(), request.isSecure())
+                            .toString());
+        }
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
+                CustomerTableSessionResponse.from(resolution), request);
     }
-  }
+
+    @GetMapping("/current")
+    public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> getCurrent(
+            @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            HttpServletRequest request) {
+        var resolution = customerTableSessionService.getCurrent(sessionPublicId);
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
+                CustomerTableSessionResponse.from(resolution), request);
+    }
+
+    private static String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static ResponseCookie customerSessionCookie(String sessionPublicId, boolean secure) {
+        return ResponseCookie.from(CUSTOMER_SESSION_COOKIE, sessionPublicId).httpOnly(true)
+                .secure(secure).sameSite("Lax").path(ApiPaths.API_CUSTOMER_PREFIX).build();
+    }
+
+    public record ResolveQrRequest(@NotBlank @Size(max = 64) String qrToken,
+            @Size(max = 150) String customerName, @Size(max = 20) String customerPhone) {
+    }
+
+    public record CustomerTableSessionResponse(boolean customerInformationRequired,
+            String sessionStatus, Long tableCode) {
+
+        static CustomerTableSessionResponse from(CustomerTableSessionResolution resolution) {
+            return new CustomerTableSessionResponse(resolution.requiresCustomerInformation(),
+                    resolution.status().name(), resolution.tableCode());
+        }
+    }
 }

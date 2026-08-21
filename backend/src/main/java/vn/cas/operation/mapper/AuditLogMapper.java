@@ -6,5 +6,5 @@ import vn.cas.operation.dto.AuditLogCommand;
 @Mapper
 public interface AuditLogMapper {
 
-  int insert(AuditLogCommand command);
+    int insert(AuditLogCommand command);
 }

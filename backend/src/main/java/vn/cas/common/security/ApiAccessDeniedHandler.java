@@ -16,25 +16,20 @@ import vn.cas.common.web.RequestId;
 @Component
 public class ApiAccessDeniedHandler implements AccessDeniedHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ApiAccessDeniedHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiAccessDeniedHandler.class);
 
-  private final ApiAuthenticationEntryPoint errorWriter;
+    private final ApiAuthenticationEntryPoint errorWriter;
 
-  public ApiAccessDeniedHandler(ApiAuthenticationEntryPoint errorWriter) {
-    this.errorWriter = errorWriter;
-  }
+    public ApiAccessDeniedHandler(ApiAuthenticationEntryPoint errorWriter) {
+        this.errorWriter = errorWriter;
+    }
 
-  @Override
-  public void handle(
-      HttpServletRequest request,
-      HttpServletResponse response,
-      AccessDeniedException accessDeniedException)
-      throws IOException, ServletException {
-    LOGGER.warn(
-        "Access denied: requestId={}, method={}, path={}",
-        request.getAttribute(RequestId.ATTRIBUTE_NAME),
-        request.getMethod(),
-        request.getRequestURI());
-    errorWriter.writeError(response, request, HttpStatus.FORBIDDEN, ApiMessages.FORBIDDEN);
-  }
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response,
+            AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        LOGGER.warn("Access denied: requestId={}, method={}, path={}",
+                request.getAttribute(RequestId.ATTRIBUTE_NAME), request.getMethod(),
+                request.getRequestURI());
+        errorWriter.writeError(response, request, HttpStatus.FORBIDDEN, ApiMessages.FORBIDDEN);
+    }
 }

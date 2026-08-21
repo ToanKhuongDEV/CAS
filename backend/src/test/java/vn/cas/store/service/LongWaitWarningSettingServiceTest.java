@@ -16,49 +16,51 @@ import vn.cas.store.mapper.StoreSettingsMapper;
 
 class LongWaitWarningSettingServiceTest {
 
-  private final StoreSettingsMapper storeSettingsMapper = mock(StoreSettingsMapper.class);
-  private final AuditLogService auditLogService = mock(AuditLogService.class);
-  private final LongWaitWarningSettingService service =
-      new LongWaitWarningSettingService(storeSettingsMapper, auditLogService);
+    private final StoreSettingsMapper storeSettingsMapper = mock(StoreSettingsMapper.class);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final LongWaitWarningSettingService service = new LongWaitWarningSettingService(
+            storeSettingsMapper, auditLogService);
 
-  @Test
-  void shouldUseStoredLongWaitWarningMinutesWhenValueIsValid() {
-    when(storeSettingsMapper.findLongWaitWarningMinutesByStoreId(2L)).thenReturn(Optional.of(0));
+    @Test
+    void shouldUseStoredLongWaitWarningMinutesWhenValueIsValid() {
+        when(storeSettingsMapper.findLongWaitWarningMinutesByStoreId(2L))
+                .thenReturn(Optional.of(0));
 
-    var setting = service.get(2L);
+        var setting = service.get(2L);
 
-    assertThat(setting.longWaitWarningMinutes()).isZero();
-  }
+        assertThat(setting.longWaitWarningMinutes()).isZero();
+    }
 
-  @Test
-  void shouldUseFallbackWhenStoredLongWaitWarningMinutesIsUnavailable() {
-    when(storeSettingsMapper.findLongWaitWarningMinutesByStoreId(2L)).thenReturn(Optional.empty());
+    @Test
+    void shouldUseFallbackWhenStoredLongWaitWarningMinutesIsUnavailable() {
+        when(storeSettingsMapper.findLongWaitWarningMinutesByStoreId(2L))
+                .thenReturn(Optional.empty());
 
-    var setting = service.get(2L);
+        var setting = service.get(2L);
 
-    assertThat(setting.longWaitWarningMinutes())
-        .isEqualTo(LongWaitWarningSettingService.FALLBACK_LONG_WAIT_WARNING_MINUTES);
-  }
+        assertThat(setting.longWaitWarningMinutes())
+                .isEqualTo(LongWaitWarningSettingService.FALLBACK_LONG_WAIT_WARNING_MINUTES);
+    }
 
-  @Test
-  void shouldUpdateSettingAndRecordAuditLog() {
-    var principal = new OperationalPrincipal(7L, 2L, "firebase-user-1", "Admin One", "ADMIN");
-    UUID requestId = UUID.randomUUID();
+    @Test
+    void shouldUpdateSettingAndRecordAuditLog() {
+        var principal = new OperationalPrincipal(7L, 2L, "firebase-user-1", "Admin One", "ADMIN");
+        UUID requestId = UUID.randomUUID();
 
-    var setting = service.update(principal, 30, requestId);
+        var setting = service.update(principal, 30, requestId);
 
-    assertThat(setting.longWaitWarningMinutes()).isEqualTo(30);
-    verify(storeSettingsMapper).updateLongWaitWarningMinutes(2L, 30);
+        assertThat(setting.longWaitWarningMinutes()).isEqualTo(30);
+        verify(storeSettingsMapper).updateLongWaitWarningMinutes(2L, 30);
 
-    ArgumentCaptor<AuditLogCommand> auditCommandCaptor =
-        ArgumentCaptor.forClass(AuditLogCommand.class);
-    verify(auditLogService).record(auditCommandCaptor.capture());
-    var auditCommand = auditCommandCaptor.getValue();
-    assertThat(auditCommand.storeId()).isEqualTo(2L);
-    assertThat(auditCommand.requestId()).isEqualTo(requestId);
-    assertThat(auditCommand.action()).isEqualTo("UPDATE");
-    assertThat(auditCommand.entityType()).isEqualTo("STORE_SETTINGS");
-    assertThat(auditCommand.changeData()).isEqualTo("{\"longWaitWarningMinutes\":30}");
-    assertThat(auditCommand.actorAccountId()).isEqualTo(7L);
-  }
+        ArgumentCaptor<AuditLogCommand> auditCommandCaptor = ArgumentCaptor
+                .forClass(AuditLogCommand.class);
+        verify(auditLogService).record(auditCommandCaptor.capture());
+        var auditCommand = auditCommandCaptor.getValue();
+        assertThat(auditCommand.storeId()).isEqualTo(2L);
+        assertThat(auditCommand.requestId()).isEqualTo(requestId);
+        assertThat(auditCommand.action()).isEqualTo("UPDATE");
+        assertThat(auditCommand.entityType()).isEqualTo("STORE_SETTINGS");
+        assertThat(auditCommand.changeData()).isEqualTo("{\"longWaitWarningMinutes\":30}");
+        assertThat(auditCommand.actorAccountId()).isEqualTo(7L);
+    }
 }

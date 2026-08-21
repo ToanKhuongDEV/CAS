@@ -490,7 +490,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
 - [x] Hoàn thiện nền tảng upload ảnh món Cloudinary: CAS Backend ký request, Frontend upload trực tiếp khi Admin lưu món và giữ `secure_url`/`public_id`; Backend chỉ chấp nhận asset đúng Cloudinary và public ID được ký cho store.
 - [x] Kết nối trang Admin Catalog với API Catalog: tải danh mục/tag/option/món, lưu `imageUrl`/`imageStorageKey` đã upload khi tạo hoặc sửa món và cập nhật trạng thái hàng loạt qua Backend.
-- [x] Thiết lập formatter chung: Spotless với Google Java Format cho Backend, Prettier cho Frontend và lệnh `scripts/format.ps1` để format hoặc kiểm tra toàn bộ dự án.
+- [x] Thiết lập formatter chung: Spotless với profile Eclipse JDT (4-space, continuation indent 8-space) cho Backend, Prettier cho Frontend và lệnh `scripts/format.ps1` để format hoặc kiểm tra toàn bộ dự án.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
 - [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
 - [ ] Cấu hình logging, theo dõi lỗi và health check.

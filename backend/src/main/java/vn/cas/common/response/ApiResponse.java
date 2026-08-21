@@ -1,3 +1,4 @@
 package vn.cas.common.response;
 
-public record ApiResponse<T>(int status, String message, T data, String requestId) {}
+public record ApiResponse<T>(int status, String message, T data, String requestId) {
+}

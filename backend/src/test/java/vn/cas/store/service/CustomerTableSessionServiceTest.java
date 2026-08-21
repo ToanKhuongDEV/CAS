@@ -18,67 +18,62 @@ import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
 
 class CustomerTableSessionServiceTest {
 
-  private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
-  private final CustomerTableSessionService service =
-      new CustomerTableSessionService(diningTableMapper);
+    private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
+    private final CustomerTableSessionService service = new CustomerTableSessionService(
+            diningTableMapper);
 
-  @Test
-  void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
-    when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-        .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
+    @Test
+    void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
+        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
+                .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
 
-    var result =
-        service.resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
+        var result = service
+                .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
 
-    assertThat(result.status()).isEqualTo(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED);
-    assertThat(result.tableCode()).isEqualTo(5L);
-    verify(diningTableMapper, never()).insertClientAccount(any());
-  }
+        assertThat(result.status()).isEqualTo(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED);
+        assertThat(result.tableCode()).isEqualTo(5L);
+        verify(diningTableMapper, never()).insertClientAccount(any());
+    }
 
-  @Test
-  void shouldJoinExistingOpenSessionWithoutCustomerInformation() {
-    when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-        .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
+    @Test
+    void shouldJoinExistingOpenSessionWithoutCustomerInformation() {
+        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64))).thenReturn(
+                new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
 
-    var result =
-        service.resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
+        var result = service
+                .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
 
-    assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
-    assertThat(result.sessionPublicId()).isEqualTo("session-public-id");
-    verify(diningTableMapper, never()).insertClientAccount(any());
-  }
+        assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
+        assertThat(result.sessionPublicId()).isEqualTo("session-public-id");
+        verify(diningTableMapper, never()).insertClientAccount(any());
+    }
 
-  @Test
-  void shouldCreateOpenSessionForFirstCustomer() {
-    when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-        .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
-    doAnswer(
-            invocation -> {
-              invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
-              return 1;
-            })
-        .when(diningTableMapper)
-        .insertClientAccount(any());
+    @Test
+    void shouldCreateOpenSessionForFirstCustomer() {
+        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
+                .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
+        doAnswer(invocation -> {
+            invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
+            return 1;
+        }).when(diningTableMapper).insertClientAccount(any());
 
-    var result =
-        service.resolveQr(
-            new CustomerTableSessionResolutionCommand(
-                "a".repeat(64), "Customer One", "0901234567"));
+        var result = service.resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64),
+                "Customer One", "0901234567"));
 
-    assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
-    assertThat(result.sessionPublicId()).isNotBlank();
-    verify(diningTableMapper)
-        .insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(), any());
-  }
+        assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
+        assertThat(result.sessionPublicId()).isNotBlank();
+        verify(diningTableMapper).insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(),
+                any());
+    }
 
-  @Test
-  void shouldReturnCurrentSessionFromItsPublicId() {
-    when(diningTableMapper.findCurrentTableSessionByPublicId("session-public-id"))
-        .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
+    @Test
+    void shouldReturnCurrentSessionFromItsPublicId() {
+        when(diningTableMapper.findCurrentTableSessionByPublicId("session-public-id")).thenReturn(
+                new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
 
-    var result = service.getCurrent("session-public-id");
+        var result = service.getCurrent("session-public-id");
 
-    assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
-    assertThat(result.tableCode()).isEqualTo(5L);
-  }
+        assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
+        assertThat(result.tableCode()).isEqualTo(5L);
+    }
 }

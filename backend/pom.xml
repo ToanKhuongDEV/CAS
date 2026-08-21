@@ -109,9 +109,9 @@
                             <include>src/main/java/**/*.java</include>
                             <include>src/test/java/**/*.java</include>
                         </includes>
-                        <googleJavaFormat>
-                            <version>1.25.2</version>
-                        </googleJavaFormat>
+                        <eclipse>
+                            <file>${project.basedir}/eclipse-formatter.xml</file>
+                        </eclipse>
                         <removeUnusedImports/>
                     </java>
                 </configuration>

@@ -10,38 +10,36 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 class RequestIdFilterTest {
 
-  private final RequestIdFilter filter = new RequestIdFilter();
+    private final RequestIdFilter filter = new RequestIdFilter();
 
-  @Test
-  void shouldPreserveValidRequestId() throws Exception {
-    UUID requestId = UUID.randomUUID();
-    var request = new MockHttpServletRequest();
-    var response = new MockHttpServletResponse();
-    request.addHeader(RequestId.HEADER_NAME, requestId.toString());
-    var requestAttribute = new AtomicReference<Object>();
+    @Test
+    void shouldPreserveValidRequestId() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        var request = new MockHttpServletRequest();
+        var response = new MockHttpServletResponse();
+        request.addHeader(RequestId.HEADER_NAME, requestId.toString());
+        var requestAttribute = new AtomicReference<Object>();
 
-    filter.doFilter(
-        request,
-        response,
-        (servletRequest, servletResponse) ->
-            requestAttribute.set(servletRequest.getAttribute(RequestId.ATTRIBUTE_NAME)));
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> requestAttribute
+                .set(servletRequest.getAttribute(RequestId.ATTRIBUTE_NAME)));
 
-    assertThat(response.getHeader(RequestId.HEADER_NAME)).isEqualTo(requestId.toString());
-    assertThat(requestAttribute.get()).isEqualTo(requestId);
-  }
+        assertThat(response.getHeader(RequestId.HEADER_NAME)).isEqualTo(requestId.toString());
+        assertThat(requestAttribute.get()).isEqualTo(requestId);
+    }
 
-  @Test
-  void shouldReplaceInvalidRequestId() throws Exception {
-    var request = new MockHttpServletRequest();
-    var response = new MockHttpServletResponse();
-    request.addHeader(RequestId.HEADER_NAME, "not-a-uuid");
+    @Test
+    void shouldReplaceInvalidRequestId() throws Exception {
+        var request = new MockHttpServletRequest();
+        var response = new MockHttpServletResponse();
+        request.addHeader(RequestId.HEADER_NAME, "not-a-uuid");
 
-    filter.doFilter(request, response, (servletRequest, servletResponse) -> {});
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+        });
 
-    assertThatCodeCanBeParsedAsUuid(response.getHeader(RequestId.HEADER_NAME));
-  }
+        assertThatCodeCanBeParsedAsUuid(response.getHeader(RequestId.HEADER_NAME));
+    }
 
-  private void assertThatCodeCanBeParsedAsUuid(String value) {
-    assertThat(UUID.fromString(value)).isNotNull();
-  }
+    private void assertThatCodeCanBeParsedAsUuid(String value) {
+        assertThat(UUID.fromString(value)).isNotNull();
+    }
 }

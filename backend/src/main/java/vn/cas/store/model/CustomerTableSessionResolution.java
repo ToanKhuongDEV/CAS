@@ -1,15 +1,13 @@
 package vn.cas.store.model;
 
-public record CustomerTableSessionResolution(
-    ResolutionStatus status, String sessionPublicId, long tableCode) {
+public record CustomerTableSessionResolution(ResolutionStatus status, String sessionPublicId,
+        long tableCode) {
 
-  public enum ResolutionStatus {
-    CUSTOMER_INFORMATION_REQUIRED,
-    OPEN,
-    PAYMENT_PENDING
-  }
+    public enum ResolutionStatus {
+        CUSTOMER_INFORMATION_REQUIRED, OPEN, PAYMENT_PENDING
+    }
 
-  public boolean requiresCustomerInformation() {
-    return status == ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED;
-  }
+    public boolean requiresCustomerInformation() {
+        return status == ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED;
+    }
 }

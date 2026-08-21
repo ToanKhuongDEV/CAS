@@ -16,17 +16,17 @@ import vn.cas.common.security.OperationalPrincipal;
 @RequestMapping(ApiPaths.Auth.CURRENT_ACCOUNT)
 public class OperationalAuthenticationController {
 
-  @GetMapping
-  public ResponseEntity<ApiResponse<CurrentOperationalAccountResponse>> getCurrentAccount(
-      @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
-    return ApiResponses.success(
-        HttpStatus.OK,
-        "Current operational account retrieved.",
-        new CurrentOperationalAccountResponse(
-            principal.accountId(), principal.storeId(), principal.displayName(), principal.role()),
-        request);
-  }
+    @GetMapping
+    public ResponseEntity<ApiResponse<CurrentOperationalAccountResponse>> getCurrentAccount(
+            @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        return ApiResponses
+                .success(HttpStatus.OK, "Current operational account retrieved.",
+                        new CurrentOperationalAccountResponse(principal.accountId(),
+                                principal.storeId(), principal.displayName(), principal.role()),
+                        request);
+    }
 
-  public record CurrentOperationalAccountResponse(
-      long accountId, long storeId, String displayName, String role) {}
+    public record CurrentOperationalAccountResponse(long accountId, long storeId,
+            String displayName, String role) {
+    }
 }

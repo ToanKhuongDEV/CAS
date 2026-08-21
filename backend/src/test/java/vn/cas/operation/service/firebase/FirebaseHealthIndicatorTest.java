@@ -9,26 +9,25 @@ import org.junit.jupiter.api.Test;
 
 class FirebaseHealthIndicatorTest {
 
-  private final FirebaseAdminTokenVerifier tokenVerifier = mock(FirebaseAdminTokenVerifier.class);
-  private final FirebaseHealthIndicator healthIndicator =
-      new FirebaseHealthIndicator(tokenVerifier);
+    private final FirebaseAdminTokenVerifier tokenVerifier = mock(FirebaseAdminTokenVerifier.class);
+    private final FirebaseHealthIndicator healthIndicator = new FirebaseHealthIndicator(
+            tokenVerifier);
 
-  @Test
-  void shouldReportUpWhenFirebaseAuthIsAvailable() {
-    var health = healthIndicator.health();
+    @Test
+    void shouldReportUpWhenFirebaseAuthIsAvailable() {
+        var health = healthIndicator.health();
 
-    assertThat(health.getStatus().getCode()).isEqualTo("UP");
-    verify(tokenVerifier).verifyAvailability();
-  }
+        assertThat(health.getStatus().getCode()).isEqualTo("UP");
+        verify(tokenVerifier).verifyAvailability();
+    }
 
-  @Test
-  void shouldReportDownWhenFirebaseAuthIsUnavailable() {
-    doThrow(new IllegalStateException("Firebase unavailable"))
-        .when(tokenVerifier)
-        .verifyAvailability();
+    @Test
+    void shouldReportDownWhenFirebaseAuthIsUnavailable() {
+        doThrow(new IllegalStateException("Firebase unavailable")).when(tokenVerifier)
+                .verifyAvailability();
 
-    var health = healthIndicator.health();
+        var health = healthIndicator.health();
 
-    assertThat(health.getStatus().getCode()).isEqualTo("DOWN");
-  }
+        assertThat(health.getStatus().getCode()).isEqualTo("DOWN");
+    }
 }

@@ -12,47 +12,40 @@ import vn.cas.store.model.LongWaitWarningSetting;
 @Service
 public class LongWaitWarningSettingService {
 
-  static final int FALLBACK_LONG_WAIT_WARNING_MINUTES = 25;
+    static final int FALLBACK_LONG_WAIT_WARNING_MINUTES = 25;
 
-  private final StoreSettingsMapper storeSettingsMapper;
-  private final AuditLogService auditLogService;
+    private final StoreSettingsMapper storeSettingsMapper;
+    private final AuditLogService auditLogService;
 
-  public LongWaitWarningSettingService(
-      StoreSettingsMapper storeSettingsMapper, AuditLogService auditLogService) {
-    this.storeSettingsMapper = storeSettingsMapper;
-    this.auditLogService = auditLogService;
-  }
+    public LongWaitWarningSettingService(StoreSettingsMapper storeSettingsMapper,
+            AuditLogService auditLogService) {
+        this.storeSettingsMapper = storeSettingsMapper;
+        this.auditLogService = auditLogService;
+    }
 
-  @Transactional(readOnly = true)
-  public LongWaitWarningSetting get(long storeId) {
-    int longWaitWarningMinutes =
-        storeSettingsMapper
-            .findLongWaitWarningMinutesByStoreId(storeId)
-            .filter(this::isValidLongWaitWarningMinutes)
-            .orElse(FALLBACK_LONG_WAIT_WARNING_MINUTES);
-    return new LongWaitWarningSetting(longWaitWarningMinutes);
-  }
+    @Transactional(readOnly = true)
+    public LongWaitWarningSetting get(long storeId) {
+        int longWaitWarningMinutes = storeSettingsMapper
+                .findLongWaitWarningMinutesByStoreId(storeId)
+                .filter(this::isValidLongWaitWarningMinutes)
+                .orElse(FALLBACK_LONG_WAIT_WARNING_MINUTES);
+        return new LongWaitWarningSetting(longWaitWarningMinutes);
+    }
 
-  @Transactional
-  public LongWaitWarningSetting update(
-      OperationalPrincipal principal, int longWaitWarningMinutes, UUID requestId) {
-    storeSettingsMapper.updateLongWaitWarningMinutes(principal.storeId(), longWaitWarningMinutes);
-    auditLogService.record(
-        new AuditLogCommand(
-            principal.storeId(),
-            requestId,
-            "UPDATE",
-            "STORE_SETTINGS",
-            principal.storeId(),
-            "Long-wait warning setting",
-            "{\"longWaitWarningMinutes\":" + longWaitWarningMinutes + "}",
-            principal.accountId(),
-            principal.displayName(),
-            "Updated long-wait warning setting"));
-    return new LongWaitWarningSetting(longWaitWarningMinutes);
-  }
+    @Transactional
+    public LongWaitWarningSetting update(OperationalPrincipal principal, int longWaitWarningMinutes,
+            UUID requestId) {
+        storeSettingsMapper.updateLongWaitWarningMinutes(principal.storeId(),
+                longWaitWarningMinutes);
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "UPDATE",
+                "STORE_SETTINGS", principal.storeId(), "Long-wait warning setting",
+                "{\"longWaitWarningMinutes\":" + longWaitWarningMinutes + "}",
+                principal.accountId(), principal.displayName(),
+                "Updated long-wait warning setting"));
+        return new LongWaitWarningSetting(longWaitWarningMinutes);
+    }
 
-  private boolean isValidLongWaitWarningMinutes(int longWaitWarningMinutes) {
-    return longWaitWarningMinutes >= 0 && longWaitWarningMinutes <= 1440;
-  }
+    private boolean isValidLongWaitWarningMinutes(int longWaitWarningMinutes) {
+        return longWaitWarningMinutes >= 0 && longWaitWarningMinutes <= 1440;
+    }
 }

@@ -17,37 +17,27 @@ import vn.cas.common.security.FirebaseAuthenticationFilter;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-  @Bean
-  SecurityFilterChain securityFilterChain(
-      HttpSecurity http,
-      FirebaseAuthenticationFilter firebaseAuthenticationFilter,
-      ApiAuthenticationEntryPoint authenticationEntryPoint,
-      ApiAccessDeniedHandler accessDeniedHandler)
-      throws Exception {
-    return http.csrf(csrf -> csrf.disable())
-        .cors(Customizer.withDefaults())
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            authorize ->
-                authorize
-                    .requestMatchers(
-                        ApiPaths.STATUS, ApiPaths.ACTUATOR_HEALTH, ApiPaths.ACTUATOR_INFO)
-                    .permitAll()
-                    .requestMatchers(ApiPaths.AUTH_PATTERN)
-                    .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
-                    .requestMatchers(ApiPaths.ADMIN_PATTERN)
-                    .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                    .requestMatchers(ApiPaths.OPERATOR_PATTERN)
-                    .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
-                    .anyRequest()
-                    .permitAll())
-        .exceptionHandling(
-            exceptions ->
-                exceptions
-                    .authenticationEntryPoint(authenticationEntryPoint)
-                    .accessDeniedHandler(accessDeniedHandler))
-        .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .build();
-  }
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+            FirebaseAuthenticationFilter firebaseAuthenticationFilter,
+            ApiAuthenticationEntryPoint authenticationEntryPoint,
+            ApiAccessDeniedHandler accessDeniedHandler) throws Exception {
+        return http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults())
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(ApiPaths.STATUS, ApiPaths.ACTUATOR_HEALTH,
+                                ApiPaths.ACTUATOR_INFO)
+                        .permitAll().requestMatchers(ApiPaths.AUTH_PATTERN)
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
+                        .requestMatchers(ApiPaths.ADMIN_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(ApiPaths.OPERATOR_PATTERN)
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR").anyRequest().permitAll())
+                .exceptionHandling(
+                        exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint)
+                                .accessDeniedHandler(accessDeniedHandler))
+                .addFilterBefore(firebaseAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 }

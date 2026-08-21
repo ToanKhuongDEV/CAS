@@ -25,42 +25,35 @@ import vn.cas.store.service.LongWaitWarningSettingService;
 @RequestMapping(ApiPaths.Store.LONG_WAIT_WARNING)
 public class LongWaitWarningSettingController {
 
-  private final LongWaitWarningSettingService settingService;
+    private final LongWaitWarningSettingService settingService;
 
-  public LongWaitWarningSettingController(LongWaitWarningSettingService settingService) {
-    this.settingService = settingService;
-  }
+    public LongWaitWarningSettingController(LongWaitWarningSettingService settingService) {
+        this.settingService = settingService;
+    }
 
-  @GetMapping
-  public ResponseEntity<ApiResponse<LongWaitWarningSettingResponse>> get(
-      @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
-    var setting = settingService.get(principal.storeId());
-    return ApiResponses.success(
-        HttpStatus.OK,
-        ApiMessages.LONG_WAIT_WARNING_SETTING_RETRIEVED,
-        new LongWaitWarningSettingResponse(setting.longWaitWarningMinutes()),
-        request);
-  }
+    @GetMapping
+    public ResponseEntity<ApiResponse<LongWaitWarningSettingResponse>> get(
+            @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        var setting = settingService.get(principal.storeId());
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.LONG_WAIT_WARNING_SETTING_RETRIEVED,
+                new LongWaitWarningSettingResponse(setting.longWaitWarningMinutes()), request);
+    }
 
-  @PutMapping
-  public ResponseEntity<ApiResponse<LongWaitWarningSettingResponse>> update(
-      @AuthenticationPrincipal OperationalPrincipal principal,
-      @Valid @RequestBody UpdateLongWaitWarningSettingRequest updateRequest,
-      HttpServletRequest request) {
-    var setting =
-        settingService.update(
-            principal,
-            updateRequest.longWaitWarningMinutes(),
-            (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
-    return ApiResponses.success(
-        HttpStatus.OK,
-        ApiMessages.LONG_WAIT_WARNING_SETTING_UPDATED,
-        new LongWaitWarningSettingResponse(setting.longWaitWarningMinutes()),
-        request);
-  }
+    @PutMapping
+    public ResponseEntity<ApiResponse<LongWaitWarningSettingResponse>> update(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @Valid @RequestBody UpdateLongWaitWarningSettingRequest updateRequest,
+            HttpServletRequest request) {
+        var setting = settingService.update(principal, updateRequest.longWaitWarningMinutes(),
+                (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.LONG_WAIT_WARNING_SETTING_UPDATED,
+                new LongWaitWarningSettingResponse(setting.longWaitWarningMinutes()), request);
+    }
 
-  public record UpdateLongWaitWarningSettingRequest(
-      @NotNull @Min(0) @Max(1440) Integer longWaitWarningMinutes) {}
+    public record UpdateLongWaitWarningSettingRequest(
+            @NotNull @Min(0) @Max(1440) Integer longWaitWarningMinutes) {
+    }
 
-  public record LongWaitWarningSettingResponse(int longWaitWarningMinutes) {}
+    public record LongWaitWarningSettingResponse(int longWaitWarningMinutes) {
+    }
 }

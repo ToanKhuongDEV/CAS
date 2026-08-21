@@ -10,15 +10,15 @@ import org.junit.jupiter.api.Test;
 
 class UuidTypeHandlerTest {
 
-  private final UuidTypeHandler handler = new UuidTypeHandler();
+    private final UuidTypeHandler handler = new UuidTypeHandler();
 
-  @Test
-  void shouldPersistUuidAsItsCanonicalString() throws Exception {
-    UUID requestId = UUID.randomUUID();
-    PreparedStatement statement = mock(PreparedStatement.class);
+    @Test
+    void shouldPersistUuidAsItsCanonicalString() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        PreparedStatement statement = mock(PreparedStatement.class);
 
-    handler.setNonNullParameter(statement, 1, requestId, JdbcType.CHAR);
+        handler.setNonNullParameter(statement, 1, requestId, JdbcType.CHAR);
 
-    verify(statement).setString(1, requestId.toString());
-  }
+        verify(statement).setString(1, requestId.toString());
+    }
 }

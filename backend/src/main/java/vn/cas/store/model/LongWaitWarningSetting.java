@@ -1,3 +1,4 @@
 package vn.cas.store.model;
 
-public record LongWaitWarningSetting(int longWaitWarningMinutes) {}
+public record LongWaitWarningSetting(int longWaitWarningMinutes) {
+}

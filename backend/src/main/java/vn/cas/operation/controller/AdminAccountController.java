@@ -23,37 +23,28 @@ import vn.cas.operation.service.AdminAccountService;
 @RestController
 @RequestMapping(ApiPaths.AdminAccount.ADMIN_COMMON)
 public class AdminAccountController {
-  private final AdminAccountService adminAccountService;
+    private final AdminAccountService adminAccountService;
 
-  public AdminAccountController(AdminAccountService adminAccountService) {
-    this.adminAccountService = adminAccountService;
-  }
+    public AdminAccountController(AdminAccountService adminAccountService) {
+        this.adminAccountService = adminAccountService;
+    }
 
-  @PostMapping
-  public ResponseEntity<ApiResponse<AdminResponse>> create(
-      @AuthenticationPrincipal OperationalPrincipal principal,
-      @Valid @RequestBody CreateAdminRequest body,
-      HttpServletRequest request) {
-    var admin =
-        adminAccountService.create(
-            principal,
-            body.firebaseUid(),
-            body.email(),
-            body.phone(),
-            body.displayName(),
-            (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
-    return ApiResponses.success(
-        HttpStatus.CREATED,
-        ApiMessages.ADMIN_CREATED,
-        new AdminResponse(admin.id(), admin.firebaseUid(), admin.displayName()),
-        request);
-  }
+    @PostMapping
+    public ResponseEntity<ApiResponse<AdminResponse>> create(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @Valid @RequestBody CreateAdminRequest body, HttpServletRequest request) {
+        var admin = adminAccountService.create(principal, body.firebaseUid(), body.email(),
+                body.phone(), body.displayName(),
+                (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.CREATED, ApiMessages.ADMIN_CREATED,
+                new AdminResponse(admin.id(), admin.firebaseUid(), admin.displayName()), request);
+    }
 
-  public record CreateAdminRequest(
-      @NotBlank @Size(max = 128) String firebaseUid,
-      @NotBlank @Email @Size(max = 254) String email,
-      @NotBlank @Size(max = 20) String phone,
-      @NotBlank @Size(max = 150) String displayName) {}
+    public record CreateAdminRequest(@NotBlank @Size(max = 128) String firebaseUid,
+            @NotBlank @Email @Size(max = 254) String email, @NotBlank @Size(max = 20) String phone,
+            @NotBlank @Size(max = 150) String displayName) {
+    }
 
-  public record AdminResponse(long id, String firebaseUid, String displayName) {}
+    public record AdminResponse(long id, String firebaseUid, String displayName) {
+    }
 }
