@@ -144,12 +144,12 @@ Ngày cập nhật gần nhất: 2026-08-16
       `ADMIN`, `0` tắt cảnh báo, giá trị bật trong khoảng `1`–`1440` phút và
       fallback backend là `25` phút khi không đọc được cấu hình hợp lệ; response
       success dùng `ApiResponse` với `data.longWaitWarningMinutes`.
-- [ ] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+- [x] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
 
 ## 5. Backend
 
 - [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món dùng lại asset demo trong `frontend/public/images/welcome`.
-- [x] Bổ sung hai account demo `ADMIN` và `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
+- [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
 
 - [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
       `operation`) theo các package `controller`, `service`, `mapper`, `model`,
@@ -357,10 +357,10 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Dọn các file cấu hình và lock pnpm phát sinh ngoài package manager chính thức của frontend.
 - [x] Bổ sung scroll-spy cho category bar của trang Menu: tự làm nổi bật category theo section đang đọc, tự đưa tab active vào vùng nhìn thấy và xử lý category cuối ngắn khi đã cuộn tới đáy trang.
 - [x] Tối ưu tải sớm toàn bộ ảnh có khả năng nằm trong viewport đầu ở Welcome, Menu, Cart và màn nhập thông tin; khai báo smooth-scroll route transition cho Next.js.
-- [ ] Xây dựng giao diện khách quét QR và mở phiên bàn.
-- [ ] Xây dựng giao diện menu và chọn option.
-- [ ] Xây dựng giao diện gửi order và gọi thêm món.
-- [ ] Xây dựng giao diện yêu cầu hủy món.
+- [x] Xây dựng giao diện khách quét QR và mở phiên bàn.
+- [x] Xây dựng giao diện menu và chọn option.
+- [x] Xây dựng giao diện gửi order và gọi thêm món.
+- [x] Xây dựng giao diện yêu cầu hủy món.
 - [x] Bổ sung UI Customer gửi yêu cầu hủy món tại trang đơn hàng: chọn số lượng, lý do tùy chọn, trạng thái chờ xác nhận, khả năng chỉnh sửa yêu cầu và liên kết món về thực đơn.
 - [x] Bổ sung popup chọn option khi thêm món từ danh sách thực đơn, gồm dropdown cấp độ cay, kích thước, độ ngọt và topping tùy theo món.
 - [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
@@ -393,7 +393,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
       thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
       lượng đã làm/còn lại cùng tổng tiền của một order.
-- [ ] Xây dựng giao diện vận hành cho menu, bàn và order.
+- [x] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
@@ -440,7 +440,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung dropdown chọn một voucher/promotion trên trang Đơn hàng Customer và tính tạm thời giá gốc, số tiền giảm, giá trị cần thanh toán ở frontend.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
-- [ ] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu theo contract đã chốt.
+- [x] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu theo contract đã chốt.
 - [ ] Viết component test và end-to-end test.
 - [x] Xây dựng giao diện Admin tra cứu khách hàng tại `/admin/customers`, gồm tìm kiếm theo tên/SĐT, che số điện thoại ở danh sách và xem lịch sử phiên bàn dạng chỉ đọc bằng dữ liệu mẫu.
 - [x] Bổ sung section định hướng phát triển cuối trang `/admin/audit-logs`: chăm sóc khách hàng qua Zalo, trò chơi và tính năng AI.

@@ -1,4 +1,4 @@
--- CAS demo data. Run this manually only after Flyway V1 has created an empty schema.
+-- CAS demo data. Run this manually only after Flyway has created an empty schema.
 -- This file is intentionally outside db/migration, so Flyway never executes it automatically.
 -- Demo customer QR URL: http://localhost:3000/table/<token below>
 -- image_url uses the existing assets in frontend/public; image_storage_key stays NULL because
@@ -17,7 +17,25 @@ INSERT INTO stores (
 );
 SET @store_id = LAST_INSERT_ID();
 
--- Không gán created_by: tài khoản vận hành phải được tạo và liên kết với Firebase qua API.
+-- Các Firebase user với UID tương ứng phải được tạo trước khi đăng nhập bằng các account demo này.
+INSERT INTO accounts (
+    store_id, firebase_uid, email, phone, display_name, role, status,
+    last_login_at, created_at, updated_at
+) VALUES
+    (@store_id, 'BBceWGHKmQMGSrRupMHdaXp3zK32', 'kxtdumbo@gmail.com', '0900000001',
+        'Super Admin Toan', 'SUPER_ADMIN', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137'),
+    (@store_id, 'pt7OP6fHG7T6CfF0W1I7FH68OK12', 'khuongxuantoan@gmail.com', '0900000002',
+        'Admin Toan', 'ADMIN', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137'),
+    (@store_id, 'VQ03PGio6bg1ueIL20ENUpeiUgf2', 'khuongxuantoan+operator@gmail.com', '0900000003',
+        'Operator Toan1', 'OPERATOR', 'ACTIVE', '2026-08-20 15:01:10.419',
+        '2026-08-20 08:15:40.137', '2026-08-20 15:01:10.422'),
+    (@store_id, 'dwUyrSq2TMX74IHpuFx9qoHNVms1', 'kxtdumbo+operator@gmail.com', '0900000004',
+        'Operator Toàn2', 'OPERATOR', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137');
+
+-- Không gán created_by để dữ liệu menu và bàn vẫn độc lập với account demo.
 INSERT INTO dining_tables (store_id, code, capacity, created_by) VALUES
     (@store_id, 1, 4, NULL), (@store_id, 2, 4, NULL),
     (@store_id, 3, 4, NULL), (@store_id, 4, 4, NULL),
