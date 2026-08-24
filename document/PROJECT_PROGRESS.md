@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-16
+Ngày cập nhật gần nhất: 2026-08-24
 
 ## Quy ước
 
@@ -480,6 +480,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Hoàn thiện tính năng Sửa tên và Xóa nhóm option, xóa thẻ giá trị option tại `/admin/catalog/options` và Sửa/Xửa danh mục món tại `/admin/catalog/categories`.
 - [x] Tích hợp thư viện `qrcode.react` để hiển thị ảnh mã QR thực tế và hỗ trợ tải ảnh QR (PNG) cho từng bàn ăn tại `/admin/tables`.
 - [x] Cập nhật regression test Frontend theo UI hiện tại: luồng xác nhận khoản chưa thanh toán, bill thanh toán và sáu tab điều hướng Operator; toàn bộ `npm run test` đạt 20 file / 38 test.
+- [x] Bổ sung manifest PWA `frontend/public/site.webmanifest`, bộ favicon/logo và khai báo metadata gốc để trình duyệt nhận diện ứng dụng CAS.
+- [x] Dùng chung logo CAS tại header Customer, Admin, Operator và hai màn đăng nhập vận hành.
 
 ## 7. Hạ tầng và triển khai
 

@@ -1,0 +1,24 @@
+{
+  "name": "CAS | Gọi món tại bàn",
+  "short_name": "CAS",
+  "description": "Xem menu và gọi món ngay tại bàn.",
+  "lang": "vi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f9ff",
+  "theme_color": "#b61722",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

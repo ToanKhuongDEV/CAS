@@ -6,6 +6,16 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CAS | Chào mừng bạn",
   description: "Khám phá mỳ cay, món ăn vặt, cà phê, trà sữa và gà rán ngay tại bàn.",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/cas-logo.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
+import { CasLogo } from "../ui/cas-logo";
 import { ThemeToggle } from "../ui/theme-toggle";
 
 type CustomerHeaderProps = {
@@ -73,8 +74,8 @@ export function CustomerHeader({
           href="/"
           aria-label="CAS - Trang chào mừng"
         >
-          <span className="grid size-10 place-items-center rounded-full bg-cas-primary text-cas-on-primary">
-            <CasIcon className="size-5" name="restaurant" />
+          <span className="grid size-10 place-items-center overflow-hidden rounded-full shadow-[0_4px_12px_var(--cas-shadow-color)]">
+            <CasLogo className="size-full object-cover" priority />
           </span>
           <span>Cas</span>
         </Link>
