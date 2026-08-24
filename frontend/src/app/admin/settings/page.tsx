@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import {
+  loadLongWaitWarningMinutes,
+  updateLongWaitWarningMinutes,
+} from "../../../lib/api/store/long-wait-warning.api";
 
 const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -168,6 +172,7 @@ export default function AdminSettingsPage() {
   // State cho Tham số Vận hành & Cảnh báo
   const [warningMins, setWarningMins] = useState<number>(25);
   const [savedOpsMsg, setSavedOpsMsg] = useState<string>("");
+  const [opsError, setOpsError] = useState<string>("");
 
   const handleSaveStoreInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,11 +180,34 @@ export default function AdminSettingsPage() {
     setTimeout(() => setSavedStoreMsg(""), 3500);
   };
 
-  const handleSaveOpsSettings = (e: React.FormEvent) => {
+  const handleSaveOpsSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedOpsMsg("Đã lưu tham số vận hành thành công!");
-    setTimeout(() => setSavedOpsMsg(""), 3500);
+    try {
+      const savedMinutes = await updateLongWaitWarningMinutes(warningMins);
+      setWarningMins(savedMinutes);
+      setOpsError("");
+      setSavedOpsMsg("Đã lưu tham số vận hành thành công!");
+      setTimeout(() => setSavedOpsMsg(""), 3500);
+    } catch (error) {
+      setOpsError(error instanceof Error ? error.message : "Không thể lưu tham số vận hành.");
+    }
   };
+
+  useEffect(() => {
+    let active = true;
+    void loadLongWaitWarningMinutes()
+      .then((minutes) => {
+        if (active) setWarningMins(minutes);
+      })
+      .catch((error) => {
+        if (active) {
+          setOpsError(error instanceof Error ? error.message : "Không thể tải tham số vận hành.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -525,8 +553,8 @@ export default function AdminSettingsPage() {
                 <div className="mt-3 flex items-center gap-3">
                   <input
                     type="number"
-                    min={5}
-                    max={120}
+                    min={0}
+                    max={1440}
                     value={warningMins}
                     onChange={(e) => setWarningMins(Number(e.target.value))}
                     className="w-32 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
@@ -546,6 +574,7 @@ export default function AdminSettingsPage() {
                     {savedOpsMsg}
                   </span>
                 )}
+                {opsError && <span className="text-xs font-bold text-cas-error">{opsError}</span>}
               </div>
             </form>
           </div>

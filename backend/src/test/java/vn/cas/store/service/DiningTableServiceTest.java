@@ -68,4 +68,30 @@ class DiningTableServiceTest {
         verify(diningTableMapper, never()).insertDiningTable(any());
         verify(auditLogService, never()).record(any());
     }
+
+    @Test
+    void shouldDeleteDiningTableAndRecordAuditLog() {
+        UUID requestId = UUID.randomUUID();
+        when(diningTableMapper.deleteDiningTable(2L, 11L)).thenReturn(1);
+
+        service.delete(principal, 11L, requestId);
+
+        var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
+        verify(auditLogService).record(auditCaptor.capture());
+        assertThat(auditCaptor.getValue()).extracting(AuditLogCommand::action,
+                AuditLogCommand::entityType, AuditLogCommand::entityId)
+                .containsExactly("DELETE", "DINING_TABLE", 11L);
+    }
+
+    @Test
+    void shouldRejectDeletingUnknownDiningTable() {
+        when(diningTableMapper.deleteDiningTable(2L, 11L)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.delete(principal, 11L, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.NOT_FOUND,
+                        ApiMessages.DINING_TABLE_NOT_FOUND);
+        verify(auditLogService, never()).record(any());
+    }
 }

@@ -1,49 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
-
-type Category = { id: number; name: string; visible: boolean };
-const initialCategories: Category[] = [
-  { id: 1, name: "Mỳ Cay", visible: true },
-  { id: 2, name: "Gà Rán", visible: true },
-  { id: 3, name: "Đồ Ăn Vặt", visible: true },
-  { id: 4, name: "Đồ Uống", visible: true },
-];
+import {
+  createCatalogCategory,
+  deleteCatalogCategory,
+  loadAdminCatalog,
+  updateCatalogCategory,
+  type CatalogCategory,
+} from "../../../../lib/api/catalog/catalog.api";
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState(initialCategories);
+  const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CatalogCategory | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CatalogCategory | null>(null);
   const [name, setName] = useState("");
   const [editName, setEditName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const addCategory = (event: React.FormEvent) => {
+  const refreshCategories = useCallback(async () => {
+    try {
+      const data = await loadAdminCatalog();
+      setCategories(data.categories.filter((category) => category.categoryType === "REGULAR"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load categories.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => void refreshCategories(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshCategories]);
+
+  const addCategory = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    setCategories((current) => [...current, { id: Date.now(), name: name.trim(), visible: true }]);
-    setName("");
-    setShowAddForm(false);
+    setIsSaving(true);
+    try {
+      await createCatalogCategory({
+        categoryType: "REGULAR",
+        description: "",
+        displayOrder: categories.length,
+        name: name.trim(),
+        status: "ACTIVE",
+      });
+      await refreshCategories();
+      setName("");
+      setShowAddForm(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const updateCategoryName = (event: React.FormEvent) => {
+  const updateCategoryName = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingCategory || !editName.trim()) return;
-    setCategories((current) =>
-      current.map((cat) =>
-        cat.id === editingCategory.id ? { ...cat, name: editName.trim() } : cat,
-      ),
-    );
-    setEditingCategory(null);
-    setEditName("");
+    setIsSaving(true);
+    try {
+      await updateCatalogCategory(editingCategory.id, {
+        ...editingCategory,
+        description: editingCategory.description ?? "",
+        name: editName.trim(),
+      });
+      await refreshCategories();
+      setEditingCategory(null);
+      setEditName("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const removeCategory = () => {
+  const removeCategory = async () => {
     if (!deleteTarget) return;
-    setCategories((current) => current.filter((cat) => cat.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    setIsSaving(true);
+    try {
+      await deleteCatalogCategory(deleteTarget.id);
+      await refreshCategories();
+      setDeleteTarget(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to delete category.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleCategoryStatus = async (category: CatalogCategory) => {
+    setIsSaving(true);
+    try {
+      await updateCatalogCategory(category.id, {
+        ...category,
+        description: category.description ?? "",
+        status: category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      });
+      await refreshCategories();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -59,6 +120,7 @@ export default function AdminCategoriesPage() {
           Thêm danh mục mới
         </CasButton>
       </div>
+      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
 
       {/* Modal Tạo danh mục mới */}
       {showAddForm && (
@@ -196,7 +258,13 @@ export default function AdminCategoriesPage() {
               >
                 Hủy
               </CasButton>
-              <CasButton onClick={removeCategory} size="sm" type="button" variant="primary">
+              <CasButton
+                disabled={isSaving}
+                onClick={removeCategory}
+                size="sm"
+                type="button"
+                variant="primary"
+              >
                 Xác nhận Xóa
               </CasButton>
             </div>
@@ -215,23 +283,18 @@ export default function AdminCategoriesPage() {
                 {index + 1}. {category.name}
               </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
-                {category.visible ? "Đang hiển thị trên menu" : "Đang ẩn trên menu"}
+                {category.status === "ACTIVE" ? "Đang hiển thị trên menu" : "Đang ẩn trên menu"}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <CasButton
-                onClick={() =>
-                  setCategories((current) =>
-                    current.map((item) =>
-                      item.id === category.id ? { ...item, visible: !item.visible } : item,
-                    ),
-                  )
-                }
+                disabled={isSaving}
+                onClick={() => void toggleCategoryStatus(category)}
                 size="sm"
-                variant={category.visible ? "outline" : "outline-primary"}
+                variant={category.status === "ACTIVE" ? "outline" : "outline-primary"}
               >
-                {category.visible ? "Ẩn danh mục" : "Hiển thị"}
+                {category.status === "ACTIVE" ? "Ẩn danh mục" : "Hiển thị"}
               </CasButton>
               <button
                 className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-cas-surface-container hover:text-cas-primary"

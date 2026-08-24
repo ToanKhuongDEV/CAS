@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-16
+Ngày cập nhật gần nhất: 2026-08-23
 
 ## Quy ước
 
@@ -157,17 +157,22 @@ Ngày cập nhật gần nhất: 2026-08-16
       schema và hành vi nghiệp vụ.
 ### Các API đã làm
 
-- [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS.
-- [x] `GET /api/v1/auth/me`: trả danh tính và role tài khoản vận hành đã xác thực để frontend điều hướng theo quyền.
-- [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị.
-- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại.
-- [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log.
-- [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn.
-- [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu.
-- [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
-- [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`.
-- [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món.
+Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế từ Frontend; **Ghép một phần** = chỉ một phần API trong nhóm đã được gọi; **Chưa ghép** = giao diện hiện vẫn dùng dữ liệu/trạng thái cục bộ hoặc chưa có giao diện gọi API.
+
+- [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/auth/me`: trả danh tính và role tài khoản vận hành đã xác thực để frontend điều hướng theo quyền. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại. **[Đã ghép Frontend]**
+- [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/admin/tables`: `ADMIN` xem danh sách bàn, QR đang hoạt động và trạng thái phiên hiện tại. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/admin/tables/{tableId}/qr`: `ADMIN` xem QR đang hoạt động của một bàn để hiển thị hoặc tải ảnh QR. **[Đã ghép Frontend]**
+- [x] `DELETE /api/v1/admin/tables/{tableId}`: `ADMIN` xóa bàn chưa có phiên lịch sử; QR liên quan bị xóa theo khóa ngoại cascade. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
+- [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -178,10 +183,10 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] **Store:** lưu logo cửa hàng qua Cloudinary và trả URL logo trong dữ liệu cấu hình cửa hàng.
 - [x] **Store:** xem ngưỡng cảnh báo bàn chờ lâu.
 - [x] **Store:** cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
-- [ ] **Bàn và QR:** xem danh sách bàn.
-- [ ] **Bàn và QR:** xem QR đang hoạt động của bàn.
-- [ ] **Bàn và QR:** tải QR của bàn để in hoặc lưu.
-- [ ] **Bàn và QR:** xóa bàn.
+- [x] **Bàn và QR:** xem danh sách bàn.
+- [x] **Bàn và QR:** xem QR đang hoạt động của bàn.
+- [x] **Bàn và QR:** tải QR của bàn để in hoặc lưu từ QR token đang hoạt động.
+- [x] **Bàn và QR:** xóa bàn; mã QR liên quan bị xóa cascade, còn bàn có phiên lịch sử bị từ chối.
 - [x] **Category:** xem danh sách category.
 - [x] **Category:** thêm category.
 - [x] **Category:** sửa category.

@@ -1,70 +1,135 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
-
-type OptionGroup = { id: number; name: string; values: string[] };
-
-const initialGroups: OptionGroup[] = [
-  { id: 1, name: "Cấp độ cay", values: ["0", "1", "2", "3", "4", "5", "6", "7"] },
-  { id: 2, name: "Size", values: ["M", "L"] },
-  { id: 3, name: "Topping", values: ["Phô mai", "Xúc xích"] },
-];
+import {
+  createCatalogOptionGroup,
+  createCatalogOptionValue,
+  deleteCatalogOptionGroup,
+  deleteCatalogOptionValue,
+  loadAdminCatalog,
+  updateCatalogOptionGroup,
+  type CatalogOptionGroup,
+} from "../../../../lib/api/catalog/catalog.api";
 
 export default function AdminOptionsPage() {
-  const [groups, setGroups] = useState<OptionGroup[]>(initialGroups);
+  const [groups, setGroups] = useState<CatalogOptionGroup[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<OptionGroup | null>(null);
-  const [deleteGroupTarget, setDeleteGroupTarget] = useState<OptionGroup | null>(null);
+  const [editingGroup, setEditingGroup] = useState<CatalogOptionGroup | null>(null);
+  const [deleteGroupTarget, setDeleteGroupTarget] = useState<CatalogOptionGroup | null>(null);
   const [name, setName] = useState("");
   const [editName, setEditName] = useState("");
   const [valueInput, setValueInput] = useState<Record<number, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const addGroup = (event: React.FormEvent) => {
+  const refreshGroups = useCallback(async () => {
+    try {
+      const data = await loadAdminCatalog();
+      setGroups(data.optionGroups);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load option groups.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => void refreshGroups(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshGroups]);
+
+  const addGroup = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    setGroups((current) => [...current, { id: Date.now(), name: name.trim(), values: [] }]);
-    setName("");
-    setShowAddForm(false);
+    setIsSaving(true);
+    try {
+      await createCatalogOptionGroup({
+        displayOrder: groups.length,
+        maxSelect: 1,
+        minSelect: 0,
+        name: name.trim(),
+        selectionType: "SINGLE",
+        status: "ACTIVE",
+      });
+      await refreshGroups();
+      setName("");
+      setShowAddForm(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create option group.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const updateGroupName = (event: React.FormEvent) => {
+  const updateGroupName = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingGroup || !editName.trim()) return;
-    setGroups((current) =>
-      current.map((g) => (g.id === editingGroup.id ? { ...g, name: editName.trim() } : g)),
-    );
-    setEditingGroup(null);
-    setEditName("");
+    setIsSaving(true);
+    try {
+      await updateCatalogOptionGroup(editingGroup.id, {
+        displayOrder: editingGroup.displayOrder,
+        maxSelect: editingGroup.maxSelect,
+        minSelect: editingGroup.minSelect,
+        name: editName.trim(),
+        selectionType: editingGroup.selectionType,
+        status: editingGroup.status,
+      });
+      await refreshGroups();
+      setEditingGroup(null);
+      setEditName("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update option group.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const removeGroup = () => {
+  const removeGroup = async () => {
     if (!deleteGroupTarget) return;
-    setGroups((current) => current.filter((g) => g.id !== deleteGroupTarget.id));
-    setDeleteGroupTarget(null);
+    setIsSaving(true);
+    try {
+      await deleteCatalogOptionGroup(deleteGroupTarget.id);
+      await refreshGroups();
+      setDeleteGroupTarget(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to delete option group.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const addOptionValue = (groupId: number, event: React.FormEvent) => {
+  const addOptionValue = async (groupId: number, event: React.FormEvent) => {
     event.preventDefault();
     const nextVal = valueInput[groupId]?.trim();
     if (!nextVal) return;
-    setGroups((current) =>
-      current.map((g) =>
-        g.id === groupId && !g.values.includes(nextVal)
-          ? { ...g, values: [...g.values, nextVal] }
-          : g,
-      ),
-    );
-    setValueInput((current) => ({ ...current, [groupId]: "" }));
+    setIsSaving(true);
+    try {
+      await createCatalogOptionValue(groupId, {
+        displayOrder: groups.find((group) => group.id === groupId)?.values.length ?? 0,
+        extraPrice: 0,
+        isDefault: false,
+        name: nextVal,
+        status: "ACTIVE",
+      });
+      await refreshGroups();
+      setValueInput((current) => ({ ...current, [groupId]: "" }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create option value.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const removeOptionValue = (groupId: number, valToRemove: string) => {
-    setGroups((current) =>
-      current.map((g) =>
-        g.id === groupId ? { ...g, values: g.values.filter((v) => v !== valToRemove) } : g,
-      ),
-    );
+  const removeOptionValue = async (valueId: number) => {
+    setIsSaving(true);
+    try {
+      await deleteCatalogOptionValue(valueId);
+      await refreshGroups();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to delete option value.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -80,6 +145,7 @@ export default function AdminOptionsPage() {
           Tạo nhóm option
         </CasButton>
       </div>
+      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
 
       {/* Modal Tạo nhóm option */}
       {showAddForm && (
@@ -265,13 +331,14 @@ export default function AdminOptionsPage() {
                   group.values.map((val) => (
                     <span
                       className="inline-flex items-center gap-1.5 rounded-xl border border-cas-secondary/20 bg-cas-secondary/15 px-3 py-1 text-xs font-bold text-cas-secondary"
-                      key={val}
+                      key={val.id}
                     >
-                      <span>{val}</span>
+                      <span>{val.name}</span>
                       <button
                         className="cursor-pointer rounded-full p-0.5 text-cas-secondary transition hover:bg-cas-secondary/20 hover:text-rose-600"
-                        onClick={() => removeOptionValue(group.id, val)}
-                        title={`Xóa giá trị ${val}`}
+                        disabled={isSaving}
+                        onClick={() => void removeOptionValue(val.id)}
+                        title={`Xóa giá trị ${val.name}`}
                         type="button"
                       >
                         <CasIcon className="size-3" name="close" />

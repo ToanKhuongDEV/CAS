@@ -41,6 +41,9 @@ Ví dụ tạo bàn:
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/admin/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"code\":5,\"capacity\":4}"
+curl.exe http://localhost:8080/api/v1/admin/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/admin/tables/1/qr -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X DELETE http://localhost:8080/api/v1/admin/tables/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
 Postman có thể import trực tiếp lệnh cURL này.

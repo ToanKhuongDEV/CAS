@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
 import {
@@ -15,6 +15,7 @@ import {
 } from "../../customer/add-to-cart-option-dialog";
 import type { VoucherSummary } from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
+import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -354,6 +355,8 @@ type OperatorOrderCreationViewProps = {
 export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
+  const [catalogCategories, setCatalogCategories] = useState(categories);
+  const [catalogItems, setCatalogItems] = useState<MenuItemData[]>(menuItems);
   const [selectedTable, setSelectedTable] = useState<TableOption>(() => {
     const found = mockActiveTables.find((t) => t.id === defaultTableId);
     return found ?? mockActiveTables[2];
@@ -375,13 +378,53 @@ export function OperatorOrderCreationView({
     payableAmount: 0,
   });
 
+  useEffect(() => {
+    void loadOperatorCatalog()
+      .then((catalog) => {
+        const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
+        setCatalogCategories(
+          catalog.categories.map((category) => ({
+            id: String(category.id),
+            label: category.name,
+          })),
+        );
+        setCatalogItems(
+          catalog.items.map((item) => ({
+            badges: (item.tags ?? []).map((tag) => tag.name),
+            basePrice: item.price,
+            categoryId: String(item.categoryId),
+            description: item.description ?? "",
+            id: String(item.id),
+            imageAlt: item.name,
+            imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+            name: item.name,
+            optionGroups: (item.optionGroups ?? []).map((group) => {
+              const optionGroup = optionGroupsById.get(group.id);
+              return {
+                id: String(group.id),
+                label: group.name,
+                options: (optionGroup?.values ?? []).map((value) => ({
+                  id: String(value.id),
+                  label: value.name,
+                  priceDelta: value.extraPrice,
+                })),
+                selectionType: optionGroup?.selectionType ?? "SINGLE",
+              };
+            }),
+            price: formatPrice(item.price),
+          })),
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
   const filteredMenuItems = useMemo(() => {
-    if (!searchQuery.trim()) return menuItems;
+    if (!searchQuery.trim()) return catalogItems;
     const q = searchQuery.toLowerCase().trim();
-    return menuItems.filter(
+    return catalogItems.filter(
       (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
     );
-  }, [searchQuery]);
+  }, [catalogItems, searchQuery]);
 
   const totalCartCount = useMemo(
     () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
@@ -536,14 +579,14 @@ export function OperatorOrderCreationView({
 
           {/* Sticky Category Navigation with Drag & Scroll-spy - Constrained in left column */}
           <CategoryNavigation
-            categories={categories}
+            categories={catalogCategories}
             className="w-full max-w-full rounded-2xl border border-cas-outline-variant/30 px-2 py-2.5 mt-2 mx-0 shadow-sm"
             stickyTopClass="top-36"
           />
 
           {/* Continuous Long Menu List divided by Categories */}
           <div className="mt-2" id="menu-list">
-            {categories.map((category) => {
+            {catalogCategories.map((category) => {
               const categoryItems = filteredMenuItems.filter(
                 (item) => item.categoryId === category.id,
               );

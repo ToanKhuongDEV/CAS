@@ -1,17 +1,29 @@
-import type { Metadata } from "next";
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import {
   AddToCartOptionDialog,
   type MenuOptionGroup,
 } from "../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../components/ui/cas-icon";
+import { loadCustomerCatalog } from "../../../../lib/api/catalog/published-catalog.api";
 import { CategoryNavigation } from "./category-navigation";
 
-export const metadata: Metadata = {
-  title: "Thực đơn | CAS",
-  description: "Thực đơn món ăn và đồ uống tại CAS.",
+type CustomerMenuItem = {
+  badges: string[];
+  basePrice: number;
+  categoryId: string;
+  description: string;
+  detailSlug?: string;
+  imageAlt: string;
+  imageSrc: string;
+  name: string;
+  optionGroups?: MenuOptionGroup[];
+  price: string;
+  quantity: number;
 };
 
 const categories = [
@@ -23,8 +35,6 @@ const categories = [
   { id: "nuoc-giai-khat", label: "Nước giải khát" },
   { id: "an-vat", label: "Ăn vặt" },
 ];
-
-const categoryNavigationItems = [...categories, { id: "additional-services", label: "Khác" }];
 
 const spiceLevels = Array.from({ length: 8 }, (_, level) => ({
   id: `level-${level}`,
@@ -65,7 +75,7 @@ const drinkOptionGroups: MenuOptionGroup[] = [
   },
 ];
 
-const menuItems = [
+const menuItems: CustomerMenuItem[] = [
   {
     categoryId: "mon-noi-bat",
     detailSlug: "my-cay-dac-biet",
@@ -279,6 +289,55 @@ const menuItems = [
 ];
 
 export default function MenuPage() {
+  const [catalogCategories, setCatalogCategories] = useState(categories);
+  const [catalogItems, setCatalogItems] = useState(menuItems);
+
+  useEffect(() => {
+    void loadCustomerCatalog()
+      .then((catalog) => {
+        const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
+        setCatalogCategories(
+          catalog.categories.map((category) => ({
+            id: String(category.id),
+            label: category.name,
+          })),
+        );
+        setCatalogItems(
+          catalog.items.map((item) => ({
+            badges: (item.tags ?? []).map((tag) => tag.name),
+            basePrice: item.price,
+            categoryId: String(item.categoryId),
+            description: item.description ?? "",
+            detailSlug: undefined,
+            imageAlt: item.name,
+            imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+            name: item.name,
+            optionGroups: (item.optionGroups ?? []).map((group) => {
+              const optionGroup = optionGroupsById.get(group.id);
+              return {
+                id: String(group.id),
+                label: group.name,
+                options: (optionGroup?.values ?? []).map((value) => ({
+                  id: String(value.id),
+                  label: value.name,
+                  priceDelta: value.extraPrice,
+                })),
+                selectionType: optionGroup?.selectionType ?? "SINGLE",
+              };
+            }),
+            price: `${new Intl.NumberFormat("vi-VN").format(item.price)}đ`,
+            quantity: 0,
+          })),
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const categoryNavigationItems = [
+    ...catalogCategories,
+    { id: "additional-services", label: "Khác" },
+  ];
+
   return (
     <>
       <main className="w-full">
@@ -334,8 +393,8 @@ export default function MenuPage() {
         <CategoryNavigation categories={categoryNavigationItems} />
 
         <div className="mt-2 pb-70 md:pb-70" id="menu-list">
-          {categories.map((category) => {
-            const categoryItems = menuItems.filter((item) => item.categoryId === category.id);
+          {catalogCategories.map((category) => {
+            const categoryItems = catalogItems.filter((item) => item.categoryId === category.id);
 
             return (
               <section

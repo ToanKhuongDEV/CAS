@@ -43,6 +43,42 @@
         )
     </insert>
 
+    <select id="findAdminDiningTablesByStoreId"
+            resultType="vn.cas.store.model.AdminDiningTable">
+        SELECT
+            dining_tables.id AS id,
+            dining_tables.code AS code,
+            dining_tables.capacity AS capacity,
+            table_qr_codes.token AS activeQrToken,
+            table_sessions.status AS sessionStatus
+        FROM dining_tables
+        LEFT JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
+            AND table_qr_codes.status = 'ACTIVE'
+        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
+            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        WHERE dining_tables.store_id = #{storeId}
+        ORDER BY dining_tables.code ASC
+    </select>
+
+    <select id="findActiveQrCodeByStoreIdAndTableId"
+            resultType="vn.cas.store.model.ActiveTableQrCode">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.code AS tableCode,
+            table_qr_codes.token AS token
+        FROM dining_tables
+        INNER JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
+            AND table_qr_codes.status = 'ACTIVE'
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+    </select>
+
+    <delete id="deleteDiningTable">
+        DELETE FROM dining_tables
+        WHERE store_id = #{storeId}
+          AND id = #{tableId}
+    </delete>
+
     <select id="findTableSessionByActiveQrTokenForUpdate"
             resultType="vn.cas.store.model.CustomerTableSessionLookup">
         SELECT
