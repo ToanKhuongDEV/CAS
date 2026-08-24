@@ -8,6 +8,11 @@ public final class ApiMessages {
     public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Đã cập nhật cấu hình cảnh báo bàn chờ lâu.";
     public static final String DINING_TABLE_CREATED = "Đã tạo bàn ăn.";
     public static final String DINING_TABLE_CODE_ALREADY_EXISTS = "Mã bàn đã tồn tại.";
+    public static final String DINING_TABLES_RETRIEVED = "Đã lấy danh sách bàn ăn.";
+    public static final String ACTIVE_TABLE_QR_CODE_RETRIEVED = "Đã lấy mã QR đang hoạt động của bàn.";
+    public static final String DINING_TABLE_DELETED = "Đã xóa bàn ăn và các mã QR liên quan.";
+    public static final String DINING_TABLE_NOT_FOUND = "Không tìm thấy bàn ăn.";
+    public static final String DINING_TABLE_IN_USE = "Bàn ăn đã có dữ liệu phiên, không thể xóa.";
     public static final String OPERATOR_CREATED = "Đã tạo tài khoản nhân viên.";
     public static final String OPERATOR_DEACTIVATED = "Đã vô hiệu hóa tài khoản nhân viên.";
     public static final String OPERATOR_NOT_FOUND = "Không tìm thấy tài khoản nhân viên.";

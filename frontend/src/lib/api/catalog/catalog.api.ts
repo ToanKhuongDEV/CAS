@@ -7,6 +7,7 @@ type ApiResponse<T> = { data: T };
 
 export type CatalogCategory = {
   categoryType: "REGULAR" | "OPTION";
+  description: string | null;
   displayOrder: number;
   id: number;
   name: string;
@@ -22,6 +23,19 @@ export type CatalogTag = {
 export type CatalogOptionGroup = {
   displayOrder: number;
   id: number;
+  maxSelect: number | null;
+  minSelect: number;
+  name: string;
+  selectionType: "SINGLE" | "MULTIPLE";
+  status: "ACTIVE" | "INACTIVE";
+  values: CatalogOptionValue[];
+};
+
+export type CatalogOptionValue = {
+  displayOrder: number;
+  extraPrice: number;
+  id: number;
+  isDefault: boolean;
   name: string;
   status: "ACTIVE" | "INACTIVE";
 };
@@ -53,6 +67,27 @@ export type SaveCatalogMenuItem = {
   tagIds: number[];
 };
 
+export type SaveCatalogCategory = {
+  categoryType: "REGULAR" | "OPTION";
+  description: string;
+  displayOrder: number;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+};
+
+export type SaveCatalogTag = Pick<CatalogTag, "name" | "status">;
+
+export type SaveCatalogOptionGroup = {
+  displayOrder: number;
+  maxSelect: number | null;
+  minSelect: number;
+  name: string;
+  selectionType: "SINGLE" | "MULTIPLE";
+  status: "ACTIVE" | "INACTIVE";
+};
+
+export type SaveCatalogOptionValue = Omit<CatalogOptionValue, "id">;
+
 export async function loadAdminCatalog() {
   const [categories, tags, optionGroups, items] = await Promise.all([
     request<CatalogCategory[]>("/categories"),
@@ -79,6 +114,55 @@ export function updateCatalogMenuItemStatuses(
     body: JSON.stringify({ itemIds, status }),
     method: "PATCH",
   });
+}
+
+export function createCatalogCategory(category: SaveCatalogCategory) {
+  return request<void>("/categories", { body: JSON.stringify(category), method: "POST" });
+}
+
+export function updateCatalogCategory(id: number, category: SaveCatalogCategory) {
+  const { categoryType, ...body } = category;
+  void categoryType;
+  return request<void>(`/categories/${id}`, { body: JSON.stringify(body), method: "PUT" });
+}
+
+export function deleteCatalogCategory(id: number) {
+  return request<void>(`/categories/${id}`, { method: "DELETE" });
+}
+
+export function createCatalogTag(tag: SaveCatalogTag) {
+  return request<void>("/tags", { body: JSON.stringify(tag), method: "POST" });
+}
+
+export function updateCatalogTag(id: number, tag: SaveCatalogTag) {
+  return request<void>(`/tags/${id}`, { body: JSON.stringify(tag), method: "PUT" });
+}
+
+export function deleteCatalogTag(id: number) {
+  return request<void>(`/tags/${id}`, { method: "DELETE" });
+}
+
+export function createCatalogOptionGroup(group: SaveCatalogOptionGroup) {
+  return request<void>("/option-groups", { body: JSON.stringify(group), method: "POST" });
+}
+
+export function updateCatalogOptionGroup(id: number, group: SaveCatalogOptionGroup) {
+  return request<void>(`/option-groups/${id}`, { body: JSON.stringify(group), method: "PUT" });
+}
+
+export function deleteCatalogOptionGroup(id: number) {
+  return request<void>(`/option-groups/${id}`, { method: "DELETE" });
+}
+
+export function createCatalogOptionValue(groupId: number, value: SaveCatalogOptionValue) {
+  return request<void>(`/option-groups/${groupId}/values`, {
+    body: JSON.stringify(value),
+    method: "POST",
+  });
+}
+
+export function deleteCatalogOptionValue(id: number) {
+  return request<void>(`/option-values/${id}`, { method: "DELETE" });
 }
 
 async function request<T>(path: string, init: RequestInit = {}) {

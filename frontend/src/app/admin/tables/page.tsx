@@ -1,10 +1,17 @@
 "use client";
 
 import { QRCodeCanvas } from "qrcode.react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
+import {
+  type AdminDiningTable,
+  createDiningTable,
+  deleteDiningTable,
+  loadActiveTableQrCode,
+  loadDiningTables,
+} from "../../../lib/api/tables/tables.api";
 
 type TableItem = {
   code: number;
@@ -13,17 +20,18 @@ type TableItem = {
   sessionStatus: "OPEN" | "CLOSED" | "PAYMENT_PENDING";
 };
 
-const mockTables: TableItem[] = [
-  { id: 1, code: 1, qrToken: "CAS_TABLE_001", sessionStatus: "OPEN" },
-  { id: 2, code: 2, qrToken: "CAS_TABLE_002", sessionStatus: "OPEN" },
-  { id: 3, code: 3, qrToken: "CAS_TABLE_003", sessionStatus: "CLOSED" },
-  { id: 4, code: 4, qrToken: "CAS_TABLE_004", sessionStatus: "PAYMENT_PENDING" },
-  { id: 5, code: 5, qrToken: "CAS_TABLE_005", sessionStatus: "CLOSED" },
-];
+function toTableItem(table: AdminDiningTable): TableItem {
+  return {
+    code: table.code,
+    id: table.id,
+    qrToken: table.activeQrToken ?? "",
+    sessionStatus: table.sessionStatus ?? "CLOSED",
+  };
+}
 
 export default function AdminTablesPage() {
   const { showToast } = useToast();
-  const [tables, setTables] = useState<TableItem[]>(mockTables);
+  const [tables, setTables] = useState<TableItem[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTableCode, setNewTableCode] = useState<string>("");
   const [selectedQR, setSelectedQR] = useState<TableItem | null>(null);
@@ -33,36 +41,64 @@ export default function AdminTablesPage() {
     "ALL",
   );
 
-  const handleCreateTable = (e: React.FormEvent) => {
+  const reloadTables = useCallback(async () => {
+    try {
+      setTables((await loadDiningTables()).map(toTableItem));
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tải danh sách bàn ăn.",
+        type: "error",
+      });
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void reloadTables();
+  }, [reloadTables]);
+
+  const handleCreateTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableCode) return;
     const codeNum = Number(newTableCode);
 
-    // Kiểm tra trùng mã bàn
-    if (tables.some((t) => t.code === codeNum)) {
-      showToast({ message: `Bàn số ${codeNum} đã tồn tại trong hệ thống.`, type: "warning" });
-      return;
+    try {
+      await createDiningTable(codeNum);
+      await reloadTables();
+      setNewTableCode("");
+      setShowAddForm(false);
+      showToast({ message: "Đã tạo bàn ăn và mã QR.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tạo bàn ăn.",
+        type: "error",
+      });
     }
-
-    const formattedCode =
-      codeNum < 10 ? `00${codeNum}` : codeNum < 100 ? `0${codeNum}` : `${codeNum}`;
-
-    const newTab: TableItem = {
-      id: Date.now(),
-      code: codeNum,
-      qrToken: `CAS_TABLE_${formattedCode}`,
-      sessionStatus: "CLOSED",
-    };
-    setTables([...tables, newTab]);
-    setNewTableCode("");
-    setShowAddForm(false);
-    showToast({ message: `Đã tạo Bàn ${formattedCode}.`, type: "success" });
   };
 
-  const handleDeleteTable = (id: number) => {
-    setTables((prev) => prev.filter((t) => t.id !== id));
-    setDeletingTable(null);
-    showToast({ message: "Đã xóa bàn khỏi danh sách.", type: "success" });
+  const handleDeleteTable = async (id: number) => {
+    try {
+      await deleteDiningTable(id);
+      await reloadTables();
+      setDeletingTable(null);
+      showToast({ message: "Đã xóa bàn và mã QR liên quan.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể xóa bàn ăn.",
+        type: "error",
+      });
+    }
+  };
+
+  const handleViewQr = async (table: TableItem) => {
+    try {
+      const qrCode = await loadActiveTableQrCode(table.id);
+      setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tải mã QR của bàn.",
+        type: "error",
+      });
+    }
   };
 
   const downloadQRCode = (tableCode: number) => {
@@ -130,14 +166,14 @@ export default function AdminTablesPage() {
             Bàn trống ({tables.filter((t) => t.sessionStatus === "CLOSED").length})
           </button>
           <button
-            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "OPEN" ? "bg-emerald-600 text-white shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
+            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "OPEN" ? "bg-cas-secondary text-cas-on-secondary shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
             onClick={() => setStatusFilter("OPEN")}
             type="button"
           >
             Đang có khách ({tables.filter((t) => t.sessionStatus === "OPEN").length})
           </button>
           <button
-            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "PAYMENT_PENDING" ? "bg-amber-600 text-white shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
+            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "PAYMENT_PENDING" ? "bg-cas-tertiary text-cas-on-primary shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
             onClick={() => setStatusFilter("PAYMENT_PENDING")}
             type="button"
           >
@@ -246,10 +282,10 @@ export default function AdminTablesPage() {
 
                     <td className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.68rem] font-black ${table.sessionStatus === "OPEN" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : table.sessionStatus === "PAYMENT_PENDING" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" : "bg-cas-surface-container text-cas-on-surface-variant border border-cas-outline-variant/30"}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.68rem] font-black ${table.sessionStatus === "OPEN" ? "border border-cas-secondary/30 bg-cas-secondary-container/25 text-cas-secondary" : table.sessionStatus === "PAYMENT_PENDING" ? "border border-cas-tertiary/30 bg-cas-tertiary-container/25 text-cas-tertiary" : "border border-cas-outline-variant/30 bg-cas-surface-container text-cas-on-surface-variant"}`}
                       >
                         <span
-                          className={`size-1.5 rounded-full ${table.sessionStatus === "OPEN" ? "bg-emerald-500" : table.sessionStatus === "PAYMENT_PENDING" ? "bg-amber-500 animate-ping" : "bg-cas-on-surface-variant/40"}`}
+                          className={`size-1.5 rounded-full ${table.sessionStatus === "OPEN" ? "bg-cas-secondary" : table.sessionStatus === "PAYMENT_PENDING" ? "animate-ping bg-cas-tertiary" : "bg-cas-on-surface-variant/40"}`}
                         />
                         {table.sessionStatus === "OPEN"
                           ? "ĐANG CÓ KHÁCH"
@@ -263,7 +299,7 @@ export default function AdminTablesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <CasButton
                           icon="search"
-                          onClick={() => setSelectedQR(table)}
+                          onClick={() => void handleViewQr(table)}
                           size="sm"
                           variant="outline-primary"
                         >
@@ -339,7 +375,7 @@ export default function AdminTablesPage() {
               </button>
             </div>
 
-            <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-white p-5 shadow-inner">
+            <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-inner">
               <QRCodeCanvas
                 bgColor="#ffffff"
                 fgColor="#000000"
@@ -349,7 +385,7 @@ export default function AdminTablesPage() {
                 size={180}
                 value={`${typeof window !== "undefined" ? window.location.origin : ""}/table/${selectedQR.qrToken}`}
               />
-              <span className="mt-2 font-mono text-[0.65rem] font-bold text-gray-500">
+              <span className="mt-2 font-mono text-[0.65rem] font-bold text-cas-on-surface-variant">
                 {selectedQR.qrToken}
               </span>
             </div>

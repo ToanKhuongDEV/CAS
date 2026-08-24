@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.CreateDiningTableCommand;
+import vn.cas.store.model.ActiveTableQrCode;
+import vn.cas.store.model.AdminDiningTable;
 import vn.cas.store.model.CustomerTableSessionLookup;
 
 @Mapper
@@ -16,6 +18,13 @@ public interface DiningTableMapper {
 
     int insertActiveQrCode(@Param("tableId") long tableId, @Param("token") String token,
             @Param("issuedAt") LocalDateTime issuedAt);
+
+    java.util.List<AdminDiningTable> findAdminDiningTablesByStoreId(@Param("storeId") long storeId);
+
+    ActiveTableQrCode findActiveQrCodeByStoreIdAndTableId(@Param("storeId") long storeId,
+            @Param("tableId") long tableId);
+
+    int deleteDiningTable(@Param("storeId") long storeId, @Param("tableId") long tableId);
 
     CustomerTableSessionLookup findTableSessionByActiveQrTokenForUpdate(
             @Param("qrToken") String qrToken);

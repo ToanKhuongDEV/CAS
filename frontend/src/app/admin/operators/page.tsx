@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
+import {
+  createOperator,
+  deactivateOperator,
+} from "../../../lib/api/operation/operational-management.api";
 
 type OperatorAccount = {
   email: string;
@@ -56,16 +60,23 @@ export default function AdminOperatorsPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [createErrors, setCreateErrors] = useState<CreateOperatorErrors>({});
+  const [requestError, setRequestError] = useState("");
 
-  const toggleLock = (id: number) => {
-    setOperators((prev) =>
-      prev.map((op) =>
-        op.id === id ? { ...op, status: op.status === "ACTIVE" ? "LOCKED" : "ACTIVE" } : op,
-      ),
-    );
+  const deactivate = async (id: number) => {
+    try {
+      await deactivateOperator(id);
+      setOperators((prev) =>
+        prev.map((operator) => (operator.id === id ? { ...operator, status: "LOCKED" } : operator)),
+      );
+      setRequestError("");
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : "Không thể khóa tài khoản nhân viên.",
+      );
+    }
   };
 
-  const handleAddOperator = (e: React.FormEvent) => {
+  const handleAddOperator = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const normalizedDisplayName = displayName.trim();
@@ -96,21 +107,35 @@ export default function AdminOperatorsPage() {
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    const newOp: OperatorAccount = {
-      email: normalizedEmail,
-      id: Date.now(),
-      fullName: normalizedDisplayName,
-      phone: normalizedPhone,
-      role: "OPERATOR",
-      status: "ACTIVE",
-      createdAt: "2026-08-08",
-    };
-    setOperators([...operators, newOp]);
-    setDisplayName("");
-    setEmail("");
-    setPhone("");
-    setCreateErrors({});
-    setShowAddForm(false);
+    try {
+      const created = await createOperator({
+        displayName: normalizedDisplayName,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+      });
+      setOperators((current) => [
+        ...current,
+        {
+          createdAt: new Date().toISOString().slice(0, 10),
+          email: normalizedEmail,
+          fullName: created.displayName,
+          id: created.id,
+          phone: normalizedPhone,
+          role: "OPERATOR",
+          status: "ACTIVE",
+        },
+      ]);
+      setDisplayName("");
+      setEmail("");
+      setPhone("");
+      setCreateErrors({});
+      setRequestError("");
+      setShowAddForm(false);
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : "Không thể tạo tài khoản nhân viên.",
+      );
+    }
   };
 
   return (
@@ -130,6 +155,12 @@ export default function AdminOperatorsPage() {
           Tạo tài khoản Nhân viên
         </CasButton>
       </div>
+
+      {requestError ? (
+        <p className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-4 py-3 text-xs font-bold text-cas-error">
+          {requestError}
+        </p>
+      ) : null}
 
       {/* Form modal tạo nhân viên */}
       {showAddForm && (
@@ -278,19 +309,17 @@ export default function AdminOperatorsPage() {
                 <td className="px-6 py-4 text-cas-on-surface-variant">{op.createdAt}</td>
                 <td className="px-6 py-4">
                   <span
-                    className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${op.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/15 text-rose-600 dark:text-rose-400"}`}
+                    className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${op.status === "ACTIVE" ? "bg-cas-secondary-container/25 text-cas-secondary" : "bg-cas-error-container/35 text-cas-error"}`}
                   >
                     {op.status === "ACTIVE" ? "ĐANG HOẠT ĐỘNG" : "ĐÃ KHÓA"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <CasButton
-                    onClick={() => toggleLock(op.id)}
-                    variant={op.status === "ACTIVE" ? "danger" : "outline-primary"}
-                    size="sm"
-                  >
-                    {op.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
-                  </CasButton>
+                  {op.status === "ACTIVE" ? (
+                    <CasButton onClick={() => void deactivate(op.id)} variant="danger" size="sm">
+                      Khóa tài khoản
+                    </CasButton>
+                  ) : null}
                 </td>
               </tr>
             ))}

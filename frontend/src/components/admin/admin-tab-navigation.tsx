@@ -43,6 +43,7 @@ const adminNavSchema: MenuItemGroup[] = [
     label: "Sự cố và Nhân sự",
     items: [
       { href: "/admin/operators", label: "Tài khoản Nhân viên" },
+      { href: "/admin/admins", label: "Tài khoản Quản trị viên" },
       { badge: 2, href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
       { badge: 1, href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
     ],

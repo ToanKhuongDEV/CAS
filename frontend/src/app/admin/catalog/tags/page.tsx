@@ -1,16 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CasButton } from "../../../../components/ui/cas-button";
+import {
+  createCatalogTag,
+  deleteCatalogTag,
+  loadAdminCatalog,
+  updateCatalogTag,
+  type CatalogTag,
+} from "../../../../lib/api/catalog/catalog.api";
 
 export default function AdminTagsPage() {
-  const [tags, setTags] = useState(["Bán chạy", "Cay", "Đặc sản", "Giải nhiệt"]);
+  const [tags, setTags] = useState<CatalogTag[]>([]);
   const [newTag, setNewTag] = useState("");
-  const addTag = (event: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const refreshTags = useCallback(async () => {
+    try {
+      const data = await loadAdminCatalog();
+      setTags(data.tags);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load tags.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => void refreshTags(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshTags]);
+
+  const addTag = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags((current) => [...current, newTag.trim()]);
-      setNewTag("");
+    if (newTag.trim()) {
+      setIsSaving(true);
+      try {
+        await createCatalogTag({ name: newTag.trim(), status: "ACTIVE" });
+        await refreshTags();
+        setNewTag("");
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Unable to create tag.");
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const toggleTagStatus = async (tag: CatalogTag) => {
+    setIsSaving(true);
+    try {
+      await updateCatalogTag(tag.id, {
+        name: tag.name,
+        status: tag.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      });
+      await refreshTags();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update tag.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const removeTag = async (tag: CatalogTag) => {
+    setIsSaving(true);
+    try {
+      await deleteCatalogTag(tag.id);
+      await refreshTags();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to delete tag.");
+    } finally {
+      setIsSaving(false);
     }
   };
   return (
@@ -21,6 +79,7 @@ export default function AdminTagsPage() {
           Tạo nhãn để gắn cho món; việc gán nhãn thực hiện trong phần món ăn.
         </p>
       </div>
+      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
       <form
         onSubmit={addTag}
         className="flex flex-wrap gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4"
@@ -38,16 +97,25 @@ export default function AdminTagsPage() {
       <div className="flex flex-wrap gap-3">
         {tags.map((tag) => (
           <div
-            key={tag}
+            key={tag.id}
             className="flex items-center gap-3 rounded-xl border border-cas-outline-variant/30 bg-cas-glass px-4 py-3"
           >
             <span className="rounded-md bg-cas-secondary/15 px-2 py-1 text-xs font-black text-cas-secondary">
-              {tag}
+              {tag.name}
             </span>
             <button
               type="button"
-              aria-label={`Xóa nhãn ${tag}`}
-              onClick={() => setTags((current) => current.filter((item) => item !== tag))}
+              disabled={isSaving}
+              onClick={() => void toggleTagStatus(tag)}
+              className="text-xs font-black text-cas-primary"
+            >
+              {tag.status === "ACTIVE" ? "Ẩn" : "Hiện"}
+            </button>
+            <button
+              type="button"
+              disabled={isSaving}
+              aria-label={`Xóa nhãn ${tag.name}`}
+              onClick={() => void removeTag(tag)}
               className="text-xs font-black text-cas-primary"
             >
               ×
