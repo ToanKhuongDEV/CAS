@@ -356,7 +356,7 @@ export default function AdminSettingsPage() {
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4">
                   <div
                     aria-label="Logo cửa hàng"
-                    className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cas-primary/10 bg-cover bg-center text-cas-primary"
+                    className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cover bg-center text-cas-primary"
                     role="img"
                     style={
                       logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined
