@@ -16,11 +16,11 @@ FLUSH PRIVILEGES;
 START TRANSACTION;
 
 INSERT INTO stores (
-    name, address, phone, email, google_maps_location, open_time, close_time,
+    name, address, phone, email, logo_url, google_maps_location, open_time, close_time,
     welcome_slogan, long_wait_warning_minutes, timezone, status
 ) VALUES (
     'CAS Mì Cay', '123 Đường Ẩm Thực, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-    '0900000000', 'hello@cas.local', 'https://maps.google.com/?q=10.7769,106.7009',
+    '0900000000', 'hello@cas.local', NULL, 'https://maps.google.com/?q=10.7769,106.7009',
     '09:00:00', '22:00:00', 'Món ngon gọi nhanh, vui trọn từng bàn.', 25,
     'Asia/Ho_Chi_Minh', 'ACTIVE'
 );
