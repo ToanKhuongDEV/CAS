@@ -79,6 +79,14 @@
           AND id = #{tableId}
     </delete>
 
+    <delete id="deleteTableQrCodes">
+        DELETE table_qr_codes
+        FROM table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+    </delete>
+
     <select id="findTableSessionByActiveQrTokenForUpdate"
             resultType="vn.cas.store.model.CustomerTableSessionLookup">
         SELECT

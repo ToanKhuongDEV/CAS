@@ -20,7 +20,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - Tất cả thời gian nghiệp vụ được lưu theo múi giờ Việt Nam `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 - Các bảng nghiệp vụ có `created_at` và `updated_at` khi phù hợp.
 - Order và payment không bị xóa vật lý.
-- Dữ liệu cha đang được tham chiếu không bị xóa vật lý; các foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`, ngoại trừ `table_qr_codes.table_id` dùng `ON DELETE CASCADE` để QR bị xóa cùng bàn.
+- Dữ liệu cha đang được tham chiếu không bị xóa vật lý; các foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`. Khi xóa bàn, Backend xóa QR của bàn trong cùng transaction trước khi xóa bản ghi `dining_tables`.
 - Quy tắc nghiệp vụ được kiểm tra trong Java, không dùng MySQL `CHECK` constraint.
 - Thông tin order được lưu theo các cột nghiệp vụ.
 - Toàn bộ nội dung bill được lưu trong JSON snapshot khi tạo payment và khi ghi nhận khoản chưa thanh toán.
@@ -999,7 +999,7 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 ### 8.1. Khóa ngoại và chính sách xóa
 
 - Tất cả quan hệ trong mục 6 được tạo foreign key vật lý, ngoại trừ `audit_logs.entity_id` và `promotion_targets.target_id` là liên kết logic tới nhiều loại entity. `promotion_targets.target_type` xác định `target_id` tham chiếu `menu_items` hoặc `categories`.
-- Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`, ngoại trừ `table_qr_codes.table_id` dùng `ON DELETE CASCADE`.
+- Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`. Use case xóa bàn xóa `table_qr_codes` của bàn trong cùng transaction trước khi xóa `dining_tables`.
 - Mỗi foreign key có index với tên tường minh để MySQL không tự tạo index ẩn.
 - Dữ liệu đã được tham chiếu không bị xóa vật lý; các entity có trạng thái được chuyển sang `INACTIVE` hoặc `REVOKED`.
 
@@ -1118,7 +1118,7 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
-- Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`, ngoại trừ `table_qr_codes.table_id` dùng `ON DELETE CASCADE`; `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
+- Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; use case xóa bàn xóa `table_qr_codes` trong cùng transaction trước khi xóa `dining_tables`. `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
 - Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
 - Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
 - Quy tắc mỗi option group có tối đa một option mặc định chỉ được kiểm tra trong Java, không có unique constraint trong database.

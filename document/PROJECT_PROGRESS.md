@@ -148,6 +148,7 @@ Ngày cập nhật gần nhất: 2026-08-24
 
 ## 5. Backend
 
+- [x] Loại bỏ migration V3 lỗi; giữ FK QR-bàn là `RESTRICT` do giới hạn MySQL với generated column, và xóa QR trong transaction của use case xóa bàn.
 - [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món dùng lại asset demo trong `frontend/public/images/welcome`.
 - [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
 

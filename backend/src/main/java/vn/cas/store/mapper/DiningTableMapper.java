@@ -24,6 +24,8 @@ public interface DiningTableMapper {
     ActiveTableQrCode findActiveQrCodeByStoreIdAndTableId(@Param("storeId") long storeId,
             @Param("tableId") long tableId);
 
+    int deleteTableQrCodes(@Param("storeId") long storeId, @Param("tableId") long tableId);
+
     int deleteDiningTable(@Param("storeId") long storeId, @Param("tableId") long tableId);
 
     CustomerTableSessionLookup findTableSessionByActiveQrTokenForUpdate(

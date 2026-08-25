@@ -4,6 +4,15 @@
 -- image_url uses the existing assets in frontend/public; image_storage_key stays NULL because
 -- these assets are not uploaded to the production image service.
 
+CREATE USER 'cas_codex_ro'@'localhost' IDENTIFIED BY '123456';
+
+GRANT SELECT, SHOW VIEW
+ON cas_db.*
+TO 'cas_codex_ro'@'localhost';
+
+FLUSH PRIVILEGES;
+
+
 START TRANSACTION;
 
 INSERT INTO stores (

@@ -80,6 +80,7 @@ public class DiningTableService {
     @Transactional
     public void delete(OperationalPrincipal principal, long tableId, UUID requestId) {
         try {
+            diningTableMapper.deleteTableQrCodes(principal.storeId(), tableId);
             if (diningTableMapper.deleteDiningTable(principal.storeId(), tableId) == 0) {
                 throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
             }
