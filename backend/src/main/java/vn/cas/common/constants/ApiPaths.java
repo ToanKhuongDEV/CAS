@@ -24,6 +24,8 @@ public final class ApiPaths {
         private static final String PRE_FIX = API_ADMIN_PREFIX + "/store";
 
         public static final String LONG_WAIT_WARNING = PRE_FIX + "/settings/long-wait-warning";
+        public static final String SETTINGS = PRE_FIX + "/settings";
+        public static final String LOGO_UPLOAD_SIGNATURE = SETTINGS + "/logo/upload-signature";
 
         private Store() {
         }

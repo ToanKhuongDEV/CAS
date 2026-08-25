@@ -4,6 +4,7 @@ CREATE TABLE stores (
     address VARCHAR(500) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(254) NOT NULL,
+    logo_url VARCHAR(2048) NULL,
     google_maps_location VARCHAR(2048) NULL,
     open_time TIME NOT NULL,
     close_time TIME NOT NULL,

@@ -146,6 +146,7 @@ Lưu thông tin cửa hàng.
 | `address` | `VARCHAR(500) NOT NULL` | Địa chỉ cửa hàng |
 | `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại hotline |
 | `email` | `VARCHAR(254) NOT NULL` | Email liên hệ |
+| `logo_url` | `VARCHAR(2048) NULL` | URL logo cửa hàng đã upload lên Cloudinary |
 | `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
 | `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
 | `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |

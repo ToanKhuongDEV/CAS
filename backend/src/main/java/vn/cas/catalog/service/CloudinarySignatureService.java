@@ -33,11 +33,19 @@ public class CloudinarySignatureService {
     }
 
     public UploadSignature sign(long storeId) {
+        return sign(storeId, rootFolder);
+    }
+
+    public UploadSignature signStoreLogo(long storeId) {
+        return sign(storeId, "cas/stores");
+    }
+
+    private UploadSignature sign(long storeId, String folderRoot) {
         if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank() || preset.isBlank())
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
                     ApiMessages.CLOUDINARY_NOT_CONFIGURED);
         long timestamp = Instant.now().getEpochSecond();
-        String folder = rootFolder + "/" + storeId;
+        String folder = folderRoot + "/" + storeId;
         String publicId = storeId + "_" + UUID.randomUUID();
         String value = "folder=" + folder + "&public_id=" + publicId + "&timestamp=" + timestamp
                 + "&upload_preset=" + preset + apiSecret;

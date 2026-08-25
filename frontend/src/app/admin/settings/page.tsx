@@ -7,6 +7,8 @@ import {
   loadLongWaitWarningMinutes,
   updateLongWaitWarningMinutes,
 } from "../../../lib/api/store/long-wait-warning.api";
+import { loadStoreSettings, updateStoreSettings } from "../../../lib/api/store/store-settings.api";
+import { getFirebaseAuth } from "../../../lib/auth/firebase";
 
 const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -174,8 +176,9 @@ export default function AdminSettingsPage() {
   const [savedOpsMsg, setSavedOpsMsg] = useState<string>("");
   const [opsError, setOpsError] = useState<string>("");
 
-  const handleSaveStoreInfo = (e: React.FormEvent) => {
+  const handleSaveStoreInfo = async (e: React.FormEvent) => {
     e.preventDefault();
+    await updateStoreSettings({ name: storeName, phone, email, address, googleMapsLocation: googleMapUrl || null, openTime, closeTime, welcomeSlogan: slogan || null, logoUrl: logoPreviewUrl, status: storeStatus });
     setSavedStoreMsg("Đã cập nhật thông tin cửa hàng thành công!");
     setTimeout(() => setSavedStoreMsg(""), 3500);
   };
@@ -210,6 +213,10 @@ export default function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
+    void loadStoreSettings().then((s) => { setStoreName(s.name); setPhone(s.phone); setEmail(s.email); setAddress(s.address); setGoogleMapUrl(s.googleMapsLocation ?? ""); setOpenTime(s.openTime); setCloseTime(s.closeTime); setSlogan(s.welcomeSlogan ?? ""); setStoreStatus(s.status); setLogoPreviewUrl(s.logoUrl); });
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (logoPreviewUrl) {
         URL.revokeObjectURL(logoPreviewUrl);
@@ -217,13 +224,33 @@ export default function AdminSettingsPage() {
     };
   }, [logoPreviewUrl]);
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) {
       return;
     }
-
     setLogoPreviewUrl(URL.createObjectURL(selectedFile));
+    const user = getFirebaseAuth().currentUser;
+    if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+    const signatureResponse = await fetch(`${apiUrl}/api/v1/admin/store/settings/logo/upload-signature`, {
+      method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+    });
+    const signatureBody = await signatureResponse.json();
+    if (!signatureResponse.ok || !signatureBody.data) throw new Error("Không thể xin quyền tải logo.");
+    const signature = signatureBody.data;
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("api_key", signature.apiKey);
+    formData.append("timestamp", String(signature.timestamp));
+    formData.append("signature", signature.signature);
+    formData.append("folder", signature.folder);
+    formData.append("public_id", signature.publicId);
+    formData.append("upload_preset", signature.uploadPreset);
+    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`, { method: "POST", body: formData });
+    const uploadBody = await uploadResponse.json();
+    if (!uploadResponse.ok || typeof uploadBody.secure_url !== "string") throw new Error("Không thể tải logo lên Cloudinary.");
+    setLogoPreviewUrl(uploadBody.secure_url);
   };
 
   return (
@@ -270,12 +297,10 @@ export default function AdminSettingsPage() {
                 </label>
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4">
                   <div
-                    aria-label="Xem trước logo cửa hàng"
+                    aria-label="Logo cửa hàng"
                     className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cas-primary/10 bg-cover bg-center text-cas-primary"
                     role="img"
-                    style={
-                      logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined
-                    }
+                    style={logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined}
                   >
                     {logoPreviewUrl ? null : <CasIcon className="size-9" name="restaurant" />}
                   </div>
@@ -284,8 +309,7 @@ export default function AdminSettingsPage() {
                       Logo hiển thị trên các khu vực thương hiệu của quán.
                     </p>
                     <p className="mt-1 text-cas-on-surface-variant">
-                      Chọn ảnh PNG, JPG, WEBP hoặc SVG. Ảnh hiện chỉ được xem trước trên trình
-                      duyệt.
+                      Chọn ảnh PNG, JPG, WEBP hoặc SVG để tải trực tiếp lên Cloudinary.
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-cas-primary px-3 py-2 font-extrabold text-cas-on-primary transition hover:brightness-110">
