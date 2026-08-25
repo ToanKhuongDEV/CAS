@@ -4,7 +4,7 @@
     <sql id="categoryColumns">id, name, description, category_type AS categoryType, display_order AS displayOrder, status</sql>
     <sql id="tagColumns">id, name, status</sql>
     <sql id="groupColumns">id, name, selection_type AS selectionType, min_select AS minSelect, max_select AS maxSelect, display_order AS displayOrder, status</sql>
-    <sql id="itemColumns">id, category_id AS categoryId, name, description, price, image_url AS imageUrl, image_storage_key AS imageStorageKey, availability_status AS availabilityStatus, display_order AS displayOrder</sql>
+    <sql id="itemColumns">menu_items.id, menu_items.category_id AS categoryId, menu_items.name, menu_items.description, menu_items.price, menu_items.image_url AS imageUrl, menu_items.image_storage_key AS imageStorageKey, menu_items.availability_status AS availabilityStatus, menu_items.display_order AS displayOrder</sql>
     <select id="findCategories" resultType="vn.cas.catalog.model.CatalogCategory">SELECT <include refid="categoryColumns"/> FROM categories WHERE store_id=#{storeId}<if test="activeOnly"> AND status='ACTIVE'</if><if test="regularOnly"> AND category_type='REGULAR'</if> ORDER BY display_order, id</select>
     <select id="findCategory" resultType="vn.cas.catalog.model.CatalogCategory">SELECT <include refid="categoryColumns"/> FROM categories WHERE store_id=#{storeId} AND id=#{id}</select>
     <insert id="insertCategory">INSERT INTO categories (store_id,name,description,category_type,display_order,status,created_by,updated_by) VALUES (#{storeId},#{name},#{description},#{categoryType},#{displayOrder},#{status},#{actorId},#{actorId})</insert>
@@ -17,6 +17,7 @@
     <delete id="deleteTag">DELETE FROM tags WHERE store_id=#{storeId} AND id=#{id}</delete>
     <select id="findOptionGroups" resultType="vn.cas.catalog.model.CatalogOptionGroup">SELECT <include refid="groupColumns"/> FROM option_groups WHERE store_id=#{storeId}<if test="activeOnly"> AND status='ACTIVE'</if> ORDER BY display_order, id</select>
     <select id="findOptionGroup" resultType="vn.cas.catalog.model.CatalogOptionGroup">SELECT <include refid="groupColumns"/> FROM option_groups WHERE store_id=#{storeId} AND id=#{id}</select>
+    <select id="findOptionValuesByGroupId" resultType="vn.cas.catalog.model.CatalogOptionValue">SELECT id, name, extra_price AS extraPrice, is_default AS isDefault, display_order AS displayOrder, status FROM option_values WHERE option_group_id=#{groupId}<if test="activeOnly"> AND status='ACTIVE'</if> ORDER BY display_order, id</select>
     <insert id="insertOptionGroup">INSERT INTO option_groups (store_id,name,selection_type,min_select,max_select,display_order,status,created_by,updated_by) VALUES (#{storeId},#{name},#{selectionType},#{minSelect},#{maxSelect},#{displayOrder},#{status},#{actorId},#{actorId})</insert>
     <update id="updateOptionGroup">UPDATE option_groups SET name=#{name},selection_type=#{selectionType},min_select=#{minSelect},max_select=#{maxSelect},display_order=#{displayOrder},status=#{status},updated_by=#{actorId} WHERE store_id=#{storeId} AND id=#{id}</update>
     <delete id="deleteOptionGroup">DELETE FROM option_groups WHERE store_id=#{storeId} AND id=#{id}</delete>

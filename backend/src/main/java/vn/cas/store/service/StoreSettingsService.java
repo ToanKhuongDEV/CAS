@@ -24,18 +24,29 @@ public class StoreSettingsService {
     @Transactional(readOnly = true)
     public StoreSettings get(long storeId) {
         var settings = mapper.findByStoreId(storeId);
-        if (settings == null) throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy cửa hàng.");
+        if (settings == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy cửa hàng.");
+        return settings;
+    }
+
+    @Transactional(readOnly = true)
+    public StoreSettings getPublic(long storeId) {
+        var settings = mapper.findActiveByStoreId(storeId);
+        if (settings == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy cửa hàng.");
         return settings;
     }
 
     @Transactional
-    public StoreSettings update(OperationalPrincipal principal, StoreSettings settings, UUID requestId) {
-        mapper.updateStoreSettings(principal.storeId(), settings.name(), settings.address(), settings.phone(),
-                settings.email(), settings.logoUrl(), settings.googleMapsLocation(), settings.openTime(),
-                settings.closeTime(), settings.welcomeSlogan(), settings.status());
+    public StoreSettings update(OperationalPrincipal principal, StoreSettings settings,
+            UUID requestId) {
+        mapper.updateStoreSettings(principal.storeId(), settings.name(), settings.address(),
+                settings.phone(), settings.email(), settings.logoUrl(),
+                settings.googleMapsLocation(), settings.openTime(), settings.closeTime(),
+                settings.welcomeSlogan(), settings.status());
         auditLogs.record(new AuditLogCommand(principal.storeId(), requestId, "UPDATE", "STORE",
-                principal.storeId(), settings.name(), "{}", principal.accountId(), principal.displayName(),
-                "Updated store settings"));
+                principal.storeId(), settings.name(), "{}", principal.accountId(),
+                principal.displayName(), "Updated store settings"));
         return get(principal.storeId());
     }
 }

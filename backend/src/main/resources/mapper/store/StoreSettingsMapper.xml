@@ -23,6 +23,13 @@
         FROM stores WHERE id = #{storeId}
     </select>
 
+    <select id="findActiveByStoreId" resultType="vn.cas.store.model.StoreSettings">
+        SELECT id, name, address, phone, email, logo_url AS logoUrl,
+               google_maps_location AS googleMapsLocation, open_time AS openTime,
+               close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
+        FROM stores WHERE id = #{storeId} AND status = 'ACTIVE'
+    </select>
+
     <update id="updateStoreSettings">
         UPDATE stores
         SET name = #{name}, address = #{address}, phone = #{phone}, email = #{email},

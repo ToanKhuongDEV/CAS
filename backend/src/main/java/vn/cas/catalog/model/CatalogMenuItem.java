@@ -6,4 +6,11 @@ import java.util.List;
 public record CatalogMenuItem(long id, long categoryId, String name, String description,
         BigDecimal price, String imageUrl, String imageStorageKey, String availabilityStatus,
         int displayOrder, List<CatalogTag> tags, List<CatalogOptionGroup> optionGroups) {
+
+    public CatalogMenuItem(long id, long categoryId, String name, String description,
+            BigDecimal price, String imageUrl, String imageStorageKey, String availabilityStatus,
+            int displayOrder) {
+        this(id, categoryId, name, description, price, imageUrl, imageStorageKey,
+                availabilityStatus, displayOrder, List.of(), List.of());
+    }
 }

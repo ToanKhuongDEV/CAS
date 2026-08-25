@@ -10,6 +10,7 @@ public final class ApiPaths {
     public static final String API_AUTH_PREFIX = API_V1_PREFIX + "/auth";
 
     public static final String STATUS = API_V1_PREFIX + "/status";
+    public static final String PUBLIC_STORE = API_V1_PREFIX + "/public/stores/{storeId}";
     public static final String ADMIN_PATTERN = API_ADMIN_PREFIX + "/**";
     public static final String OPERATOR_PATTERN = API_OPERATOR_PREFIX + "/**";
     public static final String AUTH_PATTERN = API_AUTH_PREFIX + "/**";

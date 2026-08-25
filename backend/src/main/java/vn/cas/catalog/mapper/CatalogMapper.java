@@ -42,6 +42,9 @@ public interface CatalogMapper {
 
     CatalogOptionGroup findOptionGroup(@Param("storeId") long storeId, @Param("id") long id);
 
+    List<CatalogOptionValue> findOptionValuesByGroupId(@Param("groupId") long groupId,
+            @Param("activeOnly") boolean activeOnly);
+
     int insertOptionGroup(@Param("storeId") long storeId, @Param("name") String name,
             @Param("selectionType") String selectionType, @Param("minSelect") int minSelect,
             @Param("maxSelect") Integer maxSelect, @Param("displayOrder") int displayOrder,

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
-import { CasLogo } from "../ui/cas-logo";
 import { ThemeToggle } from "../ui/theme-toggle";
+import { loadPublicStore } from "../../lib/api/store/public-store.api";
 
 type CustomerHeaderProps = {
   cartCount?: number;
@@ -48,6 +48,8 @@ export function CustomerHeader({
 }: CustomerHeaderProps) {
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState(mockCustomerNotifications);
+  const [storeName, setStoreName] = useState("CAS");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -66,6 +68,15 @@ export function CustomerHeader({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    void loadPublicStore()
+      .then((store) => {
+        setStoreName(store.name);
+        setLogoUrl(store.logoUrl);
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-16 bg-cas-header shadow-[0_2px_12px_var(--cas-shadow-color)] backdrop-blur-xl">
       <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between px-4 md:px-8">
@@ -75,9 +86,16 @@ export function CustomerHeader({
           aria-label="CAS - Trang chào mừng"
         >
           <span className="grid size-10 place-items-center overflow-hidden rounded-full shadow-[0_4px_12px_var(--cas-shadow-color)]">
-            <CasLogo className="size-full object-cover" priority />
+            <img
+              alt="Logo cửa hàng"
+              className="size-full object-cover"
+              src={
+                logoUrl ??
+                "https://www.clipartmax.com/png/middle/9-92296_red-restaurant-3-icon-restaurant.png"
+              }
+            />
           </span>
-          <span>Cas</span>
+          <span>{storeName}</span>
         </Link>
 
         <div className="flex items-center gap-2.5">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { useToast } from "../../../components/ui/toast-provider";
 import {
   loadLongWaitWarningMinutes,
   updateLongWaitWarningMinutes,
@@ -151,6 +152,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
 };
 
 export default function AdminSettingsPage() {
+  const { showToast } = useToast();
   // State cho Thông tin Cửa hàng
   const [storeName, setStoreName] = useState<string>("Tiệm Ăn Vặt & Mỳ Cay CAS");
   const [phone, setPhone] = useState<string>("0901 234 567");
@@ -169,6 +171,7 @@ export default function AdminSettingsPage() {
   );
   const [storeStatus, setStoreStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
 
   // State cho Tham số Vận hành & Cảnh báo
@@ -178,9 +181,33 @@ export default function AdminSettingsPage() {
 
   const handleSaveStoreInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateStoreSettings({ name: storeName, phone, email, address, googleMapsLocation: googleMapUrl || null, openTime, closeTime, welcomeSlogan: slogan || null, logoUrl: logoPreviewUrl, status: storeStatus });
-    setSavedStoreMsg("Đã cập nhật thông tin cửa hàng thành công!");
-    setTimeout(() => setSavedStoreMsg(""), 3500);
+    if (isUploadingLogo) {
+      showToast({
+        message: "Đang tải logo lên Cloudinary, vui lòng chờ hoàn tất.",
+        type: "warning",
+      });
+      return;
+    }
+    try {
+      await updateStoreSettings({
+        name: storeName,
+        phone,
+        email,
+        address,
+        googleMapsLocation: googleMapUrl || null,
+        openTime,
+        closeTime,
+        welcomeSlogan: slogan || null,
+        logoUrl: logoPreviewUrl,
+        status: storeStatus,
+      });
+      showToast({ message: "Đã cập nhật thông tin cửa hàng thành công.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể lưu thông tin cửa hàng.",
+        type: "error",
+      });
+    }
   };
 
   const handleSaveOpsSettings = async (e: React.FormEvent) => {
@@ -189,10 +216,13 @@ export default function AdminSettingsPage() {
       const savedMinutes = await updateLongWaitWarningMinutes(warningMins);
       setWarningMins(savedMinutes);
       setOpsError("");
-      setSavedOpsMsg("Đã lưu tham số vận hành thành công!");
-      setTimeout(() => setSavedOpsMsg(""), 3500);
+      showToast({ message: "Đã lưu tham số vận hành thành công.", type: "success" });
     } catch (error) {
       setOpsError(error instanceof Error ? error.message : "Không thể lưu tham số vận hành.");
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể lưu tham số vận hành.",
+        type: "error",
+      });
     }
   };
 
@@ -213,7 +243,18 @@ export default function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
-    void loadStoreSettings().then((s) => { setStoreName(s.name); setPhone(s.phone); setEmail(s.email); setAddress(s.address); setGoogleMapUrl(s.googleMapsLocation ?? ""); setOpenTime(s.openTime); setCloseTime(s.closeTime); setSlogan(s.welcomeSlogan ?? ""); setStoreStatus(s.status); setLogoPreviewUrl(s.logoUrl); });
+    void loadStoreSettings().then((s) => {
+      setStoreName(s.name);
+      setPhone(s.phone);
+      setEmail(s.email);
+      setAddress(s.address);
+      setGoogleMapUrl(s.googleMapsLocation ?? "");
+      setOpenTime(s.openTime);
+      setCloseTime(s.closeTime);
+      setSlogan(s.welcomeSlogan ?? "");
+      setStoreStatus(s.status);
+      setLogoPreviewUrl(s.logoUrl);
+    });
   }, []);
 
   useEffect(() => {
@@ -230,27 +271,44 @@ export default function AdminSettingsPage() {
       return;
     }
     setLogoPreviewUrl(URL.createObjectURL(selectedFile));
-    const user = getFirebaseAuth().currentUser;
-    if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-    const signatureResponse = await fetch(`${apiUrl}/api/v1/admin/store/settings/logo/upload-signature`, {
-      method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}` },
-    });
-    const signatureBody = await signatureResponse.json();
-    if (!signatureResponse.ok || !signatureBody.data) throw new Error("Không thể xin quyền tải logo.");
-    const signature = signatureBody.data;
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("api_key", signature.apiKey);
-    formData.append("timestamp", String(signature.timestamp));
-    formData.append("signature", signature.signature);
-    formData.append("folder", signature.folder);
-    formData.append("public_id", signature.publicId);
-    formData.append("upload_preset", signature.uploadPreset);
-    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`, { method: "POST", body: formData });
-    const uploadBody = await uploadResponse.json();
-    if (!uploadResponse.ok || typeof uploadBody.secure_url !== "string") throw new Error("Không thể tải logo lên Cloudinary.");
-    setLogoPreviewUrl(uploadBody.secure_url);
+    setIsUploadingLogo(true);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+      const signatureResponse = await fetch(
+        `${apiUrl}/api/v1/admin/store/settings/logo/upload-signature`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        },
+      );
+      const signatureBody = await signatureResponse.json();
+      if (!signatureResponse.ok || !signatureBody.data)
+        throw new Error("Không thể xin quyền tải logo.");
+      const signature = signatureBody.data;
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("api_key", signature.apiKey);
+      formData.append("timestamp", String(signature.timestamp));
+      formData.append("signature", signature.signature);
+      formData.append("folder", signature.folder);
+      formData.append("public_id", signature.publicId);
+      formData.append("upload_preset", signature.uploadPreset);
+      const uploadResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
+        { method: "POST", body: formData },
+      );
+      const uploadBody = await uploadResponse.json();
+      if (!uploadResponse.ok || typeof uploadBody.secure_url !== "string")
+        throw new Error("Không thể tải logo lên Cloudinary.");
+      setLogoPreviewUrl(uploadBody.secure_url);
+    } catch (error) {
+      setLogoPreviewUrl(null);
+      throw error;
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   return (
@@ -300,7 +358,9 @@ export default function AdminSettingsPage() {
                     aria-label="Logo cửa hàng"
                     className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cas-primary/10 bg-cover bg-center text-cas-primary"
                     role="img"
-                    style={logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined}
+                    style={
+                      logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined
+                    }
                   >
                     {logoPreviewUrl ? null : <CasIcon className="size-9" name="restaurant" />}
                   </div>
@@ -537,8 +597,20 @@ export default function AdminSettingsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-3">
-                <CasButton type="submit" icon="check" variant="primary" size="sm">
-                  Lưu Thông tin Cửa hàng
+                <CasButton
+                  type="submit"
+                  disabled={isUploadingLogo}
+                  icon={
+                    isUploadingLogo ? (
+                      <span className="size-4 animate-spin rounded-full border-2 border-cas-on-primary/30 border-t-cas-on-primary" />
+                    ) : (
+                      "check"
+                    )
+                  }
+                  variant="primary"
+                  size="sm"
+                >
+                  {isUploadingLogo ? "Đang tải logo..." : "Lưu Thông tin Cửa hàng"}
                 </CasButton>
                 {savedStoreMsg && (
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">

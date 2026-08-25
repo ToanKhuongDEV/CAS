@@ -39,7 +39,8 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public List<CatalogOptionGroup> optionGroups(long storeId, boolean published) {
-        return mapper.findOptionGroups(storeId, published);
+        return mapper.findOptionGroups(storeId, published).stream()
+                .map(group -> withValues(group, published)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -200,7 +201,14 @@ public class CatalogService {
         return new CatalogMenuItem(item.id(), item.categoryId(), item.name(), item.description(),
                 item.price(), item.imageUrl(), item.imageStorageKey(), item.availabilityStatus(),
                 item.displayOrder(), mapper.findMenuItemTags(item.id()),
-                mapper.findMenuItemOptionGroups(item.id()));
+                mapper.findMenuItemOptionGroups(item.id()).stream()
+                        .map(group -> withValues(group, true)).toList());
+    }
+
+    private CatalogOptionGroup withValues(CatalogOptionGroup group, boolean activeOnly) {
+        return new CatalogOptionGroup(group.id(), group.name(), group.selectionType(),
+                group.minSelect(), group.maxSelect(), group.displayOrder(), group.status(),
+                mapper.findOptionValuesByGroupId(group.id(), activeOnly));
     }
 
     private static void validGroup(String t, int min, Integer max) {

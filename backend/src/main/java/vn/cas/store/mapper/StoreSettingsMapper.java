@@ -15,6 +15,8 @@ public interface StoreSettingsMapper {
 
     StoreSettings findByStoreId(@Param("storeId") long storeId);
 
+    StoreSettings findActiveByStoreId(@Param("storeId") long storeId);
+
     int updateStoreSettings(@Param("storeId") long storeId, @Param("name") String name,
             @Param("address") String address, @Param("phone") String phone,
             @Param("email") String email, @Param("logoUrl") String logoUrl,
