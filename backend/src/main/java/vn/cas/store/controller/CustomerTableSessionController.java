@@ -27,7 +27,7 @@ import vn.cas.store.service.CustomerTableSessionService;
 @RequestMapping(ApiPaths.CustomerTableSession.COMMON)
 public class CustomerTableSessionController {
 
-    static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
+    public static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
 
     private final CustomerTableSessionService customerTableSessionService;
 

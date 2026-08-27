@@ -68,6 +68,14 @@ curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr
 curl.exe http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
 ```
 
+Ví dụ gửi order Customer. Dùng lại cookie nhận từ bước quét QR; giữ nguyên
+`idempotencyKey` khi cần retry cùng một request:
+
+```powershell
+curl.exe -X POST http://localhost:8080/api/v1/customer/orders -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
+curl.exe -X POST http://localhost:8080/api/v1/customer/orders/items/<order-item-public-id>/cancellation-requests -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"requestedQuantity\":1,\"reason\":\"Gọi nhầm món\"}"
+```
+
 Các lệnh khác:
 
 ```powershell

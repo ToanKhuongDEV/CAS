@@ -10,6 +10,7 @@ import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
 import vn.cas.store.model.CustomerTableSessionResolution;
+import vn.cas.store.model.CustomerTableSessionLookup;
 import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
 
 @Service
@@ -78,6 +79,29 @@ public class CustomerTableSessionService {
                     ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
         }
         return session.storeId();
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerTableSessionLookup requireCurrent(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank())
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        var session = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
+        if (session == null)
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        return session;
+    }
+
+    public CustomerTableSessionLookup requireCurrentForUpdate(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank())
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        var session = diningTableMapper.findCurrentTableSessionByPublicIdForUpdate(sessionPublicId);
+        if (session == null)
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+        return session;
     }
 
     private long findOrCreateClientAccount(long storeId,

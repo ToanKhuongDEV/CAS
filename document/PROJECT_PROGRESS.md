@@ -173,6 +173,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Chưa ghép Frontend]**
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
@@ -215,7 +216,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
 - [x] **Table session:** lấy ngữ cảnh và trạng thái session hiện tại của Customer.
 - [ ] **Table session:** hủy session chưa có order.
-- [ ] **Order:** tạo order bởi Customer.
+- [x] **Order:** tạo order bởi Customer.
+- [x] **Yêu cầu hủy món:** Customer tạo yêu cầu hủy món theo từng dòng order, có idempotency trong phạm vi dòng món.
 - [ ] **Order:** tạo order hộ bởi `OPERATOR`.
 - [ ] **Order:** xem danh sách order của session.
 - [ ] **Order:** xem chi tiết order.

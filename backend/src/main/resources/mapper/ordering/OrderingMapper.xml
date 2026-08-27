@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.ordering.mapper.OrderingMapper">
+    <select id="findActiveMenuItem" resultType="vn.cas.ordering.model.OrderMenuItem">
+        SELECT
+            menu_items.id,
+            menu_items.name,
+            menu_items.price,
+            menu_items.availability_status AS availabilityStatus
+        FROM menu_items
+        WHERE store_id=#{storeId} AND id=#{menuItemId} AND availability_status='ACTIVE'
+    </select>
+    <select id="findActiveOptionValues" resultType="vn.cas.ordering.model.OrderOptionValue">
+        SELECT option_values.id, option_groups.id AS groupId, option_groups.name AS groupName,
+               option_values.name, option_values.extra_price AS extraPrice
+        FROM menu_item_option_groups
+        INNER JOIN option_groups ON option_groups.id=menu_item_option_groups.option_group_id
+        INNER JOIN option_values ON option_values.option_group_id=option_groups.id
+        WHERE menu_item_option_groups.store_id=#{storeId} AND menu_item_option_groups.menu_item_id=#{menuItemId}
+          AND option_groups.status='ACTIVE' AND option_values.status='ACTIVE'
+          AND option_values.id IN
+          <foreach collection="optionValueIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <select id="findActiveOptionGroups" resultType="vn.cas.ordering.model.OrderOptionGroup">
+        SELECT
+            option_groups.id,
+            option_groups.min_select AS minSelect,
+            option_groups.max_select AS maxSelect
+        FROM menu_item_option_groups
+        INNER JOIN option_groups ON option_groups.id = menu_item_option_groups.option_group_id
+        WHERE menu_item_option_groups.store_id = #{storeId}
+          AND menu_item_option_groups.menu_item_id = #{menuItemId}
+          AND option_groups.status = 'ACTIVE'
+    </select>
+    <select id="findBySessionIdAndIdempotencyKey" resultType="vn.cas.ordering.model.StoredOrder">
+        SELECT
+            public_id AS publicId,
+            request_fingerprint AS requestFingerprint,
+            payable_amount AS payableAmount
+        FROM orders
+        WHERE table_session_id = #{sessionId}
+          AND idempotency_key = #{idempotencyKey}
+    </select>
+    <select id="findCancellableOrderItemForUpdate" resultType="vn.cas.ordering.model.CancellableOrderItem">
+        SELECT order_items.id, order_items.quantity,
+               COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status IN ('PENDING', 'APPROVED') THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS reservedCancellationQuantity,
+               table_sessions.status AS sessionStatus
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+        LEFT JOIN order_item_cancellation_requests ON order_item_cancellation_requests.order_item_id = order_items.id
+        WHERE orders.table_session_id = #{sessionId} AND order_items.public_id = #{orderItemPublicId}
+        GROUP BY order_items.id, order_items.quantity, table_sessions.status
+        FOR UPDATE
+    </select>
+    <select id="findCancellationRequest" resultType="vn.cas.ordering.model.CancellationRequest">
+        SELECT public_id AS publicId, requested_quantity AS requestedQuantity, reason, status
+        FROM order_item_cancellation_requests
+        WHERE order_item_id = #{orderItemId} AND idempotency_key = #{idempotencyKey}
+    </select>
+    <insert id="insertCancellationRequest">
+        INSERT INTO order_item_cancellation_requests (public_id, order_item_id, created_by_account_id, created_by_name, idempotency_key, requested_quantity, reason, status, is_remade, resolved_by, resolved_by_name, resolved_at)
+        VALUES (#{publicId}, #{orderItemId}, NULL, NULL, #{idempotencyKey}, #{requestedQuantity}, #{reason}, 'PENDING', FALSE, NULL, NULL, NULL)
+    </insert>
+    <insert id="insertOrder">
+        INSERT INTO orders (
+            public_id,
+            table_session_id,
+            created_by_account_id,
+            idempotency_key,
+            request_fingerprint,
+            order_number,
+            original_amount,
+            payable_amount,
+            note
+        ) VALUES (
+            #{publicId},
+            #{sessionId},
+            NULL,
+            #{idempotencyKey},
+            #{fingerprint},
+            #{orderNumber},
+            #{amount},
+            #{amount},
+            #{note}
+        )
+    </insert>
+    <select id="lastInsertId" resultType="long">SELECT LAST_INSERT_ID()</select>
+    <insert id="insertOrderItem">
+        INSERT INTO order_items (
+            public_id,
+            order_id,
+            menu_item_id,
+            item_name,
+            unit_price,
+            options_amount,
+            quantity,
+            prepared_quantity,
+            total_amount
+        ) VALUES (
+            #{publicId},
+            #{orderId},
+            #{menuItemId},
+            #{itemName},
+            #{unitPrice},
+            #{optionsAmount},
+            #{quantity},
+            0,
+            #{totalAmount}
+        )
+    </insert>
+    <select id="lastInsertOrderItemId" resultType="long">SELECT LAST_INSERT_ID()</select>
+    <insert id="insertOrderItemOption">
+        INSERT INTO order_item_options (
+            order_item_id,
+            option_value_id,
+            option_group_name,
+            option_name,
+            unit_price,
+            quantity_per_item,
+            total_amount
+        ) VALUES (
+            #{orderItemId},
+            #{optionValueId},
+            #{groupName},
+            #{optionName},
+            #{unitPrice},
+            #{quantity},
+            #{totalAmount}
+        )
+    </insert>
+</mapper>

@@ -34,6 +34,9 @@ public interface DiningTableMapper {
     CustomerTableSessionLookup findCurrentTableSessionByPublicId(
             @Param("sessionPublicId") String sessionPublicId);
 
+    CustomerTableSessionLookup findCurrentTableSessionByPublicIdForUpdate(
+            @Param("sessionPublicId") String sessionPublicId);
+
     Long findClientAccountIdByStoreIdAndPhone(@Param("storeId") long storeId,
             @Param("phone") String phone);
 

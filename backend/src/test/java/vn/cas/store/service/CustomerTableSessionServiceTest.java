@@ -25,7 +25,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
         when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
+                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, null, null));
 
         var result = service
                 .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
@@ -38,7 +38,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldJoinExistingOpenSessionWithoutCustomerInformation() {
         when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64))).thenReturn(
-                new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
+                new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
 
         var result = service
                 .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
@@ -51,7 +51,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldCreateOpenSessionForFirstCustomer() {
         when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(9L, 2L, 5L, null, null));
+                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, null, null));
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
             return 1;
@@ -69,7 +69,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldReturnCurrentSessionFromItsPublicId() {
         when(diningTableMapper.findCurrentTableSessionByPublicId("session-public-id")).thenReturn(
-                new CustomerTableSessionLookup(9L, 2L, 5L, "session-public-id", "OPEN"));
+                new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
 
         var result = service.getCurrent("session-public-id");
 
