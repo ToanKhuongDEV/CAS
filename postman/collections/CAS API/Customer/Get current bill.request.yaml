@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get current bill
+url: "{{baseUrl}}/api/v1/customer/orders/bill"
+method: GET
+order: 3300

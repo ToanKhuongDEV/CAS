@@ -104,6 +104,46 @@ public class CustomerTableSessionService {
         return session;
     }
 
+    @Transactional
+    public void cancelCurrent(String sessionPublicId) {
+        var session = requireCurrentForUpdate(sessionPublicId);
+        if (!"OPEN".equals(session.sessionStatus())
+                || diningTableMapper.hasOrders(session.sessionId())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED);
+        }
+        if (diningTableMapper.closeSessionWithoutOrders(session.sessionId()) != 1) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    ApiMessages.CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED);
+        }
+    }
+
+    @Transactional
+    public CustomerTableSessionLookup openOrGetForOperator(long storeId, long tableId,
+            String customerName, String customerPhone) {
+        var current = diningTableMapper.findTableSessionByStoreIdAndTableIdForUpdate(storeId,
+                tableId);
+        if (current == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
+        }
+        if (current.sessionPublicId() != null) {
+            if (!"OPEN".equals(current.sessionStatus())) {
+                throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+            }
+            return current;
+        }
+        if (customerName == null || customerName.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
+        }
+        long clientAccountId = findOrCreateClientAccount(storeId,
+                new CustomerTableSessionResolutionCommand(null, customerName, customerPhone));
+        String sessionPublicId = UUID.randomUUID().toString();
+        diningTableMapper.insertOpenCustomerTableSession(tableId, sessionPublicId, clientAccountId,
+                customerName, customerPhone);
+        return new CustomerTableSessionLookup(0L, tableId, storeId, current.tableCode(),
+                sessionPublicId, "OPEN");
+    }
+
     private long findOrCreateClientAccount(long storeId,
             CustomerTableSessionResolutionCommand command) {
         if (command.customerPhone() != null) {

@@ -66,6 +66,7 @@ khi chưa có phiên `OPEN` tại bàn; các thiết bị quét sau chỉ gửi 
 curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
+curl.exe -X DELETE http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
 ```
 
 Ví dụ gửi order Customer. Dùng lại cookie nhận từ bước quét QR; giữ nguyên
@@ -73,7 +74,19 @@ Ví dụ gửi order Customer. Dùng lại cookie nhận từ bước quét QR; 
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
+curl.exe http://localhost:8080/api/v1/customer/orders -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/orders/<order-public-id> -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/orders/bill -b customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders/items/<order-item-public-id>/cancellation-requests -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"requestedQuantity\":1,\"reason\":\"Gọi nhầm món\"}"
+```
+
+Ví dụ `OPERATOR` mở hoặc dùng lại phiên của bàn, sau đó tạo order hộ khách. Khi
+bàn đã có session `OPEN`, có thể bỏ `customerName` và `customerPhone`:
+
+```powershell
+curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
+curl.exe http://localhost:8080/api/v1/operator/table-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 
 Các lệnh khác:

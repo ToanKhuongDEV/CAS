@@ -50,7 +50,8 @@
             dining_tables.code AS code,
             dining_tables.capacity AS capacity,
             table_qr_codes.token AS activeQrToken,
-            table_sessions.status AS sessionStatus
+            table_sessions.status AS sessionStatus,
+            table_sessions.public_id AS sessionPublicId
         FROM dining_tables
         LEFT JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
             AND table_qr_codes.status = 'ACTIVE'
@@ -133,6 +134,38 @@
         WHERE table_sessions.public_id = #{sessionPublicId}
         FOR UPDATE
     </select>
+
+    <select id="findTableSessionByStoreIdAndTableIdForUpdate"
+            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+        SELECT
+            table_sessions.id AS sessionId,
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            table_sessions.public_id AS sessionPublicId,
+            table_sessions.status AS sessionStatus
+        FROM dining_tables
+        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
+            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+        FOR UPDATE
+    </select>
+
+    <select id="hasOrders" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM orders
+            WHERE table_session_id = #{sessionId}
+        )
+    </select>
+
+    <update id="closeSessionWithoutOrders">
+        UPDATE table_sessions
+        SET status = 'CLOSED', closed_at = CURRENT_TIMESTAMP(3)
+        WHERE id = #{sessionId}
+          AND status = 'OPEN'
+    </update>
 
     <select id="findClientAccountIdByStoreIdAndPhone" resultType="long">
         SELECT id

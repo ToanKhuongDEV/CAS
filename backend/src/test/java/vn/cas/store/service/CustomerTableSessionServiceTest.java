@@ -1,6 +1,7 @@
 package vn.cas.store.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -15,6 +16,7 @@ import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
 import vn.cas.store.model.CustomerTableSessionLookup;
 import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
+import vn.cas.common.exception.ApiException;
 
 class CustomerTableSessionServiceTest {
 
@@ -75,5 +77,46 @@ class CustomerTableSessionServiceTest {
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         assertThat(result.tableCode()).isEqualTo(5L);
+    }
+
+    @Test
+    void shouldCloseOpenSessionWithoutOrders() {
+        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
+                        "OPEN"));
+        when(diningTableMapper.hasOrders(1L)).thenReturn(false);
+        when(diningTableMapper.closeSessionWithoutOrders(1L)).thenReturn(1);
+
+        service.cancelCurrent("session-public-id");
+
+        verify(diningTableMapper).closeSessionWithoutOrders(1L);
+    }
+
+    @Test
+    void shouldRejectCancellingSessionThatAlreadyHasOrders() {
+        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
+                        "OPEN"));
+        when(diningTableMapper.hasOrders(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.cancelCurrent("session-public-id"))
+                .isInstanceOf(ApiException.class);
+        verify(diningTableMapper, never()).closeSessionWithoutOrders(anyLong());
+    }
+
+    @Test
+    void shouldOpenSessionForOperatorWhenTableIsAvailable() {
+        when(diningTableMapper.findTableSessionByStoreIdAndTableIdForUpdate(2L, 9L))
+                .thenReturn(new CustomerTableSessionLookup(0L, 9L, 2L, 5L, null, null));
+        doAnswer(invocation -> {
+            invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
+            return 1;
+        }).when(diningTableMapper).insertClientAccount(any());
+
+        var session = service.openOrGetForOperator(2L, 9L, "Customer One", null);
+
+        assertThat(session.sessionPublicId()).isNotBlank();
+        verify(diningTableMapper).insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(),
+                any());
     }
 }

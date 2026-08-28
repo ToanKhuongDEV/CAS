@@ -12,14 +12,17 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.model.OrderMenuItem;
 import vn.cas.ordering.model.OrderOptionGroup;
 import vn.cas.ordering.model.OrderOptionValue;
 import vn.cas.ordering.model.StoredOrder;
+import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.model.CustomerTableSessionLookup;
 import vn.cas.store.service.CustomerTableSessionService;
 
@@ -27,7 +30,8 @@ class CustomerOrderingServiceTest {
 
     private final OrderingMapper mapper = mock(OrderingMapper.class);
     private final CustomerTableSessionService sessions = mock(CustomerTableSessionService.class);
-    private final CustomerOrderingService service = new CustomerOrderingService(mapper, sessions);
+    private final CustomerOrderingService service = new CustomerOrderingService(mapper, sessions,
+            mock(AuditLogService.class));
 
     @Test
     void shouldCreateOrderWithServerCalculatedSnapshots() {
@@ -65,7 +69,8 @@ class CustomerOrderingServiceTest {
 
         assertThat(result).isEqualTo(
                 new CustomerOrderingService.CreatedOrder("order-1", new BigDecimal("32000.00")));
-        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any());
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
     }
 
     @Test
@@ -83,7 +88,8 @@ class CustomerOrderingServiceTest {
                 .containsExactly(org.springframework.http.HttpStatus.BAD_REQUEST,
                         ApiMessages.INVALID_REQUEST);
 
-        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any());
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
     }
 
     @Test
@@ -101,7 +107,47 @@ class CustomerOrderingServiceTest {
                 .containsExactly(org.springframework.http.HttpStatus.CONFLICT,
                         ApiMessages.INVALID_REQUEST);
 
-        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any());
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
+    void shouldRecordOperatorAsOrderCreatorAndWriteAuditLog() {
+        currentOpenSession();
+        when(mapper.findActiveMenuItem(2L, 11L)).thenReturn(
+                new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
+        when(mapper.findActiveOptionGroups(2L, 11L)).thenReturn(List.of());
+        when(mapper.lastInsertId()).thenReturn(44L);
+        var auditLogs = mock(AuditLogService.class);
+        var operatorService = new CustomerOrderingService(mapper, sessions, auditLogs);
+
+        operatorService.createForOperator(
+                new OperationalPrincipal(3L, 2L, "firebase-uid", "Operator One", "OPERATOR"),
+                "session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of())),
+                UUID.randomUUID());
+
+        verify(mapper).insertOrder(any(), eq(7L), eq(3L), eq("key-1"), any(), any(), any(), any());
+        verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldRejectOperatorOrderForAnotherStoreSession() {
+        currentOpenSession();
+
+        var auditLogs = mock(AuditLogService.class);
+        var operatorService = new CustomerOrderingService(mapper, sessions, auditLogs);
+
+        assertThatThrownBy(
+                () -> operatorService.createForOperator(
+                        new OperationalPrincipal(3L, 8L, "firebase-uid", "Operator One",
+                                "OPERATOR"),
+                        "session-1", "key-1", null,
+                        List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of())),
+                        UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status())
+                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN);
     }
 
     private void currentOpenSession() {

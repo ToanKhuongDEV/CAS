@@ -1,0 +1,22 @@
+$kind: http-request
+name: Create assisted order
+url: "{{baseUrl}}/api/v1/operator/table-sessions/{{operatorSessionId}}/orders"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "idempotencyKey": "{{$guid}}",
+      "note": "Ít đá",
+      "items": [
+        {
+          "menuItemId": 1,
+          "quantity": 1,
+          "optionValueIds": []
+        }
+      ]
+    }
+order: 8200

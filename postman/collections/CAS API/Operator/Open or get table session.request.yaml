@@ -1,0 +1,16 @@
+$kind: http-request
+name: Open or get table session
+url: "{{baseUrl}}/api/v1/operator/table-sessions"
+method: POST
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tableId": 1,
+      "customerName": "Nguyen Van A",
+      "customerPhone": "0901234567"
+    }
+order: 8100

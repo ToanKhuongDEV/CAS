@@ -11,6 +11,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,6 +60,15 @@ public class CustomerTableSessionController {
         var resolution = customerTableSessionService.getCurrent(sessionPublicId);
         return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
                 CustomerTableSessionResponse.from(resolution), request);
+    }
+
+    @DeleteMapping("/current")
+    public ResponseEntity<ApiResponse<Void>> cancelCurrent(
+            @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            HttpServletRequest request) {
+        customerTableSessionService.cancelCurrent(sessionPublicId);
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_CANCELLED,
+                null, request);
     }
 
     private static String normalize(String value) {

@@ -76,7 +76,7 @@
         ) VALUES (
             #{publicId},
             #{sessionId},
-            NULL,
+            #{createdByAccountId},
             #{idempotencyKey},
             #{fingerprint},
             #{orderNumber},
@@ -129,4 +129,54 @@
             #{totalAmount}
         )
     </insert>
+    <select id="findOrderOverviewsBySessionId" resultType="vn.cas.ordering.model.OrderOverview">
+        SELECT
+            orders.id,
+            orders.public_id AS publicId,
+            orders.order_number AS orderNumber,
+            orders.original_amount AS originalAmount,
+            orders.payable_amount AS payableAmount,
+            orders.note,
+            orders.created_at AS createdAt
+        FROM orders
+        WHERE orders.table_session_id = #{sessionId}
+        ORDER BY orders.created_at ASC
+    </select>
+    <select id="findOrderItemsBySessionId" resultType="vn.cas.ordering.model.OrderItemView">
+        SELECT
+            order_items.id,
+            order_items.order_id AS orderId,
+            order_items.public_id AS publicId,
+            order_items.item_name AS itemName,
+            order_items.unit_price AS unitPrice,
+            order_items.options_amount AS optionsAmount,
+            order_items.quantity,
+            order_items.prepared_quantity AS preparedQuantity,
+            COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status = 'APPROVED'
+                THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS cancelledQuantity,
+            order_items.total_amount AS totalAmount
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        LEFT JOIN order_item_cancellation_requests
+            ON order_item_cancellation_requests.order_item_id = order_items.id
+        WHERE orders.table_session_id = #{sessionId}
+        GROUP BY order_items.id, order_items.public_id, order_items.item_name,
+                 order_items.unit_price, order_items.options_amount, order_items.quantity,
+                 order_items.prepared_quantity, order_items.total_amount
+        ORDER BY orders.created_at ASC, order_items.id ASC
+    </select>
+    <select id="findOrderItemOptionsBySessionId"
+            resultType="vn.cas.ordering.model.OrderItemOptionView">
+        SELECT
+            order_item_options.order_item_id AS orderItemId,
+            order_item_options.option_group_name AS groupName,
+            order_item_options.option_name AS optionName,
+            order_item_options.unit_price AS unitPrice,
+            order_item_options.quantity_per_item AS quantityPerItem
+        FROM order_item_options
+        INNER JOIN order_items ON order_items.id = order_item_options.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        WHERE orders.table_session_id = #{sessionId}
+        ORDER BY order_item_options.order_item_id ASC, order_item_options.id ASC
+    </select>
 </mapper>

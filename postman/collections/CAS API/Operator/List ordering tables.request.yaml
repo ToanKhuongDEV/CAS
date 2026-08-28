@@ -1,0 +1,7 @@
+$kind: http-request
+name: List ordering tables
+url: "{{baseUrl}}/api/v1/operator/table-sessions/tables"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 8050

@@ -10,6 +10,9 @@ import vn.cas.ordering.model.OrderOptionValue;
 import vn.cas.ordering.model.StoredOrder;
 import vn.cas.ordering.model.CancellableOrderItem;
 import vn.cas.ordering.model.CancellationRequest;
+import vn.cas.ordering.model.OrderItemOptionView;
+import vn.cas.ordering.model.OrderItemView;
+import vn.cas.ordering.model.OrderOverview;
 
 @Mapper
 public interface OrderingMapper {
@@ -38,6 +41,7 @@ public interface OrderingMapper {
             @Param("requestedQuantity") int requestedQuantity, @Param("reason") String reason);
 
     int insertOrder(@Param("publicId") String publicId, @Param("sessionId") long sessionId,
+            @Param("createdByAccountId") Long createdByAccountId,
             @Param("idempotencyKey") String idempotencyKey,
             @Param("fingerprint") String fingerprint, @Param("orderNumber") String orderNumber,
             @Param("amount") BigDecimal amount, @Param("note") String note);
@@ -56,4 +60,10 @@ public interface OrderingMapper {
             @Param("optionValueId") long optionValueId, @Param("groupName") String groupName,
             @Param("optionName") String optionName, @Param("unitPrice") BigDecimal unitPrice,
             @Param("quantity") int quantity, @Param("totalAmount") BigDecimal totalAmount);
+
+    List<OrderOverview> findOrderOverviewsBySessionId(@Param("sessionId") long sessionId);
+
+    List<OrderItemView> findOrderItemsBySessionId(@Param("sessionId") long sessionId);
+
+    List<OrderItemOptionView> findOrderItemOptionsBySessionId(@Param("sessionId") long sessionId);
 }

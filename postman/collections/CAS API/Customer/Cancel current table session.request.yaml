@@ -1,0 +1,5 @@
+$kind: http-request
+name: Cancel current table session
+url: "{{baseUrl}}/api/v1/customer/table-sessions/current"
+method: DELETE
+order: 3100
