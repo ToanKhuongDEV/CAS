@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get public welcome config
+url: "{{baseUrl}}/api/v1/public/stores/{{storeId}}/welcome"
+method: GET
+order: 12000

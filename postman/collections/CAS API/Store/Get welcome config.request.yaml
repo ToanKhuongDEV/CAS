@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get welcome config
+url: "{{baseUrl}}/api/v1/admin/store/welcome"
+method: GET
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 3000

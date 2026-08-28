@@ -1,0 +1,7 @@
+$kind: http-request
+name: Delete welcome config
+url: "{{baseUrl}}/api/v1/admin/store/welcome"
+method: DELETE
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+order: 5000

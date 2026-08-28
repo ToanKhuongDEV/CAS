@@ -179,7 +179,13 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Chưa ghép Frontend]**
 - [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
 - [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Chưa ghép Frontend]**
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend cho MENU_ITEM và STORE_LOGO]**
+- [x] Postman `Images/Get common Cloudinary upload signature`: dùng biến `imageUploadPurpose` (mặc định `WELCOME`) để xin chữ ký upload ảnh dùng chung.
+- [x] Postman `Images/Upload image to Cloudinary`: gửi file multipart trực tiếp đến Cloudinary bằng chữ ký được request trước đó lưu vào environment.
+- [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
+- [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Chưa ghép Frontend]**
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -299,7 +305,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Việt hóa toàn bộ message phản hồi API và message validation mặc định của backend để frontend hiển thị trực tiếp qua toast.
 - [x] Bổ sung Postman Native Git requests cho Customer resolve QR, mở/dùng chung table session và xem session hiện tại.
 - [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
-- [x] Thêm Flyway V2 cho `accounts.email` và `accounts.phone` (`NOT NULL`, unique); backfill account cũ bằng giá trị placeholder duy nhất và cập nhật luồng tạo account mới để lưu đủ hai trường.
+- [x] Tích hợp `accounts.email` và `accounts.phone` (`NOT NULL`, unique) vào Flyway V1 baseline; database mới không cần backfill account cũ.
 - [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,
       Flyway, audit log, Bruno và kiểm thử dành riêng cho backend.
 
@@ -433,7 +439,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
 - [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
 - [x] Loại Banner khuyến mãi, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không dùng `promotion_configs`.
-- [ ] Phase 1 production: xây dựng quản lý banner/ảnh giới thiệu store (ảnh, tiêu đề, mô tả, thứ tự, trạng thái) cho `ADMIN`; Customer hiển thị banner `ACTIVE` tại Welcome và Menu.
+- [x] Tích hợp `store_banners` vào Flyway V1 baseline cho Phase 1 production: một record/store chứa URL và storage key của 2 ảnh Hero, 5 ảnh Menu, 1 ảnh Banner và trạng thái; không có thời gian hiệu lực.
+- [x] Tích hợp `stores.logo_storage_key` vào Flyway V1 baseline; mọi URL ảnh trong schema hiện có khóa Cloudinary tương ứng để hỗ trợ thay thế hoặc xóa asset.
+- [x] Hợp nhất schema Flyway V1–V4 vào `V1__create_base_20260701.sql` để khởi tạo database mới bằng một baseline migration duy nhất.
+- [x] Bổ sung seed `store_banners` cho store demo, dùng ảnh mock trong `frontend/public/images/welcome` và storage key `NULL`.
+- [ ] Phase 1 production: xây dựng API/UI quản lý cấu hình Welcome store cho `ADMIN`; Customer hiển thị record `ACTIVE` tại Welcome.
 - [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
 - [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
 - [x] Thay biểu đồ chính Admin Dashboard bằng line chart doanh thu theo thời gian, có bộ chọn Hôm nay/7 ngày/30 ngày/Tháng này và dữ liệu theo giờ từ 09h đến 22h cho chế độ Hôm nay.

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Save welcome config
+url: "{{baseUrl}}/api/v1/admin/store/welcome"
+method: PUT
+headers:
+  Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"heroPrimaryImageUrl":null,"heroPrimaryImageStorageKey":null,"heroSecondaryImageUrl":null,"heroSecondaryImageStorageKey":null,"menuPreview1ImageUrl":null,"menuPreview1ImageStorageKey":null,"menuPreview2ImageUrl":null,"menuPreview2ImageStorageKey":null,"menuPreview3ImageUrl":null,"menuPreview3ImageStorageKey":null,"menuPreview4ImageUrl":null,"menuPreview4ImageStorageKey":null,"menuPreview5ImageUrl":null,"menuPreview5ImageStorageKey":null,"bannerImageUrl":null,"bannerImageStorageKey":null,"status":"ACTIVE"}'
+order: 4000

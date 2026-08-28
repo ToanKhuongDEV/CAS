@@ -48,7 +48,8 @@ curl.exe -X DELETE http://localhost:8080/api/v1/admin/tables/1 -H "Authorization
 
 Postman có thể import trực tiếp lệnh cURL này.
 
-Ví dụ quản lý Catalog và xin chữ ký upload ảnh Cloudinary. Response của endpoint
+Ví dụ quản lý Catalog và xin chữ ký upload ảnh Cloudinary dùng chung. Request nhận
+`purpose`: `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`. Response của endpoint
 chứa `cloudName`, `apiKey`, `timestamp`, `signature`, `folder`, `publicId` và
 `uploadPreset`; Frontend dùng các giá trị này để upload trực tiếp ảnh lên
 Cloudinary, rồi gửi `secure_url` và `public_id` khi tạo hoặc sửa món:
@@ -56,7 +57,11 @@ Cloudinary, rồi gửi `secure_url` và `public_id` khi tạo hoặc sửa món
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Đồ uống\",\"categoryType\":\"REGULAR\",\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe http://localhost:8080/api/v1/admin/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/images/upload-signature -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/admin/images/upload-signature -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"purpose\":\"MENU_ITEM\"}"
+curl.exe -X PUT http://localhost:8080/api/v1/admin/store/settings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"CAS Mì Cay\",\"address\":\"123 Đường Ẩm Thực\",\"phone\":\"0900000000\",\"email\":\"hello@cas.local\",\"logoUrl\":\"https://res.cloudinary.com/<cloud>/image/upload/...\",\"logoStorageKey\":\"<Cloudinary public_id>\",\"googleMapsLocation\":\"https://maps.google.com/?q=10.7769,106.7009\",\"openTime\":\"09:00:00\",\"closeTime\":\"22:00:00\",\"welcomeSlogan\":\"Món ngon gọi nhanh\",\"status\":\"ACTIVE\"}"
+curl.exe -X PUT http://localhost:8080/api/v1/admin/store/welcome -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"heroPrimaryImageUrl\":null,\"heroPrimaryImageStorageKey\":null,\"heroSecondaryImageUrl\":null,\"heroSecondaryImageStorageKey\":null,\"menuPreview1ImageUrl\":null,\"menuPreview1ImageStorageKey\":null,\"menuPreview2ImageUrl\":null,\"menuPreview2ImageStorageKey\":null,\"menuPreview3ImageUrl\":null,\"menuPreview3ImageStorageKey\":null,\"menuPreview4ImageUrl\":null,\"menuPreview4ImageStorageKey\":null,\"menuPreview5ImageUrl\":null,\"menuPreview5ImageStorageKey\":null,\"bannerImageUrl\":null,\"bannerImageStorageKey\":null,\"status\":\"ACTIVE\"}"
+curl.exe http://localhost:8080/api/v1/public/stores/1/welcome
+curl.exe -X DELETE http://localhost:8080/api/v1/admin/store/welcome -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
 Ví dụ quét QR để lấy hoặc tham gia phiên bàn Customer. Chỉ gửi `customerName`
