@@ -16,6 +16,7 @@ import {
 import type { VoucherSummary } from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
 import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
+import { loadOperatorTables } from "../../../lib/api/ordering/ordering.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -361,6 +362,7 @@ export function OperatorOrderCreationView({
     const found = mockActiveTables.find((t) => t.id === defaultTableId);
     return found ?? mockActiveTables[2];
   });
+  const [operatorTables, setOperatorTables] = useState<TableOption[]>(mockActiveTables);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
@@ -414,6 +416,28 @@ export function OperatorOrderCreationView({
             price: formatPrice(item.price),
           })),
         );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    void loadOperatorTables()
+      .then((tables) => {
+        const mapped = tables.map((table) => ({
+          activeOrdersCount: 0,
+          code: String(table.tableCode).padStart(2, "0"),
+          id: String(table.tableId),
+          label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
+          status:
+            table.sessionStatus === "OPEN"
+              ? "OPEN"
+              : table.sessionStatus === "PAYMENT_PENDING"
+                ? "PAYMENT_PENDING"
+                : "EMPTY",
+        }));
+        setOperatorTables(mapped);
+        const selected = mapped.find((table) => table.status === "OPEN") ?? mapped[0];
+        if (selected) setSelectedTable(selected);
       })
       .catch(() => undefined);
   }, []);
@@ -774,6 +798,7 @@ export function OperatorOrderCreationView({
       {/* Table Selector Modal */}
       <OperatorTableSelectModal
         isOpen={isTableModalOpen}
+        tables={operatorTables}
         newlyOpenedTableIds={newlyOpenedTableIds}
         selectedTableId={selectedTable.id}
         onClose={() => setIsTableModalOpen(false)}

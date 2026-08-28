@@ -93,6 +93,7 @@ export const availableTables: TableOption[] = [
 
 type OperatorTableSelectModalProps = {
   isOpen: boolean;
+  tables: TableOption[];
   newlyOpenedTableIds: string[];
   selectedTableId: string;
   onClose: () => void;
@@ -102,6 +103,7 @@ type OperatorTableSelectModalProps = {
 
 export function OperatorTableSelectModal({
   isOpen,
+  tables,
   newlyOpenedTableIds,
   selectedTableId,
   onClose,
@@ -112,7 +114,7 @@ export function OperatorTableSelectModal({
 
   if (!isOpen) return null;
 
-  const filteredTables = availableTables.filter(
+  const filteredTables = tables.filter(
     (t) =>
       t.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.code.includes(searchTerm) ||
