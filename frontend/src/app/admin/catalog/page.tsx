@@ -13,7 +13,7 @@ import {
   type CatalogTag,
   type SaveCatalogMenuItem,
 } from "../../../lib/api/catalog/catalog.api";
-import { uploadCatalogImage } from "../../../lib/api/catalog/cloudinary-upload";
+import { uploadImage } from "../../../lib/api/catalog/cloudinary-upload";
 
 type MenuItem = {
   id: number;
@@ -251,7 +251,7 @@ export default function AdminCatalogPage() {
       if (imageFile) {
         setIsUploadingImage(true);
         setUploadError(null);
-        const uploadedImage = await uploadCatalogImage(imageFile);
+        const uploadedImage = await uploadImage(imageFile, "MENU_ITEM");
         itemToSave = {
           ...itemToSave,
           imageSrc: uploadedImage.imageUrl,

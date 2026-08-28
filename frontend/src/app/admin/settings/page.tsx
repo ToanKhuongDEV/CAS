@@ -9,7 +9,7 @@ import {
   updateLongWaitWarningMinutes,
 } from "../../../lib/api/store/long-wait-warning.api";
 import { loadStoreSettings, updateStoreSettings } from "../../../lib/api/store/store-settings.api";
-import { getFirebaseAuth } from "../../../lib/auth/firebase";
+import { uploadImage } from "../../../lib/api/catalog/cloudinary-upload";
 
 const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -171,6 +171,7 @@ export default function AdminSettingsPage() {
   );
   const [storeStatus, setStoreStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [logoStorageKey, setLogoStorageKey] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
 
@@ -199,6 +200,7 @@ export default function AdminSettingsPage() {
         closeTime,
         welcomeSlogan: slogan || null,
         logoUrl: logoPreviewUrl,
+        logoStorageKey,
         status: storeStatus,
       });
       showToast({ message: "Đã cập nhật thông tin cửa hàng thành công.", type: "success" });
@@ -254,6 +256,7 @@ export default function AdminSettingsPage() {
       setSlogan(s.welcomeSlogan ?? "");
       setStoreStatus(s.status);
       setLogoPreviewUrl(s.logoUrl);
+      setLogoStorageKey(s.logoStorageKey);
     });
   }, []);
 
@@ -273,38 +276,12 @@ export default function AdminSettingsPage() {
     setLogoPreviewUrl(URL.createObjectURL(selectedFile));
     setIsUploadingLogo(true);
     try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-      const signatureResponse = await fetch(
-        `${apiUrl}/api/v1/admin/store/settings/logo/upload-signature`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
-        },
-      );
-      const signatureBody = await signatureResponse.json();
-      if (!signatureResponse.ok || !signatureBody.data)
-        throw new Error("Không thể xin quyền tải logo.");
-      const signature = signatureBody.data;
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("api_key", signature.apiKey);
-      formData.append("timestamp", String(signature.timestamp));
-      formData.append("signature", signature.signature);
-      formData.append("folder", signature.folder);
-      formData.append("public_id", signature.publicId);
-      formData.append("upload_preset", signature.uploadPreset);
-      const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
-        { method: "POST", body: formData },
-      );
-      const uploadBody = await uploadResponse.json();
-      if (!uploadResponse.ok || typeof uploadBody.secure_url !== "string")
-        throw new Error("Không thể tải logo lên Cloudinary.");
-      setLogoPreviewUrl(uploadBody.secure_url);
+      const uploadedImage = await uploadImage(selectedFile, "STORE_LOGO");
+      setLogoPreviewUrl(uploadedImage.imageUrl);
+      setLogoStorageKey(uploadedImage.imageStorageKey);
     } catch (error) {
       setLogoPreviewUrl(null);
+      setLogoStorageKey(null);
       throw error;
     } finally {
       setIsUploadingLogo(false);
@@ -385,7 +362,10 @@ export default function AdminSettingsPage() {
                       {logoPreviewUrl ? (
                         <button
                           className="rounded-xl px-3 py-2 font-extrabold text-cas-on-surface-variant transition hover:bg-cas-on-surface/5 hover:text-cas-on-surface"
-                          onClick={() => setLogoPreviewUrl(null)}
+                          onClick={() => {
+                            setLogoPreviewUrl(null);
+                            setLogoStorageKey(null);
+                          }}
                           type="button"
                         >
                           Dùng logo mặc định

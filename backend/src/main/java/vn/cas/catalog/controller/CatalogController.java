@@ -20,13 +20,10 @@ import vn.cas.store.service.CustomerTableSessionService;
 @RestController
 public class CatalogController {
     private final CatalogService catalog;
-    private final CloudinarySignatureService cloudinary;
     private final CustomerTableSessionService sessions;
 
-    public CatalogController(CatalogService catalog, CloudinarySignatureService cloudinary,
-            CustomerTableSessionService sessions) {
+    public CatalogController(CatalogService catalog, CustomerTableSessionService sessions) {
         this.catalog = catalog;
-        this.cloudinary = cloudinary;
         this.sessions = sessions;
     }
 
@@ -175,12 +172,6 @@ public class CatalogController {
             @Valid @RequestBody BulkStatusRequest b, HttpServletRequest r) {
         catalog.bulkStatus(p, b.itemIds(), b.status(), rid(r));
         return ok(null, r);
-    }
-
-    @PostMapping(ApiPaths.Catalog.ADMIN + "/images/upload-signature")
-    public ResponseEntity<ApiResponse<CloudinarySignatureService.UploadSignature>> sign(
-            @AuthenticationPrincipal OperationalPrincipal p, HttpServletRequest r) {
-        return ok(cloudinary.sign(p.storeId()), r);
     }
 
     @GetMapping(ApiPaths.Catalog.OPERATOR + "/items")

@@ -1,0 +1,23 @@
+$kind: http-request
+name: Upload image to Cloudinary
+url: "https://api.cloudinary.com/v1_1/{{cloudinaryCloudName}}/image/upload"
+method: POST
+body:
+  type: form-data
+  form:
+    - key: file
+      type: file
+      value: ''
+    - key: api_key
+      value: "{{cloudinaryApiKey}}"
+    - key: timestamp
+      value: "{{cloudinaryTimestamp}}"
+    - key: signature
+      value: "{{cloudinarySignature}}"
+    - key: folder
+      value: "{{cloudinaryFolder}}"
+    - key: public_id
+      value: "{{cloudinaryPublicId}}"
+    - key: upload_preset
+      value: "{{cloudinaryUploadPreset}}"
+order: 3000

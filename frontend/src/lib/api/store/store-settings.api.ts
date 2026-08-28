@@ -9,6 +9,7 @@ export type StoreSettings = {
   phone: string;
   email: string;
   logoUrl: string | null;
+  logoStorageKey: string | null;
   googleMapsLocation: string | null;
   openTime: string;
   closeTime: string;

@@ -1,7 +1,22 @@
 $kind: http-request
-name: Get Cloudinary upload signature
-url: "{{baseUrl}}/api/v1/admin/catalog/images/upload-signature"
+name: Get common Cloudinary upload signature
+url: "{{baseUrl}}/api/v1/admin/images/upload-signature"
 method: POST
 headers:
   Authorization: Bearer {{firebaseIdToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"purpose":"{{imageUploadPurpose}}"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      const signature = pm.response.json().data;
+      pm.environment.set('cloudinaryCloudName', signature.cloudName);
+      pm.environment.set('cloudinaryApiKey', signature.apiKey);
+      pm.environment.set('cloudinaryTimestamp', String(signature.timestamp));
+      pm.environment.set('cloudinarySignature', signature.signature);
+      pm.environment.set('cloudinaryFolder', signature.folder);
+      pm.environment.set('cloudinaryPublicId', signature.publicId);
+      pm.environment.set('cloudinaryUploadPreset', signature.uploadPreset);
 order: 2000

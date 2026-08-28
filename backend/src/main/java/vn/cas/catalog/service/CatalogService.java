@@ -159,6 +159,9 @@ public class CatalogService {
 
     @Transactional
     public void updateItem(OperationalPrincipal p, long id, MenuCommand c, UUID r) {
+        var current = mapper.findMenuItem(p.storeId(), id, false);
+        if (current == null)
+            throw notFound();
         validItem(p.storeId(), c);
         required(mapper.updateMenuItem(p.storeId(), id, c.categoryId(), c.name(), c.description(),
                 c.price(), c.imageUrl(), c.imageStorageKey(), c.availabilityStatus(),
@@ -166,6 +169,7 @@ public class CatalogService {
         mapper.deleteMenuItemTags(id);
         mapper.deleteMenuItemOptionGroups(id);
         links(p.storeId(), id, c);
+        cloudinary.deleteAfterCommit(p.storeId(), current.imageStorageKey(), c.imageStorageKey());
         log(p, r, "UPDATE", "MENU_ITEM", c.name());
     }
 

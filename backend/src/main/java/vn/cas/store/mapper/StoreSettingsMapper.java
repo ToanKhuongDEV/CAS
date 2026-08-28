@@ -20,6 +20,7 @@ public interface StoreSettingsMapper {
     int updateStoreSettings(@Param("storeId") long storeId, @Param("name") String name,
             @Param("address") String address, @Param("phone") String phone,
             @Param("email") String email, @Param("logoUrl") String logoUrl,
+            @Param("logoStorageKey") String logoStorageKey,
             @Param("googleMapsLocation") String googleMapsLocation,
             @Param("openTime") java.time.LocalTime openTime,
             @Param("closeTime") java.time.LocalTime closeTime,

@@ -12,3 +12,7 @@ values:
     value: ''
   - key: firebaseIdToken
     value: ''
+  - key: imageUploadPurpose
+    value: 'WELCOME'
+  - key: storeId
+    value: ''

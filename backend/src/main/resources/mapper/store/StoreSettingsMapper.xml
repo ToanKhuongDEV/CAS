@@ -18,6 +18,7 @@
 
     <select id="findByStoreId" resultType="vn.cas.store.model.StoreSettings">
         SELECT id, name, address, phone, email, logo_url AS logoUrl,
+               logo_storage_key AS logoStorageKey,
                google_maps_location AS googleMapsLocation, open_time AS openTime,
                close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
         FROM stores WHERE id = #{storeId}
@@ -25,6 +26,7 @@
 
     <select id="findActiveByStoreId" resultType="vn.cas.store.model.StoreSettings">
         SELECT id, name, address, phone, email, logo_url AS logoUrl,
+               logo_storage_key AS logoStorageKey,
                google_maps_location AS googleMapsLocation, open_time AS openTime,
                close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
         FROM stores WHERE id = #{storeId} AND status = 'ACTIVE'
@@ -33,7 +35,8 @@
     <update id="updateStoreSettings">
         UPDATE stores
         SET name = #{name}, address = #{address}, phone = #{phone}, email = #{email},
-            logo_url = #{logoUrl}, google_maps_location = #{googleMapsLocation},
+            logo_url = #{logoUrl}, logo_storage_key = #{logoStorageKey},
+            google_maps_location = #{googleMapsLocation},
             open_time = #{openTime}, close_time = #{closeTime},
             welcome_slogan = #{welcomeSlogan}, status = #{status}
         WHERE id = #{storeId}

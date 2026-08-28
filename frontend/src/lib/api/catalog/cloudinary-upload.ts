@@ -22,14 +22,19 @@ export type UploadedCatalogImage = {
   imageUrl: string;
 };
 
+export type ImageUploadPurpose = "MENU_ITEM" | "STORE_LOGO" | "WELCOME";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
-export async function uploadCatalogImage(file: File): Promise<UploadedCatalogImage> {
+export async function uploadImage(
+  file: File,
+  purpose: ImageUploadPurpose,
+): Promise<UploadedCatalogImage> {
   const currentUser = getFirebaseAuth().currentUser;
   if (!currentUser) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
 
   const idToken = await currentUser.getIdToken();
-  const signature = await requestUploadSignature(idToken);
+  const signature = await requestUploadSignature(idToken, purpose);
   const formData = new FormData();
   formData.append("file", file);
   formData.append("api_key", signature.apiKey);
@@ -51,11 +56,15 @@ export async function uploadCatalogImage(file: File): Promise<UploadedCatalogIma
   return { imageUrl: body.secure_url, imageStorageKey: body.public_id };
 }
 
-async function requestUploadSignature(idToken: string): Promise<UploadSignature> {
-  const response = await fetch(`${apiUrl}/api/v1/admin/catalog/images/upload-signature`, {
+async function requestUploadSignature(
+  idToken: string,
+  purpose: ImageUploadPurpose,
+): Promise<UploadSignature> {
+  const response = await fetch(`${apiUrl}/api/v1/admin/images/upload-signature`, {
     method: "POST",
     cache: "no-store",
-    headers: { Authorization: `Bearer ${idToken}` },
+    headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ purpose }),
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isUploadSignatureResponse(body)) {

@@ -26,7 +26,7 @@ public final class ApiPaths {
 
         public static final String LONG_WAIT_WARNING = PRE_FIX + "/settings/long-wait-warning";
         public static final String SETTINGS = PRE_FIX + "/settings";
-        public static final String LOGO_UPLOAD_SIGNATURE = SETTINGS + "/logo/upload-signature";
+        public static final String WELCOME = PRE_FIX + "/welcome";
 
         private Store() {
         }
@@ -83,6 +83,20 @@ public final class ApiPaths {
         public static final String CUSTOMER = API_CUSTOMER_PREFIX + "/catalog";
 
         private Catalog() {
+        }
+    }
+
+    public static final class Images {
+        public static final String UPLOAD_SIGNATURE = API_ADMIN_PREFIX + "/images/upload-signature";
+
+        private Images() {
+        }
+    }
+
+    public static final class PublicStore {
+        public static final String WELCOME = API_V1_PREFIX + "/public/stores/{storeId}/welcome";
+
+        private PublicStore() {
         }
     }
 }

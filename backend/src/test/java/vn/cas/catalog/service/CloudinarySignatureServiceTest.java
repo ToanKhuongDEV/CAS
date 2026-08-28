@@ -16,7 +16,7 @@ class CloudinarySignatureServiceTest {
 
     @Test
     void signsEveryUploadParameterSentByTheBrowser() throws Exception {
-        var signature = service.sign(8L);
+        var signature = service.sign(8L, CloudinarySignatureService.UploadPurpose.MENU_ITEM);
 
         var value = "folder=" + signature.folder() + "&public_id=" + signature.publicId()
                 + "&timestamp=" + signature.timestamp() + "&upload_preset="
@@ -38,5 +38,13 @@ class CloudinarySignatureServiceTest {
         assertThatThrownBy(() -> service.validateAsset(8L,
                 "https://res.cloudinary.com/cas-cloud/image/upload/v1/cas/menu/9/9_item.jpg",
                 "9_item")).isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    void choosesFolderFromUploadPurpose() {
+        assertThat(service.sign(8L, CloudinarySignatureService.UploadPurpose.STORE_LOGO).folder())
+                .isEqualTo("cas/stores/8");
+        assertThat(service.sign(8L, CloudinarySignatureService.UploadPurpose.WELCOME).folder())
+                .isEqualTo("cas/welcome/8");
     }
 }

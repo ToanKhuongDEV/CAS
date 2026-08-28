@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import vn.cas.catalog.service.CloudinarySignatureService;
 import vn.cas.common.constants.ApiPaths;
 import vn.cas.common.response.*;
 import vn.cas.common.security.OperationalPrincipal;
@@ -22,12 +21,9 @@ import vn.cas.store.service.StoreSettingsService;
 @RestController
 public class StoreSettingsController {
     private final StoreSettingsService service;
-    private final CloudinarySignatureService cloudinary;
 
-    public StoreSettingsController(StoreSettingsService service,
-            CloudinarySignatureService cloudinary) {
+    public StoreSettingsController(StoreSettingsService service) {
         this.service = service;
-        this.cloudinary = cloudinary;
     }
 
     @GetMapping(ApiPaths.Store.SETTINGS)
@@ -53,22 +49,15 @@ public class StoreSettingsController {
         return ApiResponses.success(HttpStatus.OK, "Đã cập nhật thông tin cửa hàng.", data, r);
     }
 
-    @PostMapping(ApiPaths.Store.LOGO_UPLOAD_SIGNATURE)
-    public ResponseEntity<ApiResponse<CloudinarySignatureService.UploadSignature>> sign(
-            @AuthenticationPrincipal OperationalPrincipal p, HttpServletRequest r) {
-        return ApiResponses.success(HttpStatus.OK, "Đã cấp chữ ký tải logo.",
-                cloudinary.signStoreLogo(p.storeId()), r);
-    }
-
     public record UpdateStoreSettingsRequest(@NotBlank @Size(max = 150) String name,
             @NotBlank @Size(max = 500) String address, @NotBlank @Size(max = 20) String phone,
             @NotBlank @Size(max = 254) String email, @Size(max = 2048) String logoUrl,
-            @Size(max = 2048) String googleMapsLocation, LocalTime openTime, LocalTime closeTime,
-            @Size(max = 500) String welcomeSlogan,
+            @Size(max = 512) String logoStorageKey, @Size(max = 2048) String googleMapsLocation,
+            LocalTime openTime, LocalTime closeTime, @Size(max = 500) String welcomeSlogan,
             @Pattern(regexp = "ACTIVE|INACTIVE") String status) {
         StoreSettings toModel(long id) {
-            return new StoreSettings(id, name, address, phone, email, logoUrl, googleMapsLocation,
-                    openTime, closeTime, welcomeSlogan, status);
+            return new StoreSettings(id, name, address, phone, email, logoUrl, logoStorageKey,
+                    googleMapsLocation, openTime, closeTime, welcomeSlogan, status);
         }
     }
 }
