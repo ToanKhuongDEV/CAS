@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-24
+Ngày cập nhật gần nhất: 2026-08-28
 
 ## Quy ước
 
@@ -174,6 +174,11 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Chưa ghép Frontend]**
+- [x] `DELETE /api/v1/customer/table-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Chưa ghép Frontend]**
+- [x] `POST /api/v1/operator/table-sessions`: `OPERATOR` mở session mới cho bàn trống hoặc dùng session `OPEN` tại bàn thuộc store của mình. **[Chưa ghép Frontend]**
+- [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Chưa ghép Frontend]**
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store; `POST /api/v1/admin/catalog/images/upload-signature` trả chữ ký upload Cloudinary ngắn hạn để Frontend upload ảnh trực tiếp và lưu `secure_url`/`public_id` cùng món. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
@@ -215,13 +220,13 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
 - [x] **Table session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
 - [x] **Table session:** lấy ngữ cảnh và trạng thái session hiện tại của Customer.
-- [ ] **Table session:** hủy session chưa có order.
+- [x] **Table session:** hủy session chưa có order.
 - [x] **Order:** tạo order bởi Customer.
 - [x] **Yêu cầu hủy món:** Customer tạo yêu cầu hủy món theo từng dòng order, có idempotency trong phạm vi dòng món.
-- [ ] **Order:** tạo order hộ bởi `OPERATOR`.
-- [ ] **Order:** xem danh sách order của session.
-- [ ] **Order:** xem chi tiết order.
-- [ ] **Bill:** xem bill hiện tại của session.
+- [x] **Order:** tạo order hộ bởi `OPERATOR`.
+- [x] **Order:** xem danh sách order của session.
+- [x] **Order:** xem chi tiết order.
+- [x] **Bill:** xem bill hiện tại của session.
 - [ ] **Chế biến:** xem danh sách bàn chờ lâu.
 - [ ] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
 - [ ] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
@@ -427,8 +432,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
 - [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
-- [x] Đã từng xây dựng UI Admin Cấu hình Thông báo Khuyến mãi & Banner (`/admin/promotions`); chức năng hiện đã bị loại khỏi phạm vi.
-- [x] Loại Banner chào mừng, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không còn dùng `promotion_configs`.
+- [x] Loại Banner khuyến mãi, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không dùng `promotion_configs`.
+- [ ] Phase 1 production: xây dựng quản lý banner/ảnh giới thiệu store (ảnh, tiêu đề, mô tả, thứ tự, trạng thái) cho `ADMIN`; Customer hiển thị banner `ACTIVE` tại Welcome và Menu.
 - [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
 - [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
 - [x] Thay biểu đồ chính Admin Dashboard bằng line chart doanh thu theo thời gian, có bộ chọn Hôm nay/7 ngày/30 ngày/Tháng này và dữ liệu theo giờ từ 09h đến 22h cho chế độ Hôm nay.
@@ -537,6 +542,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
 5. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 6. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
+7. Hoàn thiện các phần còn dùng mock/dữ liệu tĩnh trong Phase 1 bằng API, dữ liệu production và kiểm thử tích hợp trước khi triển khai cửa hàng.
 
 ## 9. Tài liệu liên quan
 

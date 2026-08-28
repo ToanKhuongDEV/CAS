@@ -25,6 +25,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
 - Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/CUSTOMER nhận thông báo).
 - Ghi nhận dịch vụ đặt trước được chốt qua Zalo và thanh toán độc lập với phiên bàn.
+- Admin quản lý banner/ảnh giới thiệu hiển thị cho Customer tại Welcome và Menu.
 
 Ngoài phạm vi hiện tại:
 
@@ -51,6 +52,26 @@ Khách hàng không có tài khoản đăng nhập và không phải account rol
 Tài khoản nội bộ của quán được nhận diện bằng email, lưu trong `accounts` và xác thực qua Firebase. Thông tin khách hàng được lưu riêng trong `client_accounts`: khách có số điện thoại được nhận diện theo số điện thoại trong phạm vi cửa hàng, còn khách không cung cấp số điện thoại là khách lẻ.
 
 Các giao diện đồng bộ thay đổi từ thiết bị khác bằng polling REST API. Thao tác do chính giao diện gửi đi được cập nhật ngay từ API response. Giai đoạn đầu không dùng SSE hoặc WebSocket.
+
+## 3.1. Luồng quản lý và hiển thị banner giới thiệu
+
+### Mục tiêu
+
+Cho phép `ADMIN` quản lý nội dung giới thiệu cửa hàng phục vụ vận hành production; Customer xem nội dung này tại Welcome và Menu.
+
+### Luồng chính
+
+1. `ADMIN` tạo, sửa, xóa hoặc thay đổi trạng thái banner trong phạm vi store của mình.
+2. Khi lưu, Backend xác thực ảnh đã upload thuộc Cloudinary của store; client không tự gán URL hoặc khóa lưu trữ tùy ý.
+3. Customer tải danh sách banner `ACTIVE` của store, sắp xếp tăng dần theo `display_order` rồi `id`.
+4. Welcome và Menu chỉ hiển thị dữ liệu Backend trả về; ảnh trong `frontend/public` chỉ là fallback/test asset khi chưa cấu hình ảnh thực tế.
+
+### Quy tắc nghiệp vụ
+
+- Mỗi banner gồm ảnh bắt buộc, tiêu đề bắt buộc, mô tả tùy chọn, `display_order` và trạng thái `ACTIVE` hoặc `INACTIVE`.
+- Không có thời gian bắt đầu, kết thúc hoặc cơ chế tự động bật/tắt banner.
+- Banner giới thiệu không áp dụng discount, voucher, header ticker hoặc gợi ý giỏ hàng.
+- `OPERATOR` không quản lý banner.
 
 ## 4. Luồng đăng nhập khu vực vận hành
 

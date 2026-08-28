@@ -16,6 +16,8 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 - Duy trì hoạt động vận hành cơ bản (xem menu, gọi món, điều phối bếp, in phiếu) ngay cả khi mất kết nối internet và tự đồng bộ khi mạng trở lại.
 - Tạo nền tảng để mở rộng các chức năng quản lý trong tương lai.
 
+Phase 1 là bản production tối thiểu, không phải demo: các luồng đã thuộc phạm vi phải dùng dữ liệu và API đáng tin cậy, được kiểm thử phù hợp trước khi triển khai tại cửa hàng. Dữ liệu hoặc ảnh mẫu chỉ là fallback/test asset, không thay thế dữ liệu vận hành do Backend quản lý.
+
 ## 3. Đối tượng sử dụng và Phân quyền (Roles)
 
 Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình, với các quyền hạn tính năng tách biệt:
@@ -24,6 +26,7 @@ Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình,
 _Không có tài khoản đăng nhập nội bộ hệ thống; khách có số điện thoại được nhận diện theo số đó, còn khách không cung cấp số điện thoại là khách lẻ. QR token chỉ cấp quyền truy cập phiên bàn._
 - **Mở bàn:** Quét mã QR, điền tên để khởi tạo phiên bàn; số điện thoại là tùy chọn. (Các thiết bị quét sau vào chung phiên).
 - **Xem menu:** Xem danh sách danh mục, món ăn, giá tiền, hình ảnh và gợi ý option.
+- **Xem giới thiệu cửa hàng:** Xem banner/ảnh giới thiệu đang hiển thị ở trang Welcome và Menu của cửa hàng.
 - **Gọi món:** Thêm món vào giỏ hàng và gửi order xuống bếp (có thể gọi thêm nhiều lần, cùng lúc qua nhiều thiết bị).
 - **Hủy phiên bàn:** Được quyền đóng phiên bàn ngay lập tức nếu chưa gửi bất kỳ món nào xuống bếp.
 - **Yêu cầu hủy món:** Tạo request yêu cầu hủy (cần được nhân viên duyệt).
@@ -89,6 +92,12 @@ Nhân viên xác nhận kết quả thanh toán
 - Quản lý thông tin và giá món.
 - Quản lý trạng thái còn hoặc hết món.
 - Quản lý hình ảnh món.
+
+#### Quản lý banner và ảnh giới thiệu
+
+- `ADMIN` quản lý banner giới thiệu của từng cửa hàng: ảnh, tiêu đề, mô tả, thứ tự hiển thị và trạng thái `ACTIVE`/`INACTIVE`.
+- Banner hiển thị cho Customer tại trang Welcome và Menu. Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá.
+- Banner không có thời gian bắt đầu/kết thúc; việc hiển thị chỉ theo trạng thái và thứ tự do Admin cấu hình.
 
 #### Quản lý khuyến mãi (Promotions) & Thông báo Khuyến mãi
 

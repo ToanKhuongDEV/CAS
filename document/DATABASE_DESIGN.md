@@ -159,6 +159,27 @@ Lưu thông tin cửa hàng.
 
 Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Các trường liên hệ, vị trí, giờ hoạt động và slogan được `ADMIN` cấu hình từ màn hình Settings; Customer có thể dùng dữ liệu công khai này để xem thông tin cửa hàng. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
 
+#### `store_banners`
+
+Lưu banner/ảnh giới thiệu của cửa hàng cho trang Welcome và Menu Customer. Đây là nội dung giới thiệu vận hành, tách biệt với promotion và system notification.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu banner |
+| `title` | `VARCHAR(200) NOT NULL` | Tiêu đề banner |
+| `description` | `VARCHAR(1000) NULL` | Mô tả ngắn tùy chọn |
+| `image_url` | `VARCHAR(2048) NOT NULL` | URL ảnh Cloudinary đã xác thực |
+| `image_storage_key` | `VARCHAR(512) NOT NULL` | Public ID/khóa Cloudinary của ảnh |
+| `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị tăng dần |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | `ACTIVE` hoặc `INACTIVE` |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo banner |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Backend chỉ trả banner `ACTIVE` cho Customer theo `display_order ASC, id ASC`. Banner không có `start_at`/`end_at`; Admin bật hoặc tắt bằng `status`. Migration tương lai phải có foreign key `store_id`, `created_by`, `updated_by` với `ON DELETE RESTRICT ON UPDATE RESTRICT` và index đọc `(store_id, status, display_order)`.
+
 #### `dining_tables`
 
 Lưu thông tin bàn.
