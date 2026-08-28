@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { StoreWelcomeConfigSection } from "../../../components/admin/store-welcome-config-section";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
@@ -600,6 +601,8 @@ export default function AdminSettingsPage() {
               </div>
             </form>
           </div>
+
+          <StoreWelcomeConfigSection />
 
           {/* Form Cấu hình Ngưỡng cảnh báo Vận hành */}
           <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
