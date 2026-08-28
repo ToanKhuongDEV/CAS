@@ -3,21 +3,35 @@ name: Upload image to Cloudinary
 url: "https://api.cloudinary.com/v1_1/{{cloudinaryCloudName}}/image/upload"
 method: POST
 body:
-  type: form-data
-  form:
-    - key: file
-      type: file
-      value: ''
-    - key: api_key
+  type: formdata
+  content:
+    - type: file
+      key: file
+      src: ""
+      description: "Chọn ảnh cần tải lên từ máy cục bộ."
+      disabled: false
+    - type: text
+      key: api_key
       value: "{{cloudinaryApiKey}}"
-    - key: timestamp
+      disabled: false
+    - type: text
+      key: timestamp
       value: "{{cloudinaryTimestamp}}"
-    - key: signature
+      disabled: false
+    - type: text
+      key: signature
       value: "{{cloudinarySignature}}"
-    - key: folder
+      disabled: false
+    - type: text
+      key: folder
       value: "{{cloudinaryFolder}}"
-    - key: public_id
+      disabled: false
+    - type: text
+      key: public_id
       value: "{{cloudinaryPublicId}}"
-    - key: upload_preset
+      disabled: false
+    - type: text
+      key: upload_preset
       value: "{{cloudinaryUploadPreset}}"
+      disabled: false
 order: 3000

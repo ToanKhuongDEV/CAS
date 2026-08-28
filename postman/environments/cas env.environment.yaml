@@ -13,6 +13,20 @@ values:
   - key: firebaseIdToken
     value: ''
   - key: imageUploadPurpose
-    value: 'WELCOME'
+    value: WELCOME
   - key: storeId
+    value: ''
+  - key: cloudinaryCloudName
+    value: ''
+  - key: cloudinaryApiKey
+    value: ''
+  - key: cloudinaryTimestamp
+    value: ''
+  - key: cloudinarySignature
+    value: ''
+  - key: cloudinaryFolder
+    value: ''
+  - key: cloudinaryPublicId
+    value: ''
+  - key: cloudinaryUploadPreset
     value: ''
