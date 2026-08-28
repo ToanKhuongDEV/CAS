@@ -33,11 +33,11 @@ class CloudinarySignatureServiceTest {
     void acceptsOnlyAssetsFromTheConfiguredStoreFolder() {
         service.validateAsset(8L,
                 "https://res.cloudinary.com/cas-cloud/image/upload/v1/cas/menu/8/8_item.jpg",
-                "8_item");
+                "cas/menu/8/8_item");
 
         assertThatThrownBy(() -> service.validateAsset(8L,
                 "https://res.cloudinary.com/cas-cloud/image/upload/v1/cas/menu/9/9_item.jpg",
-                "9_item")).isInstanceOf(ApiException.class);
+                "cas/menu/9/9_item")).isInstanceOf(ApiException.class);
     }
 
     @Test

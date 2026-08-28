@@ -79,14 +79,10 @@ public class CloudinarySignatureService {
         try {
             URI uri = URI.create(imageUrl);
             String path = uri.getPath();
-            String fileName = path.substring(path.lastIndexOf('/') + 1);
-            int extensionIndex = fileName.lastIndexOf('.');
-            String publicIdFromUrl = extensionIndex < 0
-                    ? fileName
-                    : fileName.substring(0, extensionIndex);
+            String publicIdFromUrl = publicIdFromUrl(path);
             if (!"https".equals(uri.getScheme()) || !"res.cloudinary.com".equals(uri.getHost())
                     || !path.contains("/" + cloudName + "/image/upload/")
-                    || !storageKey.startsWith(storeId + "_") || !storageKey.equals(publicIdFromUrl))
+                    || !isStoreAsset(storeId, storageKey) || !storageKey.equals(publicIdFromUrl))
                 throw invalidImage();
         } catch (IllegalArgumentException e) {
             throw invalidImage();
@@ -114,7 +110,7 @@ public class CloudinarySignatureService {
 
     private void delete(long storeId, String storageKey) {
         if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()
-                || !storageKey.startsWith(storeId + "_")) {
+                || !isStoreAsset(storeId, storageKey)) {
             log.warn("Skipping Cloudinary asset deletion for storeId={}, storageKey={}", storeId,
                     storageKey);
             return;
@@ -142,6 +138,25 @@ public class CloudinarySignatureService {
 
     private static String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String publicIdFromUrl(String path) {
+        String uploadPrefix = "/" + cloudName + "/image/upload/";
+        int prefixIndex = path.indexOf(uploadPrefix);
+        if (prefixIndex < 0)
+            throw new IllegalArgumentException("Not a Cloudinary upload URL");
+        String deliveryPath = path.substring(prefixIndex + uploadPrefix.length());
+        if (deliveryPath.matches("v\\d+/.+"))
+            deliveryPath = deliveryPath.substring(deliveryPath.indexOf('/') + 1);
+        int extensionIndex = deliveryPath.lastIndexOf('.');
+        return extensionIndex < 0 ? deliveryPath : deliveryPath.substring(0, extensionIndex);
+    }
+
+    private static boolean isStoreAsset(long storeId, String storageKey) {
+        String storeFolder = "/" + storeId + "/";
+        int nameStart = storageKey.lastIndexOf('/') + 1;
+        return storageKey.contains(storeFolder)
+                && storageKey.substring(nameStart).startsWith(storeId + "_");
     }
 
     private static String sha1(String value) {
