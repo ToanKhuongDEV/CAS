@@ -5,6 +5,7 @@ CREATE TABLE stores (
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(254) NOT NULL,
     logo_url VARCHAR(2048) NULL,
+    logo_storage_key VARCHAR(512) NULL,
     google_maps_location VARCHAR(2048) NULL,
     open_time TIME NOT NULL,
     close_time TIME NOT NULL,
@@ -23,6 +24,8 @@ CREATE TABLE accounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     store_id BIGINT UNSIGNED NOT NULL,
     firebase_uid VARCHAR(128) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     role VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
@@ -31,6 +34,8 @@ CREATE TABLE accounts (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_accounts_firebase_uid UNIQUE (firebase_uid),
+    CONSTRAINT uk_accounts_email UNIQUE (email),
+    CONSTRAINT uk_accounts_phone UNIQUE (phone),
     KEY idx_accounts_store_id (store_id),
     CONSTRAINT fk_accounts_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
@@ -808,6 +813,48 @@ CREATE TABLE system_notification_recipients (
     CONSTRAINT fk_notification_recipients_table_session
         FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE store_banners (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    hero_primary_image_url VARCHAR(512) NULL,
+    hero_primary_image_storage_key VARCHAR(255) NULL,
+    hero_secondary_image_url VARCHAR(512) NULL,
+    hero_secondary_image_storage_key VARCHAR(255) NULL,
+    menu_preview_1_image_url VARCHAR(512) NULL,
+    menu_preview_1_image_storage_key VARCHAR(255) NULL,
+    menu_preview_2_image_url VARCHAR(512) NULL,
+    menu_preview_2_image_storage_key VARCHAR(255) NULL,
+    menu_preview_3_image_url VARCHAR(512) NULL,
+    menu_preview_3_image_storage_key VARCHAR(255) NULL,
+    menu_preview_4_image_url VARCHAR(512) NULL,
+    menu_preview_4_image_storage_key VARCHAR(255) NULL,
+    menu_preview_5_image_url VARCHAR(512) NULL,
+    menu_preview_5_image_storage_key VARCHAR(255) NULL,
+    banner_image_url VARCHAR(512) NULL,
+    banner_image_storage_key VARCHAR(255) NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_store_banners_store (store_id),
+    KEY idx_store_banners_created_by (created_by),
+    KEY idx_store_banners_updated_by (updated_by),
+    CONSTRAINT fk_store_banners_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_store_banners_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_store_banners_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT chk_store_banners_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;

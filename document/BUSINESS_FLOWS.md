@@ -57,18 +57,18 @@ Các giao diện đồng bộ thay đổi từ thiết bị khác bằng polling
 
 ### Mục tiêu
 
-Cho phép `ADMIN` quản lý nội dung giới thiệu cửa hàng phục vụ vận hành production; Customer xem nội dung này tại Welcome và Menu.
+Cho phép `ADMIN` quản lý một cấu hình Welcome Customer gồm 2 ảnh Hero, 5 ảnh xem trước Menu và 1 ảnh Banner.
 
 ### Luồng chính
 
-1. `ADMIN` tạo, sửa, xóa hoặc thay đổi trạng thái banner trong phạm vi store của mình.
-2. Khi lưu, Backend xác thực ảnh đã upload thuộc Cloudinary của store; client không tự gán URL hoặc khóa lưu trữ tùy ý.
-3. Customer tải danh sách banner `ACTIVE` của store, sắp xếp tăng dần theo `display_order` rồi `id`.
-4. Welcome và Menu chỉ hiển thị dữ liệu Backend trả về; ảnh trong `frontend/public` chỉ là fallback/test asset khi chưa cấu hình ảnh thực tế.
+1. `ADMIN` tạo hoặc cập nhật một cấu hình Welcome trong phạm vi store của mình, và có thể bật/tắt cấu hình đó.
+2. Khi lưu, Backend xác thực các ảnh đã upload thuộc Cloudinary của store; client không tự gán URL hoặc khóa lưu trữ tùy ý.
+3. Customer tải record cấu hình `ACTIVE` của store.
+4. Welcome gán 2 field Hero vào khu vực giới thiệu, 5 field Menu vào khu vực xem trước thực đơn và field Banner vào khu vực banner; ảnh trong `frontend/public` chỉ là fallback/test asset khi chưa cấu hình ảnh thực tế.
 
 ### Quy tắc nghiệp vụ
 
-- Mỗi banner gồm ảnh bắt buộc, tiêu đề bắt buộc, mô tả tùy chọn, `display_order` và trạng thái `ACTIVE` hoặc `INACTIVE`.
+- Mỗi store chỉ có một record cấu hình; các ảnh nằm ở 8 field cố định gồm 2 Hero, 5 Menu và 1 Banner. Không lưu tiêu đề hoặc mô tả vì Welcome hiện không hiển thị chúng theo từng ảnh.
 - Không có thời gian bắt đầu, kết thúc hoặc cơ chế tự động bật/tắt banner.
 - Banner giới thiệu không áp dụng discount, voucher, header ticker hoặc gợi ý giỏ hàng.
 - `OPERATOR` không quản lý banner.

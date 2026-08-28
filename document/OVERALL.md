@@ -95,9 +95,9 @@ Nhân viên xác nhận kết quả thanh toán
 
 #### Quản lý banner và ảnh giới thiệu
 
-- `ADMIN` quản lý banner giới thiệu của từng cửa hàng: ảnh, tiêu đề, mô tả, thứ tự hiển thị và trạng thái `ACTIVE`/`INACTIVE`.
-- Banner hiển thị cho Customer tại trang Welcome và Menu. Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá.
-- Banner không có thời gian bắt đầu/kết thúc; việc hiển thị chỉ theo trạng thái và thứ tự do Admin cấu hình.
+- `ADMIN` quản lý một cấu hình Welcome cho từng cửa hàng: 2 ảnh Hero, 5 ảnh xem trước Menu, 1 ảnh Banner và trạng thái `ACTIVE`/`INACTIVE`.
+- Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá. Thông tin cửa hàng hiển thị ở Welcome vẫn dùng từ `stores`.
+- Cấu hình không có thời gian bắt đầu/kết thúc; Admin bật hoặc tắt toàn bộ bằng trạng thái.
 
 #### Quản lý khuyến mãi (Promotions) & Thông báo Khuyến mãi
 
@@ -400,7 +400,7 @@ Giao diện Operation hỗ trợ chế độ offline có giới hạn để duy 
 
 ### 6.5. Tích hợp dịch vụ ngoài
 
-- Frontend xin chữ ký upload ngắn hạn từ CAS Backend rồi upload trực tiếp ảnh món lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
+- Frontend xin chữ ký upload ngắn hạn từ API chung qua `purpose` (`MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`) rồi upload trực tiếp ảnh lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
 - Khi admin lưu món, Frontend gửi URL hiển thị và Cloudinary public ID về CAS Backend; Backend kiểm tra quyền và lưu `image_url`, `image_storage_key` vào MySQL.
 - Số tiền của payment được CAS Backend tính từ tổng `orders.payable_amount`; frontend không được gửi một số tiền để backend tin cậy.
 - CAS không tích hợp VietQR, dịch vụ ngân hàng hoặc loa báo giao dịch. Nhân viên dùng tín hiệu “ting ting” bên ngoài CAS để xác minh chuyển khoản trước khi bấm xác nhận; CAS chỉ cập nhật trạng thái nghiệp vụ.

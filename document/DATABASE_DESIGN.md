@@ -147,6 +147,7 @@ Lưu thông tin cửa hàng.
 | `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại hotline |
 | `email` | `VARCHAR(254) NOT NULL` | Email liên hệ |
 | `logo_url` | `VARCHAR(2048) NULL` | URL logo cửa hàng đã upload lên Cloudinary |
+| `logo_storage_key` | `VARCHAR(512) NULL` | Khóa asset Cloudinary của logo để thay thế hoặc xóa ảnh |
 | `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
 | `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
 | `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |
@@ -161,24 +162,27 @@ Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `sto
 
 #### `store_banners`
 
-Lưu banner/ảnh giới thiệu của cửa hàng cho trang Welcome và Menu Customer. Đây là nội dung giới thiệu vận hành, tách biệt với promotion và system notification.
+Lưu một cấu hình Welcome duy nhất cho mỗi cửa hàng. Record này chứa 2 ảnh Hero, 5 ảnh xem trước Menu và 1 ảnh Banner; các thông tin cửa hàng đã có trong `stores` không lặp lại ở đây.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
-| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu banner |
-| `title` | `VARCHAR(200) NOT NULL` | Tiêu đề banner |
-| `description` | `VARCHAR(1000) NULL` | Mô tả ngắn tùy chọn |
-| `image_url` | `VARCHAR(2048) NOT NULL` | URL ảnh Cloudinary đã xác thực |
-| `image_storage_key` | `VARCHAR(512) NOT NULL` | Public ID/khóa Cloudinary của ảnh |
-| `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị tăng dần |
+| `store_id` | `BIGINT UNSIGNED NOT NULL UNIQUE` | Cửa hàng sở hữu một cấu hình Welcome |
+| `hero_primary_image_url` | `VARCHAR(2048) NULL` | URL ảnh Hero chính |
+| `hero_primary_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Hero chính |
+| `hero_secondary_image_url` | `VARCHAR(2048) NULL` | URL ảnh Hero phụ |
+| `hero_secondary_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Hero phụ |
+| `menu_preview_1_image_url` … `menu_preview_5_image_url` | `VARCHAR(2048) NULL` | URL 5 ảnh xem trước Menu, theo thứ tự hiển thị cố định |
+| `menu_preview_1_image_storage_key` … `menu_preview_5_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary tương ứng của 5 ảnh xem trước Menu |
+| `banner_image_url` | `VARCHAR(2048) NULL` | URL ảnh Banner |
+| `banner_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Banner |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | `ACTIVE` hoặc `INACTIVE` |
 | `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo banner |
 | `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Backend chỉ trả banner `ACTIVE` cho Customer theo `display_order ASC, id ASC`. Banner không có `start_at`/`end_at`; Admin bật hoặc tắt bằng `status`. Migration tương lai phải có foreign key `store_id`, `created_by`, `updated_by` với `ON DELETE RESTRICT ON UPDATE RESTRICT` và index đọc `(store_id, status, display_order)`.
+Backend chỉ trả record `ACTIVE` của store cho Customer. Mỗi store có đúng một record nhờ unique `store_id`; frontend dùng từng field đúng vị trí cố định. Không có `start_at`/`end_at`; Admin bật hoặc tắt toàn bộ cấu hình Welcome bằng `status`. Migration có foreign key `store_id`, `created_by`, `updated_by` với `ON DELETE RESTRICT ON UPDATE RESTRICT`.
 
 #### `dining_tables`
 
@@ -353,7 +357,9 @@ Category loại `OPTION` không hiển thị như danh mục món chính trên g
 `menu_items.store_id` phải khớp `categories.store_id`. Composite FK của
 `menu_item_option_groups` tiếp tục bảo đảm menu item và option group cùng cửa hàng.
 
-Ảnh món được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do CAS Backend cấp. Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào `image_url` và `image_storage_key`; API secret không rời Backend.
+Ảnh được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do API chung `POST /api/v1/admin/images/upload-signature` cấp theo `purpose` (`MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`). Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào cột `*_image_url`/`*_image_storage_key` (hoặc `logo_url`/`logo_storage_key`); API secret không rời Backend.
+
+Khi một ảnh được thay hoặc bỏ khỏi dữ liệu bền vững, Backend chỉ gọi Cloudinary xóa `storage_key` cũ sau khi transaction MySQL đã commit. Nếu xóa Cloudinary thất bại, dữ liệu mới vẫn giữ nguyên và lỗi được ghi log để xử lý lại.
 
 ### 5.3. Khuyến mãi và snapshot discount
 
@@ -1191,7 +1197,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Hệ thống không tách màn hình bếp và phục vụ.
 - Không lưu bảng lịch sử giá món riêng.
 - Mỗi món chỉ có một ảnh.
-- `menu_items.image_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; `image_url` chỉ phục vụ hiển thị.
+- Các cột `*_image_storage_key` và `stores.logo_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; các cột URL chỉ phục vụ hiển thị.
 - Nhãn của menu item được quản lý bằng `tags` và quan hệ nhiều-nhiều `menu_item_tags`; không lưu cờ nhãn riêng trong `menu_items`.
 - Tag có thể gắn với bất kỳ `menu_items`, không giới hạn theo loại category.
 - QR bàn là mã cố định được in và dán tại bàn; hệ thống không tạo QR thanh toán.

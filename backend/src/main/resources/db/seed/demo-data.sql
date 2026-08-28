@@ -20,7 +20,8 @@ INSERT INTO stores (
     welcome_slogan, long_wait_warning_minutes, timezone, status
 ) VALUES (
     'CAS Mì Cay', '123 Đường Ẩm Thực, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-    '0900000000', 'hello@cas.local', NULL, 'https://maps.google.com/?q=10.7769,106.7009',
+    '0900000000', 'hello@cas.local', 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787645373/cas/stores/1/1_73e62897-d02c-49b1-8968-48c5a2020a0d.svg',
+    'https://maps.google.com/?q=10.7769,106.7009',
     '09:00:00', '22:00:00', 'Món ngon gọi nhanh, vui trọn từng bàn.', 25,
     'Asia/Ho_Chi_Minh', 'ACTIVE'
 );
@@ -45,6 +46,32 @@ INSERT INTO accounts (
         '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137');
 
 -- Không gán created_by để dữ liệu menu và bàn vẫn độc lập với account demo.
+-- Welcome uses local test assets from frontend/public/images/welcome.
+-- Storage keys stay NULL because these files are not Cloudinary assets.
+INSERT INTO store_banners (
+    store_id,
+    hero_primary_image_url, hero_primary_image_storage_key,
+    hero_secondary_image_url, hero_secondary_image_storage_key,
+    menu_preview_1_image_url, menu_preview_1_image_storage_key,
+    menu_preview_2_image_url, menu_preview_2_image_storage_key,
+    menu_preview_3_image_url, menu_preview_3_image_storage_key,
+    menu_preview_4_image_url, menu_preview_4_image_storage_key,
+    menu_preview_5_image_url, menu_preview_5_image_storage_key,
+    banner_image_url, banner_image_storage_key,
+    status, created_by, updated_by
+) VALUES (
+    @store_id,
+    '/images/welcome/spicy-noodles.jpg', NULL,
+    '/images/welcome/street-snacks.jpg', NULL,
+    '/images/welcome/spicy-noodles.jpg', NULL,
+    '/images/welcome/matcha-drink.jpg', NULL,
+    '/images/welcome/iced-coffee.jpg', NULL,
+    '/images/welcome/milk-tea.jpg', NULL,
+    '/images/welcome/fried-chicken.jpg', NULL,
+    '/images/welcome/street-snacks.jpg', NULL,
+    'ACTIVE', NULL, NULL
+);
+
 INSERT INTO dining_tables (store_id, code, capacity, created_by) VALUES
     (@store_id, 1, 4, NULL), (@store_id, 2, 4, NULL),
     (@store_id, 3, 4, NULL), (@store_id, 4, 4, NULL),

@@ -713,14 +713,14 @@ bộ.
 
 ### Tình huống
 
-Store cần tự giới thiệu tại Welcome và Menu Customer, nhưng nội dung này không được biến thành hệ thống khuyến mãi hay quảng cáo có lịch.
+Welcome Customer có 2 ảnh Hero, 5 ảnh xem trước Menu và 1 ảnh Banner cần cấu hình trong một record theo store. Các ảnh này không được biến thành hệ thống khuyến mãi hay quảng cáo có lịch.
 
 ### Cách xử lý
 
-- Chỉ `ADMIN` tạo, sửa, xóa hoặc chuyển `ACTIVE`/`INACTIVE` banner của store mình.
-- Banner có ảnh, tiêu đề, mô tả tùy chọn và thứ tự hiển thị; không có thời gian hiệu lực.
+- Chỉ `ADMIN` tạo, sửa hoặc chuyển `ACTIVE`/`INACTIVE` cấu hình Welcome của store mình.
+- Mỗi store chỉ có một record, gồm 2 field ảnh Hero, 5 field ảnh Menu và 1 field ảnh Banner; không có tiêu đề, mô tả hoặc thời gian hiệu lực.
 - Backend xác thực URL và storage key của ảnh thuộc Cloudinary store trước khi lưu.
-- Customer chỉ nhận banner `ACTIVE`, theo `display_order ASC, id ASC`; `INACTIVE` không được trả về.
+- Customer chỉ nhận record cấu hình `ACTIVE`; cấu hình `INACTIVE` không được trả về.
 - Ảnh trong `frontend/public` là fallback/test asset; ảnh API trả về luôn được ưu tiên hiển thị.
 - Banner không phát sinh voucher, discount, notification, header ticker hoặc gợi ý giỏ hàng.
 
