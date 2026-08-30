@@ -1,56 +1,71 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
+import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
+
+vi.mock("../lib/api/store/public-store.api", () => ({
+  loadPublicStore: vi.fn(),
+  loadPublicStoreWelcomeConfig: vi.fn(),
+}));
 
 describe("Home", () => {
-  it("renders the CAS welcome experience", () => {
+  beforeEach(() => {
+    vi.mocked(loadPublicStore).mockResolvedValue({
+      address: "123 Đường Ẩm Thực, Quận 1",
+      closeTime: "22:00:00",
+      email: "hello@cas.local",
+      googleMapsLocation: "https://maps.google.com/?q=10.7769,106.7009",
+      logoStorageKey: null,
+      logoUrl: null,
+      name: "CAS Mì Cay",
+      openTime: "09:00:00",
+      phone: "0900000000",
+      status: "ACTIVE",
+      welcomeSlogan: "Món ngon gọi nhanh, vui trọn từng bàn.",
+    });
+    vi.mocked(loadPublicStoreWelcomeConfig).mockResolvedValue({
+      bannerImageUrl: "https://example.test/banner.jpg",
+      heroPrimaryImageUrl: "https://example.test/hero-primary.jpg",
+      heroSecondaryImageUrl: "https://example.test/hero-secondary.jpg",
+      menuPreview1ImageUrl: "https://example.test/menu-1.jpg",
+      menuPreview2ImageUrl: null,
+      menuPreview3ImageUrl: null,
+      menuPreview4ImageUrl: null,
+      menuPreview5ImageUrl: null,
+    });
+  });
+
+  it("renders the CAS welcome experience from public store APIs", async () => {
     render(<Home />);
 
     expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
-    expect(screen.getByText("Bàn 05")).toBeInTheDocument();
+    expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute("href", "/menu");
     expect(screen.getByRole("heading", { name: "Khám phá thực đơn" })).toBeInTheDocument();
-    expect(screen.getByText("Mỳ cay")).toBeInTheDocument();
-    expect(screen.getByText("Gà rán")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute("href", "/menu#my-cay");
-    expect(screen.getByRole("link", { name: "Gà rán" })).toHaveAttribute("href", "/menu#ga-ran");
-    expect(screen.getByText("Tiệm Ăn Vặt & Mỳ Cay CAS")).toBeInTheDocument();
-    expect(
-      screen.queryByText("Thưởng thức Mỳ Cay & Đồ Uống Chuẩn Vị, Gọi Món QR Siêu Tốc!"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /123 Đường Nguyễn Văn Cừ/i })).toHaveAttribute(
+    expect(screen.getAllByText("CAS Mì Cay")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "0900000000" })).toHaveAttribute(
       "href",
-      "https://maps.google.com/?q=10.7554,106.6781",
+      "tel:0900000000",
     );
-    expect(screen.getByRole("link", { name: "0901 234 567" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "hello@cas.local" })).toHaveAttribute(
       "href",
-      "tel:0901234567",
+      "mailto:hello@cas.local",
     );
-    expect(screen.getByRole("link", { name: "contact@cas-restaurant.vn" })).toHaveAttribute(
-      "href",
-      "mailto:contact@cas-restaurant.vn",
+    expect(screen.getByText("09:00 – 22:00 mỗi ngày")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Banner giới thiệu cửa hàng" })).toHaveAttribute(
+      "src",
+      "https://example.test/banner.jpg",
     );
-    expect(screen.getByText("08:00 – 22:30 mỗi ngày")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Tô mỳ cay nóng nổi bật tại CAS" })).toHaveAttribute(
+      "src",
+      "https://example.test/hero-primary.jpg",
+    );
     expect(
-      screen.getByText("© 2026 Bản quyền thuộc về Khuong Xuan Toan - 0394986338"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/các loại ốc/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "Thực đơn" })).toHaveAttribute("href", "/menu");
-    expect(screen.getByRole("link", { name: "Đơn hàng" })).toHaveAttribute("href", "/orders");
-    expect(screen.getByRole("link", { name: "Cài đặt" })).toHaveAttribute("href", "/settings");
-    expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
+      screen.getByRole("img", { name: "Tô mỳ cay nóng với rau nấm và nhiều topping" }),
+    ).toHaveAttribute("src", "https://example.test/menu-1.jpg");
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Chuyển đổi giao diện sáng hoặc tối",
-      }),
-    );
-
+    fireEvent.click(screen.getByRole("button", { name: "Chuyển đổi giao diện sáng hoặc tối" }));
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   });
 });

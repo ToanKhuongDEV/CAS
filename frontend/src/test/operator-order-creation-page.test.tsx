@@ -107,7 +107,8 @@ describe("OperatorOrderCreationView", () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /chọn bàn khác/i })[0]);
-    fireEvent.click(screen.getByRole("button", { name: /Bàn 02/i }));
+    const tableSelectionDialog = screen.getByRole("dialog");
+    fireEvent.click(within(tableSelectionDialog).getByRole("button", { name: /Bàn 02/i }));
 
     expect(screen.getByRole("heading", { name: "Tạo phiên mới cho Bàn 02?" })).toBeInTheDocument();
 

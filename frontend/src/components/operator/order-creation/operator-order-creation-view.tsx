@@ -296,11 +296,8 @@ const mockActiveTables: TableOption[] = [
     id: "table-02",
     code: "02",
     label: "Bàn 02",
-    status: "OPEN",
-    customerName: "Hoàng Nam",
-    customerPhone: "0988***123",
-    activeOrdersCount: 2,
-    openedAt: "18:45",
+    status: "EMPTY",
+    activeOrdersCount: 0,
   },
   {
     id: "table-05",
@@ -423,7 +420,7 @@ export function OperatorOrderCreationView({
   useEffect(() => {
     void loadOperatorTables()
       .then((tables) => {
-        const mapped = tables.map((table) => ({
+        const mapped: TableOption[] = tables.map((table) => ({
           activeOrdersCount: 0,
           code: String(table.tableCode).padStart(2, "0"),
           id: String(table.tableId),

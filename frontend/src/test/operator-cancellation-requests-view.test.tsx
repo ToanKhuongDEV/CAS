@@ -1,7 +1,27 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OperatorCancellationRequestsView } from "../components/operator/operator-cancellation-requests-view";
+import {
+  loadOperatorCancellationRequest,
+  loadOperatorCancellationRequests,
+  resolveOperatorCancellationRequest,
+} from "../lib/api/ordering/cancellation.api";
+
+vi.mock("../lib/api/ordering/cancellation.api", () => ({
+  loadOperatorCancellationRequest: vi.fn(),
+  loadOperatorCancellationRequests: vi.fn(),
+  resolveOperatorCancellationRequest: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(loadOperatorCancellationRequests).mockRejectedValue(new Error("offline"));
+  vi.mocked(loadOperatorCancellationRequest).mockResolvedValue({
+    candidates: [],
+    request: {} as never,
+  });
+  vi.mocked(resolveOperatorCancellationRequest).mockResolvedValue({});
+});
 
 describe("OperatorCancellationRequestsView", () => {
   it("renders the list of pending cancellation requests", () => {
@@ -13,7 +33,7 @@ describe("OperatorCancellationRequestsView", () => {
     expect(screen.getByText("Bàn 01")).toBeInTheDocument();
   });
 
-  it("opens confirmation modal when clicking Đồng ý hủy and approves request", () => {
+  it("opens confirmation modal when clicking Đồng ý hủy and approves request", async () => {
     render(<OperatorCancellationRequestsView />);
 
     const approveButtons = screen.getAllByRole("button", { name: "Đồng ý hủy" });
@@ -30,11 +50,11 @@ describe("OperatorCancellationRequestsView", () => {
     fireEvent.click(confirmButton);
 
     expect(
-      screen.getByText(/Đã đồng ý hủy món "Mỳ cay đặc biệt 7 cấp độ" của Bàn 08/),
+      await screen.findByText(/Đã đồng ý hủy món "Mỳ cay đặc biệt 7 cấp độ" của Bàn 08/),
     ).toBeInTheDocument();
   });
 
-  it("opens reject modal when clicking Từ chối and rejects request", () => {
+  it("opens reject modal when clicking Từ chối and rejects request", async () => {
     render(<OperatorCancellationRequestsView />);
 
     const rejectButtons = screen.getAllByRole("button", { name: "Từ chối" });
@@ -45,6 +65,6 @@ describe("OperatorCancellationRequestsView", () => {
     const confirmRejectButton = screen.getByRole("button", { name: "Xác nhận từ chối" });
     fireEvent.click(confirmRejectButton);
 
-    expect(screen.getByText(/Đã từ chối yêu cầu hủy của Bàn 08/)).toBeInTheDocument();
+    expect(await screen.findByText(/Đã từ chối yêu cầu hủy của Bàn 08/)).toBeInTheDocument();
   });
 });

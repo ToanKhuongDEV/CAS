@@ -1,232 +1,110 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useEffect, useState, type FormEvent } from "react";
 
+import {
+  completePreparationBatch,
+  loadPreparationGroups,
+  type PreparationGroup,
+} from "../../../../../lib/api/ordering/preparation.api";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 
-type PreparationAllocation = {
-  id: string;
-  orderNumber: string;
-  remainingQuantity: number;
-  requestedAt: string;
-  table: string;
-};
-
-type PreparationGroup = {
-  allocations: PreparationAllocation[];
-  id: string;
-  itemName: string;
-  optionSummary: string;
-  remainingQuantity: number;
-};
-
-type ActionFeedback = {
-  message: string;
-  tone: "error" | "success";
-};
-
-type TablePreparationItem = {
-  id: string;
-  itemName: string;
-  optionSummary: string;
-  orderNumber: string;
-  remainingQuantity: number;
-  requestedAt: string;
-};
+type ActionFeedback = { message: string; tone: "error" | "success" };
 
 type TablePreparationGroup = {
-  items: TablePreparationItem[];
+  items: {
+    id: string;
+    itemName: string;
+    optionSummary: string;
+    remainingQuantity: number;
+    requestedAt: string;
+  }[];
   table: string;
   totalRemainingQuantity: number;
 };
 
-const initialPreparationGroups: PreparationGroup[] = [
-  {
-    allocations: [
-      {
-        id: "ord-0819-beef",
-        orderNumber: "ORD-0819",
-        remainingQuantity: 4,
-        requestedAt: "18:55",
-        table: "Bàn 03",
-      },
-      {
-        id: "ord-0821-beef",
-        orderNumber: "ORD-0821",
-        remainingQuantity: 8,
-        requestedAt: "19:05",
-        table: "Bàn 05",
-      },
-      {
-        id: "ord-0824-beef",
-        orderNumber: "ORD-0824",
-        remainingQuantity: 7,
-        requestedAt: "19:11",
-        table: "Bàn 12",
-      },
-    ],
-    id: "beef-medium",
-    itemName: "Bò sốt tiêu đen",
-    optionSummary: "Chín vừa",
-    remainingQuantity: 19,
-  },
-  {
-    allocations: [
-      {
-        id: "ord-0820-chicken",
-        orderNumber: "ORD-0820",
-        remainingQuantity: 2,
-        requestedAt: "19:00",
-        table: "Bàn 01",
-      },
-      {
-        id: "ord-0825-chicken",
-        orderNumber: "ORD-0825",
-        remainingQuantity: 3,
-        requestedAt: "19:16",
-        table: "Bàn 08",
-      },
-    ],
-    id: "chicken-not-spicy",
-    itemName: "Gà chiên mắm",
-    optionSummary: "Không cay",
-    remainingQuantity: 5,
-  },
-  {
-    allocations: [
-      {
-        id: "ord-0822-noodle",
-        orderNumber: "ORD-0822",
-        remainingQuantity: 3,
-        requestedAt: "19:07",
-        table: "Bàn 06",
-      },
-      {
-        id: "ord-0826-noodle",
-        orderNumber: "ORD-0826",
-        remainingQuantity: 5,
-        requestedAt: "19:17",
-        table: "Bàn 03",
-      },
-    ],
-    id: "seafood-noodle-level-3",
-    itemName: "Mỳ cay hải sản",
-    optionSummary: "Cấp 3 · Không topping",
-    remainingQuantity: 8,
-  },
-];
+function optionSummary(group: PreparationGroup) {
+  return group.options.length === 0
+    ? "Không có option"
+    : group.options
+        .map((option) =>
+          option.quantityPerItem > 1
+            ? `${option.groupName}: ${option.optionName} ×${option.quantityPerItem}`
+            : `${option.groupName}: ${option.optionName}`,
+        )
+        .join(" · ");
+}
 
-function buildTablePreparationGroups(
-  preparationGroups: PreparationGroup[],
-): TablePreparationGroup[] {
-  const groupsByTable = new Map<string, TablePreparationGroup>();
-
-  preparationGroups.forEach((group) => {
-    group.allocations.forEach((allocation) => {
-      const tableGroup = groupsByTable.get(allocation.table) ?? {
-        items: [],
-        table: allocation.table,
-        totalRemainingQuantity: 0,
-      };
-
-      tableGroup.items.push({
-        id: `${allocation.id}-table`,
-        itemName: group.itemName,
-        optionSummary: group.optionSummary,
-        orderNumber: allocation.orderNumber,
-        remainingQuantity: allocation.remainingQuantity,
-        requestedAt: allocation.requestedAt,
-      });
-      tableGroup.totalRemainingQuantity += allocation.remainingQuantity;
-      groupsByTable.set(allocation.table, tableGroup);
-    });
-  });
-
-  return [...groupsByTable.values()].sort((first, second) =>
-    first.table.localeCompare(second.table, "vi", { numeric: true }),
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(
+    new Date(value),
   );
 }
 
-function TablePreparationTree({ tableGroups }: { tableGroups: TablePreparationGroup[] }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
-      {tableGroups.map((tableGroup, tableIndex) => (
-        <details
-          className="group border-b border-cas-outline-variant/25 last:border-b-0"
-          key={tableGroup.table}
-          open={tableIndex === 0}
-        >
-          <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-3.5 transition hover:bg-cas-primary/5 focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-cas-focus-ring [&::-webkit-details-marker]:hidden">
-            <span
-              className="text-lg leading-none font-bold text-cas-on-surface-variant transition-transform group-open:rotate-90"
-              aria-hidden="true"
-            >
-              ›
-            </span>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-extrabold">{tableGroup.table}</h3>
-              <p className="mt-0.5 truncate text-xs text-cas-on-surface-variant">
-                {tableGroup.items.length} loại món
-              </p>
-            </div>
-            <span className="shrink-0 rounded-lg bg-cas-secondary-container/25 px-2.5 py-1 text-xs font-extrabold text-cas-secondary">
-              {tableGroup.totalRemainingQuantity} phần
-            </span>
-          </summary>
-
-          <ul className="ml-7 border-t border-l-2 border-cas-outline-variant/30 bg-cas-surface-container/35 py-1">
-            {tableGroup.items.map((item) => (
-              <li
-                className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-cas-outline-variant/20 py-3 pr-4 pl-5 last:border-b-0"
-                key={item.id}
-              >
-                <span className="absolute top-1/2 -left-1.5 size-2.5 -translate-y-1/2 rounded-full border-2 border-cas-surface-container bg-cas-secondary" />
-                <div className="min-w-0">
-                  <Link
-                    className="block truncate text-sm font-extrabold text-cas-secondary underline decoration-cas-secondary/35 underline-offset-2 transition hover:text-cas-primary focus-visible:rounded-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    href={`/operator/orders/${item.orderNumber}`}
-                  >
-                    {item.itemName}
-                  </Link>
-                  <p className="mt-0.5 truncate text-xs text-cas-on-surface-variant">
-                    {item.optionSummary} · Gửi lúc {item.requestedAt}
-                  </p>
-                </div>
-                <span className="text-sm font-extrabold text-cas-primary">
-                  {item.remainingQuantity} phần
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ))}
-    </div>
+function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparationGroup[] {
+  const byTable = new Map<string, TablePreparationGroup>();
+  groups.forEach((group) => {
+    group.allocations.forEach((allocation) => {
+      const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
+      const current = byTable.get(table) ?? { items: [], table, totalRemainingQuantity: 0 };
+      current.items.push({
+        id: `${group.groupKey}-${allocation.orderItemId}`,
+        itemName: group.itemName,
+        optionSummary: optionSummary(group),
+        remainingQuantity: allocation.remainingQuantity,
+        requestedAt: formatTime(allocation.orderCreatedAt),
+      });
+      current.totalRemainingQuantity += allocation.remainingQuantity;
+      byTable.set(table, current);
+    });
+  });
+  return [...byTable.values()].sort((first, second) =>
+    first.table.localeCompare(second.table, "vi"),
   );
 }
 
 export function OperatorPreparationWorkspace() {
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const [groups, setGroups] = useState<PreparationGroup[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
-  const [preparationGroups, setPreparationGroups] = useState(initialPreparationGroups);
+  const [isLoading, setIsLoading] = useState(true);
+  const [submittingGroupKey, setSubmittingGroupKey] = useState<string | null>(null);
 
-  const totalRemainingQuantity = preparationGroups.reduce(
+  async function refreshGroups() {
+    setIsLoading(true);
+    try {
+      setGroups(await loadPreparationGroups());
+    } catch (error) {
+      setFeedback({
+        message:
+          error instanceof Error ? error.message : "Không thể tải danh sách món cần chế biến.",
+        tone: "error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshGroups();
+  }, []);
+
+  const totalRemainingQuantity = groups.reduce(
     (total, group) => total + group.remainingQuantity,
     0,
   );
-  const tablePreparationGroups = buildTablePreparationGroups(preparationGroups);
+  const tableGroups = buildTablePreparationGroups(groups);
 
-  function handlePreparedQuantitySubmit(event: FormEvent<HTMLFormElement>, groupId: string) {
+  async function handlePreparedQuantitySubmit(event: FormEvent<HTMLFormElement>, groupKey: string) {
     event.preventDefault();
-
-    const group = preparationGroups.find((item) => item.id === groupId);
-    const preparedQuantity = Number(inputValues[groupId]);
-
+    const group = groups.find((item) => item.groupKey === groupKey);
+    const quantity = Number(inputValues[groupKey]);
     if (
       !group ||
-      !Number.isInteger(preparedQuantity) ||
-      preparedQuantity < 1 ||
-      preparedQuantity > group.remainingQuantity
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > group.remainingQuantity
     ) {
       setFeedback({
         message: `Vui lòng nhập số phần từ 1 đến ${group?.remainingQuantity ?? 1}.`,
@@ -235,64 +113,40 @@ export function OperatorPreparationWorkspace() {
       return;
     }
 
-    let quantityToAllocate = preparedQuantity;
-    const allocatedTables: string[] = [];
-    const nextAllocations = group.allocations
-      .map((allocation) => {
-        const allocatedQuantity = Math.min(allocation.remainingQuantity, quantityToAllocate);
-        quantityToAllocate -= allocatedQuantity;
-
-        if (allocatedQuantity > 0) {
-          allocatedTables.push(`${allocation.table}: ${allocatedQuantity}`);
-        }
-
-        return {
-          ...allocation,
-          remainingQuantity: allocation.remainingQuantity - allocatedQuantity,
-        };
-      })
-      .filter((allocation) => allocation.remainingQuantity > 0);
-
-    const nextRemainingQuantity = group.remainingQuantity - preparedQuantity;
-
-    setPreparationGroups((currentGroups) =>
-      currentGroups
-        .map((currentGroup) =>
-          currentGroup.id === groupId
-            ? {
-                ...currentGroup,
-                allocations: nextAllocations,
-                remainingQuantity: nextRemainingQuantity,
-              }
-            : currentGroup,
-        )
-        .filter((currentGroup) => currentGroup.remainingQuantity > 0),
-    );
-    setInputValues((currentValues) => ({
-      ...currentValues,
-      [groupId]: "",
-    }));
-    setFeedback({
-      message: `Đã ghi nhận ${preparedQuantity} phần ${group.itemName}. Đã cập nhật: ${allocatedTables.join(", ")}.`,
-      tone: "success",
-    });
+    setSubmittingGroupKey(groupKey);
+    try {
+      const completion = await completePreparationBatch(groupKey, {
+        idempotencyKey: crypto.randomUUID(),
+        quantity,
+      });
+      setInputValues((values) => ({ ...values, [groupKey]: "" }));
+      setFeedback({
+        message: `Đã ghi nhận ${completion.requestedQuantity} phần ${group.itemName} hoàn thành.`,
+        tone: "success",
+      });
+      await refreshGroups();
+    } catch (error) {
+      setFeedback({
+        message: error instanceof Error ? error.message : "Không thể ghi nhận hoàn thành món.",
+        tone: "error",
+      });
+    } finally {
+      setSubmittingGroupKey(null);
+    }
   }
 
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold">Đơn gọi món</h1>
-        </div>
+        <h1 className="text-3xl font-extrabold">Đơn gọi món</h1>
         <div className="flex items-center gap-3">
           <Link
+            className="inline-flex items-center gap-2 rounded-xl bg-cas-primary px-4 py-3 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover sm:text-sm"
             href="/operator/orders/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-cas-primary px-4 py-3 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-2 focus-visible:outline-cas-focus-ring sm:text-sm"
           >
             <CasIcon className="size-4" name="plus" />
-            <span>Tạo order hộ</span>
+            Tạo order hộ
           </Link>
-
           <div className="rounded-xl border border-cas-outline-variant/25 bg-cas-glass px-4 py-2.5 text-right">
             <p className="text-xs font-bold text-cas-on-surface-variant">Tổng còn cần làm</p>
             <p className="mt-0.5 text-lg font-extrabold text-cas-primary">
@@ -302,85 +156,62 @@ export function OperatorPreparationWorkspace() {
         </div>
       </header>
 
-      {feedback ? (
-        <div
-          className={`mt-5 flex items-start gap-3 rounded-xl border p-4 text-sm font-bold ${feedback.tone === "success" ? "border-cas-secondary/25 bg-cas-secondary-container/20 text-cas-secondary" : "border-cas-primary/25 bg-cas-primary/8 text-cas-primary"}`}
+      {feedback && (
+        <p
+          className={`mt-5 rounded-xl border p-4 text-sm font-bold ${feedback.tone === "success" ? "border-cas-secondary/25 bg-cas-secondary-container/20 text-cas-secondary" : "border-cas-error/25 bg-cas-error-container/20 text-cas-on-error-container"}`}
           role={feedback.tone === "error" ? "alert" : "status"}
         >
-          <CasIcon
-            className="mt-0.5 size-5 shrink-0"
-            name={feedback.tone === "success" ? "check" : "info"}
-          />
-          <p>{feedback.message}</p>
-        </div>
-      ) : null}
+          {feedback.message}
+        </p>
+      )}
 
       <div className="mt-7 grid items-start gap-6 xl:grid-cols-2">
         <section aria-labelledby="preparation-groups-title">
-          <div className="mb-3">
-            <h2 className="text-lg font-extrabold" id="preparation-groups-title">
-              Tổng hợp theo món
-            </h2>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">
-              Các món cùng cấu hình được gộp thành một nhóm.
-            </p>
-          </div>
-
-          {preparationGroups.length === 0 ? (
-            <div className="grid min-h-64 place-items-center rounded-xl border border-dashed border-cas-outline-variant/50 bg-cas-glass p-8 text-center">
-              <div>
-                <span className="mx-auto grid size-12 place-items-center rounded-full bg-cas-secondary-container/30 text-cas-secondary">
-                  <CasIcon className="size-6" name="check" />
-                </span>
-                <h3 className="mt-4 text-lg font-extrabold">Đã hoàn thành tất cả món</h3>
-                <p className="mt-1 text-sm text-cas-on-surface-variant">
-                  Hiện không còn món nào đang chờ chế biến.
-                </p>
-              </div>
-            </div>
+          <h2 className="text-lg font-extrabold" id="preparation-groups-title">
+            Tổng hợp theo món
+          </h2>
+          <p className="mt-1 text-xs text-cas-on-surface-variant">
+            Các món cùng cấu hình được gộp thành một nhóm.
+          </p>
+          {isLoading ? (
+            <p className="mt-4 text-sm text-cas-on-surface-variant">Đang tải món cần chế biến…</p>
+          ) : groups.length === 0 ? (
+            <EmptyPreparation />
           ) : (
-            <div className="overflow-hidden rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
-              {preparationGroups.map((group, groupIndex) => (
+            <div className="mt-4 overflow-hidden rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
+              {groups.map((group, index) => (
                 <details
                   className="group border-b border-cas-outline-variant/25 last:border-b-0"
-                  key={group.id}
-                  open={groupIndex === 0}
+                  key={group.groupKey}
+                  open={index === 0}
                 >
-                  <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-3.5 transition hover:bg-cas-primary/5 focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-cas-focus-ring [&::-webkit-details-marker]:hidden">
-                    <span
-                      className="text-lg leading-none font-bold text-cas-on-surface-variant transition-transform group-open:rotate-90"
-                      aria-hidden="true"
-                    >
+                  <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-3.5 hover:bg-cas-primary/5 [&::-webkit-details-marker]:hidden">
+                    <span className="text-lg font-bold text-cas-on-surface-variant group-open:rotate-90">
                       ›
                     </span>
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-extrabold">{group.itemName}</h3>
                       <p className="mt-0.5 truncate text-xs text-cas-on-surface-variant">
-                        {group.optionSummary} · {group.allocations.length} bàn
+                        {optionSummary(group)} · {group.allocations.length} bàn
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-lg bg-cas-primary/8 px-2.5 py-1 text-xs font-extrabold text-cas-primary">
+                    <span className="rounded-lg bg-cas-primary/8 px-2.5 py-1 text-xs font-extrabold text-cas-primary">
                       {group.remainingQuantity} phần
                     </span>
                   </summary>
-
                   <div className="border-t border-cas-outline-variant/20 bg-cas-surface-container/35 px-4 py-3 sm:pl-14">
-                    <ol className="ml-3 border-l-2 border-cas-outline-variant/35">
+                    <ol className="border-l-2 border-cas-outline-variant/35">
                       {group.allocations.map((allocation) => (
                         <li
-                          className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-cas-outline-variant/20 py-3 pr-1 pl-5 last:border-b-0"
-                          key={allocation.id}
+                          className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-cas-outline-variant/20 py-3 pr-1 pl-5 last:border-b-0"
+                          key={allocation.orderItemId}
                         >
-                          <span className="absolute top-1/2 -left-1.5 size-2.5 -translate-y-1/2 rounded-full border-2 border-cas-surface-container bg-cas-secondary" />
                           <div>
-                            <Link
-                              className="text-sm font-extrabold text-cas-secondary underline decoration-cas-secondary/35 underline-offset-2 transition hover:text-cas-primary focus-visible:rounded-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                              href={`/operator/orders/${allocation.orderNumber}`}
-                            >
-                              {allocation.table}
-                            </Link>
+                            <p className="text-sm font-extrabold">
+                              Bàn {String(allocation.tableCode).padStart(2, "0")}
+                            </p>
                             <p className="mt-0.5 text-xs text-cas-on-surface-variant">
-                              Gửi lúc {allocation.requestedAt}
+                              Gửi lúc {formatTime(allocation.orderCreatedAt)}
                             </p>
                           </div>
                           <p className="text-sm font-extrabold text-cas-primary">
@@ -389,39 +220,40 @@ export function OperatorPreparationWorkspace() {
                         </li>
                       ))}
                     </ol>
-
                     <form
                       className="mt-3 flex flex-wrap items-end gap-2 border-t border-cas-outline-variant/25 pt-3"
-                      onSubmit={(event) => handlePreparedQuantitySubmit(event, group.id)}
+                      onSubmit={(event) => void handlePreparedQuantitySubmit(event, group.groupKey)}
                     >
-                      <label className="min-w-40 flex-1" htmlFor={`prepared-${group.id}`}>
+                      <label className="min-w-40 flex-1" htmlFor={`prepared-${group.groupKey}`}>
                         <span className="text-xs font-bold text-cas-on-surface-variant">
                           Số phần vừa làm xong
                         </span>
                         <input
-                          className="mt-1.5 h-10 w-full rounded-lg border border-cas-outline-variant/45 bg-cas-glass px-3 text-sm outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
-                          id={`prepared-${group.id}`}
+                          className="mt-1.5 h-10 w-full rounded-lg border border-cas-outline-variant/45 bg-cas-glass px-3 text-sm outline-none focus:border-cas-primary"
+                          disabled={submittingGroupKey === group.groupKey}
+                          id={`prepared-${group.groupKey}`}
                           max={group.remainingQuantity}
                           min="1"
-                          name="preparedQuantity"
                           onChange={(event) =>
-                            setInputValues((currentValues) => ({
-                              ...currentValues,
-                              [group.id]: event.target.value,
+                            setInputValues((values) => ({
+                              ...values,
+                              [group.groupKey]: event.target.value,
                             }))
                           }
-                          placeholder={`Tối đa ${group.remainingQuantity}`}
                           required
                           step="1"
                           type="number"
-                          value={inputValues[group.id] ?? ""}
+                          value={inputValues[group.groupKey] ?? ""}
                         />
                       </label>
                       <button
-                        className="h-10 rounded-lg bg-cas-primary px-3.5 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring active:translate-y-px"
+                        className="h-10 rounded-lg bg-cas-primary px-3.5 text-sm font-extrabold text-cas-on-primary disabled:opacity-60"
+                        disabled={submittingGroupKey === group.groupKey}
                         type="submit"
                       >
-                        Xác nhận hoàn thành
+                        {submittingGroupKey === group.groupKey
+                          ? "Đang lưu…"
+                          : "Xác nhận hoàn thành"}
                       </button>
                     </form>
                   </div>
@@ -432,24 +264,57 @@ export function OperatorPreparationWorkspace() {
         </section>
 
         <section aria-labelledby="table-preparation-title">
-          <div className="mb-3">
-            <h2 className="text-lg font-extrabold" id="table-preparation-title">
-              Món theo bàn
-            </h2>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">
-              Xem các món còn cần làm của từng bàn.
-            </p>
-          </div>
-
-          {tablePreparationGroups.length > 0 ? (
-            <TablePreparationTree tableGroups={tablePreparationGroups} />
-          ) : (
-            <div className="grid min-h-32 place-items-center rounded-xl border border-dashed border-cas-outline-variant/50 bg-cas-glass p-6 text-center text-sm text-cas-on-surface-variant">
-              Không còn bàn nào đang chờ món.
+          <h2 className="text-lg font-extrabold" id="table-preparation-title">
+            Món theo bàn
+          </h2>
+          <p className="mt-1 text-xs text-cas-on-surface-variant">
+            Xem các món còn cần làm của từng bàn.
+          </p>
+          {tableGroups.length > 0 ? (
+            <div className="mt-4 overflow-hidden rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
+              {tableGroups.map((table) => (
+                <div
+                  className="border-b border-cas-outline-variant/25 p-4 last:border-b-0"
+                  key={table.table}
+                >
+                  <div className="flex justify-between">
+                    <h3 className="font-extrabold">{table.table}</h3>
+                    <span className="text-sm font-extrabold text-cas-primary">
+                      {table.totalRemainingQuantity} phần
+                    </span>
+                  </div>
+                  {table.items.map((item) => (
+                    <p className="mt-2 text-xs text-cas-on-surface-variant" key={item.id}>
+                      {item.itemName} · {item.optionSummary} · {item.remainingQuantity} phần · Gửi
+                      lúc {item.requestedAt}
+                    </p>
+                  ))}
+                </div>
+              ))}
             </div>
+          ) : (
+            <p className="mt-4 rounded-xl border border-dashed border-cas-outline-variant/50 p-6 text-center text-sm text-cas-on-surface-variant">
+              Không còn bàn nào đang chờ món.
+            </p>
           )}
         </section>
       </div>
     </>
+  );
+}
+
+function EmptyPreparation() {
+  return (
+    <div className="mt-4 grid min-h-64 place-items-center rounded-xl border border-dashed border-cas-outline-variant/50 bg-cas-glass p-8 text-center">
+      <div>
+        <span className="mx-auto grid size-12 place-items-center rounded-full bg-cas-secondary-container/30 text-cas-secondary">
+          <CasIcon className="size-6" name="check" />
+        </span>
+        <h3 className="mt-4 text-lg font-extrabold">Đã hoàn thành tất cả món</h3>
+        <p className="mt-1 text-sm text-cas-on-surface-variant">
+          Hiện không còn món nào đang chờ chế biến.
+        </p>
+      </div>
+    </div>
   );
 }

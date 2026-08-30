@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
+import {
+  loadOperatorCancellationRequest,
+  loadOperatorCancellationRequests,
+  resolveOperatorCancellationRequest,
+  type CancellationTransferCandidate,
+} from "../../lib/api/ordering/cancellation.api";
 
 export type CancellationRequest = {
   id: string;
@@ -131,6 +137,33 @@ export function OperatorCancellationRequestsView() {
   const [rejectReason, setRejectReason] = useState("Món đã chế biến xong");
   const [modalError, setModalError] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [transferCandidates, setTransferCandidates] = useState<CancellationTransferCandidate[]>([]);
+  const [targetOrderItemId, setTargetOrderItemId] = useState("");
+  const [transferQuantity, setTransferQuantity] = useState(0);
+
+  useEffect(() => {
+    void loadOperatorCancellationRequests()
+      .then((items) =>
+        setRequests(
+          items.map((item) => ({
+            id: item.cancellationRequestId,
+            table: `Bàn ${String(item.tableCode).padStart(2, "0")}`,
+            item: item.itemName,
+            quantity: `${item.requestedQuantity} phần`,
+            requestedQuantity: item.requestedQuantity,
+            requestedAt: new Date(item.requestedAt).toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            unitPrice: 0,
+            options: [],
+            reason: item.reason ?? undefined,
+            status: "PENDING",
+          })),
+        ),
+      )
+      .catch(() => undefined);
+  }, []);
 
   // Esc key & overflow hidden for modal
   useEffect(() => {
@@ -153,7 +186,13 @@ export function OperatorCancellationRequestsView() {
     setIsRemade(null);
     setStaffNote("");
     setModalError(null);
+    setTransferCandidates([]);
+    setTargetOrderItemId("");
+    setTransferQuantity(0);
     setActiveModal({ type: "APPROVE", request });
+    void loadOperatorCancellationRequest(request.id)
+      .then((detail) => setTransferCandidates(detail.candidates))
+      .catch(() => setModalError("Không thể tải các bàn có thể nhận món."));
   };
 
   const openRejectModal = (request: CancellationRequest) => {
@@ -170,25 +209,35 @@ export function OperatorCancellationRequestsView() {
     }
     const req = activeModal.request;
 
-    setRequests((prev) =>
-      prev.map((item) => (item.id === req.id ? { ...item, status: "APPROVED" } : item)),
-    );
-
-    const isRemadeText = isRemade ? " (Đã gửi lệnh làm lại món cho bếp)" : "";
-    setFeedbackMessage(`Đã đồng ý hủy món "${req.item}" của ${req.table}.${isRemadeText}`);
-    setActiveModal(null);
+    void resolveOperatorCancellationRequest(req.id, {
+      decision: "APPROVE",
+      isRemade,
+      targetOrderItemId: targetOrderItemId || null,
+      transferQuantity,
+    })
+      .then(() => {
+        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        setFeedbackMessage(`Đã đồng ý hủy món "${req.item}" của ${req.table}.`);
+        setActiveModal(null);
+      })
+      .catch((error: unknown) =>
+        setModalError(error instanceof Error ? error.message : "Không thể xử lý yêu cầu."),
+      );
   };
 
   const handleConfirmReject = () => {
     if (!activeModal) return;
     const req = activeModal.request;
 
-    setRequests((prev) =>
-      prev.map((item) => (item.id === req.id ? { ...item, status: "REJECTED" } : item)),
-    );
-
-    setFeedbackMessage(`Đã từ chối yêu cầu hủy của ${req.table} với lý do: "${rejectReason}".`);
-    setActiveModal(null);
+    void resolveOperatorCancellationRequest(req.id, { decision: "REJECT" })
+      .then(() => {
+        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        setFeedbackMessage(`Đã từ chối yêu cầu hủy của ${req.table} với lý do: "${rejectReason}".`);
+        setActiveModal(null);
+      })
+      .catch((error: unknown) =>
+        setModalError(error instanceof Error ? error.message : "Không thể xử lý yêu cầu."),
+      );
   };
 
   const pendingRequests = requests.filter((r) => r.status === "PENDING");
@@ -360,6 +409,40 @@ export function OperatorCancellationRequestsView() {
                   <p className="mt-1.5 text-xs font-bold text-cas-error">{modalError}</p>
                 ) : null}
               </div>
+
+              {transferCandidates.length > 0 ? (
+                <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/50 p-3">
+                  <p className="text-xs font-extrabold text-cas-on-surface">
+                    Điều chuyển phần đã làm
+                  </p>
+                  <p className="mt-1 text-xs text-cas-on-surface-variant">
+                    Chỉ chọn khi món và toàn bộ option ở bàn nhận trùng khớp.
+                  </p>
+                  <select
+                    className="mt-3 h-10 w-full rounded-lg border border-cas-outline-variant/40 bg-cas-surface px-2 text-xs"
+                    value={targetOrderItemId}
+                    onChange={(event) => setTargetOrderItemId(event.target.value)}
+                  >
+                    <option value="">Không điều chuyển</option>
+                    {transferCandidates.map((candidate) => (
+                      <option value={candidate.orderItemId} key={candidate.orderItemId}>
+                        Bàn {String(candidate.tableCode).padStart(2, "0")} — còn{" "}
+                        {candidate.remainingQuantity} phần
+                      </option>
+                    ))}
+                  </select>
+                  {targetOrderItemId ? (
+                    <input
+                      aria-label="Số phần điều chuyển"
+                      className="mt-2 h-10 w-full rounded-lg border border-cas-outline-variant/40 bg-cas-surface px-2 text-xs"
+                      min={0}
+                      type="number"
+                      value={transferQuantity}
+                      onChange={(event) => setTransferQuantity(Number(event.target.value))}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
 
               <label className="block text-xs font-bold">
                 <span className="mb-1.5 block text-cas-on-surface-variant">

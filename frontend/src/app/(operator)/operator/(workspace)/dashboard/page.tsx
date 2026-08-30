@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { OperatorComplaintsPanel } from "../../../../../components/operator/operator-complaints-panel";
 import { OperatorIncidentsPanel } from "../../../../../components/operator/operator-incidents-panel";
+import { OperatorLongWaitTableAlerts } from "../../../../../components/operator/operator-long-wait-table-alerts";
 import { CasButton } from "../../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 
@@ -30,26 +31,6 @@ const summaryCards: SummaryCard[] = [
   {
     label: "Yêu cầu thanh toán",
     value: "03",
-  },
-];
-
-const temporaryWaitingThresholdMinutes = 25;
-
-const waitingTables = [
-  {
-    pendingSince: "19:05",
-    table: "Bàn 05",
-    waitingTime: "37 phút",
-  },
-  {
-    pendingSince: "19:11",
-    table: "Bàn 12",
-    waitingTime: "31 phút",
-  },
-  {
-    pendingSince: "19:17",
-    table: "Bàn 03",
-    waitingTime: "25 phút",
   },
 ];
 
@@ -125,47 +106,7 @@ export default function OperatorDashboardPage() {
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.8fr)]">
         <div className="flex flex-col gap-6">
-          <section
-            className="rounded-2xl border border-cas-primary/25 bg-cas-primary/5 p-5"
-            aria-labelledby="waiting-table-alerts-title"
-          >
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cas-primary/10 text-cas-primary">
-                <CasIcon className="size-5" name="clock" />
-              </span>
-              <div>
-                <h2
-                  className="text-xl font-extrabold text-cas-primary"
-                  id="waiting-table-alerts-title"
-                >
-                  Cảnh báo bàn chờ lâu
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-cas-on-surface-variant">
-                  Thời gian được tính từ lúc bàn bắt đầu chờ món chưa hoàn thành. Ngưỡng cảnh báo
-                  hiện tại: <strong>{temporaryWaitingThresholdMinutes} phút</strong>.
-                </p>
-              </div>
-            </div>
-
-            <ul className="mt-4 space-y-3">
-              {waitingTables.map((table) => (
-                <li
-                  className="grid gap-3 rounded-xl border border-cas-primary/15 bg-cas-glass p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                  key={table.table}
-                >
-                  <div>
-                    <p className="font-extrabold">{table.table}</p>
-                    <p className="mt-1 text-xs text-cas-on-surface-variant">
-                      Chờ món từ {table.pendingSince}
-                    </p>
-                  </div>
-                  <span className="w-fit rounded-full bg-cas-primary px-3 py-1.5 text-xs font-extrabold text-cas-on-primary">
-                    Đã chờ {table.waitingTime}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <OperatorLongWaitTableAlerts />
 
           <OperatorComplaintsPanel />
           <OperatorIncidentsPanel />

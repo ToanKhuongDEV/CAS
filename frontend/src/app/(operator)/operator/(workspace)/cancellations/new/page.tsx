@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CasIcon } from "../../../../../../components/ui/cas-icon";
 import { CasButton } from "../../../../../../components/ui/cas-button";
+import { createOperatorIncidentCancellation } from "../../../../../../lib/api/ordering/cancellation.api";
+import { loadPreparationGroups } from "../../../../../../lib/api/ordering/preparation.api";
 
 type TableOrderItem = {
   id: string;
@@ -78,6 +80,32 @@ export default function IncidentCancellationPage() {
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [reason, setReason] = useState("Đổ/bể trong lúc phục vụ");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [tableOrders, setTableOrders] = useState(mockTableOrders);
+
+  useEffect(() => {
+    void loadPreparationGroups()
+      .then((groups) => {
+        const next: Record<string, TableOrderItem[]> = {};
+        for (const group of groups) {
+          for (const allocation of group.allocations) {
+            const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
+            next[table] ??= [];
+            next[table].push({
+              id: allocation.orderItemId,
+              name: group.itemName,
+              unitPrice: 0,
+              quantity: allocation.remainingQuantity,
+              options: group.options.map((option) => ({
+                name: `${option.groupName}: ${option.optionName}`,
+                price: 0,
+              })),
+            });
+          }
+        }
+        setTableOrders(next);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const handleTableChange = (tableName: string) => {
     setSelectedTable(tableName);
@@ -93,11 +121,11 @@ export default function IncidentCancellationPage() {
     setValidationError(null);
   };
 
-  const currentItems = selectedTable ? (mockTableOrders[selectedTable] ?? []) : [];
+  const currentItems = selectedTable ? (tableOrders[selectedTable] ?? []) : [];
 
   const totalCancelCount = Object.values(cancelQuantities).reduce((acc, qty) => acc + qty, 0);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedTable) {
       setValidationError("Vui lòng chọn bàn đang phục vụ.");
@@ -113,10 +141,24 @@ export default function IncidentCancellationPage() {
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
+    try {
+      await Promise.all(
+        currentItems
+          .filter((item) => (cancelQuantities[item.id] ?? 0) > 0)
+          .map((item) =>
+            createOperatorIncidentCancellation({
+              orderItemId: item.id,
+              requestedQuantity: cancelQuantities[item.id],
+              reason,
+              isRemade,
+            }),
+          ),
+      );
       router.push("/operator/cancellations");
-    }, 800);
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : "Không thể hủy món.");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -157,9 +199,11 @@ export default function IncidentCancellationPage() {
               <option value="" disabled>
                 --- Chọn bàn để xem danh sách món ---
               </option>
-              <option value="Bàn 01">Bàn 01 (ORD-0820)</option>
-              <option value="Bàn 03">Bàn 03 (ORD-0819)</option>
-              <option value="Bàn 05">Bàn 05 (ORD-0821)</option>
+              {Object.keys(tableOrders).map((table) => (
+                <option key={table} value={table}>
+                  {table}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -319,7 +363,7 @@ export default function IncidentCancellationPage() {
                 <div>
                   <strong className="block text-sm font-extrabold">Có</strong>
                   <p className="mt-1 text-xs text-cas-on-surface-variant leading-relaxed">
-                    Tự động tạo phiếu chế biến mới gửi bếp làm lại món.
+                    Tạo order mới cùng món và option để bếp làm lại; tổng bill được giữ nguyên.
                   </p>
                 </div>
               </button>

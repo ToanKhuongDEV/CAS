@@ -1,11 +1,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import AdminOperatorsPage from "../app/admin/operators/page";
+import { createOperator } from "../lib/api/operation/operational-management.api";
+
+vi.mock("../lib/api/operation/operational-management.api", () => ({
+  createOperator: vi.fn(),
+  deactivateOperator: vi.fn(),
+}));
+
+const createOperatorMock = vi.mocked(createOperator);
 
 describe("AdminOperatorsPage", () => {
   afterEach(() => {
     cleanup();
+    vi.clearAllMocks();
   });
 
   it("validates required account fields before creating an operator", () => {
@@ -19,7 +28,14 @@ describe("AdminOperatorsPage", () => {
     expect(screen.getByText("Vui lòng nhập số điện thoại liên hệ.")).toBeInTheDocument();
   });
 
-  it("creates an operator when display name, email, and phone are valid", () => {
+  it("creates an operator when display name, email, and phone are valid", async () => {
+    createOperatorMock.mockResolvedValue({
+      displayName: "Phạm Minh D",
+      firebaseUid: "firebase-operator-1",
+      id: 99,
+      status: "ACTIVE",
+    });
+
     render(<AdminOperatorsPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tạo tài khoản Nhân viên" }));
@@ -34,9 +50,9 @@ describe("AdminOperatorsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận Tạo" }));
 
+    expect(await screen.findByText("Phạm Minh D")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Thêm Tài khoản Nhân viên Mới" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Phạm Minh D")).toBeInTheDocument();
   });
 });
