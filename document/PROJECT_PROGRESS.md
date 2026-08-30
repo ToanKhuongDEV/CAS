@@ -184,10 +184,15 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Postman `Images/Upload image to Cloudinary`: gửi file multipart trực tiếp đến Cloudinary bằng chữ ký được request trước đó lưu vào environment.
 - [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
 - [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Đã ghép Frontend trang Admin Settings]**
-- [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Đã ghép Frontend trang Welcome]**
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
+
+- [x] Hoàn thiện `is_remade`: API hủy sự cố tạo order bù cùng snapshot món/option, ghi chú `[LÀM LẠI]` và giữ nguyên tổng bill của bàn.
 
 Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết kế dữ liệu và các màn hình frontend đang dùng dữ liệu mẫu. `[x]` là API đã làm; `[ ]` là API chưa làm và chưa tự gán method/path, trừ các route đã được chốt ở trên. Mỗi dòng tương ứng một chức năng API.
 
@@ -233,13 +238,12 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Order:** xem danh sách order của session.
 - [x] **Order:** xem chi tiết order.
 - [x] **Bill:** xem bill hiện tại của session.
-- [ ] **Chế biến:** xem danh sách bàn chờ lâu.
-- [ ] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
-- [ ] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
+- [x] **Chế biến:** xem danh sách bàn chờ lâu.
+- [x] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
+- [x] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
 - [ ] **Yêu cầu hủy món:** tạo yêu cầu hủy món.
-- [ ] **Yêu cầu hủy món:** xem danh sách yêu cầu hủy món.
-- [ ] **Yêu cầu hủy món:** xem chi tiết yêu cầu hủy món.
-- [ ] **Yêu cầu hủy món:** xử lý yêu cầu bằng quyết định từ chối, hủy hoàn toàn hoặc làm lại (`is_remade`).
+- [x] **Yêu cầu hủy món:** Operator xem danh sách và chi tiết yêu cầu hủy món.
+- [x] **Yêu cầu hủy món:** Operator duyệt/từ chối; khi duyệt có thể điều chuyển phần đã làm sang dòng món tương thích ở bàn khác, lưu lịch sử điều chuyển và tính lại tiền order nguồn. **[Frontend đang ghép]**
 - [ ] **Payment:** tạo payment `PENDING` từ bill do server tính.
 - [ ] **Payment:** xem trạng thái payment của session.
 - [ ] **Payment:** xem danh sách payment chờ xác nhận.
@@ -324,7 +328,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] Sau khi hoàn tất cấu hình và kiểm thử Cloudinary: hoàn thiện Ordering cho Customer (tạo order idempotent, xem order/bill và hủy session chưa có order) trước các use case chế biến và thanh toán.
 - [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
       quy tắc tạo order hiện có và ghi audit log.
-- [ ] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
+- [x] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
 
 #### Giai đoạn 4 — Thanh toán và khuyến mãi
 
@@ -545,14 +549,16 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Giữ thanh category cố định khi cuộn cho menu Customer và menu tạo order hộ của Operator, với offset phù hợp từng header và cập nhật đúng danh mục cuối trang.
 - [x] Bổ sung menu tài khoản trên header Admin và Operator: hiển thị email, số điện thoại từ Firebase profile (hoặc trạng thái chưa cập nhật) và đăng xuất về đúng trang đăng nhập.
 - [x] Bổ sung bộ lọc thời gian mở bàn trên màn khoản chưa thanh toán dùng chung cho Admin và Operator; mặc định chỉ hiển thị các phiên đã mở từ 120 phút để nhân viên theo dõi trước khi ghi nhận khoản chưa thanh toán, chuẩn hóa số 0 đầu, giới hạn 10.000 phút, debounce 300 ms và lưu giá trị theo phiên trình duyệt khi chuyển trang.
+- [x] Sửa lỗi kiểm tra kiểu dữ liệu bàn tại màn Operator tạo order hộ; đồng bộ fixture bàn trống và cập nhật test API tạo tài khoản nhân viên. `npm run typecheck` và `npm run test` đạt 20 file / 38 test.
 
-1. Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
-3. ~~Hoàn thiện cách xử lý các edge case còn lại.~~ (Đã hoàn thiện)
-4. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
-5. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
-6. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
-7. Hoàn thiện các phần còn dùng mock/dữ liệu tĩnh trong Phase 1 bằng API, dữ liệu production và kiểm thử tích hợp trước khi triển khai cửa hàng.
+3. ~~Xây dựng các API chế biến: xem danh sách bàn chờ lâu, xem danh sách món còn phải làm đã tổng hợp theo món và option, và ghi nhận số lượng hoàn thành theo mẻ.~~ (Đã hoàn thiện, chưa ghép Frontend.)
+4. ~~Hoàn thiện cách xử lý các edge case còn lại.~~ (Đã hoàn thiện)
+5. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
+6. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
+7. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
+8. Hoàn thiện các phần còn dùng mock/dữ liệu tĩnh trong Phase 1 bằng API, dữ liệu production và kiểm thử tích hợp trước khi triển khai cửa hàng.
 
 ## 9. Tài liệu liên quan
 

@@ -694,6 +694,23 @@ Việc tạo và duyệt yêu cầu hủy phải kiểm tra số lượng còn l
 
 Chỉ tạo hoặc xử lý cancellation request khi table session còn `OPEN`. Session không được chuyển sang `PAYMENT_PENDING` nếu còn cancellation request `PENDING`; sau khi chuyển trạng thái, dữ liệu cấu thành bill của session là bất biến.
 
+#### `prepared_item_transfers`
+
+Lưu vết phần món đã hoàn thành được điều chuyển từ dòng món nguồn sang dòng món tương thích ở bàn khác khi nhân viên duyệt hủy. Bảng này không thay đổi giá hoặc bill; backend giảm `prepared_quantity` ở nguồn và tăng tại đích trong cùng transaction.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng để truy vết |
+| `cancellation_request_id` | `BIGINT UNSIGNED NOT NULL` | Phiếu hủy đã được duyệt |
+| `source_order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món đã làm tại bàn nguồn |
+| `target_order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món nhận tại bàn đích |
+| `quantity` | `INT UNSIGNED NOT NULL` | Số phần được điều chuyển |
+| `transferred_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Nhân viên thực hiện |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm điều chuyển |
+
+Chỉ cho phép điều chuyển sang dòng có cùng món và cấu hình option. Phiếu hủy do khách gửi vẫn `PENDING` cho đến khi nhân viên quyết định; hủy do sự cố được nhân viên tạo trực tiếp là `APPROVED` ngay. Khi `is_remade = TRUE`, backend tạo một order bù với snapshot giá và option của dòng nguồn, ghi chú `[LÀM LẠI]`, nên tổng bill của bàn không đổi.
+
 ### 5.6. Thanh toán
 
 #### `unpaid_records`
