@@ -26,6 +26,9 @@ public final class ApiMessages {
     public static final String CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED = "Phiên bàn đã có món, không thể hủy.";
     public static final String OPERATOR_TABLE_SESSION_READY = "Phiên bàn đã sẵn sàng để gọi món.";
     public static final String OPERATOR_ORDER_CREATED = "Đã gửi món xuống bếp.";
+    public static final String PREPARATION_LONG_WAIT_TABLES_RETRIEVED = "Đã lấy danh sách bàn chờ lâu.";
+    public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";
+    public static final String PREPARATION_BATCH_COMPLETED = "Đã ghi nhận hoàn thành món theo mẻ.";
     public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
     public static final String CATALOG_RESOURCE_IN_USE = "Dữ liệu thực đơn đang được sử dụng nên không thể xóa.";
     public static final String INVALID_CATALOG_IMAGE = "Ảnh món không thuộc Cloudinary của cửa hàng.";

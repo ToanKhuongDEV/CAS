@@ -86,6 +86,25 @@ public final class ApiPaths {
         }
     }
 
+    public static final class Preparation {
+        public static final String COMMON = API_OPERATOR_PREFIX + "/preparation";
+        public static final String LONG_WAIT_TABLES = COMMON + "/long-wait-tables";
+        public static final String GROUPS = COMMON + "/groups";
+        public static final String GROUP_COMPLETIONS = GROUPS + "/{groupKey}/completions";
+
+        private Preparation() {
+        }
+    }
+
+    public static final class Cancellation {
+        public static final String COMMON = API_OPERATOR_PREFIX + "/cancellation-requests";
+        public static final String REQUEST = COMMON + "/{cancellationRequestId}";
+        public static final String RESOLUTION = REQUEST + "/resolution";
+
+        private Cancellation() {
+        }
+    }
+
     public static final class Images {
         public static final String UPLOAD_SIGNATURE = API_ADMIN_PREFIX + "/images/upload-signature";
 
