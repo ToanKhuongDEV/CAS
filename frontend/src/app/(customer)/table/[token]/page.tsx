@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function CustomerInformationPage() {
   return (
     <div className="min-h-screen bg-cas-surface text-cas-on-surface transition-colors duration-200">
-      <CustomerHeader tableName="Bàn 05" />
+      <CustomerHeader />
 
       <main className="mx-auto flex w-full max-w-[75rem] flex-col px-5 pt-24 pb-12 md:px-10 md:pt-28">
         <header className="mx-auto max-w-[30rem] text-center">

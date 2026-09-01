@@ -5,12 +5,13 @@ import { useState, useRef, useEffect } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
 import { ThemeToggle } from "../ui/theme-toggle";
+import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
+import { readCustomerCart } from "../../lib/customer/cart";
 import { loadPublicStore } from "../../lib/api/store/public-store.api";
 
 type CustomerHeaderProps = {
   cartCount?: number;
   showThemeToggle?: boolean;
-  tableName: string;
 };
 
 type CustomerNotification = {
@@ -41,15 +42,13 @@ const mockCustomerNotifications: CustomerNotification[] = [
   },
 ];
 
-export function CustomerHeader({
-  cartCount,
-  showThemeToggle = true,
-  tableName,
-}: CustomerHeaderProps) {
+export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHeaderProps) {
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState(mockCustomerNotifications);
   const [storeName, setStoreName] = useState("CAS");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [tableCode, setTableCode] = useState<number | null>(null);
+  const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -66,6 +65,24 @@ export function CustomerHeader({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const syncCart = () =>
+      setLiveCartCount(readCustomerCart().reduce((sum, item) => sum + item.quantity, 0));
+    syncCart();
+    window.addEventListener("cas-cart-updated", syncCart);
+    window.addEventListener("storage", syncCart);
+    return () => {
+      window.removeEventListener("cas-cart-updated", syncCart);
+      window.removeEventListener("storage", syncCart);
+    };
+  }, []);
+
+  useEffect(() => {
+    void getCurrentCustomerTableSession()
+      .then((session) => setTableCode(session.tableCode))
+      .catch(() => setTableCode(null));
   }, []);
 
   useEffect(() => {
@@ -101,7 +118,7 @@ export function CustomerHeader({
         <div className="flex items-center gap-2.5">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">
             <CasIcon className="size-4" name="table" />
-            {tableName}
+            {tableCode === null ? "Chưa chọn bàn" : `Bàn ${String(tableCode).padStart(2, "0")}`}
           </span>
 
           {showThemeToggle ? <ThemeToggle /> : null}
@@ -169,15 +186,15 @@ export function CustomerHeader({
             )}
           </div>
 
-          {cartCount !== undefined ? (
+          {liveCartCount > 0 ? (
             <Link
               className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
               href="/cart"
-              aria-label={`Giỏ hàng có ${cartCount} món`}
+              aria-label={`Giỏ hàng có ${liveCartCount} món`}
             >
               <CasIcon className="size-5.5" name="cart" />
               <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-primary text-[0.6rem] font-bold text-cas-on-primary">
-                {cartCount}
+                {liveCartCount}
               </span>
             </Link>
           ) : null}

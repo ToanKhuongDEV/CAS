@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 
 import { CasIcon } from "../ui/cas-icon";
 import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
+import { clearCustomerCart, readCustomerCart } from "../../lib/customer/cart";
+import { createCustomerOrder } from "../../lib/api/ordering/ordering.api";
 
 const tableQrTokenKey = "cas.tableQrToken";
 
@@ -15,6 +17,17 @@ export function CustomerCartSubmitButton() {
     if (tableQrToken) {
       try {
         await getCurrentCustomerTableSession();
+        const items = readCustomerCart();
+        if (items.length === 0) return;
+        await createCustomerOrder({
+          note: null,
+          items: items.map(({ menuItemId, quantity, optionValueIds }) => ({
+            menuItemId,
+            quantity,
+            optionValueIds,
+          })),
+        });
+        clearCustomerCart();
         router.push("/orders");
       } catch {
         router.push(`/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`);

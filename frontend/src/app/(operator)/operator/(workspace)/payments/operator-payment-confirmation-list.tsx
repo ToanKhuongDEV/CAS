@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import {
+  confirmOperatorPayment,
+  loadOperatorPayments,
+} from "../../../../../lib/api/payment/payment.api";
 
 type ReceiptItem = {
   name: string;
@@ -77,6 +81,47 @@ const initialPayments: PendingPayment[] = [
 export function OperatorPaymentConfirmationList() {
   const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
   const [payments, setPayments] = useState(initialPayments);
+  useEffect(() => {
+    void loadOperatorPayments()
+      .then((items) =>
+        setPayments(
+          items.map((p) => {
+            const snapshot = JSON.parse(p.billSnapshot) as {
+              orders?: {
+                items?: {
+                  itemName: string;
+                  quantity: number;
+                  unitPrice: number;
+                  optionsAmount: number;
+                  totalAmount: number;
+                  options?: { optionName: string; unitPrice: number }[];
+                }[];
+              }[];
+            };
+            const detail = snapshot.orders?.flatMap((order) => order.items ?? []) ?? [];
+            return {
+              id: p.publicId,
+              table: `Bàn ${String(p.tableCode).padStart(2, "0")}`,
+              amount: new Intl.NumberFormat("vi-VN").format(p.amount) + "đ",
+              requestedAt: "vừa xong",
+              billNumber: p.publicId,
+              items: detail.map((item) => ({
+                name: item.itemName,
+                quantity: item.quantity,
+                unitPrice:
+                  new Intl.NumberFormat("vi-VN").format(item.unitPrice + item.optionsAmount) + "đ",
+                total: new Intl.NumberFormat("vi-VN").format(item.totalAmount) + "đ",
+                options: item.options?.map((option) => ({
+                  name: option.optionName,
+                  price: new Intl.NumberFormat("vi-VN").format(option.unitPrice) + "đ",
+                })),
+              })),
+            };
+          }),
+        ),
+      )
+      .catch(() => undefined);
+  }, []);
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
 
   useEffect(() => {
@@ -99,11 +144,13 @@ export function OperatorPaymentConfirmationList() {
     };
   }, [selectedPayment]);
 
-  function handleConfirmPayment() {
+  async function handleConfirmPayment() {
     if (!selectedPayment) {
       return;
     }
 
+    if (!selectedPayment.id.startsWith("payment-table-"))
+      await confirmOperatorPayment(selectedPayment.id);
     setPayments((currentPayments) =>
       currentPayments.filter((payment) => payment.id !== selectedPayment.id),
     );

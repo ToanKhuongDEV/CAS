@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ItemQuantityControl } from "../../../../components/customer/item-quantity-control";
 import { CustomerCartSubmitButton } from "../../../../components/customer/customer-cart-submit-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
+import { CustomerCartView } from "../../../../components/customer/customer-cart-view";
 
 export const metadata: Metadata = {
   title: "Giỏ hàng | CAS",
@@ -45,6 +46,8 @@ const cartItems = [
 ];
 
 export default function CartPage() {
+  return <CustomerCartView />;
+  /*
   return (
     <>
       <main className="w-full pb-36 md:pb-32">
@@ -185,5 +188,5 @@ export default function CartPage() {
         </div>
       </div>
     </>
-  );
+  ); */
 }

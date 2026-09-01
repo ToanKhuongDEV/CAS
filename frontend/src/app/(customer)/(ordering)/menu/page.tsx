@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   AddToCartOptionDialog,
@@ -10,9 +11,12 @@ import {
 } from "../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import { loadCustomerCatalog } from "../../../../lib/api/catalog/published-catalog.api";
+import { addCustomerCartLine } from "../../../../lib/customer/cart";
+import { getCurrentCustomerTableSession } from "../../../../lib/customer/table-session";
 import { CategoryNavigation } from "./category-navigation";
 
 type CustomerMenuItem = {
+  id?: number;
   badges: string[];
   basePrice: number;
   categoryId: string;
@@ -77,6 +81,7 @@ const drinkOptionGroups: MenuOptionGroup[] = [
 
 const menuItems: CustomerMenuItem[] = [
   {
+    id: undefined,
     categoryId: "mon-noi-bat",
     detailSlug: "my-cay-dac-biet",
     name: "Mỳ cay đặc biệt 7 cấp độ",
@@ -289,6 +294,7 @@ const menuItems: CustomerMenuItem[] = [
 ];
 
 export default function MenuPage() {
+  const router = useRouter();
   const [catalogCategories, setCatalogCategories] = useState(categories);
   const [catalogItems, setCatalogItems] = useState(menuItems);
 
@@ -304,6 +310,7 @@ export default function MenuPage() {
         );
         setCatalogItems(
           catalog.items.map((item) => ({
+            id: item.id,
             badges: (item.tags ?? []).map((tag) => tag.name),
             basePrice: item.price,
             categoryId: String(item.categoryId),
@@ -470,6 +477,37 @@ export default function MenuPage() {
                             currentQuantity={item.quantity}
                             itemName={item.name}
                             optionGroups={item.optionGroups}
+                            onAddToCart={async (payload) => {
+                              const token = window.sessionStorage.getItem("cas.tableQrToken");
+                              try {
+                                const session = await getCurrentCustomerTableSession();
+                                if (session.customerInformationRequired) {
+                                  if (token)
+                                    router.push(
+                                      `/table/${encodeURIComponent(token)}?returnTo=%2Fmenu`,
+                                    );
+                                  else router.push("/scan?returnTo=%2Fmenu");
+                                  return;
+                                }
+                              } catch {
+                                router.push(
+                                  token
+                                    ? `/table/${encodeURIComponent(token)}?returnTo=%2Fmenu`
+                                    : "/scan?returnTo=%2Fmenu",
+                                );
+                                return;
+                              }
+                              if (item.id === undefined) return;
+                              addCustomerCartLine({
+                                menuItemId: item.id,
+                                itemName: item.name,
+                                optionValueIds: Object.values(payload.selectedOptionIds)
+                                  .flat()
+                                  .map(Number),
+                                quantity: 1,
+                              });
+                              window.dispatchEvent(new Event("cas-cart-updated"));
+                            }}
                           />
                         </div>
                       </div>

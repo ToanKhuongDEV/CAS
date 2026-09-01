@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { createCustomerPayment, loadCustomerPayment } from "../../../lib/api/payment/payment.api";
+import { loadCustomerBill } from "../../../lib/api/ordering/ordering.api";
 
 const billItems = [
   {
@@ -45,7 +47,24 @@ export function PaymentRequestPanel({
 }: PaymentRequestPanelProps) {
   const router = useRouter();
   const [isPaymentPending, setIsPaymentPending] = useState(false);
-  const isWaitingForConfirmation = isPaymentPending || paymentStatus === "PENDING";
+  const [liveAmount, setLiveAmount] = useState<number | null>(null);
+  const [liveStatus, setLiveStatus] = useState(paymentStatus);
+  useEffect(() => {
+    void loadCustomerBill()
+      .then((bill) => setLiveAmount(bill.payableAmount))
+      .catch(() => undefined);
+    const poll = () =>
+      void loadCustomerPayment()
+        .then((payment) => {
+          setLiveStatus(payment.status);
+          setIsPaymentPending(payment.status === "PENDING");
+        })
+        .catch(() => undefined);
+    poll();
+    const timer = window.setInterval(poll, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const isWaitingForConfirmation = isPaymentPending || liveStatus === "PENDING";
 
   const handleCreateNewOrder = () => {
     const activeTableQrToken = tableQrToken ?? window.sessionStorage.getItem("cas.tableQrToken");
@@ -53,7 +72,7 @@ export function PaymentRequestPanel({
     router.push(activeTableQrToken ? `/table/${encodeURIComponent(activeTableQrToken)}` : "/");
   };
 
-  if (paymentStatus === "PAID") {
+  if (liveStatus === "PAID") {
     return (
       <div className="fixed inset-0 z-100 overflow-y-auto bg-cas-surface text-cas-on-surface">
         <main className="grid min-h-full place-items-center px-5 py-10">
@@ -79,7 +98,11 @@ export function PaymentRequestPanel({
               </div>
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
                 <dt className="text-sm text-cas-on-surface-variant">Tổng thanh toán</dt>
-                <dd className="text-lg font-extrabold text-cas-primary">170.000đ</dd>
+                <dd className="text-lg font-extrabold text-cas-primary">
+                  {liveAmount === null
+                    ? "—"
+                    : new Intl.NumberFormat("vi-VN").format(liveAmount) + "đ"}
+                </dd>
               </div>
               <div className="flex items-center justify-between gap-4 px-5 py-4">
                 <dt className="text-sm text-cas-on-surface-variant">Hoàn tất lúc</dt>
@@ -116,7 +139,7 @@ export function PaymentRequestPanel({
             </h2>
           </div>
           <span className="rounded-full bg-cas-secondary-container/20 px-3 py-1 text-xs font-extrabold text-cas-secondary">
-            4 món
+            {billItems.length} món
           </span>
         </div>
 
@@ -161,7 +184,9 @@ export function PaymentRequestPanel({
                 Toàn bộ order của phiên bàn
               </p>
             </div>
-            <strong className="text-2xl text-cas-primary">170.000đ</strong>
+            <strong className="text-2xl text-cas-primary">
+              {liveAmount === null ? "—" : new Intl.NumberFormat("vi-VN").format(liveAmount) + "đ"}
+            </strong>
           </div>
         </div>
       </section>
@@ -186,7 +211,15 @@ export function PaymentRequestPanel({
           className="w-full shadow-[0_8px_20px_var(--cas-shadow-color)]"
           size="lg"
           disabled={isWaitingForConfirmation}
-          onClick={() => setIsPaymentPending(true)}
+          onClick={async () => {
+            try {
+              const payment = await createCustomerPayment();
+              setLiveStatus(payment.status);
+              setIsPaymentPending(true);
+            } catch {
+              /* giữ giao diện để retry */
+            }
+          }}
           icon={isWaitingForConfirmation ? "clock" : "payment"}
         >
           {isWaitingForConfirmation ? "Đã gửi yêu cầu thanh toán" : "Gửi yêu cầu thanh toán"}

@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
+import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
 
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
+}));
+vi.mock("../lib/customer/table-session", () => ({
+  getCurrentCustomerTableSession: vi.fn(),
 }));
 
 describe("Home", () => {
@@ -34,6 +38,11 @@ describe("Home", () => {
       menuPreview4ImageUrl: null,
       menuPreview5ImageUrl: null,
     });
+    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+      customerInformationRequired: false,
+      sessionStatus: "OPEN",
+      tableCode: 12,
+    });
   });
 
   it("renders the CAS welcome experience from public store APIs", async () => {
@@ -41,6 +50,7 @@ describe("Home", () => {
 
     expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
     expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
+    expect(await screen.findByText("Bàn 12")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute("href", "/menu");
     expect(screen.getByRole("heading", { name: "Khám phá thực đơn" })).toBeInTheDocument();
     expect(screen.getAllByText("CAS Mì Cay")).toHaveLength(2);

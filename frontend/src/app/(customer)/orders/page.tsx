@@ -8,6 +8,7 @@ import { CancellationRequestControl } from "../../../components/customer/cancell
 import { CustomerOrderVoucherSummary } from "../../../components/customer/customer-order-voucher-summary";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { CasButton } from "../../../components/ui/cas-button";
+import { CustomerOrdersLiveView } from "../../../components/customer/customer-orders-live-view";
 
 export const metadata: Metadata = {
   title: "Đơn hàng | CAS",
@@ -50,9 +51,10 @@ const submittedItems = [
 const orderNote = "Vui lòng phục vụ món cay sau và mang kèm thêm ớt tươi, khăn giấy.";
 
 export default function OrdersPage() {
+  if (true) return <CustomerOrdersLiveView />;
   return (
     <div className="min-h-screen bg-cas-surface text-cas-on-surface transition-colors duration-200">
-      <CustomerHeader tableName="Bàn 05" />
+      <CustomerHeader />
 
       <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
         <CustomerBottomNavigation activeItem="orders" />
