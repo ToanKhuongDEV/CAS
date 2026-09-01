@@ -185,6 +185,10 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
 - [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Đã ghép Frontend trang Admin Settings]**
 - [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Đã ghép Frontend trang Welcome]**
+- [x] Customer Header lấy `tableCode` từ session QR hiện tại qua `GET /api/v1/customer/table-sessions/current`; không còn mặc định `Bàn 05` trên Welcome và các trang Customer.
+- [x] Khi Customer thêm món vào giỏ, hệ thống bắt buộc có session QR và thông tin tên khách; chưa có QR sẽ chuyển tới trang quét/nhập QR.
+- [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
+- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`.
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác. **[Đã ghép Frontend]**
