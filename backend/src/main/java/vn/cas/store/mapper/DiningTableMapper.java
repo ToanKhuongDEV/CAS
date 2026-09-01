@@ -53,4 +53,7 @@ public interface DiningTableMapper {
             @Param("publicId") String publicId, @Param("clientAccountId") long clientAccountId,
             @Param("customerName") String customerName,
             @Param("customerPhone") String customerPhone);
+
+    int moveSessionToPaymentPending(@Param("sessionId") long sessionId);
+    int closePaymentSession(@Param("sessionId") long sessionId);
 }

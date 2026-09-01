@@ -207,4 +207,6 @@
             NULL
         )
     </insert>
+    <update id="moveSessionToPaymentPending">UPDATE table_sessions SET status='PAYMENT_PENDING', payment_requested_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='OPEN'</update>
+    <update id="closePaymentSession">UPDATE table_sessions SET status='CLOSED', closed_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='PAYMENT_PENDING'</update>
 </mapper>

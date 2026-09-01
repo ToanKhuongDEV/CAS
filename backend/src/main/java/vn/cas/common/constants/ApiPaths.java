@@ -105,6 +105,13 @@ public final class ApiPaths {
         }
     }
 
+    public static final class Payment {
+        public static final String CUSTOMER = API_CUSTOMER_PREFIX + "/payments";
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/payments";
+        private Payment() {
+        }
+    }
+
     public static final class Images {
         public static final String UPLOAD_SIGNATURE = API_ADMIN_PREFIX + "/images/upload-signature";
 
