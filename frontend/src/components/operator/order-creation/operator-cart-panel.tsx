@@ -3,15 +3,13 @@
 import Image from "next/image";
 
 import { ItemQuantityControl } from "../../customer/item-quantity-control";
-import {
-  CustomerOrderVoucherSummary,
-  type VoucherSummary,
-} from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
 import type { TableOption } from "./operator-table-select-modal";
 
 export type CartItem = {
   cartItemId: string;
+  menuItemId: number;
+  optionValueIds: number[];
   name: string;
   imageSrc: string;
   imageAlt: string;
@@ -34,8 +32,6 @@ type OperatorCartPanelProps = {
   onOrderNoteChange: (note: string) => void;
   onSubmitOrder: () => void;
   onCloseMobileDrawer?: () => void;
-  onVoucherSummaryChange: (summary: VoucherSummary) => void;
-  voucherSummary: VoucherSummary;
 };
 
 const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
@@ -51,8 +47,6 @@ export function OperatorCartPanel({
   onClearCart,
   onOrderNoteChange,
   onSubmitOrder,
-  onVoucherSummaryChange,
-  voucherSummary,
   onCloseMobileDrawer,
 }: OperatorCartPanelProps) {
   const totalItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -73,7 +67,7 @@ export function OperatorCartPanel({
                   {selectedTable.label}
                 </h3>
                 <span className="rounded-full bg-cas-secondary-container/30 px-2 py-0.5 text-[0.68rem] font-bold text-cas-secondary">
-                  Phiên đang mở
+                  {selectedTable.sessionPublicId ? "Phiên đang mở" : "Chưa chọn bàn"}
                 </span>
               </div>
               {selectedTable.customerName && (
@@ -234,11 +228,6 @@ export function OperatorCartPanel({
             />
           </label>
         </section>
-
-        <CustomerOrderVoucherSummary
-          originalAmount={totalCartAmount}
-          onSummaryChange={onVoucherSummaryChange}
-        />
       </div>
 
       {/* Summary Footer - Identical to Customer Cart */}
@@ -246,11 +235,10 @@ export function OperatorCartPanel({
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[0.68rem] font-semibold text-cas-on-surface-variant">
-              {voucherSummary.discountAmount > 0 ? "Cần thanh toán" : "Tạm tính"} ({totalItemCount}{" "}
-              món)
+              Tạm tính ({totalItemCount} món)
             </p>
             <strong className="text-lg font-extrabold text-cas-primary">
-              {formatPrice(voucherSummary.payableAmount)}
+              {formatPrice(totalCartAmount)}
             </strong>
           </div>
         </div>

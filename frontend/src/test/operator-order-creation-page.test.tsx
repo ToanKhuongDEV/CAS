@@ -1,10 +1,109 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OperatorOrderCreationView } from "../components/operator/order-creation/operator-order-creation-view";
+import { loadOperatorCatalog } from "../lib/api/catalog/published-catalog.api";
+import {
+  createOperatorOrder,
+  loadOperatorTables,
+  openOperatorTableSession,
+} from "../lib/api/ordering/ordering.api";
+
+vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadOperatorCatalog: vi.fn() }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({
+  createOperatorOrder: vi.fn(),
+  loadOperatorTables: vi.fn(),
+  openOperatorTableSession: vi.fn(),
+}));
 
 describe("OperatorOrderCreationView", () => {
-  it("renders table context, allows selecting items and adding options to cart", () => {
+  beforeEach(() => {
+    vi.mocked(loadOperatorCatalog).mockResolvedValue({
+      categories: [
+        {
+          categoryType: "REGULAR",
+          description: null,
+          displayOrder: 1,
+          id: 1,
+          name: "Mỳ cay",
+          status: "ACTIVE",
+        },
+        {
+          categoryType: "REGULAR",
+          description: null,
+          displayOrder: 2,
+          id: 2,
+          name: "Ăn vặt",
+          status: "ACTIVE",
+        },
+      ],
+      items: [
+        {
+          availabilityStatus: "ACTIVE",
+          categoryId: 1,
+          description: "Món cay",
+          displayOrder: 1,
+          id: 10,
+          imageStorageKey: null,
+          imageUrl: null,
+          name: "Mỳ cay đặc biệt 7 cấp độ",
+          optionGroups: [{ displayOrder: 1, id: 1, name: "Cấp độ cay" }],
+          price: 55_000,
+          tags: [],
+        },
+        {
+          availabilityStatus: "ACTIVE",
+          categoryId: 2,
+          description: "Món ăn vặt",
+          displayOrder: 1,
+          id: 11,
+          imageStorageKey: null,
+          imageUrl: null,
+          name: "Gà rán giòn rụm",
+          optionGroups: [],
+          price: 35_000,
+          tags: [],
+        },
+      ],
+      optionGroups: [
+        {
+          displayOrder: 1,
+          id: 1,
+          maxSelect: 1,
+          minSelect: 1,
+          name: "Cấp độ cay",
+          selectionType: "SINGLE",
+          status: "ACTIVE",
+          values: [
+            {
+              displayOrder: 1,
+              extraPrice: 0,
+              id: 101,
+              isDefault: true,
+              name: "Cấp 3",
+              status: "ACTIVE",
+            },
+          ],
+        },
+      ],
+      tags: [],
+    });
+    vi.mocked(loadOperatorTables).mockResolvedValue([
+      { sessionPublicId: "session-5", sessionStatus: "OPEN", tableCode: 5, tableId: 5 },
+      { sessionPublicId: null, sessionStatus: null, tableCode: 2, tableId: 2 },
+      { sessionPublicId: "session-1", sessionStatus: "OPEN", tableCode: 1, tableId: 1 },
+    ]);
+    vi.mocked(openOperatorTableSession).mockResolvedValue({
+      sessionId: "session-2",
+      status: "OPEN",
+      tableCode: 2,
+    });
+    vi.mocked(createOperatorOrder).mockResolvedValue({ orderId: "order-1", payableAmount: 35_000 });
+  });
+
+  it("renders table context, allows selecting items and adding options to cart", async () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    await screen.findByText("Gà rán giòn rụm");
 
     expect(screen.getByRole("heading", { name: "Tạo order hộ tại bàn" })).toBeInTheDocument();
 
@@ -45,8 +144,7 @@ describe("OperatorOrderCreationView", () => {
     expect(screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i })).toBeInTheDocument();
 
     // Select spice level
-    const spiceSelect = screen.getByRole("combobox", { name: "Cấp độ cay" });
-    fireEvent.change(spiceSelect, { target: { value: "level-3" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Cấp 3/i }));
 
     const confirmOptionBtn = screen.getByRole("button", {
       name: /thêm vào giỏ/i,
@@ -66,8 +164,10 @@ describe("OperatorOrderCreationView", () => {
     expect(noteInput).toHaveValue("Mang kèm thêm ớt tươi và khăn giấy");
   });
 
-  it("allows selecting a different table to serve via table selector modal", () => {
+  it("allows selecting a different table to serve via table selector modal", async () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    await screen.findByText("Gà rán giòn rụm");
 
     const switchTableBtns = screen.getAllByRole("button", {
       name: /chọn bàn khác/i,
@@ -84,8 +184,10 @@ describe("OperatorOrderCreationView", () => {
     expect(screen.getAllByText(/Bàn 01/i).length).toBeGreaterThan(0);
   });
 
-  it("applies a voucher to the operator cart total", async () => {
+  it("creates an order with the active table session and selected menu item", async () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    await screen.findByText("Gà rán giòn rụm");
 
     const chickenCard = screen.getByText("Gà rán giòn rụm").closest("article");
     expect(chickenCard).not.toBeNull();
@@ -95,16 +197,21 @@ describe("OperatorOrderCreationView", () => {
       }),
     );
 
-    fireEvent.change(screen.getByRole("combobox", { name: /voucher/i }), {
-      target: { value: "cas-20k" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Gửi món xuống bếp/i }));
 
-    expect(await screen.findByText(/Cần thanh toán/)).toBeInTheDocument();
-    expect(screen.getAllByText(/15\.000/)).toHaveLength(2);
+    await vi.waitFor(() =>
+      expect(createOperatorOrder).toHaveBeenCalledWith("session-5", {
+        items: [{ menuItemId: 11, optionValueIds: [], quantity: 1 }],
+        note: null,
+      }),
+    );
+    expect(await screen.findByText("order-1")).toBeInTheDocument();
   });
 
-  it("asks for confirmation before opening an empty table session", () => {
+  it("asks for confirmation before opening an empty table session", async () => {
     render(<OperatorOrderCreationView defaultTableId="table-05" />);
+
+    await screen.findByText("Gà rán giòn rụm");
 
     fireEvent.click(screen.getAllByRole("button", { name: /chọn bàn khác/i })[0]);
     const tableSelectionDialog = screen.getByRole("dialog");
@@ -121,6 +228,6 @@ describe("OperatorOrderCreationView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Tạo phiên bàn và chọn món" }));
 
     expect(screen.getAllByText(/Bàn 02/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Khách lẻ/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Bàn 02.*Nguyễn Văn A/)).toBeInTheDocument();
   });
 });

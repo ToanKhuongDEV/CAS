@@ -13,10 +13,13 @@ import {
   type AddToCartPayload,
   type MenuOptionGroup,
 } from "../../customer/add-to-cart-option-dialog";
-import type { VoucherSummary } from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
 import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
-import { loadOperatorTables } from "../../../lib/api/ordering/ordering.api";
+import {
+  createOperatorOrder,
+  loadOperatorTables,
+  openOperatorTableSession,
+} from "../../../lib/api/ordering/ordering.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -71,7 +74,7 @@ const drinkOptionGroups: MenuOptionGroup[] = [
 ];
 
 type MenuItemData = {
-  id: string;
+  id: number | string;
   categoryId: string;
   name: string;
   description: string;
@@ -331,6 +334,14 @@ const mockActiveTables: TableOption[] = [
   },
 ];
 
+const unselectedTable: TableOption = {
+  activeOrdersCount: 0,
+  code: "--",
+  id: "",
+  label: "Chọn bàn",
+  status: "EMPTY",
+};
+
 const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 type OrderSuccessData = {
@@ -343,7 +354,6 @@ type OrderSuccessData = {
   orderNote?: string;
   createdAt: string;
   items: CartItem[];
-  voucherCode?: string;
 };
 
 type OperatorOrderCreationViewProps = {
@@ -353,13 +363,12 @@ type OperatorOrderCreationViewProps = {
 export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
-  const [catalogCategories, setCatalogCategories] = useState(categories);
-  const [catalogItems, setCatalogItems] = useState<MenuItemData[]>(menuItems);
-  const [selectedTable, setSelectedTable] = useState<TableOption>(() => {
-    const found = mockActiveTables.find((t) => t.id === defaultTableId);
-    return found ?? mockActiveTables[2];
-  });
-  const [operatorTables, setOperatorTables] = useState<TableOption[]>(mockActiveTables);
+  const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
+  const [catalogItems, setCatalogItems] = useState<MenuItemData[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
+  const [operatorTables, setOperatorTables] = useState<TableOption[]>([]);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
@@ -371,16 +380,12 @@ export function OperatorOrderCreationView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
-  const [voucherSummary, setVoucherSummary] = useState<VoucherSummary>({
-    discountAmount: 0,
-    originalAmount: 0,
-    payableAmount: 0,
-  });
 
   useEffect(() => {
     void loadOperatorCatalog()
       .then((catalog) => {
         const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
+        setCatalogError(null);
         setCatalogCategories(
           catalog.categories.map((category) => ({
             id: String(category.id),
@@ -393,7 +398,7 @@ export function OperatorOrderCreationView({
             basePrice: item.price,
             categoryId: String(item.categoryId),
             description: item.description ?? "",
-            id: String(item.id),
+            id: item.id,
             imageAlt: item.name,
             imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
             name: item.name,
@@ -414,7 +419,11 @@ export function OperatorOrderCreationView({
           })),
         );
       })
-      .catch(() => undefined);
+      .catch((cause) =>
+        setCatalogError(
+          cause instanceof Error ? cause.message : "Không thể tải thực đơn cho nhân viên.",
+        ),
+      );
   }, []);
 
   useEffect(() => {
@@ -425,6 +434,7 @@ export function OperatorOrderCreationView({
           code: String(table.tableCode).padStart(2, "0"),
           id: String(table.tableId),
           label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
+          sessionPublicId: table.sessionPublicId,
           status:
             table.sessionStatus === "OPEN"
               ? "OPEN"
@@ -433,7 +443,10 @@ export function OperatorOrderCreationView({
                 : "EMPTY",
         }));
         setOperatorTables(mapped);
-        const selected = mapped.find((table) => table.status === "OPEN") ?? mapped[0];
+        const selected =
+          mapped.find((table) => table.id === defaultTableId) ??
+          mapped.find((table) => table.status === "OPEN") ??
+          mapped[0];
         if (selected) setSelectedTable(selected);
       })
       .catch(() => undefined);
@@ -470,6 +483,8 @@ export function OperatorOrderCreationView({
         ...prev,
         {
           cartItemId,
+          menuItemId: Number(item.id),
+          optionValueIds: Object.values(payload.selectedOptionIds).flat().map(Number),
           name: item.name,
           imageSrc: item.imageSrc,
           imageAlt: item.imageAlt,
@@ -511,37 +526,41 @@ export function OperatorOrderCreationView({
 
   const handleSubmitOrder = async () => {
     if (cartItems.length === 0 || isSubmitting) return;
-
-    const appliedVoucherSummary =
-      voucherSummary.originalAmount === totalCartAmount
-        ? voucherSummary
-        : { discountAmount: 0, originalAmount: totalCartAmount, payableAmount: totalCartAmount };
-
+    if (!selectedTable.sessionPublicId) {
+      setOperationError("Vui lòng chọn bàn đang có phiên phục vụ trước khi gửi món.");
+      return;
+    }
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-    const newOrderNumber = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    setSuccessOrderData({
-      orderNumber: newOrderNumber,
-      tableLabel: selectedTable.label,
-      itemCount: totalCartCount,
-      totalAmount: appliedVoucherSummary.payableAmount,
-      originalAmount: appliedVoucherSummary.originalAmount,
-      discountAmount: appliedVoucherSummary.discountAmount,
-      orderNote: orderNote.trim() || undefined,
-      createdAt: timeStr,
-      items: cartItems,
-      voucherCode: appliedVoucherSummary.voucherCode,
-    });
-
-    setIsSubmitting(false);
-    setCartItems([]);
-    setOrderNote("");
-    setIsMobileDrawerOpen(false);
+    setOperationError(null);
+    try {
+      const created = await createOperatorOrder(selectedTable.sessionPublicId, {
+        note: orderNote.trim() || null,
+        items: cartItems.map(({ menuItemId, optionValueIds, quantity }) => ({
+          menuItemId,
+          optionValueIds,
+          quantity,
+        })),
+      });
+      const now = new Date();
+      setSuccessOrderData({
+        orderNumber: created.orderId,
+        tableLabel: selectedTable.label,
+        itemCount: totalCartCount,
+        totalAmount: created.payableAmount,
+        originalAmount: totalCartAmount,
+        discountAmount: 0,
+        orderNote: orderNote.trim() || undefined,
+        createdAt: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+        items: cartItems,
+      });
+      setCartItems([]);
+      setOrderNote("");
+      setIsMobileDrawerOpen(false);
+    } catch (cause) {
+      setOperationError(cause instanceof Error ? cause.message : "Không thể tạo order.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -564,8 +583,8 @@ export function OperatorOrderCreationView({
               {selectedTable.label}
               {selectedTable.customerName ? ` (${selectedTable.customerName})` : ""}
             </p>
-            <p className="text-[0.68rem] font-semibold text-emerald-600 dark:text-emerald-400">
-              Phiên bàn đang mở
+            <p className="text-[0.68rem] font-semibold text-cas-secondary">
+              {selectedTable.sessionPublicId ? "Phiên bàn đang mở" : "Chưa chọn bàn"}
             </p>
           </div>
           <button
@@ -577,6 +596,7 @@ export function OperatorOrderCreationView({
           </button>
         </div>
       </header>
+      {operationError ? <p className="mb-4 text-sm text-cas-error">{operationError}</p> : null}
 
       {/* Main Content Layout (2 Columns on Desktop) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -607,6 +627,10 @@ export function OperatorOrderCreationView({
 
           {/* Continuous Long Menu List divided by Categories */}
           <div className="mt-2" id="menu-list">
+            {catalogError ? <p className="py-8 text-sm text-cas-error">{catalogError}</p> : null}
+            {!catalogError && catalogCategories.length === 0 ? (
+              <p className="py-8 text-sm text-cas-on-surface-variant">Đang tải thực đơn…</p>
+            ) : null}
             {catalogCategories.map((category) => {
               const categoryItems = filteredMenuItems.filter(
                 (item) => item.categoryId === category.id,
@@ -694,7 +718,7 @@ export function OperatorOrderCreationView({
             >
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h2 className="text-xl font-extrabold" id="additional-services-title">
-                  Khác
+                  Dịch vụ thêm
                 </h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -739,8 +763,6 @@ export function OperatorOrderCreationView({
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
-              onVoucherSummaryChange={setVoucherSummary}
-              voucherSummary={voucherSummary}
             />
           </div>
         </aside>
@@ -784,8 +806,6 @@ export function OperatorOrderCreationView({
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
-              onVoucherSummaryChange={setVoucherSummary}
-              voucherSummary={voucherSummary}
               onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
             />
           </div>
@@ -879,15 +899,28 @@ export function OperatorOrderCreationView({
                 idPrefix="operator-customer"
                 submitLabel="Tạo phiên bàn và chọn món"
                 onSubmitCustomerInfo={(information: CustomerInformation) => {
-                  setSelectedTable({
-                    ...pendingSessionTable,
-                    customerName: information.customerName,
-                    customerPhone: information.customerPhone,
-                    status: "OPEN",
-                  });
-                  setNewlyOpenedTableIds((current) => [...current, pendingSessionTable.id]);
-                  setIsCustomerInformationFormOpen(false);
-                  setPendingSessionTable(null);
+                  void openOperatorTableSession(Number(pendingSessionTable.id), information)
+                    .then((session) => {
+                      const openedTable = {
+                        ...pendingSessionTable,
+                        customerName: information.customerName,
+                        customerPhone: information.customerPhone,
+                        sessionPublicId: session.sessionId,
+                        status: "OPEN" as const,
+                      };
+                      setSelectedTable(openedTable);
+                      setOperatorTables((current) =>
+                        current.map((table) => (table.id === openedTable.id ? openedTable : table)),
+                      );
+                      setNewlyOpenedTableIds((current) => [...current, openedTable.id]);
+                      setIsCustomerInformationFormOpen(false);
+                      setPendingSessionTable(null);
+                    })
+                    .catch((cause) =>
+                      setOperationError(
+                        cause instanceof Error ? cause.message : "Không thể mở phiên bàn.",
+                      ),
+                    );
                 }}
               />
             </div>
@@ -1004,21 +1037,8 @@ export function OperatorOrderCreationView({
                   </span>
                 </div>
               )}
-              {successOrderData.discountAmount > 0 && (
-                <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-cas-on-surface-variant">
-                  <span>
-                    Giảm giá
-                    {successOrderData.voucherCode ? ` (${successOrderData.voucherCode})` : ""}:
-                  </span>
-                  <span className="font-bold text-cas-secondary">
-                    -{formatPrice(successOrderData.discountAmount)}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-sm font-extrabold">
-                <span>
-                  {successOrderData.discountAmount > 0 ? "Cần thanh toán:" : "Tổng tiền:"}
-                </span>
+                <span>Tổng tiền:</span>
                 <span className="text-cas-primary">
                   {formatPrice(successOrderData.totalAmount)}
                 </span>

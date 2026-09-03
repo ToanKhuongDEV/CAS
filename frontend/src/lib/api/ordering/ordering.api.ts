@@ -93,6 +93,22 @@ export async function openOperatorTableSession(
   );
 }
 
+export function createOperatorOrder(
+  sessionPublicId: string,
+  input: {
+    note: string | null;
+    items: { menuItemId: number; quantity: number; optionValueIds: number[] }[];
+  },
+) {
+  return operatorRequest<{ orderId: string; payableAmount: number }>(
+    `/table-sessions/${encodeURIComponent(sessionPublicId)}/orders`,
+    {
+      method: "POST",
+      body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), ...input }),
+    },
+  );
+}
+
 async function customerRequest<T>(path: string, init: RequestInit = {}) {
   return request<T>(`/api/v1/customer${path}`, { ...init, credentials: "include" });
 }

@@ -5,6 +5,7 @@ import { CasIcon } from "../../ui/cas-icon";
 
 export type TableOption = {
   id: string;
+  sessionPublicId?: string | null;
   code: string;
   label: string;
   customerName?: string;
