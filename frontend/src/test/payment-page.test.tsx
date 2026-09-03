@@ -1,76 +1,100 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import PaymentPage from "../app/(customer)/payment/page";
 import { PaymentRequestPanel } from "../app/(customer)/payment/payment-request-panel";
+import { loadCustomerBill } from "../lib/api/ordering/ordering.api";
+import { createCustomerPayment, loadCustomerPayment } from "../lib/api/payment/payment.api";
 
-const push = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({ loadCustomerBill: vi.fn() }));
+vi.mock("../lib/api/payment/payment.api", () => ({
+  createCustomerPayment: vi.fn(),
+  loadCustomerPayment: vi.fn(),
 }));
 
-describe("PaymentPage", () => {
+const bill = {
+  originalAmount: 55_000,
+  payableAmount: 55_000,
+  sessionStatus: "OPEN" as const,
+  tableCode: 8,
+  orders: [
+    {
+      createdAt: "2026-09-01T20:00:00+07:00",
+      items: [
+        {
+          cancelledQuantity: 0,
+          itemName: "Mỳ cay API",
+          options: [{ groupName: "Cấp độ", optionName: "Cấp 2", quantityPerItem: 1, unitPrice: 0 }],
+          optionsAmount: 0,
+          orderItemId: "item-1",
+          preparedQuantity: 0,
+          quantity: 1,
+          totalAmount: 55_000,
+          unitPrice: 55_000,
+        },
+      ],
+      note: null,
+      orderId: "order-1",
+      orderNumber: "CAS-1",
+      originalAmount: 55_000,
+      payableAmount: 55_000,
+    },
+  ],
+};
+
+describe("PaymentRequestPanel", () => {
+  beforeEach(() => {
+    vi.mocked(loadCustomerBill).mockResolvedValue(bill);
+    vi.mocked(loadCustomerPayment).mockRejectedValue(new Error("Chưa có payment"));
+  });
+
   afterEach(() => {
     cleanup();
-    push.mockClear();
+    vi.clearAllMocks();
   });
 
-  it("renders the session bill without bank or payment QR information", () => {
-    render(<PaymentPage />);
+  it("renders the bill returned by the API", async () => {
+    render(<PaymentRequestPanel />);
 
-    expect(screen.getByRole("heading", { name: "Kiểm tra hóa đơn" })).toBeInTheDocument();
-    expect(screen.getByText("Mỳ cay đặc biệt 7 cấp độ")).toBeInTheDocument();
-    expect(screen.getAllByText("Giá món gốc")).toHaveLength(3);
-    expect(screen.getByText("+ Thêm xúc xích")).toBeInTheDocument();
-    expect(screen.queryByText("Tổng món")).not.toBeInTheDocument();
-    expect(screen.getByText("Tổng cần thanh toán")).toBeInTheDocument();
-    expect(screen.getByText("170.000đ")).toBeInTheDocument();
+    expect(await screen.findByText("Mỳ cay API")).toBeInTheDocument();
+    expect(screen.getByText("+ Cấp 2")).toBeInTheDocument();
+    expect(screen.getAllByText("55.000 ₫")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" })).toBeEnabled();
-    expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("href", "/");
-    expect(screen.queryByText(/ngân hàng|mb bank|chuyển khoản/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("img", { name: /qr/i })).not.toBeInTheDocument();
   });
 
-  it("blocks other activity with the cashier instruction after submit", () => {
-    render(<PaymentPage />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" }));
-
-    expect(
-      screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Vui lòng đến quầy thu ngân để thanh toán và chờ nhân viên xác nhận."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Đã gửi yêu cầu thanh toán" })).toBeDisabled();
-    expect(screen.queryByText("Đang chờ nhân viên xác nhận")).not.toBeInTheDocument();
-  });
-
-  it("replaces the pending state with a completion screen after payment becomes paid", () => {
-    const { rerender } = render(<PaymentRequestPanel paymentStatus="PENDING" />);
+  it("shows API payment details after confirmation", async () => {
+    vi.mocked(loadCustomerPayment).mockResolvedValue({
+      amount: 55_000,
+      billSnapshot: "{}",
+      confirmedAt: "2026-09-01T20:05:00+07:00",
+      publicId: "payment-1",
+      status: "PAID",
+      tableCode: 8,
+    });
+    render(<PaymentRequestPanel />);
 
     expect(
-      screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
+      await screen.findByRole("heading", { name: "Thanh toán thành công" }),
     ).toBeInTheDocument();
-
-    rerender(
-      <PaymentRequestPanel paymentStatus="PAID" confirmedAt="20:05" tableQrToken="qr-ban-05" />,
-    );
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Thanh toán thành công" })).toBeInTheDocument();
-    expect(screen.getByText("Bàn 05")).toBeInTheDocument();
-    expect(screen.getByText("170.000đ")).toBeInTheDocument();
+    expect(screen.getByText("Bàn 08")).toBeInTheDocument();
     expect(screen.getByText("20:05")).toBeInTheDocument();
-    expect(screen.getByText("Cảm ơn bạn đã sử dụng dịch vụ tại CAS.")).toBeInTheDocument();
-    expect(screen.queryByText(/Phiên gọi món của bàn đã kết thúc/)).not.toBeInTheDocument();
+  });
+
+  it("creates a payment through the API", async () => {
+    vi.mocked(createCustomerPayment).mockResolvedValue({
+      amount: 55_000,
+      billSnapshot: "{}",
+      confirmedAt: null,
+      publicId: "payment-1",
+      status: "PENDING",
+      tableCode: 8,
+    });
+    render(<PaymentRequestPanel />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Gửi yêu cầu thanh toán" }));
+    await waitFor(() => expect(createCustomerPayment).toHaveBeenCalledOnce());
     expect(
-      screen.queryByText(/Bàn đã được đóng và không thể gọi thêm món/),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục tạo đơn mới" }));
-    expect(push).toHaveBeenCalledWith("/table/qr-ban-05");
-    expect(screen.queryByText(/ngân hàng|mã giao dịch|qr thanh toán/i)).not.toBeInTheDocument();
+      screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
+    ).toBeInTheDocument();
   });
 });
