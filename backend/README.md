@@ -90,6 +90,15 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/inc
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
 ```
 
+Khách có thể xem catalog công khai trước khi quét QR; truyền `storeId` của cửa
+hàng. Sau khi có cookie session, backend luôn ưu tiên store của session:
+
+```powershell
+curl.exe "http://localhost:8080/api/v1/customer/catalog/categories?storeId=1"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/items?storeId=1"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/option-groups?storeId=1"
+```
+
 Ví dụ `OPERATOR` mở hoặc dùng lại phiên của bàn, sau đó tạo order hộ khách. Khi
 bàn đã có session `OPEN`, có thể bỏ `customerName` và `customerPhone`:
 
