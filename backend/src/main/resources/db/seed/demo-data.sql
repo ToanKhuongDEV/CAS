@@ -1,8 +1,8 @@
 -- CAS demo data. Run this manually only after Flyway has created an empty schema.
 -- This file is intentionally outside db/migration, so Flyway never executes it automatically.
 -- Demo customer QR URL: http://localhost:3000/table/<token below>
--- image_url uses the existing assets in frontend/public; image_storage_key stays NULL because
--- these assets are not uploaded to the production image service.
+-- Menu item images use Cloudinary URLs and storage keys. Welcome images below remain local
+-- development assets and therefore keep a NULL storage key.
 
 CREATE USER 'cas_codex_ro'@'localhost' IDENTIFIED BY '123456';
 
@@ -144,7 +144,23 @@ INSERT INTO menu_items (
     availability_status, display_order, created_by, updated_by
 )
 SELECT categories.id, @store_id, demo_item.name, demo_item.description, demo_item.price,
-       demo_item.image_url, NULL, 'AVAILABLE', demo_item.display_order, NULL, NULL
+       CASE demo_item.image_url
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407058/cas/menu/1/1_ba2d59ce-905f-4ad3-a8e0-a656a67b3643.jpg'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407059/cas/menu/1/1_10a842e3-07e8-4ec3-977b-42e34a85ed8c.jpg'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407063/cas/menu/1/1_72e32f4b-6c0f-43fe-b181-17754c962ec6.jpg'
+           WHEN '/images/welcome/spicy-noodles.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407065/cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809.jpg'
+           WHEN '/images/welcome/street-snacks.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg'
+       END,
+       CASE demo_item.image_url
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'cas/menu/1/1_ba2d59ce-905f-4ad3-a8e0-a656a67b3643'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'cas/menu/1/1_10a842e3-07e8-4ec3-977b-42e34a85ed8c'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'cas/menu/1/1_72e32f4b-6c0f-43fe-b181-17754c962ec6'
+           WHEN '/images/welcome/spicy-noodles.jpg' THEN 'cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809'
+           WHEN '/images/welcome/street-snacks.jpg' THEN 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238'
+       END,
+       'AVAILABLE', demo_item.display_order, NULL, NULL
 FROM categories
 INNER JOIN (
     SELECT 'Mì cay' AS category_name, 'Mì cay đặc biệt 7 cấp độ' AS name, 'Mì cay đậm vị với rau, nấm và topping.' AS description, 55000.00 AS price, '/images/welcome/spicy-noodles.jpg' AS image_url, 1 AS display_order
