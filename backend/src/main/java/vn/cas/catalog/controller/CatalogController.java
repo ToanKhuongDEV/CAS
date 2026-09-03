@@ -11,26 +11,23 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.cas.catalog.model.*;
 import vn.cas.catalog.service.*;
-import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.constants.ApiPaths;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.response.*;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
 import vn.cas.store.service.CustomerTableSessionService;
-import vn.cas.store.service.StoreSettingsService;
 
 @RestController
 public class CatalogController {
+    private static final long DEFAULT_CUSTOMER_STORE_ID = 1L;
+
     private final CatalogService catalog;
     private final CustomerTableSessionService sessions;
-    private final StoreSettingsService stores;
 
-    public CatalogController(CatalogService catalog, CustomerTableSessionService sessions,
-            StoreSettingsService stores) {
+    public CatalogController(CatalogService catalog, CustomerTableSessionService sessions) {
         this.catalog = catalog;
         this.sessions = sessions;
-        this.stores = stores;
     }
 
     @GetMapping(ApiPaths.Catalog.ADMIN + "/categories")
@@ -217,48 +214,46 @@ public class CatalogController {
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/items")
     public ResponseEntity<ApiResponse<List<CatalogMenuItem>>> customerItems(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
-        return ok(catalog.items(customerStoreId(s, storeId), true), r);
+            HttpServletRequest r) {
+        return ok(catalog.items(customerStoreId(s), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/categories")
     public ResponseEntity<ApiResponse<List<CatalogCategory>>> customerCategories(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
-        return ok(catalog.categories(customerStoreId(s, storeId), true), r);
+            HttpServletRequest r) {
+        return ok(catalog.categories(customerStoreId(s), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/tags")
     public ResponseEntity<ApiResponse<List<CatalogTag>>> customerTags(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
-        return ok(catalog.tags(customerStoreId(s, storeId), true), r);
+            HttpServletRequest r) {
+        return ok(catalog.tags(customerStoreId(s), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/option-groups")
     public ResponseEntity<ApiResponse<List<CatalogOptionGroup>>> customerOptionGroups(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
-        return ok(catalog.optionGroups(customerStoreId(s, storeId), true), r);
+            HttpServletRequest r) {
+        return ok(catalog.optionGroups(customerStoreId(s), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/items/{id}")
     public ResponseEntity<ApiResponse<CatalogMenuItem>> customerItem(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @RequestParam(required = false) @Positive Long storeId, @Positive @PathVariable long id,
-            HttpServletRequest r) {
-        return ok(catalog.item(customerStoreId(s, storeId), id, true), r);
+            @Positive @PathVariable long id, HttpServletRequest r) {
+        return ok(catalog.item(customerStoreId(s), id, true), r);
     }
 
-    private long customerStoreId(String sessionPublicId, Long publicStoreId) {
-        if (sessionPublicId != null && !sessionPublicId.isBlank()) {
+    private long customerStoreId(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank())
+            return DEFAULT_CUSTOMER_STORE_ID;
+        try {
             return sessions.getCurrentStoreId(sessionPublicId);
+        } catch (ApiException exception) {
+            return DEFAULT_CUSTOMER_STORE_ID;
         }
-        if (publicStoreId == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
-        }
-        stores.getPublic(publicStoreId);
-        return publicStoreId;
     }
 
     private static UUID rid(HttpServletRequest r) {

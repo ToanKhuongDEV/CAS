@@ -40,6 +40,14 @@ export async function getCurrentCustomerTableSession(): Promise<CustomerTableSes
   return body.data;
 }
 
+export async function hasOpenCustomerTableSession(): Promise<boolean> {
+  try {
+    return (await getCurrentCustomerTableSession()).sessionStatus === "OPEN";
+  } catch {
+    return false;
+  }
+}
+
 function isCustomerTableSessionResolutionResponse(
   value: unknown,
 ): value is ApiResponse<CustomerTableSessionResolution> {

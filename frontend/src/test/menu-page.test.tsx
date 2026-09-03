@@ -41,6 +41,19 @@ describe("MenuPage", () => {
           price: 55_000,
           tags: [],
         },
+        {
+          availabilityStatus: "SOLD_OUT",
+          categoryId: 1,
+          description: "Tạm hết hàng",
+          displayOrder: 2,
+          id: 11,
+          imageStorageKey: null,
+          imageUrl: null,
+          name: "Món hết hàng API",
+          optionGroups: [],
+          price: 45_000,
+          tags: [],
+        },
       ],
       optionGroups: [],
       tags: [],
@@ -69,5 +82,7 @@ describe("MenuPage", () => {
     expect(screen.getByRole("heading", { name: "Dịch vụ thêm" })).toBeInTheDocument();
     expect(loadCustomerCatalog).toHaveBeenCalledOnce();
     expect(screen.queryByText("Mỳ cay đặc biệt 7 cấp độ")).not.toBeInTheDocument();
+    expect(screen.getByText("Món hết hàng API")).toBeInTheDocument();
+    expect(screen.getByText("Hết hàng")).toBeInTheDocument();
   });
 });

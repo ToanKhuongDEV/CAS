@@ -15,6 +15,7 @@ const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(
 export default function ProductDetailPage() {
   const params = useParams<{ slug: string }>();
   const [product, setProduct] = useState<{
+    availabilityStatus: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
     id: number;
     badges: string[];
     description: string;
@@ -36,6 +37,7 @@ export default function ProductDetailPage() {
       .then(({ item, optionGroups }) => {
         const groupsById = new Map(optionGroups.map((group) => [group.id, group]));
         setProduct({
+          availabilityStatus: item.availabilityStatus,
           id: item.id,
           badges: (item.tags ?? []).map((tag) => tag.name),
           description: item.description ?? "",
@@ -126,12 +128,16 @@ export default function ProductDetailPage() {
           </p>
         ) : null}
         <div className="mt-7 border-t border-cas-outline-variant/45 pt-7">
-          <ProductDetailForm
-            basePrice={product.price}
-            menuItemId={product.id}
-            optionGroups={product.optionGroups}
-            productName={product.name}
-          />
+          {product.availabilityStatus === "SOLD_OUT" ? (
+            <p className="text-sm font-bold text-cas-error">Món này hiện đã hết hàng.</p>
+          ) : (
+            <ProductDetailForm
+              basePrice={product.price}
+              menuItemId={product.id}
+              optionGroups={product.optionGroups}
+              productName={product.name}
+            />
+          )}
         </div>
       </section>
     </main>

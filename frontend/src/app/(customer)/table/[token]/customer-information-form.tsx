@@ -18,7 +18,8 @@ export function CustomerInformationForm() {
 
   function destination(status: CustomerTableSessionResolution["sessionStatus"]) {
     if (status === "PAYMENT_PENDING") return "/payment";
-    return searchParams.get("returnTo") === "/cart" ? "/cart" : "/menu";
+    const returnTo = searchParams.get("returnTo");
+    return returnTo?.startsWith("/menu") || returnTo === "/cart" ? returnTo : "/menu";
   }
 
   function resolve() {

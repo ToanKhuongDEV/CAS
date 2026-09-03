@@ -56,7 +56,7 @@ describe("CartPage", () => {
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
   });
 
-  it("returns to the customer information page before submitting an order", async () => {
+  it("submits an already validated cart without another QR check", async () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
     vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("Session not found"));
     render(
@@ -67,7 +67,8 @@ describe("CartPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
 
-    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/table/qr-ban-05?returnTo=%2Fcart"));
+    await vi.waitFor(() => expect(createCustomerOrder).toHaveBeenCalledTimes(1));
+    expect(push).toHaveBeenCalledWith("/orders");
   });
 
   it("submits the order when this device has an active table session", async () => {

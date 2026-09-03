@@ -11,7 +11,6 @@ import {
   saveCustomerCart,
   type CustomerCartLine,
 } from "../../lib/customer/cart";
-import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
 import { CasIcon } from "../ui/cas-icon";
 
 export function CustomerCartView() {
@@ -32,24 +31,6 @@ export function CustomerCartView() {
     if (cart.length === 0 || submitting) return;
     setSubmitting(true);
     setError(null);
-    let session;
-    try {
-      session = await getCurrentCustomerTableSession();
-    } catch {
-      const token = window.sessionStorage.getItem("cas.tableQrToken");
-      router.push(
-        token ? `/table/${encodeURIComponent(token)}?returnTo=%2Fcart` : "/scan?returnTo=%2Fcart",
-      );
-      return;
-    }
-    if (session.customerInformationRequired) {
-      const token = window.sessionStorage.getItem("cas.tableQrToken");
-      router.push(
-        token ? `/table/${encodeURIComponent(token)}?returnTo=%2Fcart` : "/scan?returnTo=%2Fcart",
-      );
-      return;
-    }
-
     try {
       await createCustomerOrder({
         note: note.trim() || null,

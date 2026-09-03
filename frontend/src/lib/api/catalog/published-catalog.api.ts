@@ -52,8 +52,7 @@ async function request<T>(audience: CatalogAudience, path: string) {
     headers.Authorization = `Bearer ${await user.getIdToken()}`;
   }
 
-  const publicStoreQuery = audience === "customer" ? "?storeId=1" : "";
-  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}${publicStoreQuery}`, {
+  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}`, {
     cache: "no-store",
     credentials: audience === "customer" ? "include" : "same-origin",
     headers,

@@ -80,18 +80,31 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
   }, []);
 
   useEffect(() => {
+    let active = true;
     void getCurrentCustomerTableSession()
-      .then((session) => setTableCode(session.tableCode))
-      .catch(() => setTableCode(null));
+      .then((session) => {
+        if (active) setTableCode(session.tableCode);
+      })
+      .catch(() => {
+        if (active) setTableCode(null);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
+    let active = true;
     void loadPublicStore()
       .then((store) => {
+        if (!active) return;
         setStoreName(store.name);
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (

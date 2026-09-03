@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { MenuOptionGroup } from "../../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { addCustomerCartLine } from "../../../../../lib/customer/cart";
+import { hasOpenCustomerTableSession } from "../../../../../lib/customer/table-session";
 
 type ProductDetailFormProps = {
   basePrice: number;
@@ -69,6 +70,10 @@ export function ProductDetailForm({
     );
     if (invalidGroup) {
       setError(`Vui lòng chọn ${invalidGroup.label}.`);
+      return;
+    }
+    if (!(await hasOpenCustomerTableSession())) {
+      router.push(`/scan?returnTo=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     addCustomerCartLine({

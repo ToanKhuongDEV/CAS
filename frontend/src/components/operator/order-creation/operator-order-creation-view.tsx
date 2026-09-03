@@ -74,6 +74,7 @@ const drinkOptionGroups: MenuOptionGroup[] = [
 ];
 
 type MenuItemData = {
+  availabilityStatus?: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
   id: number | string;
   categoryId: string;
   name: string;
@@ -394,6 +395,7 @@ export function OperatorOrderCreationView({
         );
         setCatalogItems(
           catalog.items.map((item) => ({
+            availabilityStatus: item.availabilityStatus,
             badges: (item.tags ?? []).map((tag) => tag.name),
             basePrice: item.price,
             categoryId: String(item.categoryId),
@@ -698,6 +700,7 @@ export function OperatorOrderCreationView({
                             </strong>
                             <AddToCartOptionDialog
                               basePrice={item.basePrice}
+                              disabled={item.availabilityStatus === "SOLD_OUT"}
                               itemName={item.name}
                               optionGroups={item.optionGroups}
                               onAddToCart={(payload) => handleAddItemToCart(item, payload)}

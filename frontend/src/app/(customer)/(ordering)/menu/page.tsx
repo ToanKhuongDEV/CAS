@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import {
@@ -11,9 +12,11 @@ import {
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import { loadCustomerCatalog } from "../../../../lib/api/catalog/published-catalog.api";
 import { addCustomerCartLine } from "../../../../lib/customer/cart";
+import { hasOpenCustomerTableSession } from "../../../../lib/customer/table-session";
 import { CategoryNavigation } from "./category-navigation";
 
 type CustomerMenuItem = {
+  availabilityStatus?: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
   id?: number;
   badges: string[];
   basePrice: number;
@@ -292,9 +295,11 @@ const menuItems: CustomerMenuItem[] = [
 ];
 
 export default function MenuPage() {
+  const router = useRouter();
   const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
   const [catalogItems, setCatalogItems] = useState<CustomerMenuItem[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     void loadCustomerCatalog()
@@ -310,6 +315,7 @@ export default function MenuPage() {
         setCatalogItems(
           catalog.items.map((item) => ({
             id: item.id,
+            availabilityStatus: item.availabilityStatus,
             badges: (item.tags ?? []).map((tag) => tag.name),
             basePrice: item.price,
             categoryId: String(item.categoryId),
@@ -323,8 +329,11 @@ export default function MenuPage() {
               return {
                 id: String(group.id),
                 label: group.name,
+                maxSelect: optionGroup?.maxSelect,
+                minSelect: optionGroup?.minSelect,
                 options: (optionGroup?.values ?? []).map((value) => ({
                   id: String(value.id),
+                  isDefault: value.isDefault,
                   label: value.name,
                   priceDelta: value.extraPrice,
                 })),
@@ -345,6 +354,7 @@ export default function MenuPage() {
     ...catalogCategories,
     { id: "additional-services", label: "Dịch vụ thêm" },
   ];
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
 
   return (
     <>
@@ -364,8 +374,10 @@ export default function MenuPage() {
               className="h-12 w-full rounded-2xl border border-cas-outline-variant/35 bg-cas-surface-container pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/70 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
               id="menu-search"
               name="search"
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Tìm món ngon tại Cas..."
               type="search"
+              value={searchQuery}
             />
           </label>
 
@@ -406,7 +418,13 @@ export default function MenuPage() {
             <p className="py-8 text-sm text-cas-on-surface-variant">Đang tải thực đơn…</p>
           ) : null}
           {catalogCategories.map((category) => {
-            const categoryItems = catalogItems.filter((item) => item.categoryId === category.id);
+            const categoryItems = catalogItems.filter(
+              (item) =>
+                item.categoryId === category.id &&
+                (!normalizedSearchQuery ||
+                  item.name.toLocaleLowerCase().includes(normalizedSearchQuery) ||
+                  item.description.toLocaleLowerCase().includes(normalizedSearchQuery)),
+            );
 
             return (
               <section
@@ -479,7 +497,15 @@ export default function MenuPage() {
                           </strong>
                           <AddToCartOptionDialog
                             basePrice={item.basePrice}
+                            beforeAddToCart={async () => {
+                              if (await hasOpenCustomerTableSession()) return true;
+                              router.push(
+                                `/scan?returnTo=${encodeURIComponent(window.location.pathname)}`,
+                              );
+                              return false;
+                            }}
                             currentQuantity={item.quantity}
+                            disabled={item.availabilityStatus === "SOLD_OUT"}
                             itemName={item.name}
                             optionGroups={item.optionGroups}
                             onAddToCart={(payload) => {
