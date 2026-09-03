@@ -186,10 +186,14 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Đã ghép Frontend trang Admin Settings]**
 - [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Đã ghép Frontend trang Welcome]**
 - [x] Customer Header lấy `tableCode` từ session QR hiện tại qua `GET /api/v1/customer/table-sessions/current`; không còn mặc định `Bàn 05` trên Welcome và các trang Customer.
-- [x] Khi Customer thêm món vào giỏ, hệ thống bắt buộc có session QR và thông tin tên khách; chưa có QR sẽ chuyển tới trang quét/nhập QR.
+- [x] Mã QR bàn mới dùng định dạng dễ nhập `Q` + 8 chữ số; màn quét Customer chấp nhận trực tiếp mã này hoặc URL QR. Mã QR cũ vẫn được backend hỗ trợ.
+- [x] Luồng Customer quét QR hiển thị lỗi và cho phép thử lại khi API resolve thất bại; session `PAYMENT_PENDING` được chuyển thẳng tới trang thanh toán thay vì menu.
+- [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
 - [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
 - [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. **[Đã ghép Frontend]**
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. Customer dùng các API public `categories`, `items`, `tags`, `option-groups` và chi tiết món theo `storeId`, không yêu cầu đăng nhập hoặc session QR. **[Đã ghép Frontend]**
+- [x] Customer có thể xem catalog công khai theo `storeId` trước khi quét QR; chỉ thao tác tạo order mới yêu cầu session bàn từ QR. Menu Customer không còn fallback sang dữ liệu mẫu khi API lỗi.
+- [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
@@ -359,7 +363,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung nút In bill trong popup xác nhận thanh toán của Operator; hiện mở hộp in của trình duyệt.
 - [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bill/bàn, món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
 - [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
-- [x] Bổ sung section “Dịch vụ thêm” cuối Menu Customer: giá thỏa thuận và nhãn hotline liên hệ, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
+- [x] Bổ sung card và tab “Dịch vụ thêm” cố định cuối Menu Customer; card tương tự luôn hiển thị ở Operator. Nội dung có giá thỏa thuận và nhãn hotline liên hệ, không phụ thuộc catalog API, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
 - [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
 - [x] Đổi thumbnail cố định của card Dịch vụ thêm trên Menu Customer sang biểu tượng ngôi sao.
 - [x] Tăng vùng cuộn cuối Menu Customer để scroll-spy lần lượt kích hoạt đúng tab Ăn vặt và Khác.
@@ -423,6 +427,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Xây dựng giao diện vận hành cho menu, bàn và order.
 - [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
       món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
+- [x] Ghép màn tạo order của `OPERATOR` với catalog, danh sách/mở phiên bàn và API tạo order; loại bỏ dữ liệu menu, bàn và voucher mẫu khỏi luồng vận hành. Card Dịch vụ thêm vẫn luôn hiển thị theo UI, không thuộc API catalog/order. Admin tiếp tục quản lý catalog bằng các API quản trị hiện có.
 - [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
 - [x] Đồng bộ đăng nhập `OPERATOR` và bổ sung `/admin/login` toàn màn hình qua Firebase Authentication; frontend xác nhận role qua `GET /api/v1/auth/me` trước khi điều hướng vào khu vực tương ứng.
 - [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
@@ -505,6 +510,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Chuyển lệnh phát triển Frontend sang Webpack để tránh lỗi cache/compaction của Turbopack khi format ghi nhiều file.
 - [x] Bổ sung cột Thứ tự hiển thị trong bảng danh sách Thực đơn tại `/admin/catalog`.
 - [x] Tối ưu hóa tải ảnh LCP: bổ sung thuộc tính `loading="eager"` và `priority` cho ảnh `/images/welcome/street-snacks.jpg` tại trang Welcome Khách hàng (`/`).
+- [x] Sửa responsive mục xem trước thực đơn tại trang Welcome: ảnh danh mục luôn phủ đầy thẻ trên mọi kích thước màn hình.
 - [x] Bổ sung tính năng xem trước ảnh món (Image Preview) khi chọn file mới hoặc sửa món ăn tại `/admin/catalog`, kèm thumbnail trực quan trong bảng danh sách.
 - [x] Bổ sung tính năng Cập nhật trạng thái hàng loạt (Bulk Status Update) cho nhiều món ăn tại `/admin/catalog` kèm thanh thao tác nhanh và thông báo tức thì.
 - [x] Bổ sung bộ lọc Sắp xếp (Sorting dropdown) theo Thứ tự hiển thị, Giá niêm yết và Ngày tạo tại `/admin/catalog`.
