@@ -204,6 +204,12 @@ public class CatalogController {
         return ok(catalog.tags(p.storeId(), true), r);
     }
 
+    @GetMapping(ApiPaths.Catalog.OPERATOR + "/option-groups")
+    public ResponseEntity<ApiResponse<List<CatalogOptionGroup>>> operatorOptionGroups(
+            @AuthenticationPrincipal OperationalPrincipal p, HttpServletRequest r) {
+        return ok(catalog.optionGroups(p.storeId(), true), r);
+    }
+
     @GetMapping(ApiPaths.Catalog.OPERATOR + "/items/{id}")
     public ResponseEntity<ApiResponse<CatalogMenuItem>> operatorItem(
             @AuthenticationPrincipal OperationalPrincipal p, @Positive @PathVariable long id,

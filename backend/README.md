@@ -59,6 +59,7 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Autho
 curl.exe http://localhost:8080/api/v1/admin/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/customer/catalog/categories
 curl.exe http://localhost:8080/api/v1/customer/catalog/items
+curl.exe http://localhost:8080/api/v1/operator/catalog/option-groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/catalog/option-values/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Size L\",\"extraPrice\":10000,\"isDefault\":false,\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe -X POST http://localhost:8080/api/v1/admin/images/upload-signature -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"purpose\":\"MENU_ITEM\"}"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/store/settings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"CAS Mì Cay\",\"address\":\"123 Đường Ẩm Thực\",\"phone\":\"0900000000\",\"email\":\"hello@cas.local\",\"logoUrl\":\"https://res.cloudinary.com/<cloud>/image/upload/...\",\"logoStorageKey\":\"<Cloudinary public_id>\",\"googleMapsLocation\":\"https://maps.google.com/?q=10.7769,106.7009\",\"openTime\":\"09:00:00\",\"closeTime\":\"22:00:00\",\"welcomeSlogan\":\"Món ngon gọi nhanh\",\"status\":\"ACTIVE\"}"

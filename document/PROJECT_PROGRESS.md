@@ -186,13 +186,16 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
 - [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Đã ghép Frontend trang Admin Settings]**
 - [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Đã ghép Frontend trang Welcome]**
+- [x] `GET /api/v1/operator/catalog/option-groups`: `OPERATOR` lấy nhóm option và giá cộng thêm đang hoạt động theo store của tài khoản để tạo order hộ. **[Đã ghép Frontend]**
 - [x] Customer Header lấy `tableCode` từ session QR hiện tại qua `GET /api/v1/customer/table-sessions/current`; không còn mặc định `Bàn 05` trên Welcome và các trang Customer.
 - [x] Mã QR bàn mới dùng định dạng dễ nhập `Q` + 8 chữ số; màn quét Customer chấp nhận trực tiếp mã này hoặc URL QR. Mã QR cũ vẫn được backend hỗ trợ.
 - [x] Luồng Customer quét QR hiển thị lỗi và cho phép thử lại khi API resolve thất bại; session `PAYMENT_PENDING` được chuyển thẳng tới trang thanh toán thay vì menu.
+- [x] Trang quét QR Customer kiểm tra cả mã nhập tay với API trước khi điều hướng; mã sai giữ nguyên giá trị nhập, báo lỗi và cho phép thử lại tại chỗ.
+- [x] Nhãn `Chưa chọn bàn` trên Customer Header là liên kết đến trang quét QR để khách chọn bàn trước khi gọi món.
 - [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
 - [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
 - [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. **[Đã ghép Frontend]**
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**

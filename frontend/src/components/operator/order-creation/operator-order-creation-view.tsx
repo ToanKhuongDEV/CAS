@@ -409,8 +409,11 @@ export function OperatorOrderCreationView({
               return {
                 id: String(group.id),
                 label: group.name,
+                maxSelect: optionGroup?.maxSelect,
+                minSelect: optionGroup?.minSelect,
                 options: (optionGroup?.values ?? []).map((value) => ({
                   id: String(value.id),
+                  isDefault: value.isDefault,
                   label: value.name,
                   priceDelta: value.extraPrice,
                 })),

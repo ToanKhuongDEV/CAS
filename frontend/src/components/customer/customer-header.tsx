@@ -129,10 +129,21 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
         </Link>
 
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">
-            <CasIcon className="size-4" name="table" />
-            {tableCode === null ? "Chưa chọn bàn" : `Bàn ${String(tableCode).padStart(2, "0")}`}
-          </span>
+          {tableCode === null ? (
+            <Link
+              aria-label="Chọn bàn bằng mã QR"
+              className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary transition hover:bg-cas-secondary-container/35 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              href="/scan"
+            >
+              <CasIcon className="size-4" name="table" />
+              Chưa chọn bàn
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">
+              <CasIcon className="size-4" name="table" />
+              {`Bàn ${String(tableCode).padStart(2, "0")}`}
+            </span>
+          )}
 
           {showThemeToggle ? <ThemeToggle /> : null}
 

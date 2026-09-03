@@ -76,7 +76,7 @@ describe("OperatorOrderCreationView", () => {
           values: [
             {
               displayOrder: 1,
-              extraPrice: 0,
+              extraPrice: 10_000,
               id: 101,
               isDefault: true,
               name: "Cấp 3",
@@ -142,6 +142,7 @@ describe("OperatorOrderCreationView", () => {
 
     // Option dialog should be open
     expect(screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i })).toBeInTheDocument();
+    expect(screen.getByText("+10.000đ")).toBeInTheDocument();
 
     // Select spice level
     fireEvent.click(screen.getByRole("radio", { name: /Cấp 3/i }));
