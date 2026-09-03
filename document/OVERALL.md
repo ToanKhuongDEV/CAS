@@ -268,12 +268,14 @@ CAS Frontend
 └── Admin — Firebase Auth, role ADMIN
 ```
 
-Luồng route Customer bắt đầu tại `/table/{qrToken}` khi khách quét QR. Route
-này chỉ dùng để backend xác minh QR, xác định bàn và tìm hoặc mở table session.
-Sau khi có session hợp lệ, frontend chuyển sang các route ngắn `/menu`, `/cart`
-và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ chế vận chuyển và
-lưu ngữ cảnh session giữa frontend và backend phải được chốt trong API contract.
-Backend không được tin table ID hoặc session ID do client tự suy diễn.
+Customer có thể vào trực tiếp `/menu` và `/cart` công khai. Khi thêm món vào giỏ
+mà chưa có session, frontend chuyển tới `/table/{qrToken}` sau khi khách quét
+hoặc nhập QR; route này chỉ dùng để backend xác minh QR, xác định bàn và tìm
+hoặc mở table session. Sau khi có session hợp lệ, Customer tiếp tục dùng các route ngắn
+`/menu`, `/cart` và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ
+chế vận chuyển và lưu ngữ cảnh session giữa frontend và backend phải được chốt
+trong API contract. Backend không được tin table ID hoặc session ID do client tự
+suy diễn.
 
 Thanh điều hướng Customer mặc định gồm bốn tab theo thứ tự: Trang chủ, Thực đơn,
 Đơn hàng và Cài đặt. Thanh toán không phải tab truy cập thường trực; Customer chỉ

@@ -214,12 +214,12 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 
 ### Luồng chính
 
-1. Khách hàng mở menu từ session bàn.
+1. Khách hàng mở menu hoặc giỏ hàng công khai, không cần quét QR hay có session bàn.
 2. Hệ thống lấy danh sách `categories` đang hiển thị và danh sách `menu_items`.
 3. Với từng món, hệ thống lấy các `tags` qua `menu_item_tags`, các `option_groups` được liên kết qua `menu_item_option_groups` và các `option_values` thuộc từng nhóm.
 4. Hệ thống xác định `selection_type` của từng option group (`SINGLE` hoặc `MULTIPLE`).
 5. Hệ thống trả về thông tin món, giá hiện tại, hình ảnh, nhãn, trạng thái còn/hết món, các option và `selectionType` nếu có.
-6. Khách hàng chọn món và tùy chọn.
+6. Khi thêm món vào giỏ, nếu chưa có session QR hợp lệ thì khách quét hoặc nhập QR bàn. Nếu bàn chưa có session `OPEN`, người mở bàn nhập tên bắt buộc và số điện thoại tùy chọn; sau đó menu tải lại theo store của bàn trước khi khách thêm món.
 
 ### Quy tắc nghiệp vụ
 
@@ -230,6 +230,7 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 - Frontend hiển thị option group `SINGLE` bằng radio và `MULTIPLE` bằng checkbox, dựa trên `selectionType` do backend trả về.
 - Mỗi món chỉ có một ảnh.
 - Giá tại thời điểm khách gửi order sẽ được ghi lại vào `order_items`, không phụ thuộc vào giá menu thay đổi sau đó.
+- Khi chưa có session QR hợp lệ, Catalog Customer hiển thị menu của store mặc định `1`. Sau khi quét hoặc nhập QR, Catalog ưu tiên store của table session để bảo đảm đúng menu của bàn.
 
 ## 7. Luồng gọi món
 

@@ -149,7 +149,7 @@ Ngày cập nhật gần nhất: 2026-08-28
 ## 5. Backend
 
 - [x] Loại bỏ migration V3 lỗi; giữ FK QR-bàn là `RESTRICT` do giới hạn MySQL với generated column, và xóa QR trong transaction của use case xóa bàn.
-- [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món dùng lại asset demo trong `frontend/public/images/welcome`.
+- [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món demo dùng URL và storage key Cloudinary, còn ảnh Welcome tiếp tục dùng asset local.
 - [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
 
 - [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
@@ -180,6 +180,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
 - [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Chưa ghép Frontend]**
 - [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
+- [x] `PUT /api/v1/admin/catalog/option-values/{id}`: `ADMIN` cập nhật tên, giá cộng thêm, lựa chọn mặc định, thứ tự hiển thị và trạng thái của một option value. **[Đã ghép Frontend]**
 - [x] Postman `Images/Get common Cloudinary upload signature`: dùng biến `imageUploadPurpose` (mặc định `WELCOME`) để xin chữ ký upload ảnh dùng chung.
 - [x] Postman `Images/Upload image to Cloudinary`: gửi file multipart trực tiếp đến Cloudinary bằng chữ ký được request trước đó lưu vào environment.
 - [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
@@ -191,8 +192,8 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
 - [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
 - [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer/Operator đọc catalog theo store. Customer dùng các API public `categories`, `items`, `tags`, `option-groups` và chi tiết món theo `storeId`, không yêu cầu đăng nhập hoặc session QR. **[Đã ghép Frontend]**
-- [x] Customer có thể xem catalog công khai theo `storeId` trước khi quét QR; chỉ thao tác tạo order mới yêu cầu session bàn từ QR. Menu Customer không còn fallback sang dữ liệu mẫu khi API lỗi.
+- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. **[Đã ghép Frontend]**
+- [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác. **[Đã ghép Frontend]**
@@ -232,6 +233,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Nhóm option:** sửa nhóm option.
 - [x] **Nhóm option:** xóa nhóm option.
 - [x] **Option value:** thêm option value.
+- [x] **Option value:** sửa tên, giá cộng thêm, lựa chọn mặc định và trạng thái option value.
 - [x] **Option value:** xóa option value.
 - [x] **Catalog gọi món:** xem category hiển thị cho Customer/`OPERATOR`.
 - [x] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
@@ -509,6 +511,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Đổi Nhóm option áp dụng sang dropdown tick chọn nhiều, đồng bộ với Nhãn món.
 - [x] Chuyển lệnh phát triển Frontend sang Webpack để tránh lỗi cache/compaction của Turbopack khi format ghi nhiều file.
 - [x] Bổ sung cột Thứ tự hiển thị trong bảng danh sách Thực đơn tại `/admin/catalog`.
+- [x] Hoàn thiện form quản lý Catalog Admin: danh mục có mô tả/thứ tự/trạng thái; nhóm option có kiểu chọn, giới hạn chọn, thứ tự/trạng thái; giá trị option có thứ tự hiển thị.
 - [x] Tối ưu hóa tải ảnh LCP: bổ sung thuộc tính `loading="eager"` và `priority` cho ảnh `/images/welcome/street-snacks.jpg` tại trang Welcome Khách hàng (`/`).
 - [x] Sửa responsive mục xem trước thực đơn tại trang Welcome: ảnh danh mục luôn phủ đầy thẻ trên mọi kích thước màn hình.
 - [x] Bổ sung tính năng xem trước ảnh món (Image Preview) khi chọn file mới hoặc sửa món ăn tại `/admin/catalog`, kèm thumbnail trực quan trong bảng danh sách.
@@ -529,6 +532,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
 - [x] Hoàn thiện nền tảng upload ảnh món Cloudinary: CAS Backend ký request, Frontend upload trực tiếp khi Admin lưu món và giữ `secure_url`/`public_id`; Backend chỉ chấp nhận asset đúng Cloudinary và public ID được ký cho store.
 - [x] Kết nối trang Admin Catalog với API Catalog: tải danh mục/tag/option/món, lưu `imageUrl`/`imageStorageKey` đã upload khi tạo hoặc sửa món và cập nhật trạng thái hàng loạt qua Backend.
+- [x] Cấu hình Next Image cho phép tải ảnh Cloudinary của CAS từ `res.cloudinary.com/dh6qzqf73/image/upload`.
 - [x] Thiết lập formatter chung: Spotless với profile Eclipse JDT (4-space, continuation indent 8-space) cho Backend, Prettier cho Frontend và lệnh `scripts/format.ps1` để format hoặc kiểm tra toàn bộ dự án.
 - [ ] Tạo pipeline CI kiểm tra build, test và migration.
 - [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
