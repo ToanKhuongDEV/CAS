@@ -32,8 +32,25 @@ export function CustomerCartView() {
     if (cart.length === 0 || submitting) return;
     setSubmitting(true);
     setError(null);
+    let session;
     try {
-      await getCurrentCustomerTableSession();
+      session = await getCurrentCustomerTableSession();
+    } catch {
+      const token = window.sessionStorage.getItem("cas.tableQrToken");
+      router.push(
+        token ? `/table/${encodeURIComponent(token)}?returnTo=%2Fcart` : "/scan?returnTo=%2Fcart",
+      );
+      return;
+    }
+    if (session.customerInformationRequired) {
+      const token = window.sessionStorage.getItem("cas.tableQrToken");
+      router.push(
+        token ? `/table/${encodeURIComponent(token)}?returnTo=%2Fcart` : "/scan?returnTo=%2Fcart",
+      );
+      return;
+    }
+
+    try {
       await createCustomerOrder({
         note: note.trim() || null,
         items: cart.map(({ menuItemId, quantity, optionValueIds }) => ({

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CartPage from "../app/(customer)/(ordering)/cart/page";
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
+import { createCustomerOrder } from "../lib/api/ordering/ordering.api";
 import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
 
 const push = vi.fn();
@@ -15,11 +16,29 @@ vi.mock("../lib/customer/table-session", () => ({
   getCurrentCustomerTableSession: vi.fn(),
 }));
 
+vi.mock("../lib/api/ordering/ordering.api", () => ({
+  createCustomerOrder: vi.fn(),
+}));
+
 describe("CartPage", () => {
   beforeEach(() => {
     push.mockClear();
     window.sessionStorage.clear();
-    vi.mocked(getCurrentCustomerTableSession).mockReset();
+    window.sessionStorage.setItem(
+      "cas.customerCart",
+      JSON.stringify([
+        { itemName: "Món từ giỏ hàng", menuItemId: 10, optionValueIds: [], quantity: 2 },
+      ]),
+    );
+    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+      customerInformationRequired: false,
+      sessionStatus: "OPEN",
+      tableCode: 5,
+    });
+    vi.mocked(createCustomerOrder).mockResolvedValue({
+      orderId: "order-1",
+      payableAmount: 100_000,
+    });
   });
 
   it("renders the selected items and shared order note", () => {
@@ -30,17 +49,9 @@ describe("CartPage", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Giỏ hàng của bạn" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Mỳ cay đặc biệt 7 cấp độ" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Gà rán giòn rụm" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "Trà sữa Trân châu Đường đen",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Món từ giỏ hàng")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /ghi chú chung/i })).toBeInTheDocument();
-    expect(screen.getByText("Tạm tính (4 món)")).toBeInTheDocument();
-    expect(screen.getByText("170.000đ")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Chọn thêm món" })).toHaveAttribute("href", "/menu");
+    expect(screen.getByText("2 món")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Gửi món xuống bếp" })).toBeInTheDocument();
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
   });

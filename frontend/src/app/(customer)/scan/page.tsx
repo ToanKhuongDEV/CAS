@@ -80,17 +80,17 @@ export default function ScanTableQrPage() {
         ref={video}
       />
       <label className="mt-5 text-left text-sm font-bold">
-        Nhập mã QR
+        Nhập mã QR của bàn
         <input
           className="mt-2 w-full rounded-xl border border-cas-outline-variant bg-cas-surface p-3 font-normal"
           onKeyDown={(event) => {
             if (event.key === "Enter") open(event.currentTarget.value);
           }}
-          placeholder="Dán đường dẫn hoặc mã QR"
+          placeholder="Ví dụ: Q12345678 hoặc dán đường dẫn QR"
         />
       </label>
-      <Link className="mt-6 font-bold text-cas-primary underline" href="/menu">
-        Vào menu
+      <Link className="mt-6 font-bold text-cas-primary underline" href="/">
+        Trở về trang chủ
       </Link>
     </main>
   );

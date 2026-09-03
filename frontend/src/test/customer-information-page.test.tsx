@@ -2,25 +2,32 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CustomerInformationPage from "../app/(customer)/table/[token]/page";
-import { resolveCustomerTableSession } from "../lib/customer/table-session";
+import {
+  getCurrentCustomerTableSession,
+  resolveCustomerTableSession,
+} from "../lib/customer/table-session";
 
 const push = vi.fn();
+const replace = vi.fn();
 const searchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ token: "qr-ban-05" }),
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
   useSearchParams: () => searchParams,
 }));
 
 vi.mock("../lib/customer/table-session", () => ({
+  getCurrentCustomerTableSession: vi.fn(),
   resolveCustomerTableSession: vi.fn(),
 }));
 
 describe("CustomerInformationPage", () => {
   beforeEach(() => {
     push.mockClear();
+    replace.mockClear();
     window.sessionStorage.clear();
+    vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("No session"));
     vi.mocked(resolveCustomerTableSession).mockResolvedValue({
       customerInformationRequired: true,
       sessionStatus: "CUSTOMER_INFORMATION_REQUIRED",
@@ -69,5 +76,26 @@ describe("CustomerInformationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/menu"));
+  });
+
+  it("redirects a payment-pending session to payment", async () => {
+    vi.mocked(resolveCustomerTableSession).mockResolvedValue({
+      customerInformationRequired: false,
+      sessionStatus: "PAYMENT_PENDING",
+      tableCode: 5,
+    });
+
+    render(<CustomerInformationPage />);
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/payment"));
+  });
+
+  it("shows a retry action when QR resolution fails", async () => {
+    vi.mocked(resolveCustomerTableSession).mockRejectedValue(new Error("QR không hợp lệ"));
+
+    render(<CustomerInformationPage />);
+
+    expect(await screen.findByText("QR không hợp lệ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
   });
 });

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   AddToCartOptionDialog,
@@ -12,7 +11,6 @@ import {
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import { loadCustomerCatalog } from "../../../../lib/api/catalog/published-catalog.api";
 import { addCustomerCartLine } from "../../../../lib/customer/cart";
-import { getCurrentCustomerTableSession } from "../../../../lib/customer/table-session";
 import { CategoryNavigation } from "./category-navigation";
 
 type CustomerMenuItem = {
@@ -294,13 +292,14 @@ const menuItems: CustomerMenuItem[] = [
 ];
 
 export default function MenuPage() {
-  const router = useRouter();
-  const [catalogCategories, setCatalogCategories] = useState(categories);
-  const [catalogItems, setCatalogItems] = useState(menuItems);
+  const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
+  const [catalogItems, setCatalogItems] = useState<CustomerMenuItem[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadCustomerCatalog()
       .then((catalog) => {
+        setCatalogError(null);
         const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
         setCatalogCategories(
           catalog.categories.map((category) => ({
@@ -315,7 +314,7 @@ export default function MenuPage() {
             basePrice: item.price,
             categoryId: String(item.categoryId),
             description: item.description ?? "",
-            detailSlug: undefined,
+            detailSlug: String(item.id),
             imageAlt: item.name,
             imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
             name: item.name,
@@ -337,12 +336,14 @@ export default function MenuPage() {
           })),
         );
       })
-      .catch(() => undefined);
+      .catch((cause) =>
+        setCatalogError(cause instanceof Error ? cause.message : "Không thể tải thực đơn."),
+      );
   }, []);
 
   const categoryNavigationItems = [
     ...catalogCategories,
-    { id: "additional-services", label: "Khác" },
+    { id: "additional-services", label: "Dịch vụ thêm" },
   ];
 
   return (
@@ -400,6 +401,10 @@ export default function MenuPage() {
         <CategoryNavigation categories={categoryNavigationItems} />
 
         <div className="mt-2 pb-70 md:pb-70" id="menu-list">
+          {catalogError ? <p className="py-8 text-sm text-cas-error">{catalogError}</p> : null}
+          {!catalogError && catalogCategories.length === 0 ? (
+            <p className="py-8 text-sm text-cas-on-surface-variant">Đang tải thực đơn…</p>
+          ) : null}
           {catalogCategories.map((category) => {
             const categoryItems = catalogItems.filter((item) => item.categoryId === category.id);
 
@@ -477,26 +482,7 @@ export default function MenuPage() {
                             currentQuantity={item.quantity}
                             itemName={item.name}
                             optionGroups={item.optionGroups}
-                            onAddToCart={async (payload) => {
-                              const token = window.sessionStorage.getItem("cas.tableQrToken");
-                              try {
-                                const session = await getCurrentCustomerTableSession();
-                                if (session.customerInformationRequired) {
-                                  if (token)
-                                    router.push(
-                                      `/table/${encodeURIComponent(token)}?returnTo=%2Fmenu`,
-                                    );
-                                  else router.push("/scan?returnTo=%2Fmenu");
-                                  return;
-                                }
-                              } catch {
-                                router.push(
-                                  token
-                                    ? `/table/${encodeURIComponent(token)}?returnTo=%2Fmenu`
-                                    : "/scan?returnTo=%2Fmenu",
-                                );
-                                return;
-                              }
+                            onAddToCart={(payload) => {
                               if (item.id === undefined) return;
                               addCustomerCartLine({
                                 menuItemId: item.id,
@@ -519,13 +505,15 @@ export default function MenuPage() {
           })}
 
           <section
-            aria-labelledby="additional-services-title"
-            className="border-t border-cas-outline-variant/55 py-5 md:py-6"
+            className="scroll-mt-32 border-t border-cas-outline-variant/55 py-5 md:py-6"
             id="additional-services"
+            aria-labelledby="additional-services-title"
           >
-            <h2 className="sr-only" id="additional-services-title">
-              Dịch vụ thêm
-            </h2>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="text-xl font-extrabold" id="additional-services-title">
+                Dịch vụ thêm
+              </h2>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <article className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4">
                 <div className="grid min-h-32 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary md:aspect-[4/3] md:min-h-0">
@@ -565,7 +553,6 @@ export default function MenuPage() {
             </span>
             Xem món đã chọn
           </span>
-          <span className="text-xs font-semibold">4 món • 170.000đ</span>
         </Link>
       </div>
     </>

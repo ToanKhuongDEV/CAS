@@ -1,11 +1,53 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
 import MenuPage from "../app/(customer)/(ordering)/menu/page";
+import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadCustomerCatalog: vi.fn() }));
+vi.mock("../lib/customer/table-session", () => ({
+  getCurrentCustomerTableSession: vi.fn().mockResolvedValue({ tableCode: 5 }),
+}));
+vi.mock("../lib/api/store/public-store.api", () => ({
+  loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
+}));
 
 describe("MenuPage", () => {
-  it("renders the mobile-first CAS menu UI", () => {
+  beforeEach(() => {
+    vi.mocked(loadCustomerCatalog).mockResolvedValue({
+      categories: [
+        {
+          categoryType: "REGULAR",
+          description: null,
+          displayOrder: 1,
+          id: 1,
+          name: "Mỳ cay API",
+          status: "ACTIVE",
+        },
+      ],
+      items: [
+        {
+          availabilityStatus: "ACTIVE",
+          categoryId: 1,
+          description: "Món từ API",
+          displayOrder: 1,
+          id: 10,
+          imageStorageKey: null,
+          imageUrl: null,
+          name: "Mỳ cay API",
+          optionGroups: [],
+          price: 55_000,
+          tags: [],
+        },
+      ],
+      optionGroups: [],
+      tags: [],
+    });
+  });
+
+  it("renders catalog data loaded from the API", async () => {
     render(
       <OrderingLayout>
         <MenuPage />
@@ -16,46 +58,16 @@ describe("MenuPage", () => {
       "placeholder",
       "Tìm món ngon tại Cas...",
     );
-    expect(
-      screen.getByRole("heading", {
-        name: "Combo Mỳ Cay & Trà Sữa cho ngày mới",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Mỳ cay đặc biệt 7 cấp độ" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "Trà sữa Trân châu Đường đen",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Gà rán giòn rụm" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute("href", "#my-cay");
-    expect(screen.getByRole("link", { name: "Ăn vặt" })).toHaveAttribute("href", "#an-vat");
-    expect(screen.getByRole("heading", { name: "Mỳ cay" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Nước giải khát" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Ăn vặt thập cẩm" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Giỏ hàng có 4 món" })).toHaveAttribute(
+    expect((await screen.findAllByRole("heading", { name: "Mỳ cay API" })).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText("Món từ API")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dịch vụ thêm" })).toHaveAttribute(
       "href",
-      "/cart",
+      "#additional-services",
     );
-    expect(screen.getByRole("link", { name: /xem món đã chọn/i })).toHaveTextContent(
-      "4 món • 170.000đ",
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Tăng số lượng Mỳ cay đặc biệt 7 cấp độ",
-      }),
-    );
-    expect(screen.getByRole("dialog", { name: "Mỳ cay đặc biệt 7 cấp độ" })).toBeInTheDocument();
-    expect(screen.getByText("Cấp độ cay")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Cấp độ cay" })).toHaveDisplayValue("Cấp 0");
-    fireEvent.click(screen.getByRole("button", { name: "Quay lại" }));
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Chọn tùy chọn cho Trà sữa truyền thống",
-      }),
-    );
-    expect(screen.getByText("Độ ngọt")).toBeInTheDocument();
-    expect(screen.getByText("Topping")).toBeInTheDocument();
-    expect(screen.queryByText(/món ốc|ốc hấp|ốc xào/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dịch vụ thêm" })).toBeInTheDocument();
+    expect(loadCustomerCatalog).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Mỳ cay đặc biệt 7 cấp độ")).not.toBeInTheDocument();
   });
 });

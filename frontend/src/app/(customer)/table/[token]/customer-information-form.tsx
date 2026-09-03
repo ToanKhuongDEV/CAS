@@ -14,21 +14,35 @@ export function CustomerInformationForm() {
   const searchParams = useSearchParams();
   const params = useParams<{ token: string }>();
   const [resolution, setResolution] = useState<CustomerTableSessionResolution | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function destination(status: CustomerTableSessionResolution["sessionStatus"]) {
+    if (status === "PAYMENT_PENDING") return "/payment";
+    return searchParams.get("returnTo") === "/cart" ? "/cart" : "/menu";
+  }
+
+  function resolve() {
+    if (typeof params.token !== "string") return;
+    setError(null);
+    resolveCustomerTableSession(params.token)
+      .then((nextResolution) => {
+        if (nextResolution.customerInformationRequired) {
+          setResolution(nextResolution);
+          return;
+        }
+        router.replace(destination(nextResolution.sessionStatus));
+      })
+      .catch((cause) =>
+        setError(cause instanceof Error ? cause.message : "Không thể xác thực mã QR của bàn."),
+      );
+  }
 
   useEffect(() => {
     if (typeof params.token === "string") {
       window.sessionStorage.setItem("cas.tableQrToken", params.token);
-      resolveCustomerTableSession(params.token)
-        .then((nextResolution) => {
-          if (nextResolution.customerInformationRequired) {
-            setResolution(nextResolution);
-            return;
-          }
-          router.replace(searchParams.get("returnTo") === "/cart" ? "/cart" : "/menu");
-        })
-        .catch(() => setResolution(null));
+      resolve();
     }
-  }, [params.token, router, searchParams]);
+  }, [params.token]);
 
   async function handleSubmitCustomerInformation(information: {
     customerName: string;
@@ -38,14 +52,35 @@ export function CustomerInformationForm() {
       return;
     }
 
-    const nextResolution = await resolveCustomerTableSession(params.token, information);
-    if (!nextResolution.customerInformationRequired) {
-      router.push(searchParams.get("returnTo") === "/cart" ? "/cart" : "/menu");
+    try {
+      setError(null);
+      const nextResolution = await resolveCustomerTableSession(params.token, information);
+      if (!nextResolution.customerInformationRequired) {
+        router.push(destination(nextResolution.sessionStatus));
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Không thể mở phiên bàn.");
     }
   }
 
   if (resolution?.customerInformationRequired) {
-    return <CustomerInformationFormFields onSubmitCustomerInfo={handleSubmitCustomerInformation} />;
+    return (
+      <>
+        <CustomerInformationFormFields onSubmitCustomerInfo={handleSubmitCustomerInformation} />
+        {error ? <p className="mt-3 text-sm text-cas-error">{error}</p> : null}
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-cas-error">{error}</p>
+        <button className="text-sm font-bold text-cas-primary" onClick={resolve} type="button">
+          Thử lại
+        </button>
+      </div>
+    );
   }
 
   return <p className="text-sm text-cas-on-surface-variant">Đang xác thực mã QR của bàn…</p>;

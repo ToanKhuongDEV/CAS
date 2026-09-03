@@ -7,6 +7,7 @@ import { CasIcon } from "../ui/cas-icon";
 
 type MenuOption = {
   id: string;
+  isDefault?: boolean;
   label: string;
   priceDelta: number;
 };
@@ -14,6 +15,8 @@ type MenuOption = {
 export type MenuOptionGroup = {
   id: string;
   label: string;
+  maxSelect?: number | null;
+  minSelect?: number;
   selectionType: "SINGLE" | "MULTIPLE";
   options: MenuOption[];
 };
@@ -47,7 +50,9 @@ export function AddToCartOptionDialog({
     Object.fromEntries(
       optionGroups.map((group) => [
         group.id,
-        group.selectionType === "SINGLE" && group.options[0] ? [group.options[0].id] : [],
+        group.selectionType === "SINGLE" && group.options[0]
+          ? [group.options.find((option) => option.isDefault)?.id ?? group.options[0].id]
+          : [],
       ]),
     ),
   );

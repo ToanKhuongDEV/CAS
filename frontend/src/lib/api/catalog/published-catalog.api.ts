@@ -22,6 +22,14 @@ export function loadCustomerCatalog() {
   return loadCatalog("customer");
 }
 
+export async function loadCustomerCatalogItem(id: number) {
+  const [item, optionGroups] = await Promise.all([
+    request<CatalogMenuItem>("customer", `/items/${id}`),
+    request<CatalogOptionGroup[]>("customer", "/option-groups"),
+  ]);
+  return { item, optionGroups };
+}
+
 export function loadOperatorCatalog() {
   return loadCatalog("operator");
 }
@@ -44,7 +52,8 @@ async function request<T>(audience: CatalogAudience, path: string) {
     headers.Authorization = `Bearer ${await user.getIdToken()}`;
   }
 
-  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}`, {
+  const publicStoreQuery = audience === "customer" ? "?storeId=1" : "";
+  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}${publicStoreQuery}`, {
     cache: "no-store",
     credentials: audience === "customer" ? "include" : "same-origin",
     headers,
