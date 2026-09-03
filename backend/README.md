@@ -57,6 +57,9 @@ Cloudinary, rồi gửi `secure_url` và `public_id` khi tạo hoặc sửa món
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Đồ uống\",\"categoryType\":\"REGULAR\",\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe http://localhost:8080/api/v1/admin/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/customer/catalog/categories
+curl.exe http://localhost:8080/api/v1/customer/catalog/items
+curl.exe -X PUT http://localhost:8080/api/v1/admin/catalog/option-values/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Size L\",\"extraPrice\":10000,\"isDefault\":false,\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe -X POST http://localhost:8080/api/v1/admin/images/upload-signature -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"purpose\":\"MENU_ITEM\"}"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/store/settings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"CAS Mì Cay\",\"address\":\"123 Đường Ẩm Thực\",\"phone\":\"0900000000\",\"email\":\"hello@cas.local\",\"logoUrl\":\"https://res.cloudinary.com/<cloud>/image/upload/...\",\"logoStorageKey\":\"<Cloudinary public_id>\",\"googleMapsLocation\":\"https://maps.google.com/?q=10.7769,106.7009\",\"openTime\":\"09:00:00\",\"closeTime\":\"22:00:00\",\"welcomeSlogan\":\"Món ngon gọi nhanh\",\"status\":\"ACTIVE\"}"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/store/welcome -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"heroPrimaryImageUrl\":null,\"heroPrimaryImageStorageKey\":null,\"heroSecondaryImageUrl\":null,\"heroSecondaryImageStorageKey\":null,\"menuPreview1ImageUrl\":null,\"menuPreview1ImageStorageKey\":null,\"menuPreview2ImageUrl\":null,\"menuPreview2ImageStorageKey\":null,\"menuPreview3ImageUrl\":null,\"menuPreview3ImageStorageKey\":null,\"menuPreview4ImageUrl\":null,\"menuPreview4ImageStorageKey\":null,\"menuPreview5ImageUrl\":null,\"menuPreview5ImageStorageKey\":null,\"bannerImageUrl\":null,\"bannerImageStorageKey\":null,\"status\":\"ACTIVE\"}"
@@ -90,13 +93,13 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/inc
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
 ```
 
-Khách có thể xem catalog công khai trước khi quét QR; truyền `storeId` của cửa
-hàng. Sau khi có cookie session, backend luôn ưu tiên store của session:
+Sau khi khách quét hoặc nhập tay QR hợp lệ, backend lưu table session trong cookie
+và luôn suy ra store từ session đó. Customer không gửi `storeId`:
 
 ```powershell
-curl.exe "http://localhost:8080/api/v1/customer/catalog/categories?storeId=1"
-curl.exe "http://localhost:8080/api/v1/customer/catalog/items?storeId=1"
-curl.exe "http://localhost:8080/api/v1/customer/catalog/option-groups?storeId=1"
+curl.exe http://localhost:8080/api/v1/customer/catalog/categories -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/catalog/items -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/catalog/option-groups -b customer-session-cookie.txt
 ```
 
 Ví dụ `OPERATOR` mở hoặc dùng lại phiên của bàn, sau đó tạo order hộ khách. Khi

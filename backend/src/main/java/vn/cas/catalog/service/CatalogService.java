@@ -138,6 +138,13 @@ public class CatalogService {
     }
 
     @Transactional
+    public void updateValue(OperationalPrincipal p, long id, String n, BigDecimal price,
+            boolean def, int o, String s, UUID r) {
+        required(mapper.updateOptionValue(p.storeId(), id, n, price, def, o, s, p.accountId()));
+        log(p, r, "UPDATE", "OPTION_VALUE", n);
+    }
+
+    @Transactional
     public void deleteValue(OperationalPrincipal p, long id, UUID r) {
         try {
             required(mapper.deleteOptionValue(p.storeId(), id));
@@ -204,7 +211,7 @@ public class CatalogService {
     private CatalogMenuItem withLinks(CatalogMenuItem item) {
         return new CatalogMenuItem(item.id(), item.categoryId(), item.name(), item.description(),
                 item.price(), item.imageUrl(), item.imageStorageKey(), item.availabilityStatus(),
-                item.displayOrder(), mapper.findMenuItemTags(item.id()),
+                item.displayOrder(), item.createdAt(), mapper.findMenuItemTags(item.id()),
                 mapper.findMenuItemOptionGroups(item.id()).stream()
                         .map(group -> withValues(group, true)).toList());
     }

@@ -63,6 +63,11 @@ public interface CatalogMapper {
             @Param("isDefault") boolean isDefault, @Param("displayOrder") int displayOrder,
             @Param("status") String status, @Param("actorId") long actorId);
 
+    int updateOptionValue(@Param("storeId") long storeId, @Param("id") long id,
+            @Param("name") String name, @Param("extraPrice") java.math.BigDecimal extraPrice,
+            @Param("isDefault") boolean isDefault, @Param("displayOrder") int displayOrder,
+            @Param("status") String status, @Param("actorId") long actorId);
+
     int deleteOptionValue(@Param("storeId") long storeId, @Param("id") long id);
 
     List<CatalogMenuItem> findMenuItems(@Param("storeId") long storeId,

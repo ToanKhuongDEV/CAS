@@ -136,6 +136,15 @@ public class CatalogController {
         return created(r);
     }
 
+    @PutMapping(ApiPaths.Catalog.ADMIN + "/option-values/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateValue(
+            @AuthenticationPrincipal OperationalPrincipal p, @Positive @PathVariable long id,
+            @Valid @RequestBody OptionValueRequest b, HttpServletRequest r) {
+        catalog.updateValue(p, id, b.name(), b.extraPrice(), b.isDefault(), b.displayOrder(),
+                b.status(), rid(r));
+        return ok(null, r);
+    }
+
     @DeleteMapping(ApiPaths.Catalog.ADMIN + "/option-values/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteValue(
             @AuthenticationPrincipal OperationalPrincipal p, @Positive @PathVariable long id,
