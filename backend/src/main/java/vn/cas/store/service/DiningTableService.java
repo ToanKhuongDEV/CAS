@@ -3,7 +3,7 @@ package vn.cas.store.service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HexFormat;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -93,9 +93,7 @@ public class DiningTableService {
     }
 
     private String generateQrToken() {
-        byte[] bytes = new byte[32];
-        SECURE_RANDOM.nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+        return String.format(Locale.ROOT, "Q%08d", SECURE_RANDOM.nextInt(100_000_000));
     }
 
     private String changeData(long code, Integer capacity) {

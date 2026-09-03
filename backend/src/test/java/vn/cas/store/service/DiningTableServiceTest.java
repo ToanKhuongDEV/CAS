@@ -44,7 +44,7 @@ class DiningTableServiceTest {
         assertThat(result.id()).isEqualTo(11L);
         assertThat(result.code()).isEqualTo(5L);
         assertThat(result.capacity()).isEqualTo(4);
-        assertThat(result.activeQrToken()).matches("[0-9a-f]{64}");
+        assertThat(result.activeQrToken()).matches("Q\\d{8}");
         verify(diningTableMapper).insertActiveQrCode(anyLong(), any(), any());
 
         var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
