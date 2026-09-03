@@ -235,7 +235,7 @@ export default function Home() {
                   aria-label={category.title}
                 >
                   <img
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
                     src={category.imageSrc}
                     alt={category.imageAlt}
                     loading={index === 0 ? "eager" : "lazy"}
