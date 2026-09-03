@@ -17,7 +17,13 @@ export default function AdminCategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<CatalogCategory | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogCategory | null>(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [status, setStatus] = useState<CatalogCategory["status"]>("ACTIVE");
   const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDisplayOrder, setEditDisplayOrder] = useState(0);
+  const [editStatus, setEditStatus] = useState<CatalogCategory["status"]>("ACTIVE");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -42,13 +48,16 @@ export default function AdminCategoriesPage() {
     try {
       await createCatalogCategory({
         categoryType: "REGULAR",
-        description: "",
-        displayOrder: categories.length,
+        description: description.trim(),
+        displayOrder,
         name: name.trim(),
-        status: "ACTIVE",
+        status,
       });
       await refreshCategories();
       setName("");
+      setDescription("");
+      setDisplayOrder(categories.length + 1);
+      setStatus("ACTIVE");
       setShowAddForm(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create category.");
@@ -64,12 +73,15 @@ export default function AdminCategoriesPage() {
     try {
       await updateCatalogCategory(editingCategory.id, {
         ...editingCategory,
-        description: editingCategory.description ?? "",
+        description: editDescription.trim(),
+        displayOrder: editDisplayOrder,
         name: editName.trim(),
+        status: editStatus,
       });
       await refreshCategories();
       setEditingCategory(null);
       setEditName("");
+      setEditDescription("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to update category.");
     } finally {
@@ -159,6 +171,35 @@ export default function AdminCategoriesPage() {
                   value={name}
                 />
               </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Mô tả
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setDescription(event.target.value)}
+                  value={description}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Thứ tự hiển thị
+                <input
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  min="0"
+                  onChange={(event) => setDisplayOrder(Number(event.target.value))}
+                  type="number"
+                  value={displayOrder}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Trạng thái
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setStatus(event.target.value as CatalogCategory["status"])}
+                  value={status}
+                >
+                  <option value="ACTIVE">Hiển thị</option>
+                  <option value="INACTIVE">Ẩn</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -178,7 +219,7 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
-      {/* Modal Sửa tên danh mục */}
+      {/* Modal chỉnh sửa danh mục */}
       {editingCategory && (
         <div
           className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
@@ -214,6 +255,37 @@ export default function AdminCategoriesPage() {
                   value={editName}
                 />
               </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Mô tả
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setEditDescription(event.target.value)}
+                  value={editDescription}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Thứ tự hiển thị
+                <input
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  min="0"
+                  onChange={(event) => setEditDisplayOrder(Number(event.target.value))}
+                  type="number"
+                  value={editDisplayOrder}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Trạng thái
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) =>
+                    setEditStatus(event.target.value as CatalogCategory["status"])
+                  }
+                  value={editStatus}
+                >
+                  <option value="ACTIVE">Hiển thị</option>
+                  <option value="INACTIVE">Ẩn</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -301,6 +373,9 @@ export default function AdminCategoriesPage() {
                 onClick={() => {
                   setEditingCategory(category);
                   setEditName(category.name);
+                  setEditDescription(category.description ?? "");
+                  setEditDisplayOrder(category.displayOrder);
+                  setEditStatus(category.status);
                 }}
                 title="Sửa tên danh mục"
                 type="button"

@@ -10,7 +10,9 @@ import {
   deleteCatalogOptionValue,
   loadAdminCatalog,
   updateCatalogOptionGroup,
+  updateCatalogOptionValue,
   type CatalogOptionGroup,
+  type CatalogOptionValue,
 } from "../../../../lib/api/catalog/catalog.api";
 
 export default function AdminOptionsPage() {
@@ -19,8 +21,21 @@ export default function AdminOptionsPage() {
   const [editingGroup, setEditingGroup] = useState<CatalogOptionGroup | null>(null);
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<CatalogOptionGroup | null>(null);
   const [name, setName] = useState("");
+  const [selectionType, setSelectionType] = useState<CatalogOptionGroup["selectionType"]>("SINGLE");
+  const [minSelect, setMinSelect] = useState(0);
+  const [maxSelect, setMaxSelect] = useState<number | null>(1);
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [status, setStatus] = useState<CatalogOptionGroup["status"]>("ACTIVE");
   const [editName, setEditName] = useState("");
+  const [editSelectionType, setEditSelectionType] =
+    useState<CatalogOptionGroup["selectionType"]>("SINGLE");
+  const [editMinSelect, setEditMinSelect] = useState(0);
+  const [editMaxSelect, setEditMaxSelect] = useState<number | null>(1);
+  const [editDisplayOrder, setEditDisplayOrder] = useState(0);
+  const [editStatus, setEditStatus] = useState<CatalogOptionGroup["status"]>("ACTIVE");
   const [valueInput, setValueInput] = useState<Record<number, string>>({});
+  const [valuePriceInput, setValuePriceInput] = useState<Record<number, string>>({});
+  const [editingValue, setEditingValue] = useState<CatalogOptionValue | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,18 +56,30 @@ export default function AdminOptionsPage() {
   const addGroup = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
+    if (
+      (selectionType === "SINGLE" && (minSelect > 1 || (maxSelect !== null && maxSelect > 1))) ||
+      (maxSelect !== null && minSelect > maxSelect)
+    ) {
+      setError("Giới hạn số lựa chọn không hợp lệ.");
+      return;
+    }
     setIsSaving(true);
     try {
       await createCatalogOptionGroup({
-        displayOrder: groups.length,
-        maxSelect: 1,
-        minSelect: 0,
+        displayOrder,
+        maxSelect,
+        minSelect,
         name: name.trim(),
-        selectionType: "SINGLE",
-        status: "ACTIVE",
+        selectionType,
+        status,
       });
       await refreshGroups();
       setName("");
+      setSelectionType("SINGLE");
+      setMinSelect(0);
+      setMaxSelect(1);
+      setDisplayOrder(groups.length + 1);
+      setStatus("ACTIVE");
       setShowAddForm(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create option group.");
@@ -64,15 +91,23 @@ export default function AdminOptionsPage() {
   const updateGroupName = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingGroup || !editName.trim()) return;
+    if (
+      (editSelectionType === "SINGLE" &&
+        (editMinSelect > 1 || (editMaxSelect !== null && editMaxSelect > 1))) ||
+      (editMaxSelect !== null && editMinSelect > editMaxSelect)
+    ) {
+      setError("Giới hạn số lựa chọn không hợp lệ.");
+      return;
+    }
     setIsSaving(true);
     try {
       await updateCatalogOptionGroup(editingGroup.id, {
-        displayOrder: editingGroup.displayOrder,
-        maxSelect: editingGroup.maxSelect,
-        minSelect: editingGroup.minSelect,
+        displayOrder: editDisplayOrder,
+        maxSelect: editMaxSelect,
+        minSelect: editMinSelect,
         name: editName.trim(),
-        selectionType: editingGroup.selectionType,
-        status: editingGroup.status,
+        selectionType: editSelectionType,
+        status: editStatus,
       });
       await refreshGroups();
       setEditingGroup(null);
@@ -106,15 +141,37 @@ export default function AdminOptionsPage() {
     try {
       await createCatalogOptionValue(groupId, {
         displayOrder: groups.find((group) => group.id === groupId)?.values.length ?? 0,
-        extraPrice: 0,
+        extraPrice: Number(valuePriceInput[groupId] || 0),
         isDefault: false,
         name: nextVal,
         status: "ACTIVE",
       });
       await refreshGroups();
       setValueInput((current) => ({ ...current, [groupId]: "" }));
+      setValuePriceInput((current) => ({ ...current, [groupId]: "" }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create option value.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateOptionValue = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingValue || !editingValue.name.trim() || editingValue.extraPrice < 0) return;
+    setIsSaving(true);
+    try {
+      await updateCatalogOptionValue(editingValue.id, {
+        displayOrder: editingValue.displayOrder,
+        extraPrice: editingValue.extraPrice,
+        isDefault: editingValue.isDefault,
+        name: editingValue.name.trim(),
+        status: editingValue.status,
+      });
+      await refreshGroups();
+      setEditingValue(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update option value.");
     } finally {
       setIsSaving(false);
     }
@@ -146,6 +203,106 @@ export default function AdminOptionsPage() {
         </CasButton>
       </div>
       {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
+
+      {editingValue ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-on-surface/55 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setEditingValue(null);
+          }}
+        >
+          <form
+            className="w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            onSubmit={updateOptionValue}
+          >
+            <h2 className="text-lg font-black text-cas-on-surface">Sửa giá trị option</h2>
+            <label className="block text-xs font-bold text-cas-on-surface-variant">
+              Tên
+              <input
+                className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface"
+                onChange={(event) =>
+                  setEditingValue((value) =>
+                    value ? { ...value, name: event.target.value } : value,
+                  )
+                }
+                required
+                value={editingValue.name}
+              />
+            </label>
+            <label className="block text-xs font-bold text-cas-on-surface-variant">
+              Giá cộng thêm
+              <input
+                className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface"
+                min="0"
+                onChange={(event) =>
+                  setEditingValue((value) =>
+                    value ? { ...value, extraPrice: Number(event.target.value) } : value,
+                  )
+                }
+                step="1"
+                type="number"
+                value={editingValue.extraPrice}
+              />
+            </label>
+            <label className="block text-xs font-bold text-cas-on-surface-variant">
+              Thứ tự hiển thị
+              <input
+                className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface"
+                min="0"
+                onChange={(event) =>
+                  setEditingValue((value) =>
+                    value ? { ...value, displayOrder: Number(event.target.value) } : value,
+                  )
+                }
+                type="number"
+                value={editingValue.displayOrder}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-bold text-cas-on-surface">
+              <input
+                checked={editingValue.isDefault}
+                onChange={(event) =>
+                  setEditingValue((value) =>
+                    value ? { ...value, isDefault: event.target.checked } : value,
+                  )
+                }
+                type="checkbox"
+              />
+              Chọn mặc định
+            </label>
+            <label className="block text-xs font-bold text-cas-on-surface-variant">
+              Trạng thái
+              <select
+                className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface"
+                onChange={(event) =>
+                  setEditingValue((value) =>
+                    value
+                      ? { ...value, status: event.target.value as CatalogOptionValue["status"] }
+                      : value,
+                  )
+                }
+                value={editingValue.status}
+              >
+                <option value="ACTIVE">Đang dùng</option>
+                <option value="INACTIVE">Ngừng dùng</option>
+              </select>
+            </label>
+            <div className="flex justify-end gap-2">
+              <CasButton
+                onClick={() => setEditingValue(null)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                Hủy
+              </CasButton>
+              <CasButton disabled={isSaving} size="sm" type="submit" variant="primary">
+                Lưu thay đổi
+              </CasButton>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {/* Modal Tạo nhóm option */}
       {showAddForm && (
@@ -184,6 +341,69 @@ export default function AdminOptionsPage() {
                   value={name}
                 />
               </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Kiểu chọn
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) =>
+                    setSelectionType(event.target.value as CatalogOptionGroup["selectionType"])
+                  }
+                  value={selectionType}
+                >
+                  <option value="SINGLE">Chọn một</option>
+                  <option value="MULTIPLE">Chọn nhiều</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Chọn tối thiểu
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) => setMinSelect(Number(event.target.value))}
+                    type="number"
+                    value={minSelect}
+                  />
+                </label>
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Chọn tối đa
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) =>
+                      setMaxSelect(event.target.value === "" ? null : Number(event.target.value))
+                    }
+                    placeholder="Không giới hạn"
+                    type="number"
+                    value={maxSelect ?? ""}
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Thứ tự hiển thị
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) => setDisplayOrder(Number(event.target.value))}
+                    type="number"
+                    value={displayOrder}
+                  />
+                </label>
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Trạng thái
+                  <select
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    onChange={(event) =>
+                      setStatus(event.target.value as CatalogOptionGroup["status"])
+                    }
+                    value={status}
+                  >
+                    <option value="ACTIVE">Đang dùng</option>
+                    <option value="INACTIVE">Ngừng dùng</option>
+                  </select>
+                </label>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -203,7 +423,7 @@ export default function AdminOptionsPage() {
         </div>
       )}
 
-      {/* Modal Sửa tên nhóm */}
+      {/* Modal sửa nhóm option */}
       {editingGroup && (
         <div
           className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
@@ -216,9 +436,7 @@ export default function AdminOptionsPage() {
             onSubmit={updateGroupName}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
-              <h3 className="text-base font-black text-cas-on-surface">
-                Chỉnh sửa Tên Nhóm Option
-              </h3>
+              <h3 className="text-base font-black text-cas-on-surface">Chỉnh sửa Nhóm Option</h3>
               <button
                 className="text-xs font-bold text-cas-on-surface-variant hover:text-cas-primary"
                 onClick={() => setEditingGroup(null)}
@@ -240,6 +458,71 @@ export default function AdminOptionsPage() {
                   type="text"
                   value={editName}
                 />
+              </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Kiểu chọn
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) =>
+                    setEditSelectionType(event.target.value as CatalogOptionGroup["selectionType"])
+                  }
+                  value={editSelectionType}
+                >
+                  <option value="SINGLE">Chọn một</option>
+                  <option value="MULTIPLE">Chọn nhiều</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Chọn tối thiểu
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) => setEditMinSelect(Number(event.target.value))}
+                    type="number"
+                    value={editMinSelect}
+                  />
+                </label>
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Chọn tối đa
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) =>
+                      setEditMaxSelect(
+                        event.target.value === "" ? null : Number(event.target.value),
+                      )
+                    }
+                    placeholder="Không giới hạn"
+                    type="number"
+                    value={editMaxSelect ?? ""}
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Thứ tự hiển thị
+                  <input
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    min="0"
+                    onChange={(event) => setEditDisplayOrder(Number(event.target.value))}
+                    type="number"
+                    value={editDisplayOrder}
+                  />
+                </label>
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Trạng thái
+                  <select
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    onChange={(event) =>
+                      setEditStatus(event.target.value as CatalogOptionGroup["status"])
+                    }
+                    value={editStatus}
+                  >
+                    <option value="ACTIVE">Đang dùng</option>
+                    <option value="INACTIVE">Ngừng dùng</option>
+                  </select>
+                </label>
               </div>
             </div>
 
@@ -309,8 +592,13 @@ export default function AdminOptionsPage() {
                     onClick={() => {
                       setEditingGroup(group);
                       setEditName(group.name);
+                      setEditSelectionType(group.selectionType);
+                      setEditMinSelect(group.minSelect);
+                      setEditMaxSelect(group.maxSelect);
+                      setEditDisplayOrder(group.displayOrder);
+                      setEditStatus(group.status);
                     }}
-                    title="Sửa tên nhóm"
+                    title="Sửa nhóm option"
                     type="button"
                   >
                     <CasIcon className="size-4" name="edit" />
@@ -335,6 +623,15 @@ export default function AdminOptionsPage() {
                     >
                       <span>{val.name}</span>
                       <button
+                        className="cursor-pointer rounded-full p-0.5 text-cas-secondary transition hover:bg-cas-secondary/20 hover:text-cas-primary"
+                        disabled={isSaving}
+                        onClick={() => setEditingValue(val)}
+                        title={`Sửa giá trị ${val.name}`}
+                        type="button"
+                      >
+                        <CasIcon className="size-3" name="edit" />
+                      </button>
+                      <button
                         className="cursor-pointer rounded-full p-0.5 text-cas-secondary transition hover:bg-cas-secondary/20 hover:text-rose-600"
                         disabled={isSaving}
                         onClick={() => void removeOptionValue(val.id)}
@@ -354,7 +651,7 @@ export default function AdminOptionsPage() {
             </div>
 
             <form
-              className="mt-5 flex gap-2 border-t border-cas-outline-variant/15 pt-3"
+              className="mt-5 flex flex-wrap gap-2 border-t border-cas-outline-variant/15 pt-3"
               onSubmit={(event) => addOptionValue(group.id, event)}
             >
               <input
@@ -364,6 +661,17 @@ export default function AdminOptionsPage() {
                 }
                 placeholder="Nhập giá trị option mới (VD: Siêu cay, Size L...)"
                 value={valueInput[group.id] ?? ""}
+              />
+              <input
+                className="w-28 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                min="0"
+                onChange={(event) =>
+                  setValuePriceInput((current) => ({ ...current, [group.id]: event.target.value }))
+                }
+                placeholder="Giá thêm"
+                step="1"
+                type="number"
+                value={valuePriceInput[group.id] ?? ""}
               />
               <CasButton size="sm" type="submit" variant="outline-primary">
                 Thêm

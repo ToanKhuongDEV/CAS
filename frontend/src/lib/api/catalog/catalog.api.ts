@@ -43,6 +43,7 @@ export type CatalogOptionValue = {
 export type CatalogMenuItem = {
   availabilityStatus: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
   categoryId: number;
+  createdAt?: string;
   description: string | null;
   displayOrder: number;
   id: number;
@@ -159,6 +160,10 @@ export function createCatalogOptionValue(groupId: number, value: SaveCatalogOpti
     body: JSON.stringify(value),
     method: "POST",
   });
+}
+
+export function updateCatalogOptionValue(id: number, value: SaveCatalogOptionValue) {
+  return request<void>(`/option-values/${id}`, { body: JSON.stringify(value), method: "PUT" });
 }
 
 export function deleteCatalogOptionValue(id: number) {

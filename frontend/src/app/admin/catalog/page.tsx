@@ -117,6 +117,7 @@ export default function AdminCatalogPage() {
           status: item.availabilityStatus,
           tags: item.tags?.map((tag) => tag.name) ?? [],
           description: item.description ?? "",
+          createdAt: item.createdAt,
           displayOrder: item.displayOrder,
           optionGroups: item.optionGroups?.map((group) => group.name) ?? [],
           imageSrc: item.imageUrl ?? "",
