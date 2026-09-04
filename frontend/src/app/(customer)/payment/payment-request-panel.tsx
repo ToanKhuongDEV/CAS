@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
@@ -22,27 +22,75 @@ function formatConfirmedAt(value: string | null) {
     : new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
-export function PaymentRequestPanel() {
+const defaultPaymentPollIntervalMs = 10_000;
+const customerTableSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
+
+export function PaymentRequestPanel({
+  pollIntervalMs = defaultPaymentPollIntervalMs,
+}: {
+  pollIntervalMs?: number;
+}) {
   const router = useRouter();
   const [bill, setBill] = useState<CustomerBill | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRequestingPayment, setIsRequestingPayment] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(true);
+  const isPolling = useRef(false);
 
   useEffect(() => {
-    const load = () => {
-      void loadCustomerBill()
-        .then(setBill)
-        .catch((cause) => {
-          setError(cause instanceof Error ? cause.message : "Không thể tải hóa đơn.");
-        });
-      void loadCustomerPayment()
-        .then(setPayment)
-        .catch(() => undefined);
+    if (!hasActiveSession) return;
+
+    let isActive = true;
+
+    async function load() {
+      if (isPolling.current) return;
+
+      isPolling.current = true;
+      try {
+        const [billResult, paymentResult] = await Promise.allSettled([
+          loadCustomerBill(),
+          loadCustomerPayment(),
+        ]);
+        if (!isActive) return;
+
+        const sessionIsClosed = [billResult, paymentResult].some(
+          (result) =>
+            result.status === "rejected" &&
+            result.reason instanceof Error &&
+            result.reason.message === customerTableSessionRequiredMessage,
+        );
+        if (sessionIsClosed) {
+          setBill(null);
+          setPayment(null);
+          setError(null);
+          setHasActiveSession(false);
+          return;
+        }
+
+        if (billResult.status === "fulfilled") {
+          setBill(billResult.value);
+          setError(null);
+        } else {
+          setError(
+            billResult.reason instanceof Error
+              ? billResult.reason.message
+              : "Không thể tải hóa đơn.",
+          );
+        }
+        if (paymentResult.status === "fulfilled") setPayment(paymentResult.value);
+      } finally {
+        isPolling.current = false;
+      }
+    }
+
+    void load();
+    const timer = window.setInterval(() => void load(), pollIntervalMs);
+    return () => {
+      isActive = false;
+      window.clearInterval(timer);
     };
-    load();
-    const timer = window.setInterval(load, 5000);
-    return () => window.clearInterval(timer);
-  }, []);
+  }, [hasActiveSession, pollIntervalMs]);
 
   const isPending = payment?.status === "PENDING";
 
@@ -50,6 +98,22 @@ export function PaymentRequestPanel() {
     const token = window.sessionStorage.getItem("cas.tableQrToken");
     router.push(token ? `/table/${encodeURIComponent(token)}` : "/");
   }
+
+  async function requestPayment() {
+    if (isRequestingPayment || isPending) return;
+
+    setError(null);
+    setIsRequestingPayment(true);
+    try {
+      setPayment(await createCustomerPayment());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Không thể gửi yêu cầu thanh toán.");
+    } finally {
+      setIsRequestingPayment(false);
+    }
+  }
+
+  if (!hasActiveSession) return null;
 
   if (payment?.status === "PAID") {
     return (
@@ -189,20 +253,16 @@ export function PaymentRequestPanel() {
       <div className="mt-5">
         <CasButton
           className="w-full shadow-[0_8px_20px_var(--cas-shadow-color)]"
-          disabled={isPending}
-          icon={isPending ? "clock" : "payment"}
+          disabled={isPending || isRequestingPayment}
+          icon={isPending || isRequestingPayment ? "clock" : "payment"}
           size="lg"
-          onClick={() =>
-            void createCustomerPayment()
-              .then(setPayment)
-              .catch((cause) =>
-                setError(
-                  cause instanceof Error ? cause.message : "Không thể gửi yêu cầu thanh toán.",
-                ),
-              )
-          }
+          onClick={() => void requestPayment()}
         >
-          {isPending ? "Đã gửi yêu cầu thanh toán" : "Gửi yêu cầu thanh toán"}
+          {isPending
+            ? "Đã gửi yêu cầu thanh toán"
+            : isRequestingPayment
+              ? "Đang gửi yêu cầu..."
+              : "Gửi yêu cầu thanh toán"}
         </CasButton>
         <p className="mt-3 text-center text-[0.68rem] leading-relaxed text-cas-on-surface-variant">
           Tổng tiền sẽ được hệ thống xác nhận lại khi gửi yêu cầu.

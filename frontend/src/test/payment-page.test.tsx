@@ -67,6 +67,7 @@ describe("PaymentRequestPanel", () => {
       amount: 55_000,
       billSnapshot: "{}",
       confirmedAt: "2026-09-01T20:05:00+07:00",
+      createdAt: "2026-09-01T20:00:00+07:00",
       publicId: "payment-1",
       status: "PAID",
       tableCode: 8,
@@ -80,11 +81,30 @@ describe("PaymentRequestPanel", () => {
     expect(screen.getByText("20:05")).toBeInTheDocument();
   });
 
+  it("clears the payment view when the table session is closed", async () => {
+    vi.mocked(loadCustomerBill).mockRejectedValue(
+      new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
+    );
+    vi.mocked(loadCustomerPayment).mockRejectedValue(
+      new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
+    );
+    render(<PaymentRequestPanel />);
+
+    await waitFor(() => expect(loadCustomerBill).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Gửi yêu cầu thanh toán" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Đang tải hóa đơn…")).not.toBeInTheDocument();
+  });
+
   it("creates a payment through the API", async () => {
     vi.mocked(createCustomerPayment).mockResolvedValue({
       amount: 55_000,
       billSnapshot: "{}",
       confirmedAt: null,
+      createdAt: "2026-09-01T20:00:00+07:00",
       publicId: "payment-1",
       status: "PENDING",
       tableCode: 8,
