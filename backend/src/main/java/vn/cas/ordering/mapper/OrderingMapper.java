@@ -43,6 +43,8 @@ public interface OrderingMapper {
     CancellationRequest findCancellationRequest(@Param("orderItemId") long orderItemId,
             @Param("idempotencyKey") String idempotencyKey);
 
+    boolean hasPendingCancellationRequests(@Param("sessionId") long sessionId);
+
     int insertCancellationRequest(@Param("publicId") String publicId,
             @Param("orderItemId") long orderItemId, @Param("idempotencyKey") String idempotencyKey,
             @Param("requestedQuantity") int requestedQuantity, @Param("reason") String reason);

@@ -14,4 +14,7 @@ public interface PaymentMapper {
             @Param("amount") java.math.BigDecimal amount, @Param("snapshot") String snapshot);
     int confirm(@Param("id") long id, @Param("accountId") long accountId,
             @Param("name") String name);
+
+    int resolveOpenUnpaidRecord(@Param("sessionId") long sessionId,
+            @Param("paymentId") long paymentId);
 }

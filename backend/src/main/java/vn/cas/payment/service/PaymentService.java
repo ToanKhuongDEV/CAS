@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.operation.dto.AuditLogCommand;
+import vn.cas.operation.service.AuditLogService;
+import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.service.CustomerOrderingService;
 import vn.cas.payment.mapper.PaymentMapper;
 import vn.cas.payment.model.PaymentView;
@@ -21,13 +24,18 @@ public class PaymentService {
     private final CustomerTableSessionService sessions;
     private final DiningTableMapper tables;
     private final CustomerOrderingService orders;
+    private final OrderingMapper ordering;
+    private final AuditLogService auditLogs;
     private final ObjectMapper json;
     public PaymentService(PaymentMapper payments, CustomerTableSessionService sessions,
-            DiningTableMapper tables, CustomerOrderingService orders, ObjectMapper json) {
+            DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
+            AuditLogService auditLogs, ObjectMapper json) {
         this.payments = payments;
         this.sessions = sessions;
         this.tables = tables;
         this.orders = orders;
+        this.ordering = ordering;
+        this.auditLogs = auditLogs;
         this.json = json;
     }
     @Transactional
@@ -36,6 +44,11 @@ public class PaymentService {
         var current = payments.findBySessionId(session.sessionId());
         if (current != null)
             return current;
+        if (!"OPEN".equals(session.sessionStatus()))
+            throw new ApiException(HttpStatus.CONFLICT, "Phiên bàn không thể yêu cầu thanh toán.");
+        if (ordering.hasPendingCancellationRequests(session.sessionId()))
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Vui lòng chờ xử lý các yêu cầu hủy món trước khi thanh toán.");
         var bill = orders.currentBill(sessionPublicId);
         if (bill.payableAmount().signum() <= 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill không có số tiền cần thanh toán.");
@@ -62,8 +75,13 @@ public class PaymentService {
         if (v == null)
             throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy payment.");
         if ("PENDING".equals(v.status())) {
-            payments.confirm(v.id(), p.accountId(), p.displayName());
-            tables.closePaymentSession(v.tableSessionId());
+            if (payments.confirm(v.id(), p.accountId(), p.displayName()) == 1) {
+                payments.resolveOpenUnpaidRecord(v.tableSessionId(), v.id());
+                tables.closePaymentSession(v.tableSessionId());
+                auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
+                        "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),
+                        p.displayName(), "Xác nhận payment thủ công."));
+            }
         }
         return payments.findByPublicId(p.storeId(), publicId);
     }

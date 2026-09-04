@@ -58,6 +58,16 @@
         FROM order_item_cancellation_requests
         WHERE order_item_id = #{orderItemId} AND idempotency_key = #{idempotencyKey}
     </select>
+    <select id="hasPendingCancellationRequests" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM order_item_cancellation_requests
+            INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+            INNER JOIN orders ON orders.id = order_items.order_id
+            WHERE orders.table_session_id = #{sessionId}
+              AND order_item_cancellation_requests.status = 'PENDING'
+        )
+    </select>
     <insert id="insertCancellationRequest">
         INSERT INTO order_item_cancellation_requests (public_id, order_item_id, created_by_account_id, created_by_name, idempotency_key, requested_quantity, reason, status, is_remade, resolved_by, resolved_by_name, resolved_at)
         VALUES (#{publicId}, #{orderItemId}, NULL, NULL, #{idempotencyKey}, #{requestedQuantity}, #{reason}, 'PENDING', FALSE, NULL, NULL, NULL)

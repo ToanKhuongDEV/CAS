@@ -112,6 +112,15 @@ curl.exe http://localhost:8080/api/v1/operator/table-sessions/tables -H "Authori
 curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 
+Ví dụ luồng thanh toán: Customer tạo/xem payment bằng cookie session; `OPERATOR` chỉ xác nhận sau khi đã kiểm tra giao dịch thành công ngoài CAS:
+
+```powershell
+curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+```
+
 Ví dụ API chế biến cho `OPERATOR`. Lấy `groupKey` từ response của API danh sách
 nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành mẻ:
 

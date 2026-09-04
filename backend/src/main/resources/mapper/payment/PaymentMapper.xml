@@ -5,4 +5,5 @@
 <select id="findPending" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PENDING' ORDER BY payments.created_at ASC</select>
 <insert id="insert">INSERT INTO payments(public_id,table_session_id,amount,bill_snapshot,status) VALUES(#{publicId},#{sessionId},#{amount},#{snapshot},'PENDING')</insert>
 <update id="confirm">UPDATE payments SET status='PAID',confirmed_by=#{accountId},confirmed_by_name=#{name},confirmed_at=CURRENT_TIMESTAMP(3) WHERE id=#{id} AND status='PENDING'</update>
+<update id="resolveOpenUnpaidRecord">UPDATE unpaid_records SET status='RESOLVED',resolution_payment_id=#{paymentId},resolved_at=CURRENT_TIMESTAMP(3) WHERE table_session_id=#{sessionId} AND status='OPEN'</update>
 </mapper>
