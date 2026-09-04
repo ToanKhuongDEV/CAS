@@ -2,14 +2,25 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { OperatorTabNavigation } from "../components/operator/operator-tab-navigation";
+import { QueryProvider } from "../components/providers/query-provider";
+import { loadOperatorPendingPaymentCount } from "../lib/api/payment/payment.api";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/operator/orders/ORD-0819",
 }));
+vi.mock("../lib/api/payment/payment.api", () => ({
+  loadOperatorPendingPaymentCount: vi.fn(),
+  operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
+}));
 
 describe("OperatorTabNavigation", () => {
-  it("renders six separate routes and keeps the parent tab active on order detail", () => {
-    render(<OperatorTabNavigation />);
+  it("renders six routes and shows the live pending-payment count", async () => {
+    vi.mocked(loadOperatorPendingPaymentCount).mockResolvedValue(2);
+    render(
+      <QueryProvider>
+        <OperatorTabNavigation />
+      </QueryProvider>,
+    );
 
     const expectedTabs = [
       [/Tổng quan/, "/operator/dashboard"],
@@ -27,5 +38,6 @@ describe("OperatorTabNavigation", () => {
       "aria-current",
       "page",
     );
+    expect(await screen.findByLabelText("2 yêu cầu thanh toán chờ xác nhận")).toBeInTheDocument();
   });
 });

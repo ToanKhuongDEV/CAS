@@ -2,12 +2,19 @@ import { getFirebaseAuth } from "../../auth/firebase";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 type ApiResponse<T> = { data: T; message?: string };
+export const operatorPendingPaymentCountQueryKey = [
+  "operator",
+  "payments",
+  "pending-count",
+] as const;
+
 export type Payment = {
   publicId: string;
   tableCode: number;
   amount: number;
   status: "PENDING" | "PAID";
   confirmedAt: string | null;
+  createdAt: string;
   billSnapshot: string;
 };
 
@@ -19,6 +26,9 @@ export function createCustomerPayment() {
 }
 export function loadOperatorPayments() {
   return operator<Payment[]>("/payments");
+}
+export function loadOperatorPendingPaymentCount() {
+  return operator<number>("/payments/pending-count");
 }
 export function confirmOperatorPayment(id: string) {
   return operator<Payment>(`/payments/${encodeURIComponent(id)}/confirm`, { method: "POST" });

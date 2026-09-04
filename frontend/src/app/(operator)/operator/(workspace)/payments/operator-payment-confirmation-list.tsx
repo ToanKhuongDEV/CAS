@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
+import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
   loadOperatorPayments,
+  operatorPendingPaymentCountQueryKey,
   type Payment,
 } from "../../../../../lib/api/payment/payment.api";
+import { loadPublicStore } from "../../../../../lib/api/store/public-store.api";
+import type { StoreSettings } from "../../../../../lib/api/store/store-settings.api";
 
 type ReceiptItem = {
   name: string;
@@ -20,13 +26,29 @@ type ReceiptItem = {
 type PendingPayment = {
   amount: string;
   billNumber: string;
+  discountAmount: string;
   id: string;
   items: ReceiptItem[];
+  originalAmount: string;
+  payableAmount: string;
   requestedAt: string;
   table: string;
 };
 
 const currency = new Intl.NumberFormat("vi-VN");
+const defaultPaymentPollIntervalMs = 10_000;
+
+function formatRequestedAt(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        month: "2-digit",
+      }).format(date);
+}
 
 function toPendingPayment(payment: Payment): PendingPayment {
   let snapshot: {
@@ -40,6 +62,7 @@ function toPendingPayment(payment: Payment): PendingPayment {
         options?: Array<{ optionName: string; unitPrice: number }>;
       }>;
     }>;
+    originalAmount?: number;
   } = {};
   try {
     snapshot = JSON.parse(payment.billSnapshot) as typeof snapshot;
@@ -47,13 +70,18 @@ function toPendingPayment(payment: Payment): PendingPayment {
     // A malformed historical snapshot must not make the payment queue unusable.
   }
   const items = snapshot.orders?.flatMap((order) => order.items ?? []) ?? [];
+  const originalAmount = snapshot.originalAmount ?? payment.amount;
+  const discountAmount = Math.max(0, originalAmount - payment.amount);
   const formatCurrency = (amount: number) => `${currency.format(amount)}đ`;
   return {
     id: payment.publicId,
     table: `Bàn ${String(payment.tableCode).padStart(2, "0")}`,
     amount: formatCurrency(payment.amount),
-    requestedAt: "Đang chờ xác nhận",
+    requestedAt: formatRequestedAt(payment.createdAt),
     billNumber: payment.publicId,
+    originalAmount: formatCurrency(originalAmount),
+    discountAmount: formatCurrency(discountAmount),
+    payableAmount: formatCurrency(payment.amount),
     items: items.map((item) => ({
       name: item.itemName,
       quantity: item.quantity,
@@ -67,22 +95,75 @@ function toPendingPayment(payment: Payment): PendingPayment {
   };
 }
 
-export function OperatorPaymentConfirmationList() {
+export function OperatorPaymentConfirmationList({
+  pollIntervalMs = defaultPaymentPollIntervalMs,
+}: {
+  pollIntervalMs?: number;
+}) {
   const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [store, setStore] = useState<StoreSettings | null>(null);
+  const [operatorName, setOperatorName] = useState<string | null>(null);
+  const pendingLoad = useRef<Promise<Payment[]> | null>(null);
+  const queryClient = useQueryClient();
+
   useEffect(() => {
-    void loadOperatorPayments()
-      .then((items) => setPayments(items.map(toPendingPayment)))
-      .catch((error: unknown) =>
+    let isActive = true;
+
+    async function load() {
+      const request = pendingLoad.current ?? loadOperatorPayments();
+      pendingLoad.current = request;
+      try {
+        const items = await request;
+        if (!isActive) return;
+        setPayments(items.map(toPendingPayment));
+        setLoadError(null);
+      } catch (error) {
+        if (!isActive) return;
         setLoadError(
           error instanceof Error ? error.message : "Không thể tải payment chờ xác nhận.",
-        ),
-      )
-      .finally(() => setIsLoading(false));
+        );
+      } finally {
+        if (isActive) setIsLoading(false);
+        if (pendingLoad.current === request) pendingLoad.current = null;
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (!document.hidden) void load();
+    }
+
+    void load();
+    const timer = window.setInterval(() => void load(), pollIntervalMs);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      isActive = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [pollIntervalMs]);
+
+  useEffect(() => {
+    let isActive = true;
+    const user = getFirebaseAuth().currentUser;
+    if (!user) return;
+
+    void getCurrentOperationalAccount(user)
+      .then(async (account) => {
+        const storeSettings = await loadPublicStore(account.storeId);
+        if (!isActive) return;
+        setOperatorName(account.displayName);
+        setStore(storeSettings);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isActive = false;
+    };
   }, []);
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
 
@@ -117,6 +198,9 @@ export function OperatorPaymentConfirmationList() {
       await confirmOperatorPayment(selectedPayment.id);
       setPayments((currentPayments) =>
         currentPayments.filter((payment) => payment.id !== selectedPayment.id),
+      );
+      queryClient.setQueryData<number>(operatorPendingPaymentCountQueryKey, (currentCount) =>
+        Math.max(0, (currentCount ?? 1) - 1),
       );
       setConfirmedMessage(
         `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
@@ -230,17 +314,17 @@ export function OperatorPaymentConfirmationList() {
 
             <section aria-label="Bản in bill" className="print-bill">
               <header className="print-bill__header">
-                <strong>TIỆM ĂN VẶT &amp; MỲ CAY CAS</strong>
-                <span>123 Đường Ẩm Thực, Quận 1, TP. Hồ Chí Minh</span>
-                <span>Hotline: 0901 234 567</span>
+                <strong>{store?.name ?? "Thông tin cửa hàng"}</strong>
+                <span>{store?.address ?? "—"}</span>
+                <span>Hotline: {store?.phone ?? "—"}</span>
               </header>
 
               <h1>HÓA ĐƠN THANH TOÁN</h1>
               <div className="print-bill__meta">
                 <span>{selectedPayment.billNumber}</span>
                 <span>{selectedPayment.table}</span>
-                <span>Thời gian: 11/08/2026 · {selectedPayment.requestedAt}</span>
-                <span>Thu ngân: Nhân viên đang đăng nhập</span>
+                <span>Yêu cầu lúc: {selectedPayment.requestedAt}</span>
+                <span>Người xác nhận: {operatorName ?? "—"}</span>
               </div>
 
               <div className="print-bill__divider" />
@@ -252,8 +336,8 @@ export function OperatorPaymentConfirmationList() {
               <div className="print-bill__divider" />
 
               <div className="print-bill__items">
-                {selectedPayment.items.map((item) => (
-                  <div className="print-bill__item" key={item.name}>
+                {selectedPayment.items.map((item, index) => (
+                  <div className="print-bill__item" key={`${item.name}-${index}`}>
                     <strong>{item.name}</strong>
                     <div className="print-bill__item-price">
                       <span>
@@ -274,14 +358,14 @@ export function OperatorPaymentConfirmationList() {
               <div className="print-bill__divider" />
               <div className="print-bill__total">
                 <span>Tạm tính</span>
-                <strong>{selectedPayment.amount}</strong>
+                <strong>{selectedPayment.originalAmount}</strong>
                 <span>Giảm giá</span>
-                <strong>0đ</strong>
+                <strong>{selectedPayment.discountAmount}</strong>
                 <span>TỔNG THANH TOÁN</span>
-                <strong className="print-bill__grand-total">{selectedPayment.amount}</strong>
+                <strong className="print-bill__grand-total">{selectedPayment.payableAmount}</strong>
               </div>
               <div className="print-bill__divider" />
-              <p>Phương thức: Chuyển khoản / Tiền mặt</p>
+              <p>Trạng thái: Xác nhận thanh toán thủ công</p>
               <footer>Cảm ơn quý khách. Hẹn gặp lại!</footer>
             </section>
 
