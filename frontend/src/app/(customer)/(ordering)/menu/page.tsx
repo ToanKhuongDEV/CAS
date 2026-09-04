@@ -10,8 +10,12 @@ import {
   type MenuOptionGroup,
 } from "../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../components/ui/cas-icon";
-import { loadCustomerCatalog } from "../../../../lib/api/catalog/published-catalog.api";
-import { loadPublicStoreWelcomeConfig } from "../../../../lib/api/store/public-store.api";
+import { useToast } from "../../../../components/ui/toast-provider";
+import { useCustomerCatalog } from "../../../../lib/api/catalog/customer-catalog.query";
+import {
+  loadPublicStore,
+  loadPublicStoreWelcomeConfig,
+} from "../../../../lib/api/store/public-store.api";
 import { addCustomerCartLine } from "../../../../lib/customer/cart";
 import { hasOpenCustomerTableSession } from "../../../../lib/customer/table-session";
 import { CategoryNavigation } from "./category-navigation";
@@ -39,66 +43,75 @@ type CatalogCategoryNavigationItem = {
 
 export default function MenuPage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const { data: catalog, error: catalogLoadError } = useCustomerCatalog();
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategoryNavigationItem[]>([]);
   const [catalogItems, setCatalogItems] = useState<CustomerMenuItem[]>([]);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [welcomeBannerImageUrl, setWelcomeBannerImageUrl] = useState<string | null>(null);
+  const [storePhone, setStorePhone] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    void loadCustomerCatalog()
-      .then((catalog) => {
-        setCatalogError(null);
-        const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
-        setCatalogCategories(
-          catalog.categories.map((category) => ({
-            id: String(category.id),
-            label: category.name,
-          })),
-        );
-        setCatalogItems(
-          catalog.items.map((item) => ({
-            id: item.id,
-            availabilityStatus: item.availabilityStatus,
-            badges: (item.tags ?? []).map((tag) => tag.name),
-            basePrice: item.price,
-            categoryId: String(item.categoryId),
-            description: item.description ?? "",
-            detailSlug: String(item.id),
-            imageAlt: item.name,
-            imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
-            name: item.name,
-            optionGroups: (item.optionGroups ?? []).flatMap((group) => {
-              const optionGroup = optionGroupsById.get(group.id);
-              if (!optionGroup) return [];
-              return [
-                {
-                  id: String(group.id),
-                  label: group.name,
-                  maxSelect: optionGroup.maxSelect,
-                  minSelect: optionGroup.minSelect,
-                  options: optionGroup.values.map((value) => ({
-                    id: String(value.id),
-                    isDefault: value.isDefault,
-                    label: value.name,
-                    priceDelta: value.extraPrice,
-                  })),
-                  selectionType: optionGroup.selectionType,
-                },
-              ];
-            }),
-            price: `${new Intl.NumberFormat("vi-VN").format(item.price)}đ`,
-            quantity: 0,
-          })),
-        );
-      })
-      .catch((cause) =>
-        setCatalogError(cause instanceof Error ? cause.message : "Không thể tải thực đơn."),
-      );
     void loadPublicStoreWelcomeConfig()
       .then((config) => setWelcomeBannerImageUrl(config?.bannerImageUrl ?? null))
       .catch(() => undefined);
+    void loadPublicStore()
+      .then((store) => setStorePhone(store.phone))
+      .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!catalog) return;
+    const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
+    setCatalogCategories(
+      catalog.categories.map((category) => ({
+        id: String(category.id),
+        label: category.name,
+      })),
+    );
+    setCatalogItems(
+      catalog.items.map((item) => ({
+        id: item.id,
+        availabilityStatus: item.availabilityStatus,
+        badges: (item.tags ?? []).map((tag) => tag.name),
+        basePrice: item.price,
+        categoryId: String(item.categoryId),
+        description: item.description ?? "",
+        detailSlug: String(item.id),
+        imageAlt: item.name,
+        imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+        name: item.name,
+        optionGroups: (item.optionGroups ?? []).flatMap((group) => {
+          const optionGroup = optionGroupsById.get(group.id);
+          if (!optionGroup) return [];
+          return [
+            {
+              id: String(group.id),
+              label: group.name,
+              maxSelect: optionGroup.maxSelect,
+              minSelect: optionGroup.minSelect,
+              options: optionGroup.values.map((value) => ({
+                id: String(value.id),
+                isDefault: value.isDefault,
+                label: value.name,
+                priceDelta: value.extraPrice,
+              })),
+              selectionType: optionGroup.selectionType,
+            },
+          ];
+        }),
+        price: `${new Intl.NumberFormat("vi-VN").format(item.price)}đ`,
+        quantity: 0,
+      })),
+    );
+  }, [catalog]);
+
+  const catalogError =
+    catalogLoadError instanceof Error
+      ? catalogLoadError.message
+      : catalogLoadError
+        ? "Không thể tải thực đơn."
+        : null;
 
   const categoryNavigationItems = [
     ...catalogCategories,
@@ -200,7 +213,7 @@ export default function MenuPage() {
                             {item.badges.map((badge, index) => (
                               <span
                                 className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${
-                                  index === 0 ? "bg-cas-primary" : "bg-rose-600"
+                                  index === 0 ? "bg-cas-primary" : "bg-cas-secondary"
                                 }`}
                                 key={badge}
                               >
@@ -247,14 +260,31 @@ export default function MenuPage() {
                             onAddToCart={(payload) => {
                               if (item.id === undefined) return;
                               addCustomerCartLine({
+                                basePrice: item.basePrice,
+                                imageUrl: item.imageSrc,
                                 menuItemId: item.id,
                                 itemName: item.name,
                                 optionValueIds: Object.values(payload.selectedOptionIds)
                                   .flat()
                                   .map(Number),
                                 quantity: 1,
+                                selectedOptions:
+                                  item.optionGroups?.flatMap((group) =>
+                                    group.options
+                                      .filter((option) =>
+                                        payload.selectedOptionIds[group.id]?.includes(option.id),
+                                      )
+                                      .map((option) => ({
+                                        name: option.label,
+                                        price: option.priceDelta,
+                                      })),
+                                  ) ?? [],
                               });
                               window.dispatchEvent(new Event("cas-cart-updated"));
+                              showToast({
+                                message: `Đã thêm ${item.name} vào giỏ hàng.`,
+                                type: "success",
+                              });
                             }}
                           />
                         </div>
@@ -294,7 +324,7 @@ export default function MenuPage() {
                     </p>
                     <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
                       <CasIcon className="size-3.5" name="phone" />
-                      Liên hệ: 0901 234 567
+                      {storePhone ? `Liên hệ: ${storePhone}` : "Đang tải hotline..."}
                     </span>
                   </div>
                 </div>

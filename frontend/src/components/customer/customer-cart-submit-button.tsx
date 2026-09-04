@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
 import { clearCustomerCart, readCustomerCart } from "../../lib/customer/cart";
 import { createCustomerOrder } from "../../lib/api/ordering/ordering.api";
@@ -11,14 +12,21 @@ const tableQrTokenKey = "cas.tableQrToken";
 
 export function CustomerCartSubmitButton() {
   const router = useRouter();
+  const { showToast } = useToast();
 
   async function handleSubmitOrder() {
     const tableQrToken = window.sessionStorage.getItem(tableQrTokenKey);
     if (tableQrToken) {
       try {
         await getCurrentCustomerTableSession();
-        const items = readCustomerCart();
-        if (items.length === 0) return;
+      } catch {
+        router.push(`/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`);
+        return;
+      }
+
+      const items = readCustomerCart();
+      if (items.length === 0) return;
+      try {
         await createCustomerOrder({
           note: null,
           items: items.map(({ menuItemId, quantity, optionValueIds }) => ({
@@ -29,8 +37,11 @@ export function CustomerCartSubmitButton() {
         });
         clearCustomerCart();
         router.push("/orders");
-      } catch {
-        router.push(`/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`);
+      } catch (cause) {
+        showToast({
+          type: "error",
+          message: cause instanceof Error ? cause.message : "Không thể gửi món xuống bếp.",
+        });
       }
       return;
     }

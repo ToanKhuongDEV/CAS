@@ -5,11 +5,13 @@ import { useState } from "react";
 
 import type { MenuOptionGroup } from "../../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import { useToast } from "../../../../../components/ui/toast-provider";
 import { addCustomerCartLine } from "../../../../../lib/customer/cart";
 import { hasOpenCustomerTableSession } from "../../../../../lib/customer/table-session";
 
 type ProductDetailFormProps = {
   basePrice: number;
+  imageUrl: string | null;
   menuItemId: number;
   optionGroups: MenuOptionGroup[];
   productName: string;
@@ -19,11 +21,13 @@ const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(
 
 export function ProductDetailForm({
   basePrice,
+  imageUrl,
   menuItemId,
   optionGroups,
   productName,
 }: ProductDetailFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [selected, setSelected] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(
@@ -77,12 +81,20 @@ export function ProductDetailForm({
       return;
     }
     addCustomerCartLine({
+      basePrice,
+      imageUrl,
       itemName: productName,
       menuItemId,
       optionValueIds: Object.values(selected).flat().map(Number),
       quantity,
+      selectedOptions: optionGroups.flatMap((group) =>
+        group.options
+          .filter((option) => selected[group.id]?.includes(option.id))
+          .map((option) => ({ name: option.label, price: option.priceDelta })),
+      ),
     });
     window.dispatchEvent(new Event("cas-cart-updated"));
+    showToast({ message: `Đã thêm ${productName} vào giỏ hàng.`, type: "success" });
     router.push("/cart");
   }
 

@@ -1,8 +1,16 @@
 export type CustomerCartLine = {
+  basePrice?: number;
+  imageUrl?: string | null;
   menuItemId: number;
   itemName: string;
   optionValueIds: number[];
   quantity: number;
+  selectedOptions?: CustomerCartOption[];
+};
+
+export type CustomerCartOption = {
+  name: string;
+  price: number;
 };
 
 const key = "cas.customerCart";
@@ -23,8 +31,12 @@ export function addCustomerCartLine(line: CustomerCartLine) {
       item.menuItemId === line.menuItemId &&
       item.optionValueIds.join(",") === line.optionValueIds.join(","),
   );
-  if (existing) existing.quantity += line.quantity;
-  else cart.push(line);
+  if (existing) {
+    existing.quantity += line.quantity;
+    existing.imageUrl ??= line.imageUrl;
+    existing.basePrice ??= line.basePrice;
+    existing.selectedOptions ??= line.selectedOptions;
+  } else cart.push(line);
   window.sessionStorage.setItem(key, JSON.stringify(cart));
 }
 

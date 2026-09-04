@@ -2,15 +2,26 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "../app/(customer)/orders/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
+import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
 import { loadCustomerBill, requestCustomerCancellation } from "../lib/api/ordering/ordering.api";
 
+const replace = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace }),
 }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({
   loadCustomerBill: vi.fn(),
   requestCustomerCancellation: vi.fn(),
+}));
+vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadCustomerCatalog: vi.fn() }));
+vi.mock("../components/customer/customer-header", () => ({
+  CustomerHeader: () => <div data-testid="customer-header" />,
+}));
+vi.mock("../components/customer/customer-bottom-navigation", () => ({
+  CustomerBottomNavigation: () => <div data-testid="customer-bottom-navigation" />,
 }));
 
 const bill = {
@@ -45,19 +56,46 @@ const bill = {
 
 describe("OrdersPage", () => {
   beforeEach(() => {
+    replace.mockClear();
     vi.mocked(loadCustomerBill).mockResolvedValue(bill);
     vi.mocked(requestCustomerCancellation).mockResolvedValue(undefined);
+    vi.mocked(loadCustomerCatalog).mockResolvedValue({
+      categories: [],
+      items: [
+        {
+          availabilityStatus: "ACTIVE",
+          categoryId: 1,
+          description: null,
+          displayOrder: 1,
+          id: 10,
+          imageStorageKey: null,
+          imageUrl: "/images/welcome/spicy-noodles.jpg",
+          name: "Mỳ cay đặc biệt 7 cấp độ",
+          optionGroups: [],
+          price: 55_000,
+          tags: [],
+        },
+      ],
+      optionGroups: [],
+      tags: [],
+    });
   });
 
   it("lets a customer submit a cancellation request in the UI", async () => {
     render(
-      <ToastProvider>
-        <OrdersPage />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     expect(await screen.findByRole("heading", { name: "Đơn hàng · Bàn 05" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Hủy món" }));
+    expect(await screen.findByAltText("Mỳ cay đặc biệt 7 cấp độ")).toHaveAttribute(
+      "src",
+      expect.stringContaining("spicy-noodles.jpg"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yêu cầu hủy" }));
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "1" } });
     fireEvent.change(screen.getByPlaceholderText("Lý do hủy (không bắt buộc)"), {
       target: { value: "Gọi nhầm món" },
@@ -70,5 +108,27 @@ describe("OrdersPage", () => {
     expect(
       await screen.findByText("Yêu cầu hủy món đã được gửi cho nhân viên."),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("customer-header")).toBeInTheDocument();
+    expect(screen.getByTestId("customer-bottom-navigation")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gọi thêm món" })).toHaveAttribute("href", "/menu");
+    expect(screen.getByRole("link", { name: "Yêu cầu thanh toán" })).toHaveAttribute(
+      "href",
+      "/payment",
+    );
+  });
+
+  it("shows a load error without redirecting the customer to scan the QR again", async () => {
+    vi.mocked(loadCustomerBill).mockRejectedValueOnce(new Error("Không thể tải đơn hàng."));
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    expect(await screen.findByText("Không thể tải đơn hàng.")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 });

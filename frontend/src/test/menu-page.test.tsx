@@ -1,8 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
 import MenuPage from "../app/(customer)/(ordering)/menu/page";
+import { QueryProvider } from "../components/providers/query-provider";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
 import { loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 
@@ -10,6 +12,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadCustomerCatalog: vi.fn() }));
 vi.mock("../lib/customer/table-session", () => ({
   getCurrentCustomerTableSession: vi.fn().mockResolvedValue({ tableCode: 5 }),
+  hasOpenCustomerTableSession: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
@@ -74,9 +77,13 @@ describe("MenuPage", () => {
 
   it("renders catalog data loaded from the API", async () => {
     render(
-      <OrderingLayout>
-        <MenuPage />
-      </OrderingLayout>,
+      <QueryProvider>
+        <ToastProvider>
+          <OrderingLayout>
+            <MenuPage />
+          </OrderingLayout>
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     expect(screen.getByRole("searchbox", { name: "Tìm kiếm món ăn" })).toHaveAttribute(
@@ -86,6 +93,11 @@ describe("MenuPage", () => {
     expect((await screen.findAllByRole("heading", { name: "Mỳ cay API" })).length).toBeGreaterThan(
       0,
     );
+    expect(
+      screen
+        .getAllByRole("link", { name: "Mỳ cay API" })
+        .find((link) => link.getAttribute("href") === "/menu/10"),
+    ).toBeDefined();
     expect(screen.getByText("Món từ API")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dịch vụ thêm" })).toHaveAttribute(
       "href",
@@ -100,5 +112,21 @@ describe("MenuPage", () => {
       "src",
       expect.stringContaining("store-banner.jpg"),
     );
+  });
+
+  it("shows a success toast after adding an item to the cart", async () => {
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrderingLayout>
+            <MenuPage />
+          </OrderingLayout>
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Chọn tùy chọn cho Mỳ cay API" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã thêm Mỳ cay API vào giỏ hàng.");
   });
 });

@@ -133,6 +133,7 @@ export default function ProductDetailPage() {
           ) : (
             <ProductDetailForm
               basePrice={product.price}
+              imageUrl={product.imageUrl}
               menuItemId={product.id}
               optionGroups={product.optionGroups}
               productName={product.name}
