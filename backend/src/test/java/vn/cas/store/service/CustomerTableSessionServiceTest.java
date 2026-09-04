@@ -27,7 +27,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
         when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, null, null));
+                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
 
         var result = service
                 .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
@@ -53,7 +53,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldCreateOpenSessionForFirstCustomer() {
         when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, null, null));
+                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
             return 1;
@@ -107,7 +107,7 @@ class CustomerTableSessionServiceTest {
     @Test
     void shouldOpenSessionForOperatorWhenTableIsAvailable() {
         when(diningTableMapper.findTableSessionByStoreIdAndTableIdForUpdate(2L, 9L))
-                .thenReturn(new CustomerTableSessionLookup(0L, 9L, 2L, 5L, null, null));
+                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
             return 1;
