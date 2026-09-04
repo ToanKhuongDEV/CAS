@@ -22,31 +22,26 @@ const quickStats = [
 const fallbackMenuCategories = [
   {
     title: "Mỳ cay",
-    href: "/menu#my-cay",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay nóng với rau nấm và nhiều topping",
   },
   {
     title: "Nước giải khát",
-    href: "/menu#nuoc-giai-khat",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly matcha mát lạnh",
   },
   {
     title: "Cà phê",
-    href: "/menu#ca-phe",
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly cà phê sữa đá Việt Nam",
   },
   {
     title: "Trà sữa",
-    href: "/menu#tra-sua",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu mát lạnh",
   },
   {
     title: "Gà rán",
-    href: "/menu#ga-ran",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà rán giòn phủ sốt cay và mè",
   },
@@ -89,6 +84,7 @@ export default function Home() {
 
   const menuCategories = fallbackMenuCategories.map((category, index) => ({
     ...category,
+    href: `/menu?category=${encodeURIComponent(category.title)}`,
     imageSrc: imageUrl(
       welcome?.[
         `menuPreview${index + 1}ImageUrl` as keyof Pick<

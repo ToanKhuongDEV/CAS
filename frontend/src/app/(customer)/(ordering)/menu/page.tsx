@@ -106,6 +106,22 @@ export default function MenuPage() {
     );
   }, [catalog]);
 
+  useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("category")?.trim();
+    if (!requestedCategory || catalogCategories.length === 0) return;
+
+    const targetCategory = catalogCategories.find(
+      (category) =>
+        category.label.localeCompare(requestedCategory, undefined, { sensitivity: "base" }) === 0,
+    );
+    if (!targetCategory) return;
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetCategory.id);
+      target?.scrollIntoView?.({ block: "start" });
+    });
+  }, [catalogCategories]);
+
   const catalogError =
     catalogLoadError instanceof Error
       ? catalogLoadError.message

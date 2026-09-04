@@ -52,6 +52,10 @@ describe("Home", () => {
     expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
     expect(await screen.findByText("Bàn 12")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute("href", "/menu");
+    expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute(
+      "href",
+      "/menu?category=M%E1%BB%B3%20cay",
+    );
     expect(screen.getByRole("heading", { name: "Khám phá thực đơn" })).toBeInTheDocument();
     expect(screen.getAllByText("CAS Mì Cay")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "0900000000" })).toHaveAttribute(

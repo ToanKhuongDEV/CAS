@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
@@ -21,6 +21,7 @@ vi.mock("../lib/api/store/public-store.api", () => ({
 
 describe("MenuPage", () => {
   beforeEach(() => {
+    window.history.replaceState({}, "", "/menu");
     vi.mocked(loadPublicStoreWelcomeConfig).mockResolvedValue({
       bannerImageUrl: "https://example.test/store-banner.jpg",
       heroPrimaryImageUrl: null,
@@ -112,6 +113,26 @@ describe("MenuPage", () => {
       "src",
       expect.stringContaining("store-banner.jpg"),
     );
+  });
+
+  it("scrolls to the category requested from the welcome page", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.history.replaceState({}, "", "/menu?category=Mỳ cay API");
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrderingLayout>
+            <MenuPage />
+          </OrderingLayout>
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    await screen.findByRole("heading", { level: 2, name: "Mỳ cay API" });
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" }));
   });
 
   it("shows a success toast after adding an item to the cart", async () => {
