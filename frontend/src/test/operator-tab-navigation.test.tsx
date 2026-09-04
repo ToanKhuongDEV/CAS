@@ -27,8 +27,5 @@ describe("OperatorTabNavigation", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByText("8")).toBeInTheDocument();
-    expect(screen.getAllByText("3")).toHaveLength(2);
-    expect(screen.getAllByText("1")).toHaveLength(2);
   });
 });

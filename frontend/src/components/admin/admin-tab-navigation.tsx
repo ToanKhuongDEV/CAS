@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
 type SubMenuItem = {
-  badge?: number;
   children?: SubMenuItem[];
   href?: string;
   label: string;
@@ -44,8 +43,8 @@ const adminNavSchema: MenuItemGroup[] = [
     items: [
       { href: "/admin/operators", label: "Tài khoản Nhân viên" },
       { href: "/admin/admins", label: "Tài khoản Quản trị viên" },
-      { badge: 2, href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
-      { badge: 1, href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
+      { href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
+      { href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
     ],
   },
   {
@@ -78,20 +77,6 @@ function getAllGroupHrefs(items?: SubMenuItem[]): string[] {
     }
   }
   return hrefs;
-}
-
-function getTotalBadge(items?: SubMenuItem[]): number {
-  if (!items) return 0;
-  let total = 0;
-  for (const item of items) {
-    if (item.badge) total += item.badge;
-    if (item.children) {
-      for (const child of item.children) {
-        if (child.badge) total += child.badge;
-      }
-    }
-  }
-  return total;
 }
 
 function isRouteActive(pathname: string, targetHref: string, siblingHrefs: string[] = []) {
@@ -177,7 +162,6 @@ export function AdminTabNavigation() {
           );
           const isOpen = activeDropdown === group.label;
           const submenuId = `admin-submenu-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-          const totalBadge = getTotalBadge(group.items);
 
           return (
             <div key={group.label} className="relative shrink-0">
@@ -191,11 +175,6 @@ export function AdminTabNavigation() {
                 className={`flex min-h-12 items-center gap-1.5 rounded-xl px-3.5 text-base font-bold transition focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring ${isChildActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >
                 <span>{group.label}</span>
-                {Boolean(totalBadge) && (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cas-primary px-1 text-[0.65rem] font-black text-white">
-                    {totalBadge}
-                  </span>
-                )}
               </button>
             </div>
           );
@@ -280,13 +259,6 @@ export function AdminTabNavigation() {
                 className={`flex items-center justify-between rounded-xl px-4 py-2 text-xs font-bold transition ${isSubActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >
                 <span>{sub.label}</span>
-                {typeof sub.badge === "number" && (
-                  <span
-                    className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[0.65rem] font-black ${isSubActive ? "bg-white text-cas-secondary" : "bg-cas-primary text-white"}`}
-                  >
-                    {sub.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

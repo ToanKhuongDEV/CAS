@@ -23,8 +23,10 @@ it("shows and dismisses a shared toast", () => {
   );
 
   fireEvent.click(screen.getByRole("button", { name: "Hiện thông báo" }));
-  expect(screen.getByRole("status")).toHaveTextContent("Hoàn tất");
-  expect(screen.getByRole("status")).toHaveTextContent("Đã lưu thay đổi.");
+  const toast = screen.getByRole("status");
+  expect(toast).toHaveClass("bg-cas-surface", "text-cas-secondary");
+  expect(toast).toHaveTextContent("Hoàn tất");
+  expect(toast).toHaveTextContent("Đã lưu thay đổi.");
 
   fireEvent.click(screen.getByRole("button", { name: "Đóng thông báo" }));
   expect(screen.queryByRole("status")).not.toBeInTheDocument();

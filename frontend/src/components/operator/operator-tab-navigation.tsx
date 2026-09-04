@@ -7,7 +7,6 @@ import type { CasIconName } from "../ui/cas-icon";
 import { CasIcon } from "../ui/cas-icon";
 
 type OperatorTab = {
-  badge?: number;
   href: string;
   icon: CasIconName;
   label: string;
@@ -15,11 +14,11 @@ type OperatorTab = {
 
 const operatorTabs: OperatorTab[] = [
   { href: "/operator/dashboard", icon: "table", label: "Tổng quan" },
-  { badge: 8, href: "/operator/orders", icon: "bill", label: "Đơn gọi món" },
-  { badge: 3, href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
-  { badge: 3, href: "/operator/payments", icon: "payment", label: "Thanh toán" },
-  { badge: 1, href: "/operator/unpaid", icon: "clock", label: "Chưa thanh toán" },
-  { badge: 1, href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
+  { href: "/operator/orders", icon: "bill", label: "Đơn gọi món" },
+  { href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
+  { href: "/operator/payments", icon: "payment", label: "Thanh toán" },
+  { href: "/operator/unpaid", icon: "clock", label: "Chưa thanh toán" },
+  { href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
 ];
 
 export function OperatorTabNavigation() {
@@ -47,14 +46,6 @@ export function OperatorTabNavigation() {
             >
               <CasIcon className="size-5 shrink-0" name={tab.icon} />
               <span>{tab.label}</span>
-              {typeof tab.badge === "number" ? (
-                <span
-                  className={`ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[0.7rem] font-black leading-none ${isActive ? "bg-cas-secondary text-white shadow-xs" : "bg-cas-primary/15 text-cas-primary"}`}
-                  aria-label={`${tab.badge} mục cần xử lý`}
-                >
-                  {tab.badge}
-                </span>
-              ) : null}
             </Link>
           );
         })}
