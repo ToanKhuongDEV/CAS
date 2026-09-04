@@ -14,6 +14,7 @@ import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
+const customerTableSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
 
 function formatOrderTime(createdAt: string) {
   return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(
@@ -48,6 +49,31 @@ export function CustomerOrdersLiveView() {
     }
     return imageUrls;
   }, [catalog]);
+  if (error === customerTableSessionRequiredMessage) {
+    return (
+      <main className="grid min-h-96 min-w-0 flex-1 place-items-center pb-6">
+        <section className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-7 text-center shadow-[0_8px_24px_var(--cas-shadow-color)]">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/25 text-cas-secondary">
+            <CasIcon className="size-7" name="table" />
+          </span>
+          <p className="mt-5 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+            Chưa chọn bàn
+          </p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Xem đơn hàng theo bàn</h1>
+          <p className="mt-3 text-sm leading-6 text-cas-on-surface-variant">
+            Quét mã QR tại bàn để xem món đã gọi, theo dõi trạng thái và gửi yêu cầu thanh toán.
+          </p>
+          <Link
+            className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+            href="/scan"
+          >
+            <CasIcon className="size-5" name="table" />
+            Quét mã QR của bàn
+          </Link>
+        </section>
+      </main>
+    );
+  }
   if (error) return <p className="text-cas-error">{error}</p>;
   if (!bill) return <p className="text-cas-on-surface-variant">Đang tải đơn hàng…</p>;
   const totalItemQuantity = bill.orders.reduce(
@@ -99,8 +125,7 @@ export function CustomerOrdersLiveView() {
         <div className="divide-y divide-cas-outline-variant/40">
           {bill.orders.map((order) => (
             <section className="py-4 first:pt-5" key={order.orderId}>
-              <div className="mb-3 flex items-center justify-between gap-3 text-xs text-cas-on-surface-variant">
-                <span className="font-bold text-cas-on-surface">#{order.orderNumber}</span>
+              <div className="mb-3 flex justify-end text-xs text-cas-on-surface-variant">
                 <span>Gửi lúc {formatOrderTime(order.createdAt)}</span>
               </div>
               <ul className="space-y-4">

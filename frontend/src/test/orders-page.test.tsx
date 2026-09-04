@@ -95,6 +95,7 @@ describe("OrdersPage", () => {
       "src",
       expect.stringContaining("spicy-noodles.jpg"),
     );
+    expect(screen.queryByText("#ORD-001")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Yêu cầu hủy" }));
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "1" } });
     fireEvent.change(screen.getByPlaceholderText("Lý do hủy (không bắt buộc)"), {
@@ -130,5 +131,28 @@ describe("OrdersPage", () => {
 
     expect(await screen.findByText("Không thể tải đơn hàng.")).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("guides customers without an active table session to QR scanning", async () => {
+    vi.mocked(loadCustomerBill).mockRejectedValueOnce(
+      new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
+    );
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Xem đơn hàng theo bàn" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Quét mã QR của bàn" })).toHaveAttribute(
+      "href",
+      "/scan",
+    );
+    expect(screen.queryByText("Vui lòng quét mã QR của bàn để tiếp tục.")).not.toBeInTheDocument();
   });
 });
