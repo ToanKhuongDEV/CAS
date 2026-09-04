@@ -57,6 +57,8 @@ Do not organize the entire application into shared technical packages such as
 
 ## Test Order
 
+- Never ask for approval before running a test command or test file; execute the
+  relevant test directly.
 - For every new or changed backend API endpoint, add or update its cURL example
   in `backend/README.md` for Postman/manual testing.
 - Keep Firebase ID Tokens only in local shell or Postman environments; never
