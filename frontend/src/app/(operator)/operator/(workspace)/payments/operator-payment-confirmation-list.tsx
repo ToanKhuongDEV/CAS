@@ -6,6 +6,7 @@ import { CasIcon } from "../../../../../components/ui/cas-icon";
 import {
   confirmOperatorPayment,
   loadOperatorPayments,
+  type Payment,
 } from "../../../../../lib/api/payment/payment.api";
 
 type ReceiptItem = {
@@ -25,102 +26,63 @@ type PendingPayment = {
   table: string;
 };
 
-const initialPayments: PendingPayment[] = [
-  {
-    amount: "170.000đ",
-    billNumber: "BILL-20260811-005",
-    id: "payment-table-05",
-    items: [
-      {
-        name: "Mỳ cay hải sản",
-        options: [
-          { name: "Cấp độ cay: Cấp 3", price: "0đ" },
-          { name: "Topping: Phô mai", price: "10.000đ" },
-        ],
-        quantity: 1,
-        total: "75.000đ",
-        unitPrice: "75.000đ",
-      },
-      { name: "Trà sữa truyền thống", quantity: 1, total: "35.000đ", unitPrice: "35.000đ" },
-      { name: "Gà rán sốt cay Hàn Quốc", quantity: 1, total: "60.000đ", unitPrice: "60.000đ" },
-    ],
-    requestedAt: "19:42",
-    table: "Bàn 05",
-  },
-  {
-    amount: "245.000đ",
-    billNumber: "BILL-20260811-012",
-    id: "payment-table-12",
-    items: [
-      {
-        name: "Mỳ cay bò Mỹ",
-        options: [{ name: "Topping: Xúc xích", price: "15.000đ" }],
-        quantity: 2,
-        total: "150.000đ",
-        unitPrice: "75.000đ",
-      },
-      { name: "Gà popcorn lắc phô mai", quantity: 1, total: "60.000đ", unitPrice: "60.000đ" },
-      { name: "Nước chanh dây", quantity: 1, total: "35.000đ", unitPrice: "35.000đ" },
-    ],
-    requestedAt: "19:35",
-    table: "Bàn 12",
-  },
-  {
-    amount: "95.000đ",
-    billNumber: "BILL-20260811-003",
-    id: "payment-table-03",
-    items: [
-      { name: "Mỳ cay nấm rau củ", quantity: 1, total: "60.000đ", unitPrice: "60.000đ" },
-      { name: "Trà chanh", quantity: 1, total: "35.000đ", unitPrice: "35.000đ" },
-    ],
-    requestedAt: "19:28",
-    table: "Bàn 03",
-  },
-];
+const currency = new Intl.NumberFormat("vi-VN");
+
+function toPendingPayment(payment: Payment): PendingPayment {
+  let snapshot: {
+    orders?: Array<{
+      items?: Array<{
+        itemName: string;
+        quantity: number;
+        unitPrice: number;
+        optionsAmount: number;
+        totalAmount: number;
+        options?: Array<{ optionName: string; unitPrice: number }>;
+      }>;
+    }>;
+  } = {};
+  try {
+    snapshot = JSON.parse(payment.billSnapshot) as typeof snapshot;
+  } catch {
+    // A malformed historical snapshot must not make the payment queue unusable.
+  }
+  const items = snapshot.orders?.flatMap((order) => order.items ?? []) ?? [];
+  const formatCurrency = (amount: number) => `${currency.format(amount)}đ`;
+  return {
+    id: payment.publicId,
+    table: `Bàn ${String(payment.tableCode).padStart(2, "0")}`,
+    amount: formatCurrency(payment.amount),
+    requestedAt: "Đang chờ xác nhận",
+    billNumber: payment.publicId,
+    items: items.map((item) => ({
+      name: item.itemName,
+      quantity: item.quantity,
+      unitPrice: formatCurrency(item.unitPrice + item.optionsAmount),
+      total: formatCurrency(item.totalAmount),
+      options: item.options?.map((option) => ({
+        name: option.optionName,
+        price: formatCurrency(option.unitPrice),
+      })),
+    })),
+  };
+}
 
 export function OperatorPaymentConfirmationList() {
   const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
-  const [payments, setPayments] = useState(initialPayments);
+  const [payments, setPayments] = useState<PendingPayment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   useEffect(() => {
     void loadOperatorPayments()
-      .then((items) =>
-        setPayments(
-          items.map((p) => {
-            const snapshot = JSON.parse(p.billSnapshot) as {
-              orders?: {
-                items?: {
-                  itemName: string;
-                  quantity: number;
-                  unitPrice: number;
-                  optionsAmount: number;
-                  totalAmount: number;
-                  options?: { optionName: string; unitPrice: number }[];
-                }[];
-              }[];
-            };
-            const detail = snapshot.orders?.flatMap((order) => order.items ?? []) ?? [];
-            return {
-              id: p.publicId,
-              table: `Bàn ${String(p.tableCode).padStart(2, "0")}`,
-              amount: new Intl.NumberFormat("vi-VN").format(p.amount) + "đ",
-              requestedAt: "vừa xong",
-              billNumber: p.publicId,
-              items: detail.map((item) => ({
-                name: item.itemName,
-                quantity: item.quantity,
-                unitPrice:
-                  new Intl.NumberFormat("vi-VN").format(item.unitPrice + item.optionsAmount) + "đ",
-                total: new Intl.NumberFormat("vi-VN").format(item.totalAmount) + "đ",
-                options: item.options?.map((option) => ({
-                  name: option.optionName,
-                  price: new Intl.NumberFormat("vi-VN").format(option.unitPrice) + "đ",
-                })),
-              })),
-            };
-          }),
+      .then((items) => setPayments(items.map(toPendingPayment)))
+      .catch((error: unknown) =>
+        setLoadError(
+          error instanceof Error ? error.message : "Không thể tải payment chờ xác nhận.",
         ),
       )
-      .catch(() => undefined);
+      .finally(() => setIsLoading(false));
   }, []);
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
 
@@ -149,15 +111,22 @@ export function OperatorPaymentConfirmationList() {
       return;
     }
 
-    if (!selectedPayment.id.startsWith("payment-table-"))
+    setConfirmError(null);
+    setIsConfirming(true);
+    try {
       await confirmOperatorPayment(selectedPayment.id);
-    setPayments((currentPayments) =>
-      currentPayments.filter((payment) => payment.id !== selectedPayment.id),
-    );
-    setConfirmedMessage(
-      `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
-    );
-    setSelectedPayment(null);
+      setPayments((currentPayments) =>
+        currentPayments.filter((payment) => payment.id !== selectedPayment.id),
+      );
+      setConfirmedMessage(
+        `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
+      );
+      setSelectedPayment(null);
+    } catch (error) {
+      setConfirmError(error instanceof Error ? error.message : "Không thể xác nhận thanh toán.");
+    } finally {
+      setIsConfirming(false);
+    }
   }
 
   function handlePrintBill() {
@@ -180,7 +149,16 @@ export function OperatorPaymentConfirmationList() {
         </div>
       ) : null}
 
-      {payments.length > 0 ? (
+      {loadError ? (
+        <div
+          className="mt-5 rounded-xl border border-cas-error/25 bg-cas-error-container/20 p-4 text-sm font-bold text-cas-error"
+          role="alert"
+        >
+          {loadError}
+        </div>
+      ) : isLoading ? (
+        <p className="mt-7 text-sm text-cas-on-surface-variant">Đang tải payment chờ xác nhận...</p>
+      ) : payments.length > 0 ? (
         <ul
           className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
           aria-label="Danh sách thanh toán chờ xác nhận"
@@ -317,6 +295,12 @@ export function OperatorPaymentConfirmationList() {
               </p>
             </div>
 
+            {confirmError ? (
+              <p className="mt-4 text-sm font-bold text-cas-error" role="alert">
+                {confirmError}
+              </p>
+            ) : null}
+
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <button
                 className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-extrabold transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
@@ -335,10 +319,11 @@ export function OperatorPaymentConfirmationList() {
               </button>
               <button
                 className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                disabled={isConfirming}
                 onClick={handleConfirmPayment}
                 type="button"
               >
-                Xác nhận đã thanh toán
+                {isConfirming ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
               </button>
             </div>
           </section>

@@ -1,7 +1,7 @@
 import { getFirebaseAuth } from "../../auth/firebase";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-type ApiResponse<T> = { data: T };
+type ApiResponse<T> = { data: T; message?: string };
 export type Payment = {
   publicId: string;
   tableCode: number;
@@ -37,7 +37,22 @@ async function operator<T>(path: string, init: RequestInit = {}) {
 }
 async function request<T>(path: string, init: RequestInit) {
   const response = await fetch(`${apiUrl}${path}`, { ...init, cache: "no-store" });
-  const body = (await response.json()) as ApiResponse<T>;
-  if (!response.ok) throw new Error("Không thể xử lý payment.");
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isApiResponse<T>(body)) {
+    throw new Error(getMessage(body, "Không thể xử lý thanh toán."));
+  }
   return body.data;
+}
+
+function isApiResponse<T>(value: unknown): value is ApiResponse<T> {
+  return Boolean(value && typeof value === "object" && "data" in value);
+}
+
+function getMessage(value: unknown, fallback: string) {
+  return value &&
+    typeof value === "object" &&
+    "message" in value &&
+    typeof value.message === "string"
+    ? value.message
+    : fallback;
 }
