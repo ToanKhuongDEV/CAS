@@ -118,6 +118,7 @@
         FROM table_sessions
         INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
         WHERE table_sessions.public_id = #{sessionPublicId}
+          AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
     </select>
 
     <select id="findCurrentTableSessionByPublicIdForUpdate"
@@ -132,6 +133,7 @@
         FROM table_sessions
         INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
         WHERE table_sessions.public_id = #{sessionPublicId}
+          AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         FOR UPDATE
     </select>
 
