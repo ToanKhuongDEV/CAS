@@ -580,14 +580,9 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển table session sang `CLOSED` và lưu `closed_at`.
 7. Nếu session có `unpaid_records` trạng thái `OPEN`, hệ thống chuyển bản ghi đó sang `RESOLVED`.
 8. Hệ thống ghi audit log xác nhận thanh toán.
-9. Các giao diện Customer đang mở cùng table session nhận trạng thái payment
-   `PAID` qua polling.
-10. Giao diện Customer thay màn chờ bằng màn “Thanh toán thành công”, hiển thị
-    bàn, `payments.amount`, `confirmed_at`, lời cảm ơn và thao tác “Tiếp tục tạo
-    đơn mới”.
-11. Khi Customer chọn tiếp tục, giao diện dùng lại QR token cố định của chính bàn
-    đó để trở về `/table/{qrToken}` và hiển thị màn nhập thông tin như một khách
-    mới; session vừa thanh toán không được tái sử dụng.
+9. Sau khi session `CLOSED`, API Customer không còn trả order, bill hoặc payment
+   của session đó qua cookie cũ. Giao diện Customer bỏ dữ liệu cũ và cần quét lại
+   QR để bắt đầu phiên mới.
 
 ### Quy tắc nghiệp vụ
 
@@ -596,17 +591,11 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 - Confirm payment là idempotent: request lặp trên payment đã `PAID` trả trạng thái hiện tại, không đổi `confirmed_at` và không tạo audit log trùng.
 - Payment `PENDING` không tự hết hạn.
 - CAS không kết nối với loa hoặc ngân hàng và không tự xác minh giao dịch; tín hiệu “ting ting” là bước kiểm tra thủ công bên ngoài hệ thống.
-- Customer chỉ được hiển thị thanh toán thành công khi backend trả payment
-  `PAID`; không suy ra kết quả từ thời gian chờ, thao tác phía client hoặc thông
-  tin do Customer nhập.
 - Khi payment đã `PAID`, session đã `CLOSED`; Customer không được gọi thêm món,
   hủy món hoặc gửi lại yêu cầu thanh toán.
-- Mọi thiết bị đang xem cùng table session phải chuyển sang trạng thái hoàn tất
-  sau lần polling nhận `PAID`.
-- Màn hoàn tất không hiển thị thông tin ngân hàng, mã giao dịch, QR thanh toán
-  hoặc dữ liệu từ loa báo giao dịch.
-- Thao tác tạo đơn mới chỉ dùng lại QR token của bàn để bắt đầu luồng khách mới;
-  không mở lại hoặc thêm order vào session đã `CLOSED`.
+- Mọi thiết bị đang xem cùng table session phải bỏ dữ liệu cũ khi polling không
+  còn tìm thấy session `OPEN` hoặc `PAYMENT_PENDING` và chỉ bắt đầu lượt mới sau
+  khi quét QR.
 
 ## 12. Luồng ghi nhận chưa thanh toán
 
