@@ -148,6 +148,8 @@ Ngày cập nhật gần nhất: 2026-08-28
 
 ## 5. Backend
 
+- [x] Sửa luồng quét QR Customer khi bàn chưa có session: cho phép ánh xạ `session_id` SQL `NULL`, tránh lỗi `500` với QR đang `ACTIVE`.
+
 - [x] Loại bỏ migration V3 lỗi; giữ FK QR-bàn là `RESTRICT` do giới hạn MySQL với generated column, và xóa QR trong transaction của use case xóa bàn.
 - [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món demo dùng URL và storage key Cloudinary, còn ảnh Welcome tiếp tục dùng asset local.
 - [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
@@ -194,7 +196,8 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Nhãn `Chưa chọn bàn` trên Customer Header là liên kết đến trang quét QR để khách chọn bàn trước khi gọi món.
 - [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
 - [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
-- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`.
+- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log.
+- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xác nhận thủ công, idempotent, kèm đóng phiên và audit log. **[Đã ghép Frontend]**
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
@@ -363,6 +366,12 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 ## 6. Frontend
 
+- [x] Thiết kế lại giỏ hàng Customer theo card “Món đang chọn”: ảnh thumbnail, giá món/topping đã chọn, tăng giảm/xóa món, xóa tất cả có popup xác nhận, ghi chú chung và thanh gửi món cố định có tạm tính; ảnh, giá và option được lưu cùng dòng giỏ, còn giỏ cũ tự bù dữ liệu từ catalog hiện hành; hiển thị toast thành công khi thêm món từ menu hoặc trang chi tiết; số lượng ×N nằm cùng hàng tên món; thanh tạm tính/gửi món chừa khoảng cho navigation trên mobile.
+- [x] Chuẩn hóa toast dùng chung: hiển thị cố định ở góc dưới bên phải, nền trắng; chữ/icon xanh cho thành công, thông tin và lưu ý, chữ/icon đỏ cho lỗi.
+- [x] Thiết kế lại trang Đơn hàng Customer theo card mobile-first: chi tiết món, số lượng cùng hàng tên món, giá/tùy chọn, yêu cầu hủy, ghi chú và tổng tiền; tra catalog hiện hành để hiển thị ảnh món, dùng placeholder khi món không còn ảnh.
+- [x] Thêm React Query cho catalog Customer: Menu, Cart và Đơn hàng dùng chung cache 5 phút; ảnh tiếp tục do browser/CDN cache qua URL ảnh.
+- [x] Hoàn thiện trang Đơn hàng Customer bằng dữ liệu bill thật: khôi phục header/điều hướng, thêm gọi thêm món và chỉ cho yêu cầu thanh toán khi table session `OPEN`.
+- [x] Sửa các điểm nhỏ trong luồng menu: lỗi tạo/tải order Customer không còn tự chuyển về QR khi lỗi kỹ thuật, hotline dịch vụ thêm lấy từ API cửa hàng, bỏ badge điều hướng số cứng và dùng token màu cho nhãn món.
 - [x] Bổ sung trang Admin `/admin/services` quản lý Dịch vụ thêm, dùng chung UI và quyền thao tác tương ứng với Operator.
 - [x] Đặt Dịch vụ thêm trong dropdown Menu & Promotion của Admin.
 - [x] Bổ sung nút In bill trong popup xác nhận thanh toán của Operator; hiện mở hộp in của trình duyệt.
@@ -380,7 +389,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Tích hợp Tailwind CSS với PostCSS.
 - [x] Xây dựng trang chào mừng CAS cho quán ăn vặt/mỳ cay bằng Tailwind CSS theo thiết kế Stitch, có giao diện sáng/tối.
 - [x] Xây dựng UI màn thực đơn Customer mobile-first theo thiết kế Stitch, hiển thị 15 món trong danh sách dài theo từng nhóm, có divider và thanh category sticky hỗ trợ vuốt cảm ứng hoặc nhấn-giữ-kéo bằng chuột, liên kết đến từng nhóm; ảnh category tại Khám phá thực đơn dẫn đến đúng nhóm tương ứng.
-- [x] Xây dựng UI chi tiết sản phẩm động tại `/menu/[slug]` theo thiết kế Stitch; mỳ cay chọn cấp độ 0–7, đồ uống chọn size và nhiều topping.
+- [x] Xây dựng UI chi tiết sản phẩm động tại `/menu/[slug]` theo thiết kế Stitch; mỳ cay chọn cấp độ 0–7, đồ uống chọn size và nhiều topping; nhấn tên món trong Menu Customer chuyển tới trang chi tiết tương ứng.
 - [x] Điều chỉnh vị trí badge sản phẩm trong màn chi tiết để không bị khối nội dung chồng lấp.
 - [x] Xây dựng UI giỏ hàng Customer mobile-first theo thiết kế Stitch, gồm món đang chọn, option, số lượng, ghi chú chung và tổng tiền.
 - [x] Xây dựng UI màn gửi món thành công tại `/orders` theo thiết kế Stitch, gồm xác nhận quán đã nhận món, thông tin bàn, thời gian gửi, chi tiết lần gọi, thao tác gọi thêm món và liên kết tới bước yêu cầu thanh toán.
