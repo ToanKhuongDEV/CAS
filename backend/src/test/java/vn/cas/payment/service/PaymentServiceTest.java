@@ -1,5 +1,6 @@
 package vn.cas.payment.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
@@ -80,12 +82,23 @@ class PaymentServiceTest {
         verify(auditLogs, never()).record(any());
     }
 
+    @Test
+    void shouldCountOnlyPendingPaymentsForOperatorsStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.countPending(3L)).thenReturn(2L);
+
+        assertThat(service.pendingCount(principal)).isEqualTo(2L);
+
+        verify(payments).countPending(3L);
+    }
+
     private static CustomerTableSessionLookup session(String status) {
         return new CustomerTableSessionLookup(10L, 20L, 3L, 5L, "session-1", status);
     }
 
     private static PaymentView payment(String status) {
         return new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(170000), "{}", status,
-                null, null);
+                null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
     }
 }

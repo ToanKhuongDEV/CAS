@@ -114,10 +114,13 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-p
 
 Ví dụ luồng thanh toán: Customer tạo/xem payment bằng cookie session; `OPERATOR` chỉ xác nhận sau khi đã kiểm tra giao dịch thành công ngoài CAS:
 
+Response payment trả `createdAt` để giao diện vận hành hiển thị đúng thời điểm Customer gửi yêu cầu. Customer chỉ đọc bill/payment khi session còn `OPEN` hoặc `PAYMENT_PENDING`; sau khi Operator xác nhận, session chuyển `CLOSED`.
+
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 

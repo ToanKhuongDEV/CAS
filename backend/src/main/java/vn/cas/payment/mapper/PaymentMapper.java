@@ -10,6 +10,7 @@ public interface PaymentMapper {
     PaymentView findBySessionId(@Param("sessionId") long sessionId);
     PaymentView findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
     List<PaymentView> findPending(@Param("storeId") long storeId);
+    long countPending(@Param("storeId") long storeId);
     int insert(@Param("publicId") String publicId, @Param("sessionId") long sessionId,
             @Param("amount") java.math.BigDecimal amount, @Param("snapshot") String snapshot);
     int confirm(@Param("id") long id, @Param("accountId") long accountId,

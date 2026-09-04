@@ -69,6 +69,10 @@ public class PaymentService {
     public List<PaymentView> pending(OperationalPrincipal p) {
         return payments.findPending(p.storeId());
     }
+    @Transactional(readOnly = true)
+    public long pendingCount(OperationalPrincipal p) {
+        return payments.countPending(p.storeId());
+    }
     @Transactional
     public PaymentView confirm(OperationalPrincipal p, String publicId) {
         var v = payments.findByPublicId(p.storeId(), publicId);

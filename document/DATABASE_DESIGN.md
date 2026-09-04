@@ -1130,7 +1130,7 @@ Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng
 - `option_values(option_group_id, status, display_order)`.
 - `menu_item_option_groups(menu_item_id, display_order)`.
 
-Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Index cho payment, unpaid record, order, cancellation request, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
+Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Payment dùng index `(status, created_at, table_session_id)` cho danh sách và số lượng payment `PENDING` theo thời điểm tạo; index cho unpaid record, order, cancellation request, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
 
 Không tạo index đơn dư thừa khi đã có composite unique index cùng tiền tố trái:
 `dining_tables(store_id)` được bao phủ bởi `(store_id, code)`, `tags(store_id)`
