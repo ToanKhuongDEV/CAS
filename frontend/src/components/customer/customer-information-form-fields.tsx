@@ -6,6 +6,7 @@ import { CasIcon } from "../ui/cas-icon";
 
 type CustomerInformationErrors = {
   customerName?: string;
+  customerPhone?: string;
 };
 
 export type CustomerInformation = {
@@ -25,6 +26,7 @@ export function CustomerInformationFormFields({
   submitLabel = "Mở phiên và xem thực đơn",
 }: CustomerInformationFormFieldsProps) {
   const customerNameInputRef = useRef<HTMLInputElement>(null);
+  const customerPhoneInputRef = useRef<HTMLInputElement>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [errors, setErrors] = useState<CustomerInformationErrors>({});
@@ -37,17 +39,22 @@ export function CustomerInformationFormFields({
     if (!customerName.trim()) {
       nextErrors.customerName = "Vui lòng nhập tên của bạn.";
     }
+    const normalizedCustomerPhone = customerPhone.replace(/\s/g, "");
+    if (normalizedCustomerPhone && !/^0\d{9}$/.test(normalizedCustomerPhone)) {
+      nextErrors.customerPhone = "Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0.";
+    }
 
     setErrors(nextErrors);
 
-    if (nextErrors.customerName) {
+    if (nextErrors.customerName || nextErrors.customerPhone) {
       customerNameInputRef.current?.focus();
+      if (!nextErrors.customerName) customerPhoneInputRef.current?.focus();
       return;
     }
 
     onSubmitCustomerInfo({
       customerName: customerName.trim(),
-      customerPhone: customerPhone.trim() || null,
+      customerPhone: normalizedCustomerPhone || null,
     });
   };
 
@@ -101,6 +108,7 @@ export function CustomerInformationFormFields({
             name="phone"
           />
           <input
+            ref={customerPhoneInputRef}
             className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-phone`}
             name="customerPhone"
@@ -110,12 +118,22 @@ export function CustomerInformationFormFields({
             maxLength={20}
             type="tel"
             value={customerPhone}
+            aria-describedby={errors.customerPhone ? `${idPrefix}-phone-error` : undefined}
+            aria-invalid={errors.customerPhone ? true : undefined}
             onChange={(event) => {
               setCustomerPhone(event.target.value);
+              if (errors.customerPhone) {
+                setErrors((currentErrors) => ({ ...currentErrors, customerPhone: undefined }));
+              }
             }}
           />
         </span>
       </label>
+      {errors.customerPhone ? (
+        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
+          {errors.customerPhone}
+        </p>
+      ) : null}
       <button
         className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
         type="submit"

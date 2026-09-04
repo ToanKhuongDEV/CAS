@@ -62,6 +62,49 @@ describe("CustomerInformationPage", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("accepts spaces in a Vietnamese phone number and sends normalized digits", async () => {
+    render(<CustomerInformationPage />);
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "Tên của bạn" }), {
+      target: { value: "Nguyễn Văn A" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Số điện thoại/i }), {
+      target: { value: "0901 234 567" },
+    });
+    vi.mocked(resolveCustomerTableSession).mockResolvedValue({
+      customerInformationRequired: false,
+      sessionStatus: "OPEN",
+      tableCode: 5,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
+
+    await vi.waitFor(() =>
+      expect(resolveCustomerTableSession).toHaveBeenLastCalledWith("qr-ban-05", {
+        customerName: "Nguyễn Văn A",
+        customerPhone: "0901234567",
+      }),
+    );
+  });
+
+  it("rejects an invalid Vietnamese phone number", async () => {
+    render(<CustomerInformationPage />);
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "Tên của bạn" }), {
+      target: { value: "Nguyễn Văn A" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Số điện thoại/i }), {
+      target: { value: "12345" },
+    });
+    const callsBeforeSubmit = vi.mocked(resolveCustomerTableSession).mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
+
+    expect(
+      screen.getByText("Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Số điện thoại/i })).toHaveFocus();
+    expect(resolveCustomerTableSession).toHaveBeenCalledTimes(callsBeforeSubmit);
+  });
+
   it("continues to the menu when required information is present", async () => {
     render(<CustomerInformationPage />);
 
