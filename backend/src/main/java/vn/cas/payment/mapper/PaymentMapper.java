@@ -13,6 +13,7 @@ public interface PaymentMapper {
     long countPending(@Param("storeId") long storeId);
     int insert(@Param("publicId") String publicId, @Param("sessionId") long sessionId,
             @Param("amount") java.math.BigDecimal amount, @Param("snapshot") String snapshot);
+    long lastInsertId();
     int confirm(@Param("id") long id, @Param("accountId") long accountId,
             @Param("name") String name);
 

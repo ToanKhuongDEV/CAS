@@ -3,8 +3,10 @@ package vn.cas.payment.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.cas.common.exception.ApiException;
@@ -15,6 +17,7 @@ import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.service.CustomerOrderingService;
 import vn.cas.payment.mapper.PaymentMapper;
 import vn.cas.payment.model.PaymentView;
+import vn.cas.promotion.service.PromotionService;
 import vn.cas.store.service.CustomerTableSessionService;
 import vn.cas.store.mapper.DiningTableMapper;
 
@@ -27,9 +30,11 @@ public class PaymentService {
     private final OrderingMapper ordering;
     private final AuditLogService auditLogs;
     private final ObjectMapper json;
+    private final PromotionService promotions;
+    @Autowired
     public PaymentService(PaymentMapper payments, CustomerTableSessionService sessions,
             DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
-            AuditLogService auditLogs, ObjectMapper json) {
+            AuditLogService auditLogs, ObjectMapper json, PromotionService promotions) {
         this.payments = payments;
         this.sessions = sessions;
         this.tables = tables;
@@ -37,6 +42,12 @@ public class PaymentService {
         this.ordering = ordering;
         this.auditLogs = auditLogs;
         this.json = json;
+        this.promotions = promotions;
+    }
+    public PaymentService(PaymentMapper payments, CustomerTableSessionService sessions,
+            DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
+            AuditLogService auditLogs, ObjectMapper json) {
+        this(payments, sessions, tables, orders, ordering, auditLogs, json, null);
     }
     @Transactional
     public PaymentView create(String sessionPublicId) {
@@ -50,11 +61,19 @@ public class PaymentService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Vui lòng chờ xử lý các yêu cầu hủy món trước khi thanh toán.");
         var bill = orders.currentBill(sessionPublicId);
-        if (bill.payableAmount().signum() <= 0)
+        var discount = promotions == null ? null : promotions.selected(session);
+        var amount = discount == null ? bill.payableAmount() : discount.payableAmount();
+        if (amount.signum() <= 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill không có số tiền cần thanh toán.");
         try {
-            payments.insert(UUID.randomUUID().toString(), session.sessionId(), bill.payableAmount(),
-                    json.writeValueAsString(bill));
+            var snapshot = new LinkedHashMap<String, Object>();
+            snapshot.put("bill", bill);
+            snapshot.put("discount", discount);
+            String snapshotValue = json.writeValueAsString(snapshot);
+            payments.insert(UUID.randomUUID().toString(), session.sessionId(), amount,
+                    snapshotValue);
+            if (promotions != null)
+                promotions.snapshot(session, payments.lastInsertId(), discount, snapshotValue);
             tables.moveSessionToPaymentPending(session.sessionId());
             return payments.findBySessionId(session.sessionId());
         } catch (JsonProcessingException e) {
@@ -81,6 +100,10 @@ public class PaymentService {
         if ("PENDING".equals(v.status())) {
             if (payments.confirm(v.id(), p.accountId(), p.displayName()) == 1) {
                 payments.resolveOpenUnpaidRecord(v.tableSessionId(), v.id());
+                if (promotions != null && v.billSnapshot().contains("\"discount\":null")) {
+                    // No promotion was selected when this payment snapshot was created.
+                } else if (promotions != null)
+                    promotions.redeem(v.id());
                 tables.closePaymentSession(v.tableSessionId());
                 auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
                         "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),

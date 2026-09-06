@@ -95,6 +95,9 @@
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
+            table_sessions.client_account_id AS clientAccountId,
+            table_sessions.selected_promotion_id AS selectedPromotionId,
+            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
             table_sessions.public_id AS sessionPublicId,
             table_sessions.status AS sessionStatus
         FROM table_qr_codes
@@ -113,6 +116,9 @@
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
+            table_sessions.client_account_id AS clientAccountId,
+            table_sessions.selected_promotion_id AS selectedPromotionId,
+            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
             table_sessions.public_id AS sessionPublicId,
             table_sessions.status AS sessionStatus
         FROM table_sessions
@@ -128,6 +134,9 @@
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
+            table_sessions.client_account_id AS clientAccountId,
+            table_sessions.selected_promotion_id AS selectedPromotionId,
+            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
             table_sessions.public_id AS sessionPublicId,
             table_sessions.status AS sessionStatus
         FROM table_sessions
@@ -144,6 +153,9 @@
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
+            table_sessions.client_account_id AS clientAccountId,
+            table_sessions.selected_promotion_id AS selectedPromotionId,
+            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
             table_sessions.public_id AS sessionPublicId,
             table_sessions.status AS sessionStatus
         FROM dining_tables

@@ -92,6 +92,11 @@ curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/<cancellati
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"decision\":\"APPROVE\",\"isRemade\":false,\"targetOrderItemId\":\"<order-item-public-id-ban-nhan>\",\"transferQuantity\":1}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Đổ món khi phục vụ\",\"isRemade\":false}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
+curl.exe http://localhost:8080/api/v1/customer/promotions/eligible -b customer-session-cookie.txt
+curl.exe "http://localhost:8080/api/v1/customer/promotions/eligible?code=GIAM20" -b customer-session-cookie.txt
+curl.exe -X PUT http://localhost:8080/api/v1/customer/promotions/selection -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"promotionId\":\"<promotion-public-id>\",\"code\":\"GIAM20\"}"
+curl.exe -X DELETE http://localhost:8080/api/v1/customer/promotions/selection -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/admin/promotions -H "Authorization: Bearer <firebase-id-token>"
 ```
 
 Sau khi khách quét hoặc nhập tay QR hợp lệ, backend lưu table session trong cookie

@@ -140,8 +140,8 @@ public class CustomerTableSessionService {
         String sessionPublicId = UUID.randomUUID().toString();
         diningTableMapper.insertOpenCustomerTableSession(tableId, sessionPublicId, clientAccountId,
                 customerName, customerPhone);
-        return new CustomerTableSessionLookup(0L, tableId, storeId, current.tableCode(),
-                sessionPublicId, "OPEN");
+        return new CustomerTableSessionLookup(0L, tableId, storeId, current.tableCode(), 0L, null,
+                null, sessionPublicId, "OPEN");
     }
 
     private long findOrCreateClientAccount(long storeId,

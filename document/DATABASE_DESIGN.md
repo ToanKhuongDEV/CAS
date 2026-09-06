@@ -496,6 +496,8 @@ là unique.
 | `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản khách đầu tiên mở phiên bàn |
 | `opened_by_customer_name` | `VARCHAR(150) NOT NULL` | Tên khách đầu tiên mở phiên bàn |
 | `opened_by_customer_phone` | `VARCHAR(20) NULL` | Số điện thoại khách đầu tiên mở phiên bàn; `NULL` khi là khách lẻ |
+| `selected_promotion_id` | `BIGINT UNSIGNED NULL` | Promotion đang được chọn tạm thời cho bill trước khi tạo payment |
+| `selected_promotion_code_id` | `BIGINT UNSIGNED NULL` | Mã promotion đang được chọn; `NULL` khi promotion không yêu cầu mã |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái phiên |
 | `payment_requested_at` | `DATETIME(3) NULL` | Thời điểm khách yêu cầu thanh toán, để trống khi chưa yêu cầu |
 | `closed_at` | `DATETIME(3) NULL` | Thời điểm đóng |
@@ -506,7 +508,7 @@ Table session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là
 
 Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING`, không nhận thêm món và vẫn chiếm dụng bàn. Chỉ khi session được đóng mới có thể tạo session mới cho cùng bàn.
 
-Table session không lưu `is_paid`. Kết quả thanh toán được xác định từ `payments.status`; `unpaid_records` ghi nhận trường hợp phiên đã đóng khi payment vẫn `PENDING`, còn `table_sessions.status` chỉ quản lý vòng đời sử dụng bàn.
+Table session không lưu `is_paid`. Kết quả thanh toán được xác định từ `payments.status`; `unpaid_records` ghi nhận trường hợp phiên đã đóng khi payment vẫn `PENDING`, còn `table_sessions.status` chỉ quản lý vòng đời sử dụng bàn. Hai cột `selected_promotion_id` và `selected_promotion_code_id` chỉ lưu lựa chọn tạm thời khi session còn `OPEN`; dữ liệu giảm giá đã chốt được lưu bất biến trong `bill_discounts` và `payments.bill_snapshot` khi tạo payment.
 
 ### 5.5. Order
 
