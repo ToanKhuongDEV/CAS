@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorDashboardPage from "../app/(operator)/operator/(workspace)/dashboard/page";
 import { loadLongWaitTables } from "../lib/api/ordering/preparation.api";
+import { loadOperatorTables } from "../lib/api/ordering/ordering.api";
 
 vi.mock("../lib/api/ordering/preparation.api", () => ({ loadLongWaitTables: vi.fn() }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({ loadOperatorTables: vi.fn() }));
 
 describe("OperatorDashboardPage", () => {
-  beforeEach(() =>
+  beforeEach(() => {
     vi.mocked(loadLongWaitTables).mockResolvedValue([
       {
         tableId: 5,
@@ -17,8 +19,12 @@ describe("OperatorDashboardPage", () => {
         waitingMinutes: 37,
         thresholdMinutes: 25,
       },
-    ]),
-  );
+    ]);
+    vi.mocked(loadOperatorTables).mockResolvedValue([
+      { tableId: 5, tableCode: 5, sessionStatus: "OPEN", sessionPublicId: "session-5" },
+      { tableId: 2, tableCode: 2, sessionStatus: null, sessionPublicId: null },
+    ]);
+  });
 
   it("renders the operator work queues", async () => {
     render(<OperatorDashboardPage />);
@@ -30,9 +36,9 @@ describe("OperatorDashboardPage", () => {
     expect(await screen.findByText("Đã chờ 37 phút")).toBeInTheDocument();
     expect(screen.getByText(/Ngưỡng cảnh báo hiện tại:/)).toHaveTextContent("25 phút");
     expect(screen.getByRole("heading", { name: "Khiếu nại" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mở đơn của Bàn 05" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Mở thao tác cho bàn 5" })).toHaveAttribute(
       "href",
-      "/operator/orders/ORD-0821",
+      "/operator/orders/new?table=5",
     );
 
     const complaintButton = screen.getByRole("button", { name: "Xem khiếu nại của Bàn 12" });
