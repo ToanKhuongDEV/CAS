@@ -53,6 +53,11 @@ public class CancellationService {
         if ("REJECT".equals(decision)) {
             mapper.resolveCancellationRequest(request.id(), "REJECTED", false,
                     principal.accountId(), principal.displayName());
+            auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
+                    "CANCELLATION_REQUEST_RESOLVED", "ORDER_ITEM_CANCELLATION_REQUEST",
+                    request.id(), request.publicId(), "{\"decision\":\"REJECT\"}",
+                    principal.accountId(), principal.displayName(),
+                    "Nhân viên từ chối yêu cầu hủy món."));
             return new Resolution(request.publicId(), "REJECTED", 0, null, null);
         }
         if (!"APPROVE".equals(decision))
