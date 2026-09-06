@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-08-28
+Ngày cập nhật gần nhất: 2026-09-05
 
 ## Quy ước
 
@@ -69,6 +69,7 @@ Ngày cập nhật gần nhất: 2026-08-28
 - [x] Mô hình promotion giai đoạn hiện tại chỉ dùng `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`; điều kiện cơ bản nằm trực tiếp tại `promotions`.
 - [x] Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món.
 - [x] Quota hỗ trợ đồng thời theo promotion, code và khách hàng; mỗi khách dùng tối đa một voucher/promotion cho một bill.
+- [x] `table_sessions` lưu promotion và code được chọn tạm thời trước payment; snapshot giảm giá bất biến vẫn nằm ở `bill_discounts` và `payments.bill_snapshot`.
 - [x] `ADMIN` được tra cứu khách đã mở bàn theo cửa hàng, xem lịch sử session/order/payment/khoản chưa thanh toán; `OPERATOR` không được truy cập và module không cho sửa hoặc xóa dữ liệu.
 
 ## 3. Các quyết định kỹ thuật đã chốt
@@ -204,7 +205,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
@@ -271,14 +272,23 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] **Khoản chưa thanh toán:** xem danh sách khoản chưa thanh toán.
 - [ ] **Khoản chưa thanh toán:** xem chi tiết khoản chưa thanh toán.
 - [ ] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
-- [ ] **Promotion:** xem danh sách promotion.
-- [ ] **Promotion:** xem chi tiết promotion.
-- [ ] **Promotion:** thêm promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
-- [ ] **Promotion:** sửa promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
-- [ ] **Promotion:** đổi trạng thái `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
-- [ ] **Promotion áp dụng bill:** xem promotion hợp lệ và discount dự kiến.
-- [ ] **Promotion áp dụng bill:** chọn promotion cho bill.
-- [ ] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
+- [x] **Promotion:** xem danh sách promotion.
+- [x] `GET/POST/PUT /api/v1/admin/promotions`, `GET /api/v1/admin/promotions/{promotionId}` và `PATCH /api/v1/admin/promotions/{promotionId}/status`: `ADMIN` quản lý chương trình, code, target và trạng thái promotion.
+- [x] `GET/PUT/DELETE /api/v1/customer/promotions/eligible|selection` và các route tương ứng theo table session cho `OPERATOR`: xem, chọn hoặc bỏ promotion trước payment; backend tính discount từ bill server-side.
+- [x] **Promotion:** xem chi tiết promotion, gồm code và target áp dụng.
+- [x] **Promotion:** thêm promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
+- [x] **Promotion:** Admin nhập nhiều code và quota riêng từng code theo dạng `CODE:quota`, hoặc bỏ quota để không giới hạn.
+- [x] **Promotion:** sửa promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
+- [x] **Promotion:** đổi trạng thái `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
+- [x] **Promotion áp dụng bill:** xem promotion hợp lệ và discount dự kiến.
+- [x] **Promotion áp dụng bill:** chọn promotion cho bill.
+- [x] **Promotion áp dụng bill:** Customer nhập mã giảm giá, backend kiểm tra theo bill hiện tại rồi chọn promotion phù hợp.
+- [x] Customer chọn promotion tại màn thanh toán theo bill đã lưu; cart không hiển thị hoặc áp dụng khuyến mãi.
+- [x] API promotion hợp lệ trả thêm giá trị giảm gốc, bill tối thiểu (nếu có) và phạm vi áp dụng để Customer hiển thị thông tin voucher.
+- [x] Form Admin promotion hiển thị target món/danh mục từ catalog API thay vì dữ liệu mẫu cũ.
+- [x] Màn Đơn hàng Customer chỉ hiển thị một dòng `Tổng tiền`, không tách giá gốc và giảm giá.
+- [x] Sửa polling Payment Customer để effect bị dọn trong React Strict Mode không chặn lần tải bill/payment đầu tiên của effect hiện hành.
+- [x] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
 - [ ] **Dịch vụ đặt trước:** xem danh sách booking.
 - [ ] **Dịch vụ đặt trước:** tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`.
 - [ ] **Dịch vụ đặt trước:** xác nhận booking thành `PAID`.
@@ -432,6 +442,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
       gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
 động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
 - [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
+- [x] Ghép sơ đồ bàn mini tại `/operator/dashboard` với `GET /api/v1/operator/table-sessions/tables`; hiển thị trạng thái thật, tự làm mới mỗi 10 giây và mở màn tạo order theo bàn đang có session.
 - [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món
       và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
       phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có
@@ -491,7 +502,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Đồng bộ giỏ món trong luồng `OPERATOR` tạo order hộ với giao diện chi tiết món Customer, bao gồm giá món gốc và từng option đã chọn.
 - [x] Hiển thị ghi chú chung của order trên trang Đơn hàng Customer.
 - [x] Giữ luồng Customer chuyển tới `/payment` để kiểm tra và gửi yêu cầu thanh toán; không hiển thị Thanh toán như một tab điều hướng riêng.
-- [x] Bổ sung dropdown chọn một voucher/promotion trên trang Đơn hàng Customer và tính tạm thời giá gốc, số tiền giảm, giá trị cần thanh toán ở frontend.
+- [x] Customer mở popup để nhập mã hoặc chọn voucher/promotion từ danh sách thẻ “Khuyến mãi dành cho bạn”; mỗi voucher hiển thị loại ưu đãi, số tiền giảm dự kiến và số tiền cần thanh toán.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
 - [x] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu theo contract đã chốt.
