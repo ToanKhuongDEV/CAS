@@ -20,6 +20,12 @@ import {
   loadOperatorTables,
   openOperatorTableSession,
 } from "../../../lib/api/ordering/ordering.api";
+import {
+  clearOperatorPromotion,
+  loadOperatorEligiblePromotions,
+  selectOperatorPromotion,
+  type EligiblePromotion,
+} from "../../../lib/api/promotion/promotion.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -381,6 +387,8 @@ export function OperatorOrderCreationView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
+  const [eligiblePromotions, setEligiblePromotions] = useState<EligiblePromotion[]>([]);
+  const [selectedPromotionId, setSelectedPromotionId] = useState("");
 
   useEffect(() => {
     void loadOperatorCatalog()
@@ -430,6 +438,33 @@ export function OperatorOrderCreationView({
         ),
       );
   }, []);
+
+  useEffect(() => {
+    if (!selectedTable.sessionPublicId) {
+      setEligiblePromotions([]);
+      setSelectedPromotionId("");
+      return;
+    }
+    void loadOperatorEligiblePromotions(selectedTable.sessionPublicId)
+      .then(setEligiblePromotions)
+      .catch(() => setEligiblePromotions([]));
+  }, [selectedTable.sessionPublicId]);
+
+  const selectPromotion = async (promotionId: string) => {
+    if (!selectedTable.sessionPublicId) return;
+    try {
+      if (!promotionId) {
+        await clearOperatorPromotion(selectedTable.sessionPublicId);
+        setSelectedPromotionId("");
+        return;
+      }
+      const promotion = eligiblePromotions.find((item) => item.promotionId === promotionId);
+      await selectOperatorPromotion(selectedTable.sessionPublicId, promotionId, promotion?.code);
+      setSelectedPromotionId(promotionId);
+    } catch (cause) {
+      setOperationError(cause instanceof Error ? cause.message : "Không thể áp dụng khuyến mãi.");
+    }
+  };
 
   useEffect(() => {
     void loadOperatorTables()
@@ -577,6 +612,24 @@ export function OperatorOrderCreationView({
             Tạo order hộ tại bàn
           </h1>
         </div>
+        {selectedTable.sessionPublicId && (
+          <label className="flex items-center gap-2 rounded-xl border border-cas-outline-variant/30 bg-cas-surface px-3 py-2 text-xs font-semibold text-cas-on-surface-variant">
+            Khuyến mãi
+            <select
+              className="min-w-40 bg-transparent text-cas-on-surface outline-none"
+              onChange={(event) => void selectPromotion(event.target.value)}
+              value={selectedPromotionId}
+            >
+              <option value="">Không áp dụng</option>
+              {eligiblePromotions.map((promotion) => (
+                <option key={promotion.promotionId} value={promotion.promotionId}>
+                  {promotion.code ? `${promotion.code} · ` : ""}
+                  {promotion.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {/* Selected Table Context Card */}
         <div className="flex items-center gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-2.5 shadow-sm sm:p-3">

@@ -81,7 +81,6 @@ export function CustomerOrdersLiveView() {
     0,
   );
   const orderNotes = bill.orders.flatMap((order) => (order.note ? [order.note] : []));
-  const discountAmount = Math.max(0, bill.originalAmount - bill.payableAmount);
 
   async function cancel() {
     if (!cancellation) return;
@@ -211,18 +210,10 @@ export function CustomerOrdersLiveView() {
         </div>
 
         <div className="mt-5 border-t border-cas-outline-variant/40 pt-4 text-sm">
-          <p className="flex justify-between gap-4 text-cas-on-surface-variant">
-            <span>Giá gốc</span>
-            <span>{money.format(bill.originalAmount)}</span>
-          </p>
-          <p className="mt-2 flex justify-between gap-4 text-cas-on-surface-variant">
-            <span>Giảm giá</span>
-            <span className="font-bold text-cas-secondary">-{money.format(discountAmount)}</span>
-          </p>
-          <div className="mt-3 flex items-end justify-between gap-4 border-t border-cas-outline-variant/40 pt-3">
+          <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
-                Giá trị cần thanh toán
+                Tổng tiền
               </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
                 Tạm tính trước khi gửi yêu cầu

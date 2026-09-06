@@ -112,7 +112,7 @@ describe("CartPage", () => {
     expect(await screen.findByText("+ Phô mai")).toBeInTheDocument();
     expect(screen.getByText("Giá món gốc")).toBeInTheDocument();
     expect(screen.getByText("Tạm tính (2 món)")).toBeInTheDocument();
-    expect(screen.getAllByText("120.000đ")).toHaveLength(2);
+    expect(screen.getAllByText("120.000đ")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Xóa tất cả" })).toBeInTheDocument();
     const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
     expect(submitButton).toBeInTheDocument();

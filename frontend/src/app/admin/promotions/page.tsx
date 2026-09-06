@@ -1,8 +1,15 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { loadAdminCatalog } from "../../../lib/api/catalog/catalog.api";
+import {
+  createPromotion,
+  loadAdminPromotions,
+  updatePromotion,
+  updatePromotionStatus,
+} from "../../../lib/api/promotion/promotion.api";
 
 type PromotionStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 type PromotionType = "PERCENT_OFF" | "FIXED_AMOUNT_OFF" | "ITEM_PERCENT_OFF" | "ITEM_FIXED_OFF";
@@ -144,6 +151,8 @@ const mockPromotions: Promotion[] = [
   },
 ];
 
+void mockPromotions;
+
 const typeLabels: Record<PromotionType, string> = {
   PERCENT_OFF: "Giảm % toàn bill",
   FIXED_AMOUNT_OFF: "Giảm tiền toàn bill",
@@ -184,17 +193,13 @@ function formatValidity(startAt: string, endAt: string) {
   return `${startAt} → ${endAt}`;
 }
 
-function getTargetLabel(target: PromotionTarget) {
-  const source = target.targetType === "MENU_ITEM" ? menuItems : categories;
-  return source.find((item) => item.id === target.targetId)?.name ?? "Đã ngừng áp dụng";
-}
-
 function getCompletedRedemptions(promotion: Promotion) {
   return promotion.redemptions.filter((r) => r.status === "COMPLETED").length;
 }
 
 export default function AdminPromotionsPage() {
-  const [promotions, setPromotions] = useState<Promotion[]>(mockPromotions);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
@@ -208,8 +213,62 @@ export default function AdminPromotionsPage() {
     nextStatus?: PromotionStatus;
   } | null>(null);
   const [selectedRedemptionPromo, setSelectedRedemptionPromo] = useState<Promotion | null>(null);
-  const [targetType, setTargetType] = useState<TargetType>("MENU_ITEM");
-  const [targetId, setTargetId] = useState(menuItems[0].id);
+  const [targetType, setTargetType] = useState<TargetType | "">("");
+  const [targetId, setTargetId] = useState("");
+  const [catalogMenuItems, setCatalogMenuItems] = useState(menuItems);
+  const [catalogCategories, setCatalogCategories] = useState(categories);
+
+  useEffect(() => {
+    void loadAdminPromotions()
+      .then((items) => {
+        setPromotions(
+          items.map((item) => ({
+            ...item.promotion,
+            id: item.promotion.publicId,
+            code: item.codes
+              .map(
+                (code) =>
+                  `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+              )
+              .join(", "),
+            startAt: item.promotion.startAt?.slice(0, 16) ?? "",
+            endAt: item.promotion.endAt?.slice(0, 16) ?? "",
+            targets: item.targets.map((target) => ({
+              id: String(target.id),
+              targetType: target.targetType,
+              targetId: String(target.targetId),
+            })),
+            redemptions: [],
+          })),
+        );
+        setApiError(null);
+      })
+      .catch((cause) =>
+        setApiError(cause instanceof Error ? cause.message : "Không thể tải khuyến mãi."),
+      );
+  }, []);
+
+  useEffect(() => {
+    void loadAdminCatalog()
+      .then((catalog) => {
+        const nextItems = catalog.items.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          category: "",
+        }));
+        const nextCategories = catalog.categories.map((category) => ({
+          id: String(category.id),
+          name: category.name,
+        }));
+        setCatalogMenuItems(nextItems);
+        setCatalogCategories(nextCategories);
+      })
+      .catch((cause) =>
+        setApiError(
+          cause instanceof Error ? cause.message : "Không thể tải danh mục để chọn phạm vi.",
+        ),
+      );
+  }, []);
 
   const filteredPromotions = useMemo(
     () =>
@@ -233,8 +292,8 @@ export default function AdminPromotionsPage() {
   const openCreateForm = () => {
     setEditingId(null);
     setForm(emptyForm());
-    setTargetType("MENU_ITEM");
-    setTargetId(menuItems[0].id);
+    setTargetType("");
+    setTargetId("");
     setShowForm(true);
   };
 
@@ -254,8 +313,8 @@ export default function AdminPromotionsPage() {
       endAt: promotion.endAt,
       targets: promotion.targets.map((t) => ({ ...t })),
     });
-    setTargetType("MENU_ITEM");
-    setTargetId(menuItems[0].id);
+    setTargetType("");
+    setTargetId("");
     setShowForm(true);
   };
 
@@ -265,6 +324,7 @@ export default function AdminPromotionsPage() {
   };
 
   const addTarget = () => {
+    if (!targetType || !targetId) return;
     const exists = form.targets.some((t) => t.targetType === targetType && t.targetId === targetId);
     if (exists) return;
     setForm((current) => ({
@@ -276,6 +336,21 @@ export default function AdminPromotionsPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.name.trim() || form.discountValue <= 0) return;
+    if (typeUsesPercent && form.discountValue > 100) {
+      setApiError("Tỷ lệ giảm tối đa là 100%.");
+      return;
+    }
+    if (
+      form.code
+        .split(",")
+        .map((value) => value.trim())
+        .some((value) => value && !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))
+    ) {
+      setApiError(
+        "Mã chỉ gồm chữ in hoa không dấu và số; dùng CODE:quota, ngăn nhiều mã bằng dấu phẩy.",
+      );
+      return;
+    }
     setConfirmTarget({ action: "save" });
   };
 
@@ -294,38 +369,118 @@ export default function AdminPromotionsPage() {
     });
   };
 
-  const updateStatus = (id: string) => {
-    setPromotions((current) =>
-      current.map((p) => (p.id === id ? { ...p, status: nextStatus(p.status) } : p)),
-    );
+  const updateStatus = async (id: string) => {
+    const current = promotions.find((promotion) => promotion.id === id);
+    if (!current) return;
+    try {
+      const updated = await updatePromotionStatus(id, nextStatus(current.status));
+      setPromotions((items) =>
+        items.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...updated.promotion,
+                code: updated.codes
+                  .map(
+                    (code) =>
+                      `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+                  )
+                  .join(", "),
+                startAt: updated.promotion.startAt?.slice(0, 16) ?? "",
+                endAt: updated.promotion.endAt?.slice(0, 16) ?? "",
+                targets: updated.targets.map((target) => ({
+                  id: String(target.id),
+                  targetType: target.targetType,
+                  targetId: String(target.targetId),
+                })),
+              }
+            : item,
+        ),
+      );
+      setApiError(null);
+    } catch (cause) {
+      setApiError(cause instanceof Error ? cause.message : "Không thể cập nhật trạng thái.");
+    }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!confirmTarget) return;
     if (confirmTarget.action === "save") {
       const trimmed = form.name.trim();
       const normalized = { ...form, name: trimmed, code: form.code.trim().toUpperCase() };
-      if (editingId) {
+      const command = {
+        ...normalized,
+        startAt: normalized.startAt || null,
+        endAt: normalized.endAt || null,
+        codes: normalized.code
+          ? normalized.code
+              .split(",")
+              .map((entry) => entry.trim())
+              .filter(Boolean)
+              .map((entry) => {
+                const [value, quota] = entry.split(":", 2).map((part) => part.trim());
+                return {
+                  value,
+                  maxRedemptions: quota ? Number(quota) : null,
+                };
+              })
+          : [],
+        targets: normalized.targets.map((target) => ({
+          type: target.targetType,
+          id: Number(target.targetId),
+        })),
+      };
+      try {
+        const saved = editingId
+          ? await updatePromotion(editingId, command)
+          : await createPromotion(command);
+        const next = {
+          ...normalized,
+          ...saved.promotion,
+          id: saved.promotion.publicId,
+          code: saved.codes
+            .map(
+              (code) =>
+                `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+            )
+            .join(", "),
+          startAt: saved.promotion.startAt?.slice(0, 16) ?? "",
+          endAt: saved.promotion.endAt?.slice(0, 16) ?? "",
+          targets: saved.targets.map((target) => ({
+            id: String(target.id),
+            targetType: target.targetType,
+            targetId: String(target.targetId),
+          })),
+          redemptions: [],
+        };
         setPromotions((current) =>
-          current.map((p) =>
-            p.id === editingId ? { ...p, ...normalized, redemptions: p.redemptions } : p,
-          ),
+          editingId
+            ? current.map((item) => (item.id === editingId ? next : item))
+            : [next, ...current],
         );
-      } else {
-        setPromotions((current) => [
-          { ...normalized, id: `promo-${Date.now()}`, redemptions: [] },
-          ...current,
-        ]);
+        setApiError(null);
+      } catch (cause) {
+        setApiError(cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi.");
+        return;
       }
       setConfirmTarget(null);
       closeForm();
     } else if (confirmTarget.action === "status" && confirmTarget.promotionId) {
-      updateStatus(confirmTarget.promotionId);
+      await updateStatus(confirmTarget.promotionId);
       setConfirmTarget(null);
     }
   };
 
-  const targetOptions = targetType === "MENU_ITEM" ? menuItems : categories;
+  const targetOptions =
+    targetType === "MENU_ITEM"
+      ? catalogMenuItems
+      : targetType === "CATEGORY"
+        ? catalogCategories
+        : [];
+  const getCatalogTargetLabel = (target: PromotionTarget) => {
+    const source = target.targetType === "MENU_ITEM" ? catalogMenuItems : catalogCategories;
+    return source.find((item) => item.id === target.targetId)?.name ?? "Đã ngừng áp dụng";
+  };
   const typeUsesPercent =
     form.promotionType === "PERCENT_OFF" || form.promotionType === "ITEM_PERCENT_OFF";
 
@@ -346,6 +501,7 @@ export default function AdminPromotionsPage() {
           Tạo promotion
         </CasButton>
       </div>
+      {apiError && <p className="text-sm font-semibold text-cas-error">{apiError}</p>}
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-cas-outline-variant/25 bg-cas-glass p-3 lg:flex-row lg:items-center">
@@ -411,7 +567,7 @@ export default function AdminPromotionsPage() {
                   <p className="mt-1 text-xs font-medium text-cas-on-surface-variant">
                     {promotion.targets.length === 0
                       ? "Áp dụng toàn bill"
-                      : `Áp dụng: ${promotion.targets.map(getTargetLabel).join(", ")}`}
+                      : `Áp dụng: ${promotion.targets.map(getCatalogTargetLabel).join(", ")}`}
                   </p>
                 </div>
                 <span
@@ -564,7 +720,8 @@ export default function AdminPromotionsPage() {
                       onChange={(e) => updateForm("code", e.target.value.toUpperCase())}
                       placeholder="VD: SUMMER50K (để trống nếu không cần mã)"
                       className={inputClass}
-                      maxLength={50}
+                      maxLength={500}
+                      title="Nhập nhiều mã cách nhau bằng dấu phẩy; dùng CODE:quota cho quota riêng từng mã."
                     />
                   </Field>
                   <Field label="Loại promotion">
@@ -589,6 +746,12 @@ export default function AdminPromotionsPage() {
                         required
                         value={form.discountValue || ""}
                         onChange={(e) => updateForm("discountValue", Number(e.target.value))}
+                        onInvalid={(event) =>
+                          event.currentTarget.setCustomValidity(
+                            "Tỷ lệ giảm phải lớn hơn 0% và không vượt quá 100%.",
+                          )
+                        }
+                        onInput={(event) => event.currentTarget.setCustomValidity("")}
                         placeholder="VD: 15"
                         className={inputClass}
                       />
@@ -687,12 +850,13 @@ export default function AdminPromotionsPage() {
                 <select
                   value={targetType}
                   onChange={(e) => {
-                    const next = e.target.value as TargetType;
+                    const next = e.target.value as TargetType | "";
                     setTargetType(next);
-                    setTargetId((next === "MENU_ITEM" ? menuItems : categories)[0].id);
+                    setTargetId("");
                   }}
                   className={inputClass}
                 >
+                  <option value="">Chọn loại phạm vi</option>
                   <option value="MENU_ITEM">Món ăn</option>
                   <option value="CATEGORY">Danh mục</option>
                 </select>
@@ -700,7 +864,9 @@ export default function AdminPromotionsPage() {
                   value={targetId}
                   onChange={(e) => setTargetId(e.target.value)}
                   className={inputClass}
+                  disabled={!targetType}
                 >
+                  <option value="">Chọn món hoặc danh mục</option>
                   {targetOptions.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
@@ -718,7 +884,7 @@ export default function AdminPromotionsPage() {
                     className="inline-flex items-center gap-1 rounded-lg bg-cas-primary/10 px-2 py-1 text-[0.65rem] font-bold text-cas-primary"
                   >
                     {target.targetType === "MENU_ITEM" ? "Món:" : "Danh mục:"}{" "}
-                    {getTargetLabel(target)}
+                    {getCatalogTargetLabel(target)}
                     <button
                       type="button"
                       onClick={() =>

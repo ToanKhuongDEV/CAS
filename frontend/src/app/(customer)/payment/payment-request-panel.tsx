@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { CustomerOrderVoucherSummary } from "../../../components/customer/customer-order-voucher-summary";
 import { loadCustomerBill, type CustomerBill } from "../../../lib/api/ordering/ordering.api";
 import {
   createCustomerPayment,
@@ -36,17 +37,17 @@ export function PaymentRequestPanel({
   const [error, setError] = useState<string | null>(null);
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(true);
-  const isPolling = useRef(false);
 
   useEffect(() => {
     if (!hasActiveSession) return;
 
     let isActive = true;
+    let isPolling = false;
 
     async function load() {
-      if (isPolling.current) return;
+      if (isPolling) return;
 
-      isPolling.current = true;
+      isPolling = true;
       try {
         const [billResult, paymentResult] = await Promise.allSettled([
           loadCustomerBill(),
@@ -80,7 +81,7 @@ export function PaymentRequestPanel({
         }
         if (paymentResult.status === "fulfilled") setPayment(paymentResult.value);
       } finally {
-        isPolling.current = false;
+        isPolling = false;
       }
     }
 
@@ -235,6 +236,11 @@ export function PaymentRequestPanel({
           </div>
         </div>
       </section>
+      {!isPending && (
+        <div className="mt-4">
+          <CustomerOrderVoucherSummary originalAmount={bill.payableAmount} />
+        </div>
+      )}
       <section className="mt-4 rounded-2xl border border-cas-secondary/20 bg-cas-secondary-container/20 p-4">
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-cas-secondary text-cas-on-primary">
