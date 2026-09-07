@@ -200,7 +200,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log.
 - [x] Customer chỉ đọc session `OPEN` hoặc `PAYMENT_PENDING`; session `CLOSED` sau khi Operator xác nhận payment không còn trả lại order/bill/payment cũ qua cookie session.
 - [x] Thêm index `payments(status, created_at, table_session_id)` bằng Flyway để phục vụ danh sách và số lượng payment `PENDING` theo thời điểm tạo, không thay đổi schema nghiệp vụ.
-- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem thời điểm yêu cầu và xác nhận thủ công, idempotent, kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Frontend chưa ghép API payment đã thanh toán trong ngày]**
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
@@ -274,6 +274,10 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
 - [x] **Promotion:** xem danh sách promotion.
 - [x] `GET/POST/PUT /api/v1/admin/promotions`, `GET /api/v1/admin/promotions/{promotionId}` và `PATCH /api/v1/admin/promotions/{promotionId}/status`: `ADMIN` quản lý chương trình, code, target và trạng thái promotion.
+- [x] `POST/PUT /api/v1/admin/promotions`: chỉ nhận target cho promotion `ITEM_*`, kiểm tra quota promotion/code/khách hàng khi trả hoặc chọn promotion hợp lệ, và xác thực số tiền không âm cùng quota dương tại API boundary.
+- [x] `GET /api/v1/admin/promotions/{promotionId}/redemptions?page=0&size=10`: `ADMIN` xem lịch sử redemption phân trang; dữ liệu danh sách promotion trả thêm số lượt `COMPLETED` thực tế để UI hiển thị quota.
+- [x] `max_discount_amount` áp dụng cho `PERCENT_OFF` và `ITEM_PERCENT_OFF`; UI xoá giá trị khi đổi sang loại giảm tiền và backend từ chối payload có trường này ngoài hai loại giảm %.
+- [x] Payment có thể có số tiền `0` sau khi áp dụng promotion; hệ thống vẫn tạo payment `PENDING` và nhân viên xác nhận `PAID` theo luồng thủ công hiện có.
 - [x] `GET/PUT/DELETE /api/v1/customer/promotions/eligible|selection` và các route tương ứng theo table session cho `OPERATOR`: xem, chọn hoặc bỏ promotion trước payment; backend tính discount từ bill server-side.
 - [x] **Promotion:** xem chi tiết promotion, gồm code và target áp dụng.
 - [x] **Promotion:** thêm promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
@@ -285,6 +289,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Promotion áp dụng bill:** Customer nhập mã giảm giá, backend kiểm tra theo bill hiện tại rồi chọn promotion phù hợp.
 - [x] Customer chọn promotion tại màn thanh toán theo bill đã lưu; cart không hiển thị hoặc áp dụng khuyến mãi.
 - [x] API promotion hợp lệ trả thêm giá trị giảm gốc, bill tối thiểu (nếu có) và phạm vi áp dụng để Customer hiển thị thông tin voucher.
+- [x] `GET /api/v1/customer/promotions` trả các promotion đang hoạt động, không yêu cầu nhập mã, gồm trạng thái đủ/chưa đủ điều kiện và lý do để Customer hiển thị voucher bị khóa ở cuối danh sách.
+- [x] Popup voucher Customer hiển thị giá trị giảm thực tế một lần trên mỗi thẻ, đưa phạm vi/điều kiện xuống mô tả, cho phép thay đổi mã đã chọn và nhận thêm mức giảm tối đa từ API để mô tả đúng promotion giảm phần trăm.
+- [x] Thẻ voucher Customer dùng ba dòng nội dung cố định: mức ưu đãi, phạm vi áp dụng và điều kiện; tên chương trình là nhãn phụ và phía phải chỉ hiển thị trạng thái chọn.
+- [x] Voucher chưa đủ điều kiện chỉ hiển thị điều kiện áp dụng trên thẻ; không hiển thị lý do nội bộ như giá trị đơn hàng hiện tại chưa đạt.
+- [x] API promotion trả phạm vi bằng tên đầy đủ của tất cả món và danh mục target, để Customer hiển thị trực tiếp “Áp dụng cho …” thay cho nhãn chung.
 - [x] Form Admin promotion hiển thị target món/danh mục từ catalog API thay vì dữ liệu mẫu cũ.
 - [x] Màn Đơn hàng Customer chỉ hiển thị một dòng `Tổng tiền`, không tách giá gốc và giảm giá.
 - [x] Sửa polling Payment Customer để effect bị dọn trong React Strict Mode không chặn lần tải bill/payment đầu tiên của effect hiện hành.
@@ -388,8 +397,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Sửa các điểm nhỏ trong luồng menu: lỗi tạo/tải order Customer không còn tự chuyển về QR khi lỗi kỹ thuật, hotline dịch vụ thêm lấy từ API cửa hàng, bỏ badge điều hướng số cứng và dùng token màu cho nhãn món; tab Thanh toán Operator hiển thị badge số payment `PENDING` thực từ API, cập nhật ngay sau khi xác nhận và polling mỗi 10 giây; khi mở tab Payment, danh sách tải ngay cả trong React Strict Mode thay vì chờ lượt polling.
 - [x] Bổ sung trang Admin `/admin/services` quản lý Dịch vụ thêm, dùng chung UI và quyền thao tác tương ứng với Operator.
 - [x] Đặt Dịch vụ thêm trong dropdown Menu & Promotion của Admin.
-- [x] Bổ sung nút In bill trong popup xác nhận thanh toán của Operator; hiện mở hộp in của trình duyệt; bill lấy thông tin cửa hàng theo store của Operator, tên người xác nhận, thời điểm yêu cầu và snapshot món/tổng tiền từ API, không dùng dữ liệu tĩnh; dòng món dùng key theo vị trí snapshot để tên món trùng không gây lỗi React.
-- [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bill/bàn, món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
+- [x] Bổ sung nút In bill cạnh “Xem hóa đơn” trong danh sách payment Operator; nút mở hộp in của trình duyệt với bill lấy từ snapshot API, không dùng dữ liệu tĩnh.
+- [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bàn (không hiển thị mã payment hoặc mã order), món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
 - [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
 - [x] Bổ sung card và tab “Dịch vụ thêm” cố định cuối Menu Customer; card tương tự luôn hiển thị ở Operator. Nội dung có giá thỏa thuận và nhãn hotline liên hệ, không phụ thuộc catalog API, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
 - [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
@@ -463,6 +472,10 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
       `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
       phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
       giao dịch thành công.
+- [x] Operator có thể mở “Xem hóa đơn” từ từng payment chờ xác nhận, xem bill snapshot và in bill mà chưa kích hoạt thao tác xác nhận thanh toán.
+- [x] Trang `/operator/payments` có toggle mặc định “Chưa thanh toán” và chế độ “Đã thanh toán hôm nay”, không lặp tiêu đề dưới toggle; chế độ sau tải `GET /api/v1/operator/payments/paid-today`, chỉ cho xem hoặc in bill đã `PAID` và có empty state riêng.
+- [x] Màn “Xem hóa đơn” của Operator đọc đầy đủ `billSnapshot` từ `GET /api/v1/operator/payments`: từng order, thời điểm, ghi chú, món, option, khuyến mãi và các tổng tiền.
+- [x] Popup xem/xác nhận bill Operator là một hóa đơn cuộn tự nhiên trong khung giới hạn viewport; thanh cuộn được ẩn trên mobile và desktop.
 - [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món, hiển thị đầy đủ món gốc, option, đơn giá, số lượng và thành tiền cần đối chiếu.
 - [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
 - [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) cho phép nhân viên `OPERATOR` tạo và ghi nhận các sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`.
@@ -476,6 +489,10 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ và quy tắc dữ liệu cho khuyến mãi và Thông báo hệ thống (Notifications).
 - [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`) theo mô hình cũ.
 - [x] Rà soát và hoàn thiện UI `/admin/promotions` đúng và đủ các field theo tài liệu & DB design: nhập số tiền tự động có dấu phân cách hàng nghìn (`1,000,000`), thời gian chuẩn `datetime-local` (`start_at`/`end_at`), cảnh báo loại giảm `ITEM_...` chưa chọn target, và tích hợp Modal xem lịch sử lượt sử dụng (`PromotionRedemption`).
+- [x] Bổ sung tooltip dấu chấm than tại “Phạm vi áp dụng” của form promotion, giải thích khác biệt giữa giảm theo món/danh mục và giảm toàn bill.
+- [x] Bổ sung tooltip tại trường “Bill tối thiểu” của form promotion, giải thích điều kiện giá trị bill để promotion được áp dụng.
+- [x] Bổ sung tooltip tại trường “Giá trị giảm” của form promotion, giải thích mức giảm tiền được giới hạn theo giá trị bill hoặc món áp dụng.
+- [x] Sửa badge trạng thái trên danh sách promotion không co hoặc xuống dòng khi tên/phạm vi chương trình dài.
 - [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
@@ -501,7 +518,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Đồng bộ giao diện chi tiết món trong Giỏ hàng Customer với Đơn hàng, giữ thao tác điều chỉnh số lượng và xóa món.
 - [x] Đồng bộ giỏ món trong luồng `OPERATOR` tạo order hộ với giao diện chi tiết món Customer, bao gồm giá món gốc và từng option đã chọn.
 - [x] Hiển thị ghi chú chung của order trên trang Đơn hàng Customer.
-- [x] Giữ luồng Customer chuyển tới `/payment` để kiểm tra và gửi yêu cầu thanh toán; không hiển thị Thanh toán như một tab điều hướng riêng.
+- [x] Giữ luồng Customer chuyển tới `/payment` để kiểm tra và gửi yêu cầu thanh toán; không hiển thị Thanh toán như một tab điều hướng riêng. Nút từ `/orders` được đặt nhãn “Xem hóa đơn”.
 - [x] Customer mở popup để nhập mã hoặc chọn voucher/promotion từ danh sách thẻ “Khuyến mãi dành cho bạn”; mỗi voucher hiển thị loại ưu đãi, số tiền giảm dự kiến và số tiền cần thanh toán.
 - [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
 - [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.

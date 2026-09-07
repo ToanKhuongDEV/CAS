@@ -93,10 +93,13 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<ca
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Đổ món khi phục vụ\",\"isRemade\":false}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
 curl.exe http://localhost:8080/api/v1/customer/promotions/eligible -b customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/promotions -b customer-session-cookie.txt
 curl.exe "http://localhost:8080/api/v1/customer/promotions/eligible?code=GIAM20" -b customer-session-cookie.txt
 curl.exe -X PUT http://localhost:8080/api/v1/customer/promotions/selection -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"promotionId\":\"<promotion-public-id>\",\"code\":\"GIAM20\"}"
 curl.exe -X DELETE http://localhost:8080/api/v1/customer/promotions/selection -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/admin/promotions -H "Authorization: Bearer <firebase-id-token>"
+curl.exe -X POST http://localhost:8080/api/v1/admin/promotions -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"name\":\"Giảm 10% món nước\",\"promotionType\":\"ITEM_PERCENT_OFF\",\"discountValue\":10,\"maxDiscountAmount\":50000,\"minBillAmount\":100000,\"maxRedemptions\":100,\"maxRedemptionsPerCustomer\":1,\"status\":\"DRAFT\",\"startAt\":null,\"endAt\":null,\"codes\":[{\"value\":\"GIAM10\",\"maxRedemptions\":50}],\"targets\":[{\"type\":\"CATEGORY\",\"id\":1}]}"
+curl.exe "http://localhost:8080/api/v1/admin/promotions/<promotion-public-id>/redemptions?page=0&size=10" -H "Authorization: Bearer <firebase-id-token>"
 ```
 
 Sau khi khách quét hoặc nhập tay QR hợp lệ, backend lưu table session trong cookie
@@ -125,6 +128,7 @@ Response payment trả `createdAt` để giao diện vận hành hiển thị đ
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```

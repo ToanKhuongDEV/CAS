@@ -381,7 +381,7 @@ cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn 
 | `name` | `VARCHAR(150) NOT NULL` | Tên chương trình để hiển thị và snapshot |
 | `promotion_type` | `VARCHAR(30) NOT NULL` | `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF` |
 | `discount_value` | `DECIMAL(15,2) NULL` | Giá trị giảm khi loại promotion sử dụng giá trị này |
-| `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF`; `NULL` là không giới hạn |
+| `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF` hoặc `ITEM_PERCENT_OFF`; `NULL` là không giới hạn |
 | `min_bill_amount` | `DECIMAL(15,2) NULL` | Giá trị bill tối thiểu; `NULL` là không yêu cầu |
 | `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn tổng redemption `COMPLETED`; `NULL` là không giới hạn |
 | `max_redemptions_per_customer` | `INT UNSIGNED NULL` | Giới hạn số bill mỗi khách dùng promotion; `NULL` là không giới hạn |
@@ -748,7 +748,7 @@ Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của table 
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh payment |
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
 | `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn; duy nhất trong bảng |
-| `amount` | `DECIMAL(15,2) NOT NULL` | Tổng cần thanh toán, do backend lấy từ tổng `orders.payable_amount` |
+| `amount` | `DECIMAL(15,2) NOT NULL` | Tổng cần thanh toán, do backend tính từ bill sau giảm; có thể bằng `0` |
 | `bill_snapshot` | `JSON NOT NULL` | Toàn bộ nội dung bill tại thời điểm khách yêu cầu thanh toán |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái `PENDING` hoặc `PAID` |
 | `confirmed_by` | `BIGINT UNSIGNED NULL` | Tài khoản xác nhận thanh toán |

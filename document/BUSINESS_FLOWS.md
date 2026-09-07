@@ -692,12 +692,13 @@ Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của t
 - Mọi record promotion, redemption và discount snapshot phải có `store_id`; backend luôn kiểm tra promotion và bill thuộc cùng store.
 - Không sửa `menu_items.price` để kích hoạt hoặc kết thúc khuyến mãi.
 - Một promotion chỉ được áp dụng một lần cho cùng bill; phiên bản hiện tại chỉ cho phép mỗi khách hàng dùng tối đa một voucher/promotion cho mỗi bill và mỗi table session chỉ áp dụng tối đa một promotion.
-- `PERCENT_OFF` có thể dùng `max_discount_amount`; giá trị `NULL` nghĩa là không giới hạn mức giảm.
+- `PERCENT_OFF` và `ITEM_PERCENT_OFF` có thể dùng `max_discount_amount`; giá trị `NULL` nghĩa là không giới hạn mức giảm.
 - Discount được làm tròn tới đơn vị đồng bằng cùng quy tắc backend `RoundingMode.HALF_UP`, dù database dùng `DECIMAL(15,2)`.
 - `BUY_X_GET_Y` và `FREE_ITEM` ngoài phạm vi mô hình promotion đơn giản hiện tại; chỉ bổ sung khi có mô hình dữ liệu mua/tặng riêng.
 - Trước khi payment được tạo, kết quả discount chỉ là áp dụng tạm thời và phải được tính lại khi bill thay đổi. Sau khi session chuyển `PAYMENT_PENDING`, `bill_discounts` là snapshot bất biến; hóa đơn lịch sử không tính lại theo promotion hiện hành.
 - Quota được kiểm tra khi tạo redemption `COMPLETED`: `promotions.max_redemptions` giới hạn toàn chương trình, `promotion_codes.max_redemptions` giới hạn từng code khi một promotion có nhiều code, và `promotions.max_redemptions_per_customer` giới hạn số bill mà một khách sử dụng promotion.
 - Tổng tiền phải trả sau giảm không bao giờ âm (tối thiểu là 0 VNĐ).
+- Bill có số phải trả `0` VNĐ vẫn tạo payment `PENDING`, lưu snapshot discount và được `OPERATOR`/`ADMIN` xác nhận `PAID` theo cùng luồng payment thủ công.
 
 ### Nội dung cần chốt
 
