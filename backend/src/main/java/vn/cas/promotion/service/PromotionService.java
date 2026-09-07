@@ -45,6 +45,15 @@ public class PromotionService {
         return details(require(principal.storeId(), publicId));
     }
 
+    @Transactional(readOnly = true)
+    public RedemptionPage redemptions(OperationalPrincipal principal, String publicId, int page,
+            int size) {
+        var promotion = require(principal.storeId(), publicId);
+        int offset = Math.multiplyExact(page, size);
+        return new RedemptionPage(mapper.findRedemptions(promotion.id(), size, offset),
+                mapper.countRedemptions(promotion.id()), page, size);
+    }
+
     @Transactional
     public AdminPromotion create(OperationalPrincipal principal, Promotion promotion,
             List<Code> codes, List<Target> targets, UUID requestId) {
@@ -93,6 +102,15 @@ public class PromotionService {
         return mapper.findByStoreId(session.storeId()).stream()
                 .map(promotion -> eligible(session, promotion, code))
                 .flatMap(java.util.Optional::stream).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerPromotion> customerPromotions(String sessionPublicId) {
+        var session = sessions.requireCurrent(sessionPublicId);
+        return mapper.findByStoreId(session.storeId()).stream()
+                .filter(promotion -> "ACTIVE".equals(promotion.status()))
+                .filter(promotion -> mapper.findCodes(promotion.id()).isEmpty())
+                .map(promotion -> customerPromotion(session, promotion)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -184,11 +202,26 @@ public class PromotionService {
         BigDecimal target = promotion.promotionType().startsWith("ITEM_")
                 ? mapper.targetedPayableAmount(session.sessionId(), promotion.id())
                 : bill;
-        return eligible(promotion, requestedCode, bill, target);
+        return eligible(promotion, requestedCode, bill, target, session.clientAccountId());
+    }
+
+    private CustomerPromotion customerPromotion(CustomerTableSessionLookup session,
+            Promotion promotion) {
+        BigDecimal bill = mapper.currentPayableAmount(session.sessionId());
+        BigDecimal target = promotion.promotionType().startsWith("ITEM_")
+                ? mapper.targetedPayableAmount(session.sessionId(), promotion.id())
+                : bill;
+        String unavailableReason = unavailableReason(promotion, bill, target,
+                session.clientAccountId());
+        BigDecimal amount = discount(promotion, bill, target);
+        return new CustomerPromotion(promotion.publicId(), promotion.name(),
+                promotion.promotionType(), promotion.discountValue(), promotion.maxDiscountAmount(),
+                promotion.minBillAmount(), scope(promotion.id()), amount, bill.subtract(amount),
+                unavailableReason == null, unavailableReason);
     }
 
     private java.util.Optional<Eligible> eligible(Promotion promotion, String requestedCode,
-            BigDecimal bill, BigDecimal target) {
+            BigDecimal bill, BigDecimal target, Long clientAccountId) {
         if (!"ACTIVE".equals(promotion.status())) {
             log.debug("Promotion {} excluded: status={}", promotion.publicId(), promotion.status());
             return java.util.Optional.empty();
@@ -218,6 +251,22 @@ public class PromotionService {
                 return java.util.Optional.empty();
             }
         }
+        if (promotion.maxRedemptions() != null
+                && mapper.countCompletedRedemptions(promotion.id()) >= promotion.maxRedemptions()) {
+            log.debug("Promotion {} excluded: promotion quota reached", promotion.publicId());
+            return java.util.Optional.empty();
+        }
+        if (code != null && code.maxRedemptions() != null
+                && mapper.countCompletedRedemptionsByCode(code.id()) >= code.maxRedemptions()) {
+            log.debug("Promotion {} excluded: code quota reached", promotion.publicId());
+            return java.util.Optional.empty();
+        }
+        if (promotion.maxRedemptionsPerCustomer() != null && (clientAccountId == null
+                || mapper.countCompletedRedemptionsByPromotionAndCustomer(promotion.id(),
+                        clientAccountId) >= promotion.maxRedemptionsPerCustomer())) {
+            log.debug("Promotion {} excluded: customer quota reached", promotion.publicId());
+            return java.util.Optional.empty();
+        }
         BigDecimal amount = discount(promotion, bill, target);
         if (amount.signum() <= 0) {
             log.debug("Promotion {} excluded: discount is zero; bill={}, targetedAmount={}",
@@ -229,20 +278,37 @@ public class PromotionService {
         return java.util.Optional.of(new Eligible(promotion.publicId(), promotion.name(),
                 promotion.promotionType(), code == null ? null : code.id(),
                 code == null ? null : code.code(), promotion.discountValue(),
-                promotion.minBillAmount(), scope(promotion.id()), amount, bill.subtract(amount)));
+                promotion.maxDiscountAmount(), promotion.minBillAmount(), scope(promotion.id()),
+                amount, bill.subtract(amount)));
+    }
+
+    private String unavailableReason(Promotion promotion, BigDecimal bill, BigDecimal target,
+            Long clientAccountId) {
+        if (!inPeriod(promotion))
+            return "Khuyến mãi chưa hoặc đã hết thời gian áp dụng.";
+        if (promotion.minBillAmount() != null && bill.compareTo(promotion.minBillAmount()) < 0)
+            return "Chưa đạt giá trị đơn hàng tối thiểu.";
+        if (target.signum() <= 0)
+            return "Đơn hàng chưa có món thuộc phạm vi áp dụng.";
+        if (promotion.maxRedemptions() != null
+                && mapper.countCompletedRedemptions(promotion.id()) >= promotion.maxRedemptions())
+            return "Khuyến mãi đã hết lượt sử dụng.";
+        if (promotion.maxRedemptionsPerCustomer() != null && (clientAccountId == null
+                || mapper.countCompletedRedemptionsByPromotionAndCustomer(promotion.id(),
+                        clientAccountId) >= promotion.maxRedemptionsPerCustomer()))
+            return "Bạn đã dùng hết lượt của khuyến mãi này.";
+        return null;
     }
 
     private String scope(long promotionId) {
-        var targets = mapper.findTargets(promotionId);
+        var targets = mapper.findTargetNames(promotionId);
         if (targets.isEmpty())
-            return "Toàn bộ hóa đơn";
-        boolean hasMenuItem = targets.stream()
-                .anyMatch(target -> "MENU_ITEM".equals(target.targetType()));
-        boolean hasCategory = targets.stream()
-                .anyMatch(target -> "CATEGORY".equals(target.targetType()));
-        if (hasMenuItem && hasCategory)
-            return "Món và danh mục được chọn";
-        return hasMenuItem ? "Món được chọn" : "Danh mục được chọn";
+            return "Áp dụng cho toàn bộ hóa đơn";
+        return "Áp dụng cho " + targets.stream()
+                .map(target -> "CATEGORY".equals(target.targetType())
+                        ? "danh mục " + target.targetName()
+                        : target.targetName())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     private static BigDecimal discount(Promotion promotion, BigDecimal bill, BigDecimal base) {
@@ -256,7 +322,7 @@ public class PromotionService {
             amount = promotion.discountValue();
         else
             return BigDecimal.ZERO;
-        if (promotion.maxDiscountAmount() != null)
+        if (promotion.promotionType().contains("PERCENT") && promotion.maxDiscountAmount() != null)
             amount = amount.min(promotion.maxDiscountAmount());
         return amount.min(base).min(bill).max(BigDecimal.ZERO);
     }
@@ -271,7 +337,18 @@ public class PromotionService {
                 || promotion.endAt() != null && promotion.startAt() != null
                         && promotion.endAt().isBefore(promotion.startAt()))
             throw invalid();
-        if (promotion.promotionType().startsWith("ITEM_") && targets.isEmpty())
+        if (promotion.maxDiscountAmount() != null && promotion.maxDiscountAmount().signum() < 0
+                || promotion.maxDiscountAmount() != null
+                        && !promotion.promotionType().contains("PERCENT")
+                || promotion.minBillAmount() != null && promotion.minBillAmount().signum() < 0
+                || promotion.maxRedemptions() != null && promotion.maxRedemptions() <= 0
+                || promotion.maxRedemptionsPerCustomer() != null
+                        && promotion.maxRedemptionsPerCustomer() <= 0
+                || codes.stream().anyMatch(
+                        code -> code.maxRedemptions() != null && code.maxRedemptions() <= 0))
+            throw invalid();
+        if (promotion.promotionType().startsWith("ITEM_") && targets.isEmpty()
+                || !promotion.promotionType().startsWith("ITEM_") && !targets.isEmpty())
             throw invalid();
         for (Target target : targets)
             if (!("MENU_ITEM".equals(target.type()) && mapper.existsMenuItem(storeId, target.id())
@@ -296,7 +373,8 @@ public class PromotionService {
 
     private AdminPromotion details(Promotion promotion) {
         return new AdminPromotion(promotion, mapper.findCodes(promotion.id()),
-                mapper.findTargets(promotion.id()));
+                mapper.findTargets(promotion.id()),
+                mapper.countCompletedRedemptions(promotion.id()));
     }
 
     private static boolean inPeriod(Promotion promotion) {
@@ -322,10 +400,19 @@ public class PromotionService {
     public record Target(String type, long id) {
     }
     public record AdminPromotion(Promotion promotion, List<PromotionCode> codes,
-            List<PromotionTarget> targets) {
+            List<PromotionTarget> targets, long completedRedemptionCount) {
+    }
+    public record RedemptionPage(List<PromotionMapper.PromotionRedemptionView> items, long total,
+            int page, int size) {
     }
     public record Eligible(String promotionId, String name, String promotionType, Long codeId,
-            String code, BigDecimal discountValue, BigDecimal minBillAmount, String scope,
-            BigDecimal discountAmount, BigDecimal payableAmount) {
+            String code, BigDecimal discountValue, BigDecimal maxDiscountAmount,
+            BigDecimal minBillAmount, String scope, BigDecimal discountAmount,
+            BigDecimal payableAmount) {
+    }
+    public record CustomerPromotion(String promotionId, String name, String promotionType,
+            BigDecimal discountValue, BigDecimal maxDiscountAmount, BigDecimal minBillAmount,
+            String scope, BigDecimal discountAmount, BigDecimal payableAmount, boolean eligible,
+            String unavailableReason) {
     }
 }

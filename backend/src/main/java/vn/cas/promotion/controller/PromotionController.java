@@ -5,7 +5,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -53,6 +56,14 @@ public class PromotionController {
             HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy khuyến mãi.", promotions.get(p, id), r);
     }
+    @GetMapping("/admin/promotions/{id}/redemptions")
+    public ResponseEntity<ApiResponse<PromotionService.RedemptionPage>> redemptions(
+            @AuthenticationPrincipal OperationalPrincipal p, @PathVariable String id,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size, HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy lịch sử sử dụng khuyến mãi.",
+                promotions.redemptions(p, id, page, size), r);
+    }
     @PostMapping("/admin/promotions")
     public ResponseEntity<ApiResponse<PromotionService.AdminPromotion>> create(
             @AuthenticationPrincipal OperationalPrincipal p, @Valid @RequestBody PromotionRequest b,
@@ -86,6 +97,12 @@ public class PromotionController {
             @RequestParam(required = false) @Size(max = 100) String code, HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy khuyến mãi hợp lệ.",
                 promotions.eligible(s, code), r);
+    }
+    @GetMapping("/customer/promotions")
+    public ResponseEntity<ApiResponse<List<PromotionService.CustomerPromotion>>> customerPromotions(
+            @CookieValue(name = CUSTOMER_COOKIE, required = false) String s, HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách khuyến mãi.",
+                promotions.customerPromotions(s), r);
     }
     @PutMapping("/customer/promotions/selection")
     public ResponseEntity<ApiResponse<PromotionService.Eligible>> select(
@@ -129,7 +146,7 @@ public class PromotionController {
     }
     public record CodeRequest(
             @NotBlank @Size(max = 100) @Pattern(regexp = "[A-Z0-9]+") String value,
-            Integer maxRedemptions) {
+            @Positive Integer maxRedemptions) {
         PromotionService.Code toCode() {
             return new PromotionService.Code(value, maxRedemptions);
         }
@@ -143,8 +160,9 @@ public class PromotionController {
     public record PromotionRequest(@NotBlank @Size(max = 150) String name,
             @NotBlank @Pattern(regexp = "PERCENT_OFF|FIXED_AMOUNT_OFF|ITEM_PERCENT_OFF|ITEM_FIXED_OFF") String promotionType,
             @NotNull @DecimalMin(value = "0", inclusive = false) BigDecimal discountValue,
-            BigDecimal maxDiscountAmount, BigDecimal minBillAmount, Integer maxRedemptions,
-            Integer maxRedemptionsPerCustomer,
+            @DecimalMin(value = "0") BigDecimal maxDiscountAmount,
+            @DecimalMin(value = "0") BigDecimal minBillAmount, @Positive Integer maxRedemptions,
+            @Positive Integer maxRedemptionsPerCustomer,
             @NotBlank @Pattern(regexp = "DRAFT|ACTIVE|INACTIVE") String status,
             LocalDateTime startAt, LocalDateTime endAt, List<@Valid CodeRequest> codes,
             List<@Valid TargetRequest> targets) {

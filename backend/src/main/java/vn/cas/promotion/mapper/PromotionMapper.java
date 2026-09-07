@@ -15,7 +15,15 @@ public interface PromotionMapper {
     Promotion findById(@Param("storeId") long storeId, @Param("id") long id);
     List<PromotionCode> findCodes(@Param("promotionId") long promotionId);
     List<PromotionTarget> findTargets(@Param("promotionId") long promotionId);
+    List<PromotionTargetName> findTargetNames(@Param("promotionId") long promotionId);
     PromotionCode findCode(@Param("promotionId") long promotionId, @Param("id") long id);
+    long countCompletedRedemptions(@Param("promotionId") long promotionId);
+    long countCompletedRedemptionsByCode(@Param("promotionCodeId") long promotionCodeId);
+    long countCompletedRedemptionsByPromotionAndCustomer(@Param("promotionId") long promotionId,
+            @Param("clientAccountId") long clientAccountId);
+    List<PromotionRedemptionView> findRedemptions(@Param("promotionId") long promotionId,
+            @Param("limit") int limit, @Param("offset") int offset);
+    long countRedemptions(@Param("promotionId") long promotionId);
     int insert(@Param("publicId") String publicId, @Param("storeId") long storeId,
             @Param("promotion") Promotion promotion);
     long lastInsertId();
@@ -42,4 +50,10 @@ public interface PromotionMapper {
             @Param("codeId") Long codeId, @Param("code") String code,
             @Param("amount") BigDecimal amount, @Param("snapshot") String snapshot);
     int insertRedemptionFromDiscount(@Param("paymentId") long paymentId);
+
+    record PromotionRedemptionView(long id, String customerName, BigDecimal discountAmount,
+            java.time.LocalDateTime paidAt, String status) {
+    }
+    record PromotionTargetName(String targetType, String targetName) {
+    }
 }
