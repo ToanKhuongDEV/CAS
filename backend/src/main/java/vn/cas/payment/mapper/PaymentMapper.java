@@ -1,5 +1,6 @@
 package vn.cas.payment.mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -10,6 +11,9 @@ public interface PaymentMapper {
     PaymentView findBySessionId(@Param("sessionId") long sessionId);
     PaymentView findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
     List<PaymentView> findPending(@Param("storeId") long storeId);
+    List<PaymentView> findPaidBetween(@Param("storeId") long storeId,
+            @Param("confirmedAtStart") LocalDateTime confirmedAtStart,
+            @Param("confirmedAtEnd") LocalDateTime confirmedAtEnd);
     long countPending(@Param("storeId") long storeId);
     int insert(@Param("publicId") String publicId, @Param("sessionId") long sessionId,
             @Param("amount") java.math.BigDecimal amount, @Param("snapshot") String snapshot);

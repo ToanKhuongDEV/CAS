@@ -34,6 +34,12 @@ public class PaymentController {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy payment chờ xác nhận.",
                 service.pending(p), r);
     }
+    @GetMapping(ApiPaths.Payment.OPERATOR_PAID_TODAY)
+    public ResponseEntity<?> paidToday(@AuthenticationPrincipal OperationalPrincipal p,
+            HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy payment đã thanh toán trong ngày.",
+                service.paidToday(p), r);
+    }
     @GetMapping(ApiPaths.Payment.OPERATOR_PENDING_COUNT)
     public ResponseEntity<?> pendingCount(@AuthenticationPrincipal OperationalPrincipal p,
             HttpServletRequest r) {

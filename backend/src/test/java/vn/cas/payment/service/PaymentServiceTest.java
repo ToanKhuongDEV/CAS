@@ -3,6 +3,7 @@ package vn.cas.payment.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
@@ -54,6 +56,19 @@ class PaymentServiceTest {
     }
 
     @Test
+    void shouldCreatePendingPaymentForZeroAmountBill() {
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(orders.currentBill("session-1")).thenReturn(new CustomerOrderingService.Bill(5L,
+                "OPEN", BigDecimal.valueOf(100_000), BigDecimal.ZERO, List.of()));
+
+        service.create("session-1");
+
+        verify(payments).insert(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.ZERO), any());
+        verify(tables).moveSessionToPaymentPending(10L);
+    }
+
+    @Test
     void shouldResolveUnpaidRecordCloseSessionAndAuditWhenConfirming() {
         var pending = payment("PENDING");
         var confirmed = payment("PAID");
@@ -91,6 +106,18 @@ class PaymentServiceTest {
         assertThat(service.pendingCount(principal)).isEqualTo(2L);
 
         verify(payments).countPending(3L);
+    }
+
+    @Test
+    void shouldFindOnlyTodaysPaidPaymentsForOperatorsStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+
+        service.paidToday(principal);
+
+        verify(payments).findPaidBetween(org.mockito.ArgumentMatchers.eq(3L),
+                argThat(start -> start.toLocalDate().equals(java.time.LocalDate.now())),
+                argThat(end -> end.toLocalDate().equals(java.time.LocalDate.now().plusDays(1))));
     }
 
     private static CustomerTableSessionLookup session(String status) {

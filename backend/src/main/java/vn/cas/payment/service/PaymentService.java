@@ -2,6 +2,7 @@ package vn.cas.payment.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.UUID;
@@ -63,8 +64,8 @@ public class PaymentService {
         var bill = orders.currentBill(sessionPublicId);
         var discount = promotions == null ? null : promotions.selected(session);
         var amount = discount == null ? bill.payableAmount() : discount.payableAmount();
-        if (amount.signum() <= 0)
-            throw new ApiException(HttpStatus.CONFLICT, "Bill không có số tiền cần thanh toán.");
+        if (amount.signum() < 0)
+            throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
         try {
             var snapshot = new LinkedHashMap<String, Object>();
             snapshot.put("bill", bill);
@@ -87,6 +88,12 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public List<PaymentView> pending(OperationalPrincipal p) {
         return payments.findPending(p.storeId());
+    }
+    @Transactional(readOnly = true)
+    public List<PaymentView> paidToday(OperationalPrincipal p) {
+        var today = LocalDate.now();
+        return payments.findPaidBetween(p.storeId(), today.atStartOfDay(),
+                today.plusDays(1).atStartOfDay());
     }
     @Transactional(readOnly = true)
     public long pendingCount(OperationalPrincipal p) {
