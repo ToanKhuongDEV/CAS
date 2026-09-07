@@ -231,7 +231,7 @@ export function CustomerOrdersLiveView() {
             href="/payment"
           >
             <CasIcon className="size-5" name="bill" />
-            Yêu cầu thanh toán
+            Xem hóa đơn
           </Link>
         ) : null}
         <Link

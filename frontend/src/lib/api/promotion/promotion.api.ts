@@ -24,6 +24,7 @@ export type PromotionDetails = {
 
 export type AdminPromotion = {
   promotion: PromotionDetails;
+  completedRedemptionCount: number;
   codes: { id: number; promotionId: number; code: string; maxRedemptions: number | null }[];
   targets: {
     id: number;
@@ -31,6 +32,21 @@ export type AdminPromotion = {
     targetType: "MENU_ITEM" | "CATEGORY";
     targetId: number;
   }[];
+};
+
+export type PromotionRedemption = {
+  id: number;
+  customerName: string;
+  discountAmount: number;
+  paidAt: string;
+  status: "COMPLETED" | "REVERSED";
+};
+
+export type PromotionRedemptionPage = {
+  items: PromotionRedemption[];
+  total: number;
+  page: number;
+  size: number;
 };
 
 export type PromotionCommand = Omit<PromotionDetails, "publicId"> & {
@@ -45,10 +61,16 @@ export type EligiblePromotion = {
   codeId: number | null;
   code: string | null;
   discountValue: number;
+  maxDiscountAmount: number | null;
   minBillAmount: number | null;
   scope: string;
   discountAmount: number;
   payableAmount: number;
+};
+
+export type CustomerPromotion = Omit<EligiblePromotion, "codeId" | "code"> & {
+  eligible: boolean;
+  unavailableReason: string | null;
 };
 
 export function loadAdminPromotions() {
@@ -57,6 +79,12 @@ export function loadAdminPromotions() {
 
 export function createPromotion(input: PromotionCommand) {
   return operationalRequest<AdminPromotion>("/api/v1/admin/promotions", json("POST", input));
+}
+
+export function loadPromotionRedemptions(id: string, page = 0, size = 10) {
+  return operationalRequest<PromotionRedemptionPage>(
+    `/api/v1/admin/promotions/${encodeURIComponent(id)}/redemptions?page=${page}&size=${size}`,
+  );
 }
 
 export function updatePromotion(id: string, input: PromotionCommand) {
@@ -76,6 +104,10 @@ export function updatePromotionStatus(id: string, status: PromotionStatus) {
 export function loadCustomerEligiblePromotions(code?: string) {
   const query = code?.trim() ? `?code=${encodeURIComponent(code.trim())}` : "";
   return customerRequest<EligiblePromotion[]>(`/api/v1/customer/promotions/eligible${query}`);
+}
+
+export function loadCustomerPromotions() {
+  return customerRequest<CustomerPromotion[]>("/api/v1/customer/promotions");
 }
 
 export function selectCustomerPromotion(promotionId: string, code?: string | null) {

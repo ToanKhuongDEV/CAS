@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import {
   clearCustomerPromotion,
   loadCustomerEligiblePromotions,
+  loadCustomerPromotions,
   selectCustomerPromotion,
+  type CustomerPromotion,
   type EligiblePromotion,
 } from "../../lib/api/promotion/promotion.api";
 
@@ -22,20 +24,33 @@ type Props = {
   originalAmount: number;
 };
 
+type VoucherDisplay = Pick<
+  EligiblePromotion,
+  | "promotionType"
+  | "discountValue"
+  | "maxDiscountAmount"
+  | "minBillAmount"
+  | "scope"
+  | "discountAmount"
+>;
+
 export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }: Props) {
   const [codeVouchers, setCodeVouchers] = useState<EligiblePromotion[]>([]);
-  const [publicVouchers, setPublicVouchers] = useState<EligiblePromotion[]>([]);
+  const [publicVouchers, setPublicVouchers] = useState<CustomerPromotion[]>([]);
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
-  const vouchers = [...publicVouchers, ...codeVouchers];
+  const availablePublicVouchers = publicVouchers.filter((voucher) => voucher.eligible);
+  const unavailablePublicVouchers = publicVouchers.filter((voucher) => !voucher.eligible);
+  const vouchers = [...availablePublicVouchers, ...codeVouchers];
   const selected = vouchers.find((voucher) => voucher.promotionId === selectedVoucherId);
+  const selectedCode = selected && "code" in selected ? selected.code : null;
   const discountAmount = selected?.discountAmount ?? 0;
   const payableAmount = selected?.payableAmount ?? originalAmount;
 
   useEffect(() => {
-    void loadCustomerEligiblePromotions()
+    void loadCustomerPromotions()
       .then(setPublicVouchers)
       .catch(() => setPublicVouchers([]));
   }, [originalAmount]);
@@ -45,9 +60,9 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
       discountAmount,
       originalAmount,
       payableAmount,
-      voucherCode: selected?.code ?? undefined,
+      voucherCode: selectedCode ?? undefined,
     });
-  }, [discountAmount, onSummaryChange, originalAmount, payableAmount, selected?.code]);
+  }, [discountAmount, onSummaryChange, originalAmount, payableAmount, selectedCode]);
 
   const selectVoucher = async (promotionId: string, selectedCode?: string | null) => {
     setError(null);
@@ -60,9 +75,6 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
       }
 
       const applied = await selectCustomerPromotion(promotionId, selectedCode);
-      setPublicVouchers((current) =>
-        current.map((item) => (item.promotionId === promotionId ? applied : item)),
-      );
       setCodeVouchers((current) =>
         current.map((item) => (item.promotionId === promotionId ? applied : item)),
       );
@@ -94,37 +106,34 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
     }
   };
 
-  const promotionValueLabel = (voucher: EligiblePromotion) =>
-    voucher.promotionType.includes("PERCENT")
+  const promotionValueLabel = (voucher: VoucherDisplay) => {
+    if (!voucher.promotionType.includes("PERCENT"))
+      return `Giảm ${formatMoney(voucher.discountValue)}`;
+    return voucher.maxDiscountAmount === null
       ? `Giảm ${voucher.discountValue}%`
-      : `Giảm ${formatMoney(voucher.discountValue)}`;
-  const promotionDescription = (voucher: EligiblePromotion) => {
-    const scope = voucher.scope === "Toàn bộ hóa đơn" ? "toàn bill" : voucher.scope?.toLowerCase();
-    const description = scope
-      ? `${promotionValueLabel(voucher)} ${scope}`
-      : promotionValueLabel(voucher);
-    return voucher.minBillAmount === null
-      ? description
-      : `${description} · Bill tối thiểu ${formatMoney(voucher.minBillAmount)}`;
+      : `Giảm ${voucher.discountValue}% tối đa ${formatMoney(voucher.maxDiscountAmount)}`;
   };
-  const promotionReductionLabel = (voucher: EligiblePromotion) => {
-    if (voucher.promotionType.includes("PERCENT")) return `-${voucher.discountValue}%`;
-    return voucher.discountValue % 1000 === 0
-      ? `-${voucher.discountValue / 1000}k`
-      : `-${formatMoney(voucher.discountValue)}`;
-  };
+  const promotionConditionLabel = (voucher: VoucherDisplay) =>
+    voucher.minBillAmount === null
+      ? "Không yêu cầu đơn tối thiểu"
+      : `Đơn tối thiểu ${formatMoney(voucher.minBillAmount)}`;
 
   return (
     <div className="border-t border-cas-outline-variant/40 pt-5">
-      <span className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase md:text-xs">
-        Voucher / khuyến mãi
-      </span>
       <button
-        className="mt-2 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-left text-sm font-bold text-cas-primary hover:bg-cas-primary/10"
+        className="flex w-full items-center justify-between gap-4 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-3 text-left hover:bg-cas-primary/10"
         onClick={() => setIsVoucherModalOpen(true)}
         type="button"
       >
-        {selected ? `Đã chọn: ${selected.code ?? selected.name}` : "Chọn hoặc nhập voucher"}
+        <span>
+          <span className="block text-sm font-bold text-cas-on-surface">Voucher / khuyến mãi</span>
+          <span className="mt-0.5 block text-xs text-cas-on-surface-variant">
+            {selected ? (selectedCode ?? selected.name) : "Chọn hoặc nhập voucher"}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-extrabold text-cas-primary">
+          {selected ? `Đã giảm ${formatMoney(discountAmount)}` : "Chọn"}
+        </span>
       </button>
 
       {isVoucherModalOpen && (
@@ -172,13 +181,13 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
               <p className="text-xs font-bold text-cas-on-surface-variant">
                 Khuyến mãi dành cho bạn
               </p>
-              {publicVouchers.length === 0 ? (
+              {availablePublicVouchers.length === 0 ? (
                 <p className="mt-2 rounded-xl border border-dashed border-cas-outline-variant/50 px-3 py-4 text-center text-sm text-cas-on-surface-variant">
                   Hiện chưa có voucher phù hợp với đơn hàng này.
                 </p>
               ) : (
                 <ul className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {publicVouchers.map((voucher) => {
+                  {availablePublicVouchers.map((voucher) => {
                     const isSelected = voucher.promotionId === selectedVoucherId;
                     return (
                       <li key={voucher.promotionId}>
@@ -189,23 +198,26 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
                               ? "border-cas-primary bg-cas-primary/10"
                               : "border-cas-outline-variant/40 hover:bg-cas-primary/10"
                           }`}
-                          onClick={() => void selectVoucher(voucher.promotionId, voucher.code)}
+                          onClick={() => void selectVoucher(voucher.promotionId)}
                           type="button"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-bold text-cas-on-surface">{voucher.name}</p>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-cas-on-surface-variant">
+                                {voucher.name}
+                              </p>
+                              <p className="mt-1 font-extrabold text-cas-on-surface">
+                                {promotionValueLabel(voucher)}
+                              </p>
+                              <p className="mt-1 text-xs text-cas-on-surface-variant">
+                                {voucher.scope}
+                              </p>
+                              <p className="mt-1 text-xs text-cas-on-surface-variant">
+                                {promotionConditionLabel(voucher)}
+                              </p>
                             </div>
                             <span className="shrink-0 text-sm font-extrabold text-cas-secondary">
-                              {promotionReductionLabel(voucher)}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                            <p className="min-w-0 text-cas-on-surface-variant">
-                              {promotionDescription(voucher)}
-                            </p>
-                            <span className="shrink-0 font-extrabold text-cas-on-surface-variant">
-                              -{formatMoney(voucher.discountAmount)}
+                              {isSelected ? "Đã chọn" : "Chọn"}
                             </span>
                           </div>
                         </button>
@@ -215,6 +227,44 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
                 </ul>
               )}
             </div>
+
+            {unavailablePublicVouchers.length > 0 && (
+              <div className="mt-5 border-t border-cas-outline-variant/40 pt-5">
+                <p className="text-xs font-bold text-cas-on-surface-variant">Chưa thể áp dụng</p>
+                <ul className="mt-2 space-y-2">
+                  {unavailablePublicVouchers.map((voucher) => (
+                    <li key={voucher.promotionId}>
+                      <button
+                        aria-label={`${voucher.name}: Chưa đủ điều kiện áp dụng`}
+                        className="w-full cursor-not-allowed rounded-xl border border-cas-outline-variant/40 p-3 text-left opacity-55"
+                        disabled
+                        type="button"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-cas-on-surface-variant">
+                              {voucher.name}
+                            </p>
+                            <p className="mt-1 font-extrabold text-cas-on-surface">
+                              {promotionValueLabel(voucher)}
+                            </p>
+                            <p className="mt-1 text-xs text-cas-on-surface-variant">
+                              {voucher.scope}
+                            </p>
+                            <p className="mt-1 text-xs text-cas-on-surface-variant">
+                              {promotionConditionLabel(voucher)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-extrabold text-cas-on-surface-variant">
+                            Chưa đủ điều kiện
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {selected && (
               <button
@@ -236,7 +286,18 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
           <dd>{formatMoney(originalAmount)}</dd>
         </div>
         <div className="flex items-center justify-between gap-4 text-cas-on-surface-variant">
-          <dt>{selected ? `Giảm giá (${selected.code ?? selected.name})` : "Giảm giá"}</dt>
+          <dt className="flex items-center gap-2">
+            <span>{selected ? `Giảm giá (${selectedCode ?? selected.name})` : "Giảm giá"}</span>
+            {selected && (
+              <button
+                className="font-bold text-cas-primary hover:underline"
+                onClick={() => setIsVoucherModalOpen(true)}
+                type="button"
+              >
+                Thay đổi
+              </button>
+            )}
+          </dt>
           <dd className="font-bold text-cas-secondary">-{formatMoney(discountAmount)}</dd>
         </div>
         <div className="flex items-end justify-between gap-4 border-t border-cas-outline-variant/40 pt-4">

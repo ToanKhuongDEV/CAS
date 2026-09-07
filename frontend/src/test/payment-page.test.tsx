@@ -4,12 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PaymentRequestPanel } from "../app/(customer)/payment/payment-request-panel";
 import { loadCustomerBill } from "../lib/api/ordering/ordering.api";
 import { createCustomerPayment, loadCustomerPayment } from "../lib/api/payment/payment.api";
+import { loadCustomerPromotions } from "../lib/api/promotion/promotion.api";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({ loadCustomerBill: vi.fn() }));
 vi.mock("../lib/api/payment/payment.api", () => ({
   createCustomerPayment: vi.fn(),
   loadCustomerPayment: vi.fn(),
+}));
+vi.mock("../lib/api/promotion/promotion.api", () => ({
+  clearCustomerPromotion: vi.fn(),
+  loadCustomerEligiblePromotions: vi.fn(),
+  loadCustomerPromotions: vi.fn(),
+  selectCustomerPromotion: vi.fn(),
 }));
 
 const bill = {
@@ -46,6 +53,7 @@ describe("PaymentRequestPanel", () => {
   beforeEach(() => {
     vi.mocked(loadCustomerBill).mockResolvedValue(bill);
     vi.mocked(loadCustomerPayment).mockRejectedValue(new Error("Chưa có payment"));
+    vi.mocked(loadCustomerPromotions).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -116,5 +124,29 @@ describe("PaymentRequestPanel", () => {
     expect(
       screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows unavailable active vouchers as disabled", async () => {
+    vi.mocked(loadCustomerPromotions).mockResolvedValue([
+      {
+        discountAmount: 10_000,
+        discountValue: 10,
+        eligible: false,
+        maxDiscountAmount: null,
+        minBillAmount: 100_000,
+        name: "Giảm giá đơn lớn",
+        payableAmount: 45_000,
+        promotionId: "promotion-1",
+        promotionType: "PERCENT_OFF",
+        scope: "Toàn bộ hóa đơn",
+        unavailableReason: "Chưa đạt giá trị đơn hàng tối thiểu.",
+      },
+    ]);
+    render(<PaymentRequestPanel />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Voucher \/ khuyến mãi/ }));
+
+    expect(await screen.findByText("Chưa thể áp dụng")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Giảm giá đơn lớn/ })).toBeDisabled();
   });
 });
