@@ -5,11 +5,16 @@ import { describe, expect, it, vi } from "vitest";
 import OperatorPaymentsPage from "../app/(operator)/operator/(workspace)/payments/page";
 import { QueryProvider } from "../components/providers/query-provider";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
-import { confirmOperatorPayment, loadOperatorPayments } from "../lib/api/payment/payment.api";
+import {
+  confirmOperatorPayment,
+  loadOperatorPaidTodayPayments,
+  loadOperatorPayments,
+} from "../lib/api/payment/payment.api";
 import { loadPublicStore } from "../lib/api/store/public-store.api";
 
 vi.mock("../lib/api/payment/payment.api", () => ({
   confirmOperatorPayment: vi.fn(),
+  loadOperatorPaidTodayPayments: vi.fn(),
   loadOperatorPayments: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
 }));
@@ -22,28 +27,35 @@ vi.mock("../lib/api/store/public-store.api", () => ({ loadPublicStore: vi.fn() }
 const payment = {
   amount: 170000,
   billSnapshot: JSON.stringify({
-    orders: [
-      {
-        items: [
-          {
-            itemName: "Mỳ cay hải sản",
-            options: [],
-            optionsAmount: 0,
-            quantity: 1,
-            totalAmount: 170000,
-            unitPrice: 170000,
-          },
-          {
-            itemName: "Mỳ cay hải sản",
-            options: [],
-            optionsAmount: 0,
-            quantity: 1,
-            totalAmount: 170000,
-            unitPrice: 170000,
-          },
-        ],
-      },
-    ],
+    bill: {
+      originalAmount: 170000,
+      orders: [
+        {
+          createdAt: "2026-09-01T19:55:00+07:00",
+          note: "Không hành",
+          orderNumber: "801a5c7c-f5d9-4882-b0ec-c672ba3e1649",
+          items: [
+            {
+              itemName: "Mỳ cay hải sản",
+              options: [],
+              optionsAmount: 0,
+              quantity: 1,
+              totalAmount: 170000,
+              unitPrice: 170000,
+            },
+            {
+              itemName: "Mỳ cay hải sản",
+              options: [],
+              optionsAmount: 0,
+              quantity: 1,
+              totalAmount: 170000,
+              unitPrice: 170000,
+            },
+          ],
+        },
+      ],
+    },
+    discount: null,
   }),
   confirmedAt: null,
   createdAt: "2026-09-01T20:00:00+07:00",
@@ -56,6 +68,9 @@ describe("OperatorPaymentsPage", () => {
   it("loads a real pending payment and requires confirmation before marking it as paid", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(loadOperatorPayments).mockResolvedValue([payment]);
+    vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValue([
+      { ...payment, confirmedAt: "2026-09-01T20:05:00+07:00", status: "PAID" },
+    ]);
     vi.mocked(confirmOperatorPayment).mockResolvedValue({ ...payment, status: "PAID" });
     vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
       accountId: 2,
@@ -85,14 +100,25 @@ describe("OperatorPaymentsPage", () => {
       </StrictMode>,
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "Thanh toán chờ xác nhận" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Chưa thanh toán" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     const confirmationButton = await screen.findByRole("button", {
       name: "Xác nhận đã thanh toán",
     });
     await waitFor(() => expect(loadOperatorPayments).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("button", { name: "Kiểm tra payment" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "In bill" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Xem hóa đơn" }));
+    const billDialog = screen.getByRole("dialog", { name: "Xem hóa đơn" });
+    expect(within(billDialog).getAllByText("Mỳ cay hải sản")).toHaveLength(2);
+    expect(within(billDialog).getByText("Ghi chú: Không hành")).toBeInTheDocument();
+    expect(billDialog).not.toHaveTextContent("payment-05");
+    expect(billDialog).not.toHaveTextContent("801a5c7c-f5d9-4882-b0ec-c672ba3e1649");
+    expect(confirmOperatorPayment).not.toHaveBeenCalled();
+    fireEvent.click(within(billDialog).getByRole("button", { name: "Đóng hóa đơn" }));
 
     fireEvent.click(confirmationButton);
 
@@ -110,6 +136,18 @@ describe("OperatorPaymentsPage", () => {
       "Đã xác nhận Bàn 05 thanh toán 170.000đ.",
     );
     expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-05");
+
+    fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));
+    expect(await screen.findByText(/Xác nhận lúc 20:05 01-09/)).toBeInTheDocument();
+    expect(loadOperatorPaidTodayPayments).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Xác nhận đã thanh toán" })).toBeDisabled();
+
+    vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValueOnce([]);
+    fireEvent.click(screen.getByRole("button", { name: "Chưa thanh toán" }));
+    fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));
+    expect(
+      await screen.findByRole("heading", { name: "Chưa có thanh toán đã xác nhận hôm nay" }),
+    ).toBeInTheDocument();
     expect(consoleError.mock.calls.some(([message]) => String(message).includes("same key"))).toBe(
       false,
     );

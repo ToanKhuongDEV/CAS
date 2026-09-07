@@ -8,6 +8,7 @@ import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
+  loadOperatorPaidTodayPayments,
   loadOperatorPayments,
   operatorPendingPaymentCountQueryKey,
   type Payment,
@@ -17,21 +18,48 @@ import type { StoreSettings } from "../../../../../lib/api/store/store-settings.
 
 type ReceiptItem = {
   name: string;
-  options?: Array<{ name: string; price: string }>;
+  options?: Array<{ groupName?: string; name: string; price: string }>;
   quantity: number;
   total: string;
   unitPrice: string;
 };
 
-type PendingPayment = {
+type ReceiptOrder = {
+  items: ReceiptItem[];
+  note: string | null;
+  orderNumber: string;
+  requestedAt: string;
+};
+
+type SnapshotBill = {
+  orders?: Array<{
+    createdAt?: string;
+    items?: Array<{
+      itemName: string;
+      options?: Array<{ groupName?: string; optionName: string; unitPrice: number }>;
+      optionsAmount: number;
+      quantity: number;
+      totalAmount: number;
+      unitPrice: number;
+    }>;
+    note?: string | null;
+    orderNumber?: string;
+  }>;
+  originalAmount?: number;
+};
+
+type PaymentListMode = "PENDING" | "PAID";
+
+type OperatorPayment = {
   amount: string;
-  billNumber: string;
+  discountLabel: string | null;
   discountAmount: string;
   id: string;
-  items: ReceiptItem[];
+  orders: ReceiptOrder[];
   originalAmount: string;
   payableAmount: string;
   requestedAt: string;
+  status: PaymentListMode;
   table: string;
 };
 
@@ -50,46 +78,48 @@ function formatRequestedAt(value: string) {
       }).format(date);
 }
 
-function toPendingPayment(payment: Payment): PendingPayment {
-  let snapshot: {
-    orders?: Array<{
-      items?: Array<{
-        itemName: string;
-        quantity: number;
-        unitPrice: number;
-        optionsAmount: number;
-        totalAmount: number;
-        options?: Array<{ optionName: string; unitPrice: number }>;
-      }>;
-    }>;
-    originalAmount?: number;
+function toOperatorPayment(payment: Payment): OperatorPayment {
+  let snapshot: SnapshotBill & {
+    bill?: SnapshotBill;
+    discount?: { code?: string | null; name?: string; discountAmount?: number } | null;
   } = {};
   try {
     snapshot = JSON.parse(payment.billSnapshot) as typeof snapshot;
   } catch {
     // A malformed historical snapshot must not make the payment queue unusable.
   }
-  const items = snapshot.orders?.flatMap((order) => order.items ?? []) ?? [];
-  const originalAmount = snapshot.originalAmount ?? payment.amount;
+  const bill = snapshot.bill ?? snapshot;
+  const originalAmount = bill.originalAmount ?? payment.amount;
   const discountAmount = Math.max(0, originalAmount - payment.amount);
   const formatCurrency = (amount: number) => `${currency.format(amount)}đ`;
   return {
     id: payment.publicId,
     table: `Bàn ${String(payment.tableCode).padStart(2, "0")}`,
     amount: formatCurrency(payment.amount),
-    requestedAt: formatRequestedAt(payment.createdAt),
-    billNumber: payment.publicId,
+    requestedAt: formatRequestedAt(
+      payment.status === "PAID" ? (payment.confirmedAt ?? payment.createdAt) : payment.createdAt,
+    ),
     originalAmount: formatCurrency(originalAmount),
-    discountAmount: formatCurrency(discountAmount),
+    discountAmount: formatCurrency(snapshot.discount?.discountAmount ?? discountAmount),
+    discountLabel: snapshot.discount
+      ? (snapshot.discount.code ?? snapshot.discount.name ?? null)
+      : null,
     payableAmount: formatCurrency(payment.amount),
-    items: items.map((item) => ({
-      name: item.itemName,
-      quantity: item.quantity,
-      unitPrice: formatCurrency(item.unitPrice + item.optionsAmount),
-      total: formatCurrency(item.totalAmount),
-      options: item.options?.map((option) => ({
-        name: option.optionName,
-        price: formatCurrency(option.unitPrice),
+    status: payment.status,
+    orders: (bill.orders ?? []).map((order) => ({
+      orderNumber: order.orderNumber ?? "Đơn gọi món",
+      note: order.note ?? null,
+      requestedAt: order.createdAt ? formatRequestedAt(order.createdAt) : "—",
+      items: (order.items ?? []).map((item) => ({
+        name: item.itemName,
+        quantity: item.quantity,
+        unitPrice: formatCurrency(item.unitPrice + item.optionsAmount),
+        total: formatCurrency(item.totalAmount),
+        options: item.options?.map((option) => ({
+          groupName: option.groupName,
+          name: option.optionName,
+          price: formatCurrency(option.unitPrice),
+        })),
       })),
     })),
   };
@@ -101,26 +131,30 @@ export function OperatorPaymentConfirmationList({
   pollIntervalMs?: number;
 }) {
   const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
-  const [payments, setPayments] = useState<PendingPayment[]>([]);
+  const [mode, setMode] = useState<PaymentListMode>("PENDING");
+  const [payments, setPayments] = useState<OperatorPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
   const [operatorName, setOperatorName] = useState<string | null>(null);
-  const pendingLoad = useRef<Promise<Payment[]> | null>(null);
+  const paymentLoads = useRef<Partial<Record<PaymentListMode, Promise<Payment[]>>>>({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
     let isActive = true;
+    setIsLoading(true);
 
     async function load() {
-      const request = pendingLoad.current ?? loadOperatorPayments();
-      pendingLoad.current = request;
+      const request =
+        paymentLoads.current[mode] ??
+        (mode === "PENDING" ? loadOperatorPayments() : loadOperatorPaidTodayPayments());
+      paymentLoads.current[mode] = request;
       try {
         const items = await request;
         if (!isActive) return;
-        setPayments(items.map(toPendingPayment));
+        setPayments(items.map(toOperatorPayment));
         setLoadError(null);
       } catch (error) {
         if (!isActive) return;
@@ -129,7 +163,7 @@ export function OperatorPaymentConfirmationList({
         );
       } finally {
         if (isActive) setIsLoading(false);
-        if (pendingLoad.current === request) pendingLoad.current = null;
+        if (paymentLoads.current[mode] === request) delete paymentLoads.current[mode];
       }
     }
 
@@ -138,14 +172,15 @@ export function OperatorPaymentConfirmationList({
     }
 
     void load();
-    const timer = window.setInterval(() => void load(), pollIntervalMs);
+    const timer =
+      mode === "PENDING" ? window.setInterval(() => void load(), pollIntervalMs) : undefined;
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       isActive = false;
-      window.clearInterval(timer);
+      if (timer !== undefined) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [pollIntervalMs]);
+  }, [mode, pollIntervalMs]);
 
   useEffect(() => {
     let isActive = true;
@@ -165,10 +200,12 @@ export function OperatorPaymentConfirmationList({
       isActive = false;
     };
   }, []);
-  const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<OperatorPayment | null>(null);
+  const [viewedPayment, setViewedPayment] = useState<OperatorPayment | null>(null);
+  const activePayment = selectedPayment ?? viewedPayment;
 
   useEffect(() => {
-    if (!selectedPayment) {
+    if (!activePayment) {
       return;
     }
 
@@ -185,7 +222,7 @@ export function OperatorPaymentConfirmationList({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedPayment]);
+  }, [activePayment]);
 
   async function handleConfirmPayment() {
     if (!selectedPayment) {
@@ -213,14 +250,54 @@ export function OperatorPaymentConfirmationList({
     }
   }
 
-  function handlePrintBill() {
-    window.print();
+  function handlePrintBill(payment: OperatorPayment) {
+    setViewedPayment(payment);
+    window.setTimeout(() => {
+      window.print();
+      setViewedPayment(null);
+    }, 0);
   }
 
   return (
     <>
       <header>
-        <h1 className="text-3xl font-extrabold">Thanh toán chờ xác nhận</h1>
+        <div
+          aria-label="Bộ lọc trạng thái thanh toán"
+          className="inline-flex rounded-xl border border-cas-outline-variant/35 bg-cas-surface-container/50 p-1"
+        >
+          <button
+            aria-pressed={mode === "PENDING"}
+            className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+              mode === "PENDING"
+                ? "bg-cas-primary text-cas-on-primary"
+                : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
+            }`}
+            onClick={() => {
+              setMode("PENDING");
+              setSelectedPayment(null);
+              setViewedPayment(null);
+            }}
+            type="button"
+          >
+            Chưa thanh toán
+          </button>
+          <button
+            aria-pressed={mode === "PAID"}
+            className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+              mode === "PAID"
+                ? "bg-cas-primary text-cas-on-primary"
+                : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
+            }`}
+            onClick={() => {
+              setMode("PAID");
+              setSelectedPayment(null);
+              setViewedPayment(null);
+            }}
+            type="button"
+          >
+            Đã thanh toán hôm nay
+          </button>
+        </div>
       </header>
 
       {confirmedMessage ? (
@@ -245,7 +322,11 @@ export function OperatorPaymentConfirmationList({
       ) : payments.length > 0 ? (
         <ul
           className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
-          aria-label="Danh sách thanh toán chờ xác nhận"
+          aria-label={
+            mode === "PENDING"
+              ? "Danh sách thanh toán chờ xác nhận"
+              : "Danh sách thanh toán đã xác nhận trong ngày"
+          }
         >
           {payments.map((payment) => (
             <li
@@ -254,161 +335,232 @@ export function OperatorPaymentConfirmationList({
             >
               <p className="font-extrabold">{payment.table}</p>
               <p className="text-sm text-cas-on-surface-variant">
-                Yêu cầu lúc {payment.requestedAt}
+                {mode === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"} {payment.requestedAt}
               </p>
               <p className="font-extrabold text-cas-primary">{payment.amount}</p>
-              <button
-                className="w-fit rounded-xl bg-cas-primary px-4 py-2 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                onClick={() => setSelectedPayment(payment)}
-                type="button"
-              >
-                Xác nhận đã thanh toán
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="w-fit rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  onClick={() => setViewedPayment(payment)}
+                  type="button"
+                >
+                  Xem hóa đơn
+                </button>
+                <button
+                  className="inline-flex w-fit items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  onClick={() => handlePrintBill(payment)}
+                  type="button"
+                >
+                  <CasIcon className="size-4" name="bill" />
+                  In bill
+                </button>
+                <button
+                  className={`w-fit rounded-xl bg-cas-primary px-4 py-2 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${mode === "PENDING" ? "" : "hidden"}`}
+                  disabled={mode !== "PENDING"}
+                  onClick={() => setSelectedPayment(payment)}
+                  type="button"
+                >
+                  Xác nhận đã thanh toán
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       ) : (
         <div className="mt-7 grid min-h-56 place-items-center rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-glass p-8 text-center">
           <div>
-            <h2 className="text-lg font-extrabold">Không còn thanh toán chờ xác nhận</h2>
+            <h2 className="text-lg font-extrabold">
+              {mode === "PENDING"
+                ? "Không còn thanh toán chờ xác nhận"
+                : "Chưa có thanh toán đã xác nhận hôm nay"}
+            </h2>
             <p className="mt-1 text-sm text-cas-on-surface-variant">
-              Tất cả yêu cầu thanh toán đã được xử lý.
+              {mode === "PENDING"
+                ? "Tất cả yêu cầu thanh toán đã được xử lý."
+                : "Các hóa đơn được xác nhận hôm nay sẽ hiển thị tại đây."}
             </p>
           </div>
         </div>
       )}
 
-      {selectedPayment ? (
+      {activePayment ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setSelectedPayment(null);
+              setViewedPayment(null);
             }
           }}
         >
           <section
-            className="w-full max-w-md rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
-            aria-labelledby="payment-confirmation-title"
+            className="payment-bill-dialog max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
+            aria-labelledby="payment-dialog-title"
             aria-modal="true"
             role="dialog"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-                  {selectedPayment.table}
+                  {activePayment.table}
                 </p>
-                <h2 className="mt-1 text-xl font-extrabold" id="payment-confirmation-title">
-                  Xác nhận thanh toán
+                <h2 className="mt-1 text-xl font-extrabold" id="payment-dialog-title">
+                  {selectedPayment ? "Xác nhận thanh toán" : "Xem hóa đơn"}
                 </h2>
               </div>
               <button
                 className="grid size-10 shrink-0 place-items-center rounded-xl border border-cas-outline-variant/35 text-cas-on-surface-variant transition hover:border-cas-primary/30 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                onClick={() => setSelectedPayment(null)}
+                onClick={() => {
+                  setSelectedPayment(null);
+                  setViewedPayment(null);
+                }}
                 type="button"
-                aria-label="Đóng xác nhận thanh toán"
+                aria-label={selectedPayment ? "Đóng xác nhận thanh toán" : "Đóng hóa đơn"}
               >
                 <CasIcon className="size-5 rotate-45" name="plus" />
               </button>
             </div>
 
-            <section aria-label="Bản in bill" className="print-bill">
-              <header className="print-bill__header">
-                <strong>{store?.name ?? "Thông tin cửa hàng"}</strong>
-                <span>{store?.address ?? "—"}</span>
-                <span>Hotline: {store?.phone ?? "—"}</span>
-              </header>
+            <div className="mt-5">
+              <section aria-label="Bản in bill" className="print-bill !block space-y-3 text-sm">
+                <header className="print-bill__header grid gap-1 text-center text-xs text-cas-on-surface-variant">
+                  <strong>{store?.name ?? "Thông tin cửa hàng"}</strong>
+                  <span>{store?.address ?? "—"}</span>
+                  <span>Hotline: {store?.phone ?? "—"}</span>
+                </header>
 
-              <h1>HÓA ĐƠN THANH TOÁN</h1>
-              <div className="print-bill__meta">
-                <span>{selectedPayment.billNumber}</span>
-                <span>{selectedPayment.table}</span>
-                <span>Yêu cầu lúc: {selectedPayment.requestedAt}</span>
-                <span>Người xác nhận: {operatorName ?? "—"}</span>
-              </div>
+                <h1 className="text-center text-base font-extrabold">HÓA ĐƠN THANH TOÁN</h1>
+                <div className="print-bill__meta grid gap-1 text-xs text-cas-on-surface-variant">
+                  <span>{activePayment.table}</span>
+                  <span>
+                    {activePayment.status === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"}:{" "}
+                    {activePayment.requestedAt}
+                  </span>
+                  <span>Người xác nhận: {operatorName ?? "—"}</span>
+                </div>
 
-              <div className="print-bill__divider" />
-              <div className="print-bill__columns">
-                <span>MÓN / TOPPING</span>
-                <span>SL × Đ.GIÁ</span>
-                <span>THÀNH TIỀN</span>
-              </div>
-              <div className="print-bill__divider" />
+                <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
+                <div className="print-bill__columns grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 text-xs font-bold text-cas-on-surface-variant">
+                  <span>MÓN / TOPPING</span>
+                  <span>SL × Đ.GIÁ</span>
+                  <span>THÀNH TIỀN</span>
+                </div>
+                <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
 
-              <div className="print-bill__items">
-                {selectedPayment.items.map((item, index) => (
-                  <div className="print-bill__item" key={`${item.name}-${index}`}>
-                    <strong>{item.name}</strong>
-                    <div className="print-bill__item-price">
-                      <span>
-                        {item.quantity} × {item.unitPrice}
-                      </span>
-                      <strong>{item.total}</strong>
-                    </div>
-                    {item.options?.map((option) => (
-                      <div className="print-bill__option" key={option.name}>
-                        <span>+ {option.name}</span>
-                        <span>{option.price}</span>
+                <div className="print-bill__items space-y-4">
+                  {activePayment.orders.map((order) => (
+                    <section key={order.orderNumber}>
+                      <p className="mt-1 text-xs text-cas-on-surface-variant">
+                        {order.requestedAt}
+                      </p>
+                      {order.note ? (
+                        <p className="mt-1 text-xs text-cas-on-surface-variant">
+                          Ghi chú: {order.note}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 space-y-2">
+                        {order.items.map((item, index) => (
+                          <div className="print-bill__item" key={`${item.name}-${index}`}>
+                            <strong>{item.name}</strong>
+                            <div className="print-bill__item-price grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                              <span>
+                                {item.quantity} × {item.unitPrice}
+                              </span>
+                              <strong>{item.total}</strong>
+                            </div>
+                            {item.options?.map((option) => (
+                              <div
+                                className="print-bill__option grid grid-cols-[minmax(0,1fr)_auto] gap-2 pl-2 text-cas-on-surface-variant"
+                                key={`${option.groupName ?? ""}-${option.name}`}
+                              >
+                                <span>
+                                  + {option.groupName ? `${option.groupName}: ` : ""}
+                                  {option.name}
+                                </span>
+                                <span>{option.price}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    </section>
+                  ))}
+                </div>
+
+                <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
+                <div className="print-bill__total grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1">
+                  <span>Tạm tính</span>
+                  <strong>{activePayment.originalAmount}</strong>
+                  <span>
+                    {activePayment.discountLabel
+                      ? `Giảm giá (${activePayment.discountLabel})`
+                      : "Giảm giá"}
+                  </span>
+                  <strong>{activePayment.discountAmount}</strong>
+                  <span>TỔNG THANH TOÁN</span>
+                  <strong className="print-bill__grand-total">{activePayment.payableAmount}</strong>
+                </div>
+                <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
+                <p className="text-xs text-cas-on-surface-variant">
+                  Trạng thái:{" "}
+                  {activePayment.status === "PENDING" ? "Chờ xác nhận thanh toán" : "Đã thanh toán"}
+                </p>
+                <footer className="text-center text-xs text-cas-on-surface-variant">
+                  Cảm ơn quý khách. Hẹn gặp lại!
+                </footer>
+              </section>
+
+              <div className="mt-5 rounded-xl bg-cas-surface-container/70 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-cas-on-surface-variant">Số tiền</span>
+                  <strong className="text-xl text-cas-primary">{activePayment.amount}</strong>
+                </div>
+                {selectedPayment ? (
+                  <p className="mt-4 border-t border-cas-outline-variant/25 pt-4 text-sm leading-6 text-cas-on-surface">
+                    Bạn chỉ xác nhận khi đã kiểm tra loa bên ngoài CAS báo giao dịch thành công.
+                  </p>
+                ) : null}
               </div>
 
-              <div className="print-bill__divider" />
-              <div className="print-bill__total">
-                <span>Tạm tính</span>
-                <strong>{selectedPayment.originalAmount}</strong>
-                <span>Giảm giá</span>
-                <strong>{selectedPayment.discountAmount}</strong>
-                <span>TỔNG THANH TOÁN</span>
-                <strong className="print-bill__grand-total">{selectedPayment.payableAmount}</strong>
-              </div>
-              <div className="print-bill__divider" />
-              <p>Trạng thái: Xác nhận thanh toán thủ công</p>
-              <footer>Cảm ơn quý khách. Hẹn gặp lại!</footer>
-            </section>
-
-            <div className="mt-5 rounded-xl bg-cas-surface-container/70 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-cas-on-surface-variant">Số tiền</span>
-                <strong className="text-xl text-cas-primary">{selectedPayment.amount}</strong>
-              </div>
-              <p className="mt-4 border-t border-cas-outline-variant/25 pt-4 text-sm leading-6 text-cas-on-surface">
-                Bạn chỉ xác nhận khi đã kiểm tra loa bên ngoài CAS báo giao dịch thành công.
-              </p>
+              {selectedPayment && confirmError ? (
+                <p className="mt-4 text-sm font-bold text-cas-error" role="alert">
+                  {confirmError}
+                </p>
+              ) : null}
             </div>
 
-            {confirmError ? (
-              <p className="mt-4 text-sm font-bold text-cas-error" role="alert">
-                {confirmError}
-              </p>
-            ) : null}
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-extrabold transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                onClick={() => setSelectedPayment(null)}
+                onClick={() => {
+                  setSelectedPayment(null);
+                  setViewedPayment(null);
+                }}
                 type="button"
               >
                 Quay lại
               </button>
-              <button
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cas-primary/35 px-4 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                onClick={handlePrintBill}
-                type="button"
-              >
-                <CasIcon className="size-4" name="bill" />
-                In bill
-              </button>
-              <button
-                className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                disabled={isConfirming}
-                onClick={handleConfirmPayment}
-                type="button"
-              >
-                {isConfirming ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
-              </button>
+              {selectedPayment ? (
+                <button
+                  className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  disabled={isConfirming}
+                  onClick={handleConfirmPayment}
+                  type="button"
+                >
+                  {isConfirming ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
+                </button>
+              ) : activePayment.status === "PENDING" ? (
+                <button
+                  className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                  onClick={() => {
+                    setSelectedPayment(activePayment);
+                    setViewedPayment(null);
+                  }}
+                  type="button"
+                >
+                  Xác nhận thanh toán
+                </button>
+              ) : null}
             </div>
           </section>
         </div>
@@ -416,6 +568,15 @@ export function OperatorPaymentConfirmationList({
 
       <style jsx global>{`
         .print-bill {
+          display: none;
+        }
+
+        .payment-bill-dialog {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .payment-bill-dialog::-webkit-scrollbar {
           display: none;
         }
 

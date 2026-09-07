@@ -27,6 +27,9 @@ export function createCustomerPayment() {
 export function loadOperatorPayments() {
   return operator<Payment[]>("/payments");
 }
+export function loadOperatorPaidTodayPayments() {
+  return operator<Payment[]>("/payments/paid-today");
+}
 export function loadOperatorPendingPaymentCount() {
   return operator<number>("/payments/pending-count");
 }
