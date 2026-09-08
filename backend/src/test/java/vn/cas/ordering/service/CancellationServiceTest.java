@@ -24,6 +24,14 @@ class CancellationServiceTest {
             "Operator One", "OPERATOR");
 
     @Test
+    void shouldReturnPendingCountForOperatorStore() {
+        when(mapper.countPendingCancellationRequests(2L)).thenReturn(4);
+
+        assertThat(service.pendingCount(operator)).isEqualTo(4);
+        verify(mapper).countPendingCancellationRequests(2L);
+    }
+
+    @Test
     void shouldRecordAuditLogWhenRejectingCancellationRequest() {
         var cancellation = cancellationRequest();
         UUID requestId = UUID.randomUUID();

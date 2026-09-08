@@ -22,6 +22,16 @@ class OperatorCancellationControllerTest {
             "Operator One", "OPERATOR");
 
     @Test
+    void shouldReturnPendingCancellationCount() {
+        when(service.pendingCount(operator)).thenReturn(4);
+
+        var response = controller.pendingCount(operator, new MockHttpServletRequest());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().data()).isEqualTo(4);
+    }
+
+    @Test
     void shouldApproveAndTransferPreparedItem() {
         when(service.resolve(eq(operator), eq("request-1"), eq("APPROVE"), eq(false),
                 eq("target-item-1"), eq(1), any(UUID.class)))

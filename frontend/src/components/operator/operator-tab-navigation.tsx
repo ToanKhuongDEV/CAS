@@ -10,6 +10,10 @@ import {
   loadOperatorPendingPaymentCount,
   operatorPendingPaymentCountQueryKey,
 } from "../../lib/api/payment/payment.api";
+import {
+  loadOperatorPendingCancellationCount,
+  operatorPendingCancellationCountQueryKey,
+} from "../../lib/api/ordering/cancellation.api";
 
 type OperatorTab = {
   badge?: number;
@@ -28,8 +32,10 @@ const operatorTabs: OperatorTab[] = [
 ];
 
 export function OperatorTabNavigation({
+  cancellationPollIntervalMs = 10_000,
   paymentPollIntervalMs = 10_000,
 }: {
+  cancellationPollIntervalMs?: number;
   paymentPollIntervalMs?: number;
 }) {
   const pathname = usePathname();
@@ -39,9 +45,19 @@ export function OperatorTabNavigation({
     refetchInterval: paymentPollIntervalMs,
     refetchIntervalInBackground: false,
   });
-  const tabs = operatorTabs.map((tab) =>
-    tab.href === "/operator/payments" ? { ...tab, badge: pendingPaymentCount ?? 0 } : tab,
-  );
+  const { data: pendingCancellationCount } = useQuery({
+    queryKey: operatorPendingCancellationCountQueryKey,
+    queryFn: loadOperatorPendingCancellationCount,
+    refetchInterval: cancellationPollIntervalMs,
+    refetchIntervalInBackground: false,
+  });
+  const tabs = operatorTabs.map((tab) => {
+    if (tab.href === "/operator/payments") return { ...tab, badge: pendingPaymentCount ?? 0 };
+    if (tab.href === "/operator/cancellations") {
+      return { ...tab, badge: pendingCancellationCount ?? 0 };
+    }
+    return tab;
+  });
 
   return (
     <nav
@@ -67,7 +83,7 @@ export function OperatorTabNavigation({
               <span>{tab.label}</span>
               {tab.badge ? (
                 <span
-                  aria-label={`${tab.badge} yêu cầu thanh toán chờ xác nhận`}
+                  aria-label={`${tab.badge} ${tab.href === "/operator/cancellations" ? "yêu cầu hủy món chờ xử lý" : "yêu cầu thanh toán chờ xác nhận"}`}
                   className={`inline-flex size-5 items-center justify-center rounded-full text-[0.65rem] font-black leading-none ${
                     isActive
                       ? "bg-cas-secondary text-cas-on-secondary"

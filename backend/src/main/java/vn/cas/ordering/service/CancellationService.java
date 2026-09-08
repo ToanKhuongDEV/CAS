@@ -39,6 +39,11 @@ public class CancellationService {
     }
 
     @Transactional(readOnly = true)
+    public int pendingCount(OperationalPrincipal principal) {
+        return mapper.countPendingCancellationRequests(principal.storeId());
+    }
+
+    @Transactional(readOnly = true)
     public RequestDetail detail(OperationalPrincipal principal, String publicId) {
         var request = requireRequest(principal, publicId, false);
         return detailFor(principal.storeId(), request);
@@ -168,12 +173,20 @@ public class CancellationService {
     }
 
     private RequestDetail detailFor(long storeId, OperatorCancellationRequestRow request) {
+        var itemSnapshot = mapper.findOrderItemRemakeSnapshot(request.orderItemId());
+        if (itemSnapshot == null)
+            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+        var itemDetail = new ItemDetail(itemSnapshot.unitPrice(),
+                mapper.findOrderItemOptionRemakeSnapshots(request.orderItemId()).stream()
+                        .map(option -> new ItemOption(option.groupName(), option.optionName(),
+                                option.unitPrice(), option.quantityPerItem()))
+                        .toList());
         var items = mapper.findPreparationItems(storeId).stream()
                 .filter(item -> item.menuItemId() == request.menuItemId()).toList();
         var source = items.stream().filter(item -> item.orderItemId() == request.orderItemId())
                 .findFirst().orElse(null);
         if (source == null)
-            return new RequestDetail(RequestSummary.from(request), List.of());
+            return new RequestDetail(RequestSummary.from(request), itemDetail, List.of());
         String sourceHash = optionHash(items, source);
         var candidates = items.stream().filter(item -> item.orderItemId() != source.orderItemId())
                 .filter(item -> remaining(item) > 0 && sourceHash.equals(optionHash(items, item)))
@@ -181,7 +194,7 @@ public class CancellationService {
                 .map(item -> new TransferCandidate(item.orderItemPublicId(), item.tableCode(),
                         remaining(item)))
                 .toList();
-        return new RequestDetail(RequestSummary.from(request), candidates);
+        return new RequestDetail(RequestSummary.from(request), itemDetail, candidates);
     }
 
     private OperatorCancellationRequestRow requireRequest(OperationalPrincipal principal,
@@ -231,7 +244,15 @@ public class CancellationService {
     public record TransferCandidate(String orderItemId, int tableCode, int remainingQuantity) {
     }
 
-    public record RequestDetail(RequestSummary request, List<TransferCandidate> candidates) {
+    public record ItemDetail(BigDecimal unitPrice, List<ItemOption> options) {
+    }
+
+    public record ItemOption(String groupName, String optionName, BigDecimal unitPrice,
+            int quantityPerItem) {
+    }
+
+    public record RequestDetail(RequestSummary request, ItemDetail item,
+            List<TransferCandidate> candidates) {
     }
 
     public record Resolution(String cancellationRequestId, String status, int transferQuantity,

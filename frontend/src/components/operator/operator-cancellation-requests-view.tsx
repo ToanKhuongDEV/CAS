@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
 import {
   loadOperatorCancellationRequest,
   loadOperatorCancellationRequests,
   resolveOperatorCancellationRequest,
+  type CancellationRequestDetail,
   type CancellationTransferCandidate,
 } from "../../lib/api/ordering/cancellation.api";
 
@@ -77,9 +77,26 @@ function formatCurrency(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
-function CancellationItemDetails({ request }: { request: CancellationRequest }) {
-  const optionsAmount = request.options.reduce((total, option) => total + option.unitPrice, 0);
-  const unitAmount = request.unitPrice + optionsAmount;
+function CancellationItemDetails({
+  request,
+  detail,
+}: {
+  request: CancellationRequest;
+  detail: CancellationRequestDetail | null;
+}) {
+  if (!detail) {
+    return (
+      <div className="mt-4 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/60 p-4 text-sm text-cas-on-surface-variant">
+        Đang tải chi tiết món từ hệ thống...
+      </div>
+    );
+  }
+
+  const optionsAmount = detail.item.options.reduce(
+    (total, option) => total + option.unitPrice * option.quantityPerItem,
+    0,
+  );
+  const unitAmount = detail.item.unitPrice + optionsAmount;
   const requestedAmount = unitAmount * request.requestedQuantity;
 
   return (
@@ -97,15 +114,23 @@ function CancellationItemDetails({ request }: { request: CancellationRequest }) 
       <div className="mt-3 space-y-2 border-y border-cas-outline-variant/20 py-3 text-xs">
         <div className="flex justify-between gap-4">
           <span className="text-cas-on-surface-variant">Món gốc</span>
-          <span className="font-bold text-cas-on-surface">{formatCurrency(request.unitPrice)}</span>
+          <span className="font-bold text-cas-on-surface">
+            {formatCurrency(detail.item.unitPrice)}
+          </span>
         </div>
-        {request.options.map((option) => (
-          <div className="flex justify-between gap-4" key={`${option.groupName}-${option.name}`}>
+        {detail.item.options.map((option) => (
+          <div
+            className="flex justify-between gap-4"
+            key={`${option.groupName}-${option.optionName}`}
+          >
             <span className="text-cas-on-surface-variant">
-              {option.groupName}: <strong className="text-cas-on-surface">{option.name}</strong>
+              {option.groupName}:{" "}
+              <strong className="text-cas-on-surface">{option.optionName}</strong>
             </span>
             <span className="font-bold text-cas-on-surface">
-              {option.unitPrice > 0 ? `+${formatCurrency(option.unitPrice)}` : "Miễn phí"}
+              {option.unitPrice > 0
+                ? `+${formatCurrency(option.unitPrice * option.quantityPerItem)}`
+                : "Miễn phí"}
             </span>
           </div>
         ))}
@@ -126,18 +151,17 @@ function CancellationItemDetails({ request }: { request: CancellationRequest }) 
 }
 
 export function OperatorCancellationRequestsView() {
-  const [requests, setRequests] = useState<CancellationRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<CancellationRequest[]>([]);
   const [activeModal, setActiveModal] = useState<{
     type: "APPROVE" | "REJECT";
     request: CancellationRequest;
   } | null>(null);
 
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
-  const [staffNote, setStaffNote] = useState("");
-  const [rejectReason, setRejectReason] = useState("Món đã chế biến xong");
   const [modalError, setModalError] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [transferCandidates, setTransferCandidates] = useState<CancellationTransferCandidate[]>([]);
+  const [activeDetail, setActiveDetail] = useState<CancellationRequestDetail | null>(null);
   const [targetOrderItemId, setTargetOrderItemId] = useState("");
   const [transferQuantity, setTransferQuantity] = useState(0);
 
@@ -162,7 +186,7 @@ export function OperatorCancellationRequestsView() {
           })),
         ),
       )
-      .catch(() => undefined);
+      .catch(() => setRequests([]));
   }, []);
 
   // Esc key & overflow hidden for modal
@@ -184,21 +208,27 @@ export function OperatorCancellationRequestsView() {
 
   const openApproveModal = (request: CancellationRequest) => {
     setIsRemade(null);
-    setStaffNote("");
     setModalError(null);
+    setActiveDetail(null);
     setTransferCandidates([]);
     setTargetOrderItemId("");
     setTransferQuantity(0);
     setActiveModal({ type: "APPROVE", request });
     void loadOperatorCancellationRequest(request.id)
-      .then((detail) => setTransferCandidates(detail.candidates))
+      .then((detail) => {
+        setActiveDetail(detail);
+        setTransferCandidates(detail.candidates);
+      })
       .catch(() => setModalError("Không thể tải các bàn có thể nhận món."));
   };
 
   const openRejectModal = (request: CancellationRequest) => {
-    setRejectReason("Món đã chế biến xong");
     setModalError(null);
+    setActiveDetail(null);
     setActiveModal({ type: "REJECT", request });
+    void loadOperatorCancellationRequest(request.id)
+      .then(setActiveDetail)
+      .catch(() => setModalError("Không thể tải chi tiết món yêu cầu hủy."));
   };
 
   const handleConfirmApprove = () => {
@@ -232,7 +262,7 @@ export function OperatorCancellationRequestsView() {
     void resolveOperatorCancellationRequest(req.id, { decision: "REJECT" })
       .then(() => {
         setRequests((prev) => prev.filter((item) => item.id !== req.id));
-        setFeedbackMessage(`Đã từ chối yêu cầu hủy của ${req.table} với lý do: "${rejectReason}".`);
+        setFeedbackMessage(`Đã từ chối yêu cầu hủy món của ${req.table}.`);
         setActiveModal(null);
       })
       .catch((error: unknown) =>
@@ -370,7 +400,7 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <CancellationItemDetails request={activeModal.request} />
+            <CancellationItemDetails detail={activeDetail} request={activeModal.request} />
 
             <div className="mt-4 space-y-4">
               <div>
@@ -443,19 +473,6 @@ export function OperatorCancellationRequestsView() {
                   ) : null}
                 </div>
               ) : null}
-
-              <label className="block text-xs font-bold">
-                <span className="mb-1.5 block text-cas-on-surface-variant">
-                  Ghi chú xử lý của nhân viên (không bắt buộc)
-                </span>
-                <input
-                  type="text"
-                  value={staffNote}
-                  onChange={(e) => setStaffNote(e.target.value)}
-                  placeholder="Ví dụ: Đã báo Bếp dừng làm món..."
-                  className="h-11 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-3 text-xs outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary/15"
-                />
-              </label>
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
@@ -502,21 +519,7 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <CancellationItemDetails request={activeModal.request} />
-
-            <div className="mt-4">
-              <label className="block text-xs font-bold">
-                <span className="mb-2 block text-cas-on-surface-variant">Lý do từ chối</span>
-                <input
-                  type="text"
-                  required
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Ví dụ: Món đã chế biến xong, không thể hủy..."
-                  className="h-11 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-3 text-xs outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary/15"
-                />
-              </label>
-            </div>
+            <CancellationItemDetails detail={activeDetail} request={activeModal.request} />
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <CasButton variant="outline" size="sm" onClick={() => setActiveModal(null)}>

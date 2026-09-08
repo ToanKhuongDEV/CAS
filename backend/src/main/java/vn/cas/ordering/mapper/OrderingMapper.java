@@ -102,6 +102,8 @@ public interface OrderingMapper {
     List<OperatorCancellationRequestRow> findPendingCancellationRequests(
             @Param("storeId") long storeId);
 
+    int countPendingCancellationRequests(@Param("storeId") long storeId);
+
     OperatorCancellationRequestRow findOperatorCancellationRequest(@Param("storeId") long storeId,
             @Param("publicId") String publicId);
 

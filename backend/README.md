@@ -88,6 +88,7 @@ curl.exe http://localhost:8080/api/v1/customer/orders/<order-public-id> -b custo
 curl.exe http://localhost:8080/api/v1/customer/orders/bill -b customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders/items/<order-item-public-id>/cancellation-requests -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"requestedQuantity\":1,\"reason\":\"Gọi nhầm món\"}"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests -H "Authorization: Bearer <firebase-id-token>"
+curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/pending-count -H "Authorization: Bearer <firebase-id-token>"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id> -H "Authorization: Bearer <firebase-id-token>"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"decision\":\"APPROVE\",\"isRemade\":false,\"targetOrderItemId\":\"<order-item-public-id-ban-nhan>\",\"transferQuantity\":1}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Đổ món khi phục vụ\",\"isRemade\":false}"

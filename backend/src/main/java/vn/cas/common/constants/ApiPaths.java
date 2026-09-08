@@ -98,6 +98,7 @@ public final class ApiPaths {
 
     public static final class Cancellation {
         public static final String COMMON = API_OPERATOR_PREFIX + "/cancellation-requests";
+        public static final String PENDING_COUNT = COMMON + "/pending-count";
         public static final String REQUEST = COMMON + "/{cancellationRequestId}";
         public static final String RESOLUTION = REQUEST + "/resolution";
 

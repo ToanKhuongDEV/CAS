@@ -40,6 +40,13 @@ public class OperatorCancellationController {
                 cancellations.pending(principal), request);
     }
 
+    @GetMapping("/pending-count")
+    public ResponseEntity<ApiResponse<Integer>> pendingCount(
+            @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy số yêu cầu hủy món đang chờ.",
+                cancellations.pendingCount(principal), request);
+    }
+
     @GetMapping("/{cancellationRequestId}")
     public ResponseEntity<ApiResponse<CancellationService.RequestDetail>> detail(
             @AuthenticationPrincipal OperationalPrincipal principal,

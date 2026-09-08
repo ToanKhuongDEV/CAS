@@ -3,6 +3,12 @@ import { getFirebaseAuth } from "../../auth/firebase";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 type ApiResponse<T> = { data: T; message?: string };
 
+export const operatorPendingCancellationCountQueryKey = [
+  "operator",
+  "cancellations",
+  "pending-count",
+] as const;
+
 export type CancellationRequestSummary = {
   cancellationRequestId: string;
   orderItemId: string;
@@ -20,6 +26,15 @@ export type CancellationTransferCandidate = {
 };
 export type CancellationRequestDetail = {
   request: CancellationRequestSummary;
+  item: {
+    unitPrice: number;
+    options: {
+      groupName: string;
+      optionName: string;
+      unitPrice: number;
+      quantityPerItem: number;
+    }[];
+  };
   candidates: CancellationTransferCandidate[];
 };
 export type IncidentCancellationResult = {
@@ -30,6 +45,9 @@ export type IncidentCancellationResult = {
 
 export async function loadOperatorCancellationRequests() {
   return request<CancellationRequestSummary[]>("/cancellation-requests");
+}
+export async function loadOperatorPendingCancellationCount() {
+  return request<number>("/cancellation-requests/pending-count");
 }
 export async function loadOperatorCancellationRequest(id: string) {
   return request<CancellationRequestDetail>(`/cancellation-requests/${encodeURIComponent(id)}`);

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { OperatorTabNavigation } from "../components/operator/operator-tab-navigation";
 import { QueryProvider } from "../components/providers/query-provider";
+import { loadOperatorPendingCancellationCount } from "../lib/api/ordering/cancellation.api";
 import { loadOperatorPendingPaymentCount } from "../lib/api/payment/payment.api";
 
 vi.mock("next/navigation", () => ({
@@ -12,10 +13,15 @@ vi.mock("../lib/api/payment/payment.api", () => ({
   loadOperatorPendingPaymentCount: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
 }));
+vi.mock("../lib/api/ordering/cancellation.api", () => ({
+  loadOperatorPendingCancellationCount: vi.fn(),
+  operatorPendingCancellationCountQueryKey: ["operator", "cancellations", "pending-count"],
+}));
 
 describe("OperatorTabNavigation", () => {
-  it("renders six routes and shows the live pending-payment count", async () => {
+  it("renders six routes and shows the live pending-payment and cancellation counts", async () => {
     vi.mocked(loadOperatorPendingPaymentCount).mockResolvedValue(2);
+    vi.mocked(loadOperatorPendingCancellationCount).mockResolvedValue(3);
     render(
       <QueryProvider>
         <OperatorTabNavigation />
@@ -39,5 +45,6 @@ describe("OperatorTabNavigation", () => {
       "page",
     );
     expect(await screen.findByLabelText("2 yêu cầu thanh toán chờ xác nhận")).toBeInTheDocument();
+    expect(await screen.findByLabelText("3 yêu cầu hủy món chờ xử lý")).toBeInTheDocument();
   });
 });

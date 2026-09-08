@@ -307,6 +307,16 @@
         HAVING order_item_cancellation_requests.status = 'PENDING'
         ORDER BY order_item_cancellation_requests.created_at ASC
     </select>
+    <select id="countPendingCancellationRequests" resultType="int">
+        SELECT COUNT(*)
+        FROM order_item_cancellation_requests
+        INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND order_item_cancellation_requests.status = 'PENDING'
+    </select>
     <select id="findOperatorCancellationRequest" resultType="vn.cas.ordering.model.OperatorCancellationRequestRow">
         SELECT <include refid="operatorCancellationRequestColumns"/>
         <include refid="operatorCancellationRequestJoins"/>
