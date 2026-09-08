@@ -205,7 +205,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/pending-count`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; API count chỉ trả số lượng `PENDING` theo store để badge polling không tải danh sách, API detail trả snapshot giá món/option để form xác nhận hiển thị đúng dữ liệu; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
 
 #### Danh sách API theo luồng nghiệp vụ
@@ -608,6 +608,12 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung menu tài khoản trên header Admin và Operator: hiển thị email, số điện thoại từ Firebase profile (hoặc trạng thái chưa cập nhật) và đăng xuất về đúng trang đăng nhập.
 - [x] Bổ sung bộ lọc thời gian mở bàn trên màn khoản chưa thanh toán dùng chung cho Admin và Operator; mặc định chỉ hiển thị các phiên đã mở từ 120 phút để nhân viên theo dõi trước khi ghi nhận khoản chưa thanh toán, chuẩn hóa số 0 đầu, giới hạn 10.000 phút, debounce 300 ms và lưu giá trị theo phiên trình duyệt khi chuyển trang.
 - [x] Sửa lỗi kiểm tra kiểu dữ liệu bàn tại màn Operator tạo order hộ; đồng bộ fixture bàn trống và cập nhật test API tạo tài khoản nhân viên. `npm run typecheck` và `npm run test` đạt 20 file / 38 test.
+- [x] Customer có thể đánh dấu từng thông báo chưa đọc trong popup chuông thông báo; mở popup không còn tự đánh dấu toàn bộ là đã đọc, và vẫn giữ thao tác đánh dấu tất cả.
+- [x] Bổ sung mục Hủy phiên bàn tại Cài đặt Customer, kèm tooltip và xác nhận thao tác; chỉ bật khi session đang `OPEN`, backend vẫn là nguồn xác thực điều kiện chưa gửi món.
+- [x] Operator polling API count riêng cho yêu cầu hủy món đang chờ xử lý để hiển thị badge số lượng tại thanh điều hướng Hủy món.
+- [x] Bổ sung validation phía client cho form tạo/cập nhật promotion: tên, giá trị giảm, quota, thời gian hiệu lực, format mã và phạm vi bắt buộc của promotion theo món/danh mục.
+- [x] Bổ sung tooltip trường Mã khuyến mãi, làm rõ chương trình có mã chỉ áp dụng khi khách nhập đúng mã và không xuất hiện trong danh sách công khai.
+- [x] Ghép form xác nhận duyệt/từ chối yêu cầu hủy món của Operator với API thực: bỏ fallback request giả, tải chi tiết giá/option từ API và chỉ gửi các trường được backend hỗ trợ.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
