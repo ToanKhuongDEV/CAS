@@ -49,7 +49,7 @@ type Promotion = {
   redemptions: PromotionRedemptionPreview[];
 };
 
-type PromotionForm = Omit<Promotion, "id" | "redemptions" | "completedRedemptionCount">;
+export type PromotionForm = Omit<Promotion, "id" | "redemptions" | "completedRedemptionCount">;
 
 const menuItems = [
   { id: "mi-1", name: "Mỳ cay hải sản", category: "Mỳ cay" },
@@ -200,6 +200,65 @@ function formatValidity(startAt: string, endAt: string) {
   return `${startAt} → ${endAt}`;
 }
 
+export function validatePromotionForm(form: PromotionForm): string[] {
+  const errors: string[] = [];
+  const isItemPromotion = form.promotionType.startsWith("ITEM_");
+
+  if (!form.name.trim()) errors.push("Vui lòng nhập tên chương trình.");
+  else if (form.name.trim().length > 150) errors.push("Tên chương trình tối đa 150 ký tự.");
+
+  if (!Number.isFinite(form.discountValue) || form.discountValue <= 0) {
+    errors.push("Giá trị giảm phải lớn hơn 0.");
+  } else if (form.promotionType.includes("PERCENT") && form.discountValue > 100) {
+    errors.push("Tỷ lệ giảm không được vượt quá 100%.");
+  }
+
+  if (
+    form.maxDiscountAmount !== null &&
+    (!Number.isFinite(form.maxDiscountAmount) || form.maxDiscountAmount < 0)
+  ) {
+    errors.push("Mức giảm tối đa không được nhỏ hơn 0.");
+  }
+  if (
+    form.minBillAmount !== null &&
+    (!Number.isFinite(form.minBillAmount) || form.minBillAmount < 0)
+  ) {
+    errors.push("Bill tối thiểu không được nhỏ hơn 0.");
+  }
+
+  const quotaFields: Array<[number | null, string]> = [
+    [form.maxRedemptions, "Số lượt dùng tối đa"],
+    [form.maxRedemptionsPerCustomer, "Số lượt dùng tối đa mỗi khách"],
+  ];
+  quotaFields.forEach(([value, label]) => {
+    if (value !== null && (!Number.isInteger(value) || value <= 0)) {
+      errors.push(`${label} phải là số nguyên lớn hơn 0.`);
+    }
+  });
+
+  if (form.startAt && form.endAt && new Date(form.endAt) < new Date(form.startAt)) {
+    errors.push("Thời điểm kết thúc phải sau hoặc bằng thời điểm bắt đầu.");
+  }
+  if (isItemPromotion && form.targets.length === 0) {
+    errors.push("Khuyến mãi theo món hoặc danh mục cần chọn ít nhất một phạm vi áp dụng.");
+  }
+  if (!isItemPromotion && form.targets.length > 0) {
+    errors.push("Khuyến mãi toàn bill không được chọn phạm vi món hoặc danh mục.");
+  }
+  if (
+    form.code
+      .split(",")
+      .map((value) => value.trim())
+      .some((value) => value && !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))
+  ) {
+    errors.push(
+      "Mã chỉ gồm chữ in hoa không dấu và số; dùng CODE:quota, ngăn nhiều mã bằng dấu phẩy.",
+    );
+  }
+
+  return errors;
+}
+
 function getCompletedRedemptions(promotion: Promotion) {
   return promotion.completedRedemptionCount;
 }
@@ -210,6 +269,7 @@ export default function AdminPromotionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"ALL" | PromotionStatus>("ALL");
   const [typeFilter, setTypeFilter] = useState<"ALL" | PromotionType>("ALL");
   const [search, setSearch] = useState("");
@@ -301,6 +361,7 @@ export default function AdminPromotionsPage() {
   );
 
   const updateForm = <K extends keyof PromotionForm>(key: K, value: PromotionForm[K]) => {
+    setFormErrors([]);
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -309,6 +370,7 @@ export default function AdminPromotionsPage() {
     setForm(emptyForm());
     setTargetType("");
     setTargetId("");
+    setFormErrors([]);
     setShowForm(true);
   };
 
@@ -332,6 +394,7 @@ export default function AdminPromotionsPage() {
     });
     setTargetType("");
     setTargetId("");
+    setFormErrors([]);
     setShowForm(true);
   };
 
@@ -367,26 +430,17 @@ export default function AdminPromotionsPage() {
       ...current,
       targets: [...current.targets, { id: `target-${Date.now()}`, targetType, targetId }],
     }));
+    setFormErrors([]);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.name.trim() || form.discountValue <= 0) return;
-    if (typeUsesPercent && form.discountValue > 100) {
-      setApiError("Tỷ lệ giảm tối đa là 100%.");
+    const errors = validatePromotionForm(form);
+    if (errors.length > 0) {
+      setFormErrors(errors);
       return;
     }
-    if (
-      form.code
-        .split(",")
-        .map((value) => value.trim())
-        .some((value) => value && !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))
-    ) {
-      setApiError(
-        "Mã chỉ gồm chữ in hoa không dấu và số; dùng CODE:quota, ngăn nhiều mã bằng dấu phẩy.",
-      );
-      return;
-    }
+    setFormErrors([]);
     setConfirmTarget({ action: "save" });
   };
 
@@ -754,7 +808,11 @@ export default function AdminPromotionsPage() {
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Mã khuyến mãi" className="sm:col-span-2">
+                  <Field
+                    label="Mã khuyến mãi"
+                    className="sm:col-span-2"
+                    tooltip="Nếu cấu hình mã, khách hàng phải nhập đúng mã này mới áp dụng được khuyến mãi. Chương trình có mã sẽ không xuất hiện trong danh sách khuyến mãi công khai; khách chỉ có thể tìm thấy khi nhập mã."
+                  >
                     <input
                       value={form.code}
                       onChange={(e) => updateForm("code", e.target.value.toUpperCase())}
@@ -769,6 +827,7 @@ export default function AdminPromotionsPage() {
                       value={form.promotionType}
                       onChange={(e) => {
                         const promotionType = e.target.value as PromotionType;
+                        setFormErrors([]);
                         setForm((current) => ({
                           ...current,
                           promotionType,
@@ -977,6 +1036,20 @@ export default function AdminPromotionsPage() {
             )}
 
             {/* Form footer */}
+            {formErrors.length > 0 ? (
+              <div
+                aria-live="polite"
+                className="rounded-xl border border-cas-error/30 bg-cas-error-container/40 px-4 py-3 text-sm text-cas-on-error-container"
+                role="alert"
+              >
+                <p className="font-extrabold">Vui lòng kiểm tra lại thông tin promotion:</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {formErrors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2 border-t border-cas-outline-variant/20 pt-4">
               <CasButton type="button" onClick={closeForm} variant="outline" size="sm">
                 Hủy
