@@ -181,7 +181,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `POST /api/v1/operator/table-sessions`: `OPERATOR` mở session mới cho bàn trống hoặc dùng session `OPEN` tại bàn thuộc store của mình. **[Chưa ghép Frontend]**
 - [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Chưa ghép Frontend]**
 - [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
-- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền, số lượng hủy đã duyệt và số lượng yêu cầu hủy đang chờ xác nhận đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/catalog/option-values/{id}`: `ADMIN` cập nhật tên, giá cộng thêm, lựa chọn mặc định, thứ tự hiển thị và trạng thái của một option value. **[Đã ghép Frontend]**
 - [x] Postman `Images/Get common Cloudinary upload signature`: dùng biến `imageUploadPurpose` (mặc định `WELCOME`) để xin chữ ký upload ảnh dùng chung.
@@ -615,6 +615,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung tooltip trường Mã khuyến mãi, làm rõ chương trình có mã chỉ áp dụng khi khách nhập đúng mã và không xuất hiện trong danh sách công khai.
 - [x] Ghép form xác nhận duyệt/từ chối yêu cầu hủy món của Operator với API thực: bỏ fallback request giả, tải chi tiết giá/option từ API và chỉ gửi các trường được backend hỗ trợ.
 - [x] Rà soát Customer: đồng bộ trạng thái ghép API create order, bill và hủy phiên bàn trong tài liệu; card dịch vụ thêm mở Zalo bằng hotline của store; xóa component yêu cầu hủy món cũ chỉ đổi state cục bộ và không còn được render.
+- [x] Trang Đơn hàng Customer polling bill mỗi 10 giây để nhận order mới, kết quả xử lý yêu cầu hủy món và thay đổi tiền từ thiết bị hoặc nhân viên khác.
+- [x] Đơn hàng Customer ẩn dòng món đã được duyệt hủy và hiển thị “Chờ xác nhận” cho yêu cầu hủy đang `PENDING`.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.

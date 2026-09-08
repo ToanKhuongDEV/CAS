@@ -46,6 +46,7 @@ const bill = {
           quantity: 2,
           preparedQuantity: 0,
           cancelledQuantity: 0,
+          pendingCancellationQuantity: 0,
           totalAmount: 55_000,
           options: [],
         },
@@ -56,6 +57,7 @@ const bill = {
 
 describe("OrdersPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     replace.mockClear();
     vi.mocked(loadCustomerBill).mockResolvedValue(bill);
     vi.mocked(requestCustomerCancellation).mockResolvedValue(undefined);
@@ -151,5 +153,72 @@ describe("OrdersPage", () => {
       "/scan",
     );
     expect(screen.queryByText("Vui lòng quét mã QR của bàn để tiếp tục.")).not.toBeInTheDocument();
+  });
+
+  it("polls the bill to receive changes made from another device", async () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <QueryProvider>
+          <ToastProvider>
+            <OrdersPage />
+          </ToastProvider>
+        </QueryProvider>,
+      );
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(loadCustomerBill).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(loadCustomerBill).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows pending cancellation status instead of another cancellation action", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValue({
+      ...bill,
+      orders: [
+        {
+          ...bill.orders[0],
+          items: [{ ...bill.orders[0].items[0], pendingCancellationQuantity: 1 }],
+        },
+      ],
+    });
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    expect(await screen.findByText("Chờ xác nhận")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Yêu cầu hủy" })).not.toBeInTheDocument();
+  });
+
+  it("hides an item after its cancellation has been approved", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValue({
+      ...bill,
+      orders: [
+        {
+          ...bill.orders[0],
+          items: [{ ...bill.orders[0].items[0], cancelledQuantity: 1 }],
+        },
+      ],
+    });
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    await waitFor(() => expect(loadCustomerBill).toHaveBeenCalledOnce());
+    expect(screen.queryByText("Mỳ cay đặc biệt 7 cấp độ")).not.toBeInTheDocument();
   });
 });

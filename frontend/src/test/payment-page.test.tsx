@@ -30,6 +30,7 @@ const bill = {
       items: [
         {
           cancelledQuantity: 0,
+          pendingCancellationQuantity: 0,
           itemName: "Mỳ cay API",
           options: [{ groupName: "Cấp độ", optionName: "Cấp 2", quantityPerItem: 1, unitPrice: 0 }],
           optionsAmount: 0,

@@ -164,6 +164,8 @@
             order_items.prepared_quantity AS preparedQuantity,
             COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status = 'APPROVED'
                 THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS cancelledQuantity,
+            COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status = 'PENDING'
+                THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS pendingCancellationQuantity,
             order_items.total_amount AS totalAmount
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id

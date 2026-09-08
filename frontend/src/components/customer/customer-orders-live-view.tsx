@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -22,7 +22,7 @@ function formatOrderTime(createdAt: string) {
   );
 }
 
-export function CustomerOrdersLiveView() {
+export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollIntervalMs?: number }) {
   const [bill, setBill] = useState<CustomerBill | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cancellation, setCancellation] = useState<{ itemId: string; maximum: number } | null>(
@@ -32,16 +32,23 @@ export function CustomerOrdersLiveView() {
   const [reason, setReason] = useState("");
   const { showToast } = useToast();
   const { data: catalog } = useCustomerCatalog();
-  const refresh = () =>
-    void loadCustomerBill()
-      .then((nextBill) => {
-        setBill(nextBill);
-        setError(null);
-      })
-      .catch((cause) =>
-        setError(cause instanceof Error ? cause.message : "Không thể tải đơn hàng."),
-      );
-  useEffect(refresh, []);
+  const refresh = useCallback(
+    () =>
+      void loadCustomerBill()
+        .then((nextBill) => {
+          setBill(nextBill);
+          setError(null);
+        })
+        .catch((cause) =>
+          setError(cause instanceof Error ? cause.message : "Không thể tải đơn hàng."),
+        ),
+    [],
+  );
+  useEffect(() => {
+    refresh();
+    const timer = window.setInterval(refresh, pollIntervalMs);
+    return () => window.clearInterval(timer);
+  }, [pollIntervalMs, refresh]);
   const itemImageUrls = useMemo(() => {
     const imageUrls: Record<string, string> = {};
     for (const item of catalog?.items ?? []) {
@@ -76,7 +83,13 @@ export function CustomerOrdersLiveView() {
   }
   if (error) return <p className="text-cas-error">{error}</p>;
   if (!bill) return <p className="text-cas-on-surface-variant">Đang tải đơn hàng…</p>;
-  const totalItemQuantity = bill.orders.reduce(
+  const visibleOrders = bill.orders
+    .map((order) => ({
+      ...order,
+      items: order.items.filter((item) => item.cancelledQuantity === 0),
+    }))
+    .filter((order) => order.items.length > 0);
+  const totalItemQuantity = visibleOrders.reduce(
     (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
     0,
   );
@@ -122,7 +135,7 @@ export function CustomerOrdersLiveView() {
         </div>
 
         <div className="divide-y divide-cas-outline-variant/40">
-          {bill.orders.map((order) => (
+          {visibleOrders.map((order) => (
             <section className="py-4 first:pt-5" key={order.orderId}>
               <div className="mb-3 flex justify-end text-xs text-cas-on-surface-variant">
                 <span>Gửi lúc {formatOrderTime(order.createdAt)}</span>
@@ -173,22 +186,28 @@ export function CustomerOrdersLiveView() {
                         <strong className="text-sm text-cas-primary">
                           {money.format(item.totalAmount)}
                         </strong>
-                        <button
-                          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring disabled:cursor-not-allowed disabled:text-cas-on-surface-variant"
-                          disabled={item.quantity === item.cancelledQuantity}
-                          onClick={() => {
-                            setQuantity(1);
-                            setReason("");
-                            setCancellation({
-                              itemId: item.orderItemId,
-                              maximum: item.quantity - item.cancelledQuantity,
-                            });
-                          }}
-                          type="button"
-                        >
-                          <CasIcon className="size-4" name="minus" />
-                          Yêu cầu hủy
-                        </button>
+                        {item.pendingCancellationQuantity > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cas-tertiary-container/25 px-2 py-1 text-xs font-bold text-cas-on-tertiary-container">
+                            <CasIcon className="size-4" name="clock" />
+                            Chờ xác nhận
+                          </span>
+                        ) : (
+                          <button
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                            onClick={() => {
+                              setQuantity(1);
+                              setReason("");
+                              setCancellation({
+                                itemId: item.orderItemId,
+                                maximum: item.quantity,
+                              });
+                            }}
+                            type="button"
+                          >
+                            <CasIcon className="size-4" name="minus" />
+                            Yêu cầu hủy
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>

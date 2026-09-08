@@ -161,7 +161,7 @@ public class CustomerOrderingService {
                                 .map(item -> new OrderItemDetail(item.publicId(), item.itemName(),
                                         item.unitPrice(), item.optionsAmount(), item.quantity(),
                                         item.preparedQuantity(), item.cancelledQuantity(),
-                                        item.totalAmount(),
+                                        item.pendingCancellationQuantity(), item.totalAmount(),
                                         optionsByItem.getOrDefault(item.id(), List.of()).stream()
                                                 .map(option -> new OrderOptionDetail(
                                                         option.groupName(), option.optionName(),
@@ -272,7 +272,8 @@ public class CustomerOrderingService {
 
     public record OrderItemDetail(String orderItemId, String itemName, BigDecimal unitPrice,
             BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
-            BigDecimal totalAmount, List<OrderOptionDetail> options) {
+            int pendingCancellationQuantity, BigDecimal totalAmount,
+            List<OrderOptionDetail> options) {
     }
 
     public record OrderOptionDetail(String groupName, String optionName, BigDecimal unitPrice,

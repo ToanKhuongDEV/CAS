@@ -122,11 +122,13 @@ public class CustomerOrderingController {
 
     public record OrderItemResponse(String orderItemId, String itemName, BigDecimal unitPrice,
             BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
-            BigDecimal totalAmount, List<OrderOptionResponse> options) {
+            int pendingCancellationQuantity, BigDecimal totalAmount,
+            List<OrderOptionResponse> options) {
         static OrderItemResponse from(CustomerOrderingService.OrderItemDetail item) {
             return new OrderItemResponse(item.orderItemId(), item.itemName(), item.unitPrice(),
                     item.optionsAmount(), item.quantity(), item.preparedQuantity(),
-                    item.cancelledQuantity(), item.totalAmount(),
+                    item.cancelledQuantity(), item.pendingCancellationQuantity(),
+                    item.totalAmount(),
                     item.options().stream().map(OrderOptionResponse::from).toList());
         }
     }

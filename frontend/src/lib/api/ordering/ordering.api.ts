@@ -12,6 +12,7 @@ export type CustomerOrderItem = {
   quantity: number;
   preparedQuantity: number;
   cancelledQuantity: number;
+  pendingCancellationQuantity: number;
   totalAmount: number;
   options: { groupName: string; optionName: string; unitPrice: number; quantityPerItem: number }[];
 };
