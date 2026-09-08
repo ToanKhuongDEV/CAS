@@ -6,22 +6,43 @@ import MenuPage from "../app/(customer)/(ordering)/menu/page";
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
-import { loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
+import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/menu",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadCustomerCatalog: vi.fn() }));
 vi.mock("../lib/customer/table-session", () => ({
   getCurrentCustomerTableSession: vi.fn().mockResolvedValue({ tableCode: 5 }),
   hasOpenCustomerTableSession: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
-  loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
+  loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
+}));
+vi.mock("../lib/api/notification/notification.api", () => ({
+  loadCustomerNotifications: vi.fn().mockResolvedValue({ notifications: [], unreadCount: 0 }),
+  markAllCustomerNotificationsRead: vi.fn(),
+  markCustomerNotificationRead: vi.fn(),
 }));
 
 describe("MenuPage", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/menu");
+    vi.mocked(loadPublicStore).mockResolvedValue({
+      address: "1 CAS Street",
+      closeTime: "22:00:00",
+      email: "contact@cas.test",
+      googleMapsLocation: null,
+      logoStorageKey: null,
+      logoUrl: null,
+      name: "CAS",
+      openTime: "08:00:00",
+      phone: "0901 234 567",
+      status: "ACTIVE",
+      welcomeSlogan: null,
+    });
     vi.mocked(loadPublicStoreWelcomeConfig).mockResolvedValue({
       bannerImageUrl: "https://example.test/store-banner.jpg",
       heroPrimaryImageUrl: null,
@@ -105,6 +126,9 @@ describe("MenuPage", () => {
       "#additional-services",
     );
     expect(screen.getByRole("heading", { name: "Dịch vụ thêm" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("link", { name: "Liên hệ qua Zalo: 0901 234 567" }),
+    ).toHaveAttribute("href", "https://zalo.me/0901234567");
     expect(loadCustomerCatalog).toHaveBeenCalledOnce();
     expect(screen.queryByText("Mỳ cay đặc biệt 7 cấp độ")).not.toBeInTheDocument();
     expect(screen.getByText("Món hết hàng API")).toBeInTheDocument();

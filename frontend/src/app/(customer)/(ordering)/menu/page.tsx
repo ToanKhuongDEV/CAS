@@ -41,6 +41,10 @@ type CatalogCategoryNavigationItem = {
   label: string;
 };
 
+function zaloContactUrl(phone: string) {
+  return `https://zalo.me/${phone.replace(/\D/g, "")}`;
+}
+
 export default function MenuPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -338,10 +342,22 @@ export default function MenuPage() {
                     <p className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
                       Chốt giá qua Zalo
                     </p>
-                    <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
-                      <CasIcon className="size-3.5" name="phone" />
-                      {storePhone ? `Liên hệ: ${storePhone}` : "Đang tải hotline..."}
-                    </span>
+                    {storePhone ? (
+                      <a
+                        className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary transition hover:bg-cas-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                        href={zaloContactUrl(storePhone)}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        <CasIcon className="size-3.5" name="phone" />
+                        {`Liên hệ qua Zalo: ${storePhone}`}
+                      </a>
+                    ) : (
+                      <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
+                        <CasIcon className="size-3.5" name="phone" />
+                        Đang tải hotline...
+                      </span>
+                    )}
                   </div>
                 </div>
               </article>

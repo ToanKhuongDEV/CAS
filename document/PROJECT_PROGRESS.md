@@ -176,12 +176,12 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/table-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Chưa ghép Frontend]**
-- [x] `DELETE /api/v1/customer/table-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Chưa ghép Frontend]**
+- [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Đã ghép Frontend]**
+- [x] `DELETE /api/v1/customer/table-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/table-sessions`: `OPERATOR` mở session mới cho bàn trống hoặc dùng session `OPEN` tại bàn thuộc store của mình. **[Chưa ghép Frontend]**
 - [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Chưa ghép Frontend]**
 - [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
-- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Chưa ghép Frontend]**
+- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền và số lượng hủy đã duyệt đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/catalog/option-values/{id}`: `ADMIN` cập nhật tên, giá cộng thêm, lựa chọn mặc định, thứ tự hiển thị và trạng thái của một option value. **[Đã ghép Frontend]**
 - [x] Postman `Images/Get common Cloudinary upload signature`: dùng biến `imageUploadPurpose` (mặc định `WELCOME`) để xin chữ ký upload ảnh dùng chung.
@@ -400,7 +400,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung nút In bill cạnh “Xem hóa đơn” trong danh sách payment Operator; nút mở hộp in của trình duyệt với bill lấy từ snapshot API, không dùng dữ liệu tĩnh.
 - [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bàn (không hiển thị mã payment hoặc mã order), món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
 - [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
-- [x] Bổ sung card và tab “Dịch vụ thêm” cố định cuối Menu Customer; card tương tự luôn hiển thị ở Operator. Nội dung có giá thỏa thuận và nhãn hotline liên hệ, không phụ thuộc catalog API, không đi vào giỏ hàng hoặc chuyển hướng sang Zalo.
+- [x] Bổ sung card và tab “Dịch vụ thêm” cố định cuối Menu Customer; card tương tự luôn hiển thị ở Operator. Nội dung có giá thỏa thuận và nhãn hotline liên hệ, không phụ thuộc catalog API, không đi vào giỏ hàng; Customer mở Zalo theo hotline tải từ store.
 - [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
 - [x] Đổi thumbnail cố định của card Dịch vụ thêm trên Menu Customer sang biểu tượng ngôi sao.
 - [x] Tăng vùng cuộn cuối Menu Customer để scroll-spy lần lượt kích hoạt đúng tab Ăn vặt và Khác.
@@ -614,6 +614,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung validation phía client cho form tạo/cập nhật promotion: tên, giá trị giảm, quota, thời gian hiệu lực, format mã và phạm vi bắt buộc của promotion theo món/danh mục.
 - [x] Bổ sung tooltip trường Mã khuyến mãi, làm rõ chương trình có mã chỉ áp dụng khi khách nhập đúng mã và không xuất hiện trong danh sách công khai.
 - [x] Ghép form xác nhận duyệt/từ chối yêu cầu hủy món của Operator với API thực: bỏ fallback request giả, tải chi tiết giá/option từ API và chỉ gửi các trường được backend hỗ trợ.
+- [x] Rà soát Customer: đồng bộ trạng thái ghép API create order, bill và hủy phiên bàn trong tài liệu; card dịch vụ thêm mở Zalo bằng hotline của store; xóa component yêu cầu hủy món cũ chỉ đổi state cục bộ và không còn được render.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
