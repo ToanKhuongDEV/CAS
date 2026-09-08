@@ -1,60 +1,57 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
-import { ThemeToggle } from "../ui/theme-toggle";
 import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
 import { readCustomerCart } from "../../lib/customer/cart";
 import { loadPublicStore } from "../../lib/api/store/public-store.api";
+import {
+  loadCustomerNotifications,
+  markAllCustomerNotificationsRead,
+  markCustomerNotificationRead,
+} from "../../lib/api/notification/notification.api";
 
 type CustomerHeaderProps = {
   cartCount?: number;
-  showThemeToggle?: boolean;
 };
 
-type CustomerNotification = {
-  id: number;
-  title: string;
-  desc: string;
-  time: string;
-  badge?: string;
-  isRead: boolean;
-};
-
-const mockCustomerNotifications: CustomerNotification[] = [
-  {
-    id: 1,
-    title: "Ưu đãi Summer50K",
-    desc: "Nhập mã SUMMER50K để giảm ngay 50.000đ cho đơn hàng từ 200.000đ!",
-    time: "Vừa xong",
-    badge: "KM Hot",
-    isRead: false,
-  },
-  {
-    id: 2,
-    title: "Trà Trái Cây Mùa Hè",
-    desc: "Thực đơn vừa cập nhật bộ sưu tập Trà Trái Cây tươi mát. Đặt ngay!",
-    time: "10 phút trước",
-    badge: "Món mới",
-    isRead: false,
-  },
-];
-
-export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHeaderProps) {
+export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState(mockCustomerNotifications);
+  const [notifications, setNotifications] = useState<
+    Awaited<ReturnType<typeof loadCustomerNotifications>>["notifications"]
+  >([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [storeName, setStoreName] = useState("CAS");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [tableCode, setTableCode] = useState<number | null>(null);
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const loadNotifications = async () => {
+    const result = await loadCustomerNotifications();
+    setNotifications(result.notifications);
+    setUnreadCount(result.unreadCount);
+  };
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  const markAllRead = async () => {
+    await markAllCustomerNotificationsRead();
+    await loadNotifications();
+  };
+
+  const markNotificationRead = async (notificationId: number) => {
+    const notification = notifications.find((item) => item.id === notificationId);
+    if (!notification || notification.status === "READ") return;
+
+    await markCustomerNotificationRead(notificationId);
+    setNotifications((current) =>
+      current.map((item) => (item.id === notificationId ? { ...item, status: "READ" } : item)),
+    );
+    setUnreadCount((current) => Math.max(0, current - 1));
   };
 
   useEffect(() => {
@@ -65,6 +62,11 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => void loadNotifications().catch(() => undefined), 30_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -83,7 +85,11 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
     let active = true;
     void getCurrentCustomerTableSession()
       .then((session) => {
-        if (active) setTableCode(session.tableCode);
+        if (!active) return;
+        setTableCode(session.tableCode);
+        if (session.sessionStatus === "PAYMENT_PENDING" && pathname !== "/payment") {
+          router.replace("/payment");
+        }
       })
       .catch(() => {
         if (active) setTableCode(null);
@@ -91,7 +97,7 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname, router]);
 
   useEffect(() => {
     let active = true;
@@ -140,12 +146,10 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">
-              <CasIcon className="size-4" name="table" />
+              {/* <CasIcon className="size-4" name="table" /> */}
               {`Bàn ${String(tableCode).padStart(2, "0")}`}
             </span>
           )}
-
-          {showThemeToggle ? <ThemeToggle /> : null}
 
           {/* Customer Notification Bell */}
           <div className="relative" ref={notifRef}>
@@ -153,7 +157,7 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
               type="button"
               onClick={() => {
                 setShowNotif(!showNotif);
-                if (!showNotif) markAllRead();
+                if (!showNotif) void loadNotifications().catch(() => undefined);
               }}
               className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
               aria-label="Thông báo khuyến mãi và hệ thống"
@@ -174,7 +178,7 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
                     Thông báo & Khuyến mãi
                   </h4>
                   <button
-                    onClick={markAllRead}
+                    onClick={() => void markAllRead()}
                     className="text-[0.65rem] font-bold text-cas-primary hover:underline"
                   >
                     Đánh dấu đã đọc
@@ -183,27 +187,45 @@ export function CustomerHeader({ cartCount, showThemeToggle = true }: CustomerHe
 
                 <div className="mt-3 space-y-2.5 max-h-72 overflow-y-auto">
                   {notifications.map((n) => (
-                    <div
+                    <button
+                      aria-label={
+                        n.status === "UNREAD"
+                          ? `Đánh dấu thông báo ${n.title} là đã đọc`
+                          : undefined
+                      }
+                      disabled={n.status === "READ"}
                       key={n.id}
                       className={`rounded-2xl p-3 text-xs transition ${
-                        n.isRead ? "bg-cas-glass" : "bg-cas-primary/10 border border-cas-primary/20"
+                        n.status === "READ"
+                          ? "w-full cursor-default bg-cas-glass text-left"
+                          : "w-full border border-cas-primary/20 bg-cas-primary/10 text-left hover:bg-cas-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                       }`}
+                      onClick={() => void markNotificationRead(n.id)}
+                      type="button"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-cas-on-surface">{n.title}</span>
-                        {n.badge && (
-                          <span className="rounded-md bg-cas-secondary/20 px-1.5 py-0.5 text-[0.6rem] font-black text-cas-secondary uppercase">
-                            {n.badge}
+                        {n.type && (
+                          <span
+                            className={`rounded-md border px-1.5 py-0.5 text-[0.6rem] font-black uppercase ${
+                              n.type === "URGENT"
+                                ? "border-cas-error text-cas-error"
+                                : n.type === "WARNING"
+                                  ? "border-cas-tertiary text-cas-tertiary"
+                                  : "border-cas-on-surface text-cas-on-surface"
+                            }`}
+                          >
+                            {n.type}
                           </span>
                         )}
                       </div>
                       <p className="mt-1 text-[0.7rem] text-cas-on-surface-variant leading-relaxed">
-                        {n.desc}
+                        {n.content}
                       </p>
                       <span className="mt-2 block text-[0.65rem] font-medium text-cas-on-surface-variant/80">
-                        {n.time}
+                        {new Date(n.createdAt).toLocaleString("vi-VN")}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>

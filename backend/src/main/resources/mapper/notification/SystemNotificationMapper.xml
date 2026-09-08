@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.notification.mapper.SystemNotificationMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO system_notifications (
+            store_id,
+            title,
+            content,
+            type,
+            target_role,
+            created_by
+        ) VALUES (
+            #{storeId},
+            #{title},
+            #{content},
+            #{type},
+            #{targetRole},
+            #{createdBy}
+        )
+    </insert>
+
+    <insert id="insertRecipientsForActiveOperators">
+        INSERT INTO system_notification_recipients (
+            notification_id,
+            account_id,
+            table_session_id,
+            status,
+            read_at
+        )
+        SELECT
+            #{notificationId},
+            accounts.id,
+            NULL,
+            'UNREAD',
+            NULL
+        FROM accounts
+        WHERE accounts.store_id = #{storeId}
+          AND accounts.role = 'OPERATOR'
+          AND accounts.status = 'ACTIVE'
+    </insert>
+
+    <insert id="insertRecipientsForActiveCustomerSessions">
+        INSERT INTO system_notification_recipients (
+            notification_id,
+            account_id,
+            table_session_id,
+            status,
+            read_at
+        )
+        SELECT
+            #{notificationId},
+            NULL,
+            table_sessions.id,
+            'UNREAD',
+            NULL
+        FROM table_sessions
+        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+    </insert>
+
+    <select id="findByStoreId" resultType="vn.cas.notification.model.SystemNotification">
+        SELECT
+            system_notifications.id AS id,
+            system_notifications.title AS title,
+            system_notifications.content AS content,
+            system_notifications.type AS type,
+            system_notifications.target_role AS targetRole,
+            system_notifications.created_at AS createdAt,
+            system_notifications.updated_at AS updatedAt
+        FROM system_notifications
+        WHERE system_notifications.store_id = #{storeId}
+        ORDER BY system_notifications.created_at DESC, system_notifications.id DESC
+    </select>
+
+    <select id="findByAccountId" resultType="vn.cas.notification.model.RecipientNotification">
+        SELECT
+            system_notifications.id AS id,
+            system_notifications.title AS title,
+            system_notifications.content AS content,
+            system_notifications.type AS type,
+            system_notifications.target_role AS targetRole,
+            system_notification_recipients.status AS status,
+            system_notification_recipients.read_at AS readAt,
+            system_notifications.created_at AS createdAt
+        FROM system_notification_recipients
+        INNER JOIN system_notifications
+            ON system_notifications.id = system_notification_recipients.notification_id
+        WHERE system_notification_recipients.account_id = #{accountId}
+        ORDER BY system_notifications.created_at DESC, system_notifications.id DESC
+    </select>
+
+    <select id="findByTableSessionId" resultType="vn.cas.notification.model.RecipientNotification">
+        SELECT
+            system_notifications.id AS id,
+            system_notifications.title AS title,
+            system_notifications.content AS content,
+            system_notifications.type AS type,
+            system_notifications.target_role AS targetRole,
+            system_notification_recipients.status AS status,
+            system_notification_recipients.read_at AS readAt,
+            system_notifications.created_at AS createdAt
+        FROM system_notification_recipients
+        INNER JOIN system_notifications
+            ON system_notifications.id = system_notification_recipients.notification_id
+        WHERE system_notification_recipients.table_session_id = #{tableSessionId}
+        ORDER BY system_notifications.created_at DESC, system_notifications.id DESC
+    </select>
+
+    <select id="countUnreadByAccountId" resultType="long">
+        SELECT COUNT(*)
+        FROM system_notification_recipients
+        WHERE account_id = #{accountId}
+          AND status = 'UNREAD'
+    </select>
+
+    <select id="countUnreadByTableSessionId" resultType="long">
+        SELECT COUNT(*)
+        FROM system_notification_recipients
+        WHERE table_session_id = #{tableSessionId}
+          AND status = 'UNREAD'
+    </select>
+
+    <select id="existsForAccount" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM system_notification_recipients
+            WHERE notification_id = #{notificationId}
+              AND account_id = #{accountId}
+        )
+    </select>
+
+    <select id="existsForTableSession" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM system_notification_recipients
+            WHERE notification_id = #{notificationId}
+              AND table_session_id = #{tableSessionId}
+        )
+    </select>
+
+    <update id="markReadForAccount">
+        UPDATE system_notification_recipients
+        SET status = 'READ', read_at = COALESCE(read_at, #{readAt})
+        WHERE notification_id = #{notificationId}
+          AND account_id = #{accountId}
+    </update>
+
+    <update id="markReadForTableSession">
+        UPDATE system_notification_recipients
+        SET status = 'READ', read_at = COALESCE(read_at, #{readAt})
+        WHERE notification_id = #{notificationId}
+          AND table_session_id = #{tableSessionId}
+    </update>
+
+    <update id="markAllReadForAccount">
+        UPDATE system_notification_recipients
+        SET status = 'READ', read_at = #{readAt}
+        WHERE account_id = #{accountId}
+          AND status = 'UNREAD'
+    </update>
+
+    <update id="markAllReadForTableSession">
+        UPDATE system_notification_recipients
+        SET status = 'READ', read_at = #{readAt}
+        WHERE table_session_id = #{tableSessionId}
+          AND status = 'UNREAD'
+    </update>
+
+    <delete id="deleteByStoreIdAndId">
+        DELETE FROM system_notifications
+        WHERE store_id = #{storeId}
+          AND id = #{notificationId}
+    </delete>
+</mapper>

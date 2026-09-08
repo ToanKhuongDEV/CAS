@@ -1,13 +1,14 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CustomerInformationFormFields } from "../../../../components/customer/customer-information-form-fields";
 import {
   resolveCustomerTableSession,
   type CustomerTableSessionResolution,
 } from "../../../../lib/customer/table-session";
+import { loadCustomerNotifications } from "../../../../lib/api/notification/notification.api";
 
 export function CustomerInformationForm() {
   const router = useRouter();
@@ -15,11 +16,18 @@ export function CustomerInformationForm() {
   const params = useParams<{ token: string }>();
   const [resolution, setResolution] = useState<CustomerTableSessionResolution | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedNotifications = useRef(false);
 
   function destination(status: CustomerTableSessionResolution["sessionStatus"]) {
     if (status === "PAYMENT_PENDING") return "/payment";
     const returnTo = searchParams.get("returnTo");
     return returnTo?.startsWith("/menu") || returnTo === "/cart" ? returnTo : "/menu";
+  }
+
+  function loadNotificationsOnce() {
+    if (hasLoadedNotifications.current) return;
+    hasLoadedNotifications.current = true;
+    void loadCustomerNotifications().catch(() => undefined);
   }
 
   function resolve() {
@@ -31,6 +39,7 @@ export function CustomerInformationForm() {
           setResolution(nextResolution);
           return;
         }
+        loadNotificationsOnce();
         router.replace(destination(nextResolution.sessionStatus));
       })
       .catch((cause) =>
@@ -57,6 +66,7 @@ export function CustomerInformationForm() {
       setError(null);
       const nextResolution = await resolveCustomerTableSession(params.token, information);
       if (!nextResolution.customerInformationRequired) {
+        loadNotificationsOnce();
         router.push(destination(nextResolution.sessionStatus));
       }
     } catch (cause) {

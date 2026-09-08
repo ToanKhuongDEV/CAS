@@ -122,6 +122,20 @@ public final class ApiPaths {
         }
     }
 
+    public static final class Notification {
+        public static final String ADMIN = API_ADMIN_PREFIX + "/notifications";
+        public static final String ADMIN_ID = ADMIN + "/{notificationId}";
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/notifications";
+        public static final String OPERATOR_READ = OPERATOR + "/{notificationId}/read";
+        public static final String OPERATOR_READ_ALL = OPERATOR + "/read";
+        public static final String CUSTOMER = API_CUSTOMER_PREFIX + "/notifications";
+        public static final String CUSTOMER_READ = CUSTOMER + "/{notificationId}/read";
+        public static final String CUSTOMER_READ_ALL = CUSTOMER + "/read";
+
+        private Notification() {
+        }
+    }
+
     public static final class PublicStore {
         public static final String WELCOME = API_V1_PREFIX + "/public/stores/{storeId}/welcome";
 

@@ -33,6 +33,12 @@ public final class ApiMessages {
     public static final String CATALOG_RESOURCE_IN_USE = "Dữ liệu thực đơn đang được sử dụng nên không thể xóa.";
     public static final String INVALID_CATALOG_IMAGE = "Ảnh món không thuộc Cloudinary của cửa hàng.";
     public static final String CLOUDINARY_NOT_CONFIGURED = "Cloudinary chưa được cấu hình.";
+    public static final String NOTIFICATION_CREATED = "Đã tạo thông báo hệ thống.";
+    public static final String NOTIFICATION_DELETED = "Đã xóa thông báo hệ thống.";
+    public static final String NOTIFICATIONS_RETRIEVED = "Đã lấy danh sách thông báo.";
+    public static final String NOTIFICATION_MARKED_READ = "Đã đánh dấu thông báo là đã đọc.";
+    public static final String NOTIFICATIONS_MARKED_READ = "Đã đánh dấu tất cả thông báo là đã đọc.";
+    public static final String NOTIFICATION_NOT_FOUND = "Không tìm thấy thông báo.";
 
     public static final String VALIDATION_FAILED = "Dữ liệu gửi lên chưa hợp lệ.";
     public static final String INVALID_REQUEST = "Yêu cầu không hợp lệ.";

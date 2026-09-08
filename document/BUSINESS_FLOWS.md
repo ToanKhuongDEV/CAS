@@ -725,7 +725,8 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 
 ### Quy tắc nghiệp vụ
 
-- Chỉ `ADMIN` được tạo hoặc xóa thông báo hệ thống.
+- Chỉ `ADMIN` được tạo hoặc xóa thông báo hệ thống. Khi xóa notification,
+  database tự xóa toàn bộ recipient liên quan; API không cần xóa recipient trước.
 - Thông báo hỗ trợ phân loại mức độ ưu tiên (`INFO`, `WARNING`, `URGENT`).
 - Cửa sổ thông báo hiển thị danh sách mới nhất xếp theo `created_at` giảm dần.
 - Biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải của giao diện `Customer` và `Operator` tự động đếm số lượng thông báo chưa đọc (`unreadCount`) và mở danh sách thông báo dạng popover khi bấm vào.

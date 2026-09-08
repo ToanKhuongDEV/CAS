@@ -143,6 +143,22 @@ curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorizat
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/groups/<group-key>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"quantity\":3}"
 ```
 
+Ví dụ Thông báo hệ thống: `ADMIN` tạo, xem và xóa notification của store. Khi
+xóa, các recipient liên quan được database tự xóa. Customer dùng cookie phiên
+bàn, còn `OPERATOR` dùng Firebase ID Token:
+
+```powershell
+curl.exe http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"title\":\"Bảo trì hệ thống\",\"content\":\"Hệ thống tạm dừng lúc 22:00.\",\"type\":\"WARNING\",\"targetRole\":\"BOTH\"}"
+curl.exe -X DELETE http://localhost:8080/api/v1/admin/notifications/<notification-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X PATCH http://localhost:8080/api/v1/operator/notifications/<notification-id>/read -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X PATCH http://localhost:8080/api/v1/operator/notifications/read -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/customer/notifications -b customer-session-cookie.txt
+curl.exe -X PATCH http://localhost:8080/api/v1/customer/notifications/<notification-id>/read -b customer-session-cookie.txt
+curl.exe -X PATCH http://localhost:8080/api/v1/customer/notifications/read -b customer-session-cookie.txt
+```
+
 Các lệnh khác:
 
 ```powershell

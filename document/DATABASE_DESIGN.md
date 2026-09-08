@@ -480,7 +480,8 @@ Lưu trạng thái notification theo từng account Operator hoặc table sessio
 
 `CHECK` constraint bắt buộc đúng một trong `account_id` và `table_session_id` có
 giá trị. Cặp `notification_id + account_id` và `notification_id + table_session_id`
-là unique.
+là unique. Khi xóa `system_notifications`, database tự xóa các
+`system_notification_recipients` liên quan qua foreign key `ON DELETE CASCADE`.
 
 ### 5.4. Phiên sử dụng bàn
 

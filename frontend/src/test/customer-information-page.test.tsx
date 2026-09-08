@@ -6,6 +6,7 @@ import {
   getCurrentCustomerTableSession,
   resolveCustomerTableSession,
 } from "../lib/customer/table-session";
+import { loadCustomerNotifications } from "../lib/api/notification/notification.api";
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -21,11 +22,15 @@ vi.mock("../lib/customer/table-session", () => ({
   getCurrentCustomerTableSession: vi.fn(),
   resolveCustomerTableSession: vi.fn(),
 }));
+vi.mock("../lib/api/notification/notification.api", () => ({
+  loadCustomerNotifications: vi.fn().mockResolvedValue({ notifications: [], unreadCount: 0 }),
+}));
 
 describe("CustomerInformationPage", () => {
   beforeEach(() => {
     push.mockClear();
     replace.mockClear();
+    vi.mocked(loadCustomerNotifications).mockClear();
     window.sessionStorage.clear();
     vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("No session"));
     vi.mocked(resolveCustomerTableSession).mockResolvedValue({
@@ -119,6 +124,7 @@ describe("CustomerInformationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/menu"));
+    expect(loadCustomerNotifications).toHaveBeenCalledTimes(1);
   });
 
   it("redirects a payment-pending session to payment", async () => {
@@ -131,6 +137,7 @@ describe("CustomerInformationPage", () => {
     render(<CustomerInformationPage />);
 
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/payment"));
+    expect(loadCustomerNotifications).toHaveBeenCalledTimes(1);
   });
 
   it("shows a retry action when QR resolution fails", async () => {

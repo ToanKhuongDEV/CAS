@@ -168,6 +168,11 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại. **[Đã ghép Frontend]**
 - [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log. **[Đã ghép Frontend]**
+- [x] `GET/POST/DELETE /api/v1/admin/notifications`: `ADMIN` tra cứu, phát hành hoặc xóa thông báo của store; xóa notification tự cascade recipient. **[Đã ghép Frontend]**
+- [x] `GET/PATCH /api/v1/operator/notifications` và `GET/PATCH /api/v1/customer/notifications`: recipient xem danh sách kèm `unreadCount`, đánh dấu một hoặc tất cả thông báo là đã đọc. **[Đã ghép Frontend]**
+- [x] Customer gọi notification API ngay một lần sau khi QR tạo hoặc xác thực table session thành công, trước khi điều hướng vào luồng gọi món hoặc thanh toán.
+- [x] Customer bị điều hướng về `/payment` khi session hiện tại là `PAYMENT_PENDING`, kể cả khi đã rời khỏi và truy cập lại một route Customer khác.
+- [x] Bỏ công tắc sáng/tối khỏi Customer Header; khách thay đổi giao diện tại trang Cài đặt Customer.
 - [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/tables`: `ADMIN` xem danh sách bàn, QR đang hoạt động và trạng thái phiên hiện tại. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/tables/{tableId}/qr`: `ADMIN` xem QR đang hoạt động của một bàn để hiển thị hoặc tải ảnh QR. **[Đã ghép Frontend]**
@@ -375,6 +380,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 #### Giai đoạn 5 — Vận hành và tra cứu
 
 - [x] Xây dựng API `POST /api/v1/admin/operators` và `DELETE /api/v1/admin/operators/{operatorId}` cho `ADMIN`; tạo Operator qua Firebase Admin SDK bằng email và mật khẩu ban đầu, xóa chuyển account `OPERATOR` sang `INACTIVE` và ghi audit log.
+- [x] Cập nhật schema notification: xóa `system_notifications` tự cascade xóa các recipient liên quan, không cần thao tác xóa recipient riêng.
 - [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
 - [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.
@@ -494,6 +500,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Bổ sung tooltip tại trường “Giá trị giảm” của form promotion, giải thích mức giảm tiền được giới hạn theo giá trị bill hoặc món áp dụng.
 - [x] Sửa badge trạng thái trên danh sách promotion không co hoặc xuống dòng khi tên/phạm vi chương trình dài.
 - [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
+- [x] Tinh chỉnh UI `/admin/notifications`: bỏ mô tả phụ dưới tiêu đề và dùng các cặp màu design token có độ tương phản rõ cho badge loại thông báo và đối tượng nhận.
 - [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
 - [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
 - [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
