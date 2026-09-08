@@ -109,6 +109,12 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
       });
     }
   }
+
+  function setCancellationQuantity(value: number) {
+    if (!cancellation) return;
+    setQuantity(Math.min(cancellation.maximum, Math.max(1, Math.trunc(value) || 1)));
+  }
+
   return (
     <main className="min-w-0 flex-1 pb-6">
       <header>
@@ -265,14 +271,40 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
         <div className="fixed inset-0 z-60 grid place-items-center bg-cas-on-surface/45 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl bg-cas-surface p-6 shadow-[0_16px_36px_var(--cas-shadow-color)]">
             <h2 className="text-lg font-extrabold">Yêu cầu hủy món</h2>
-            <input
-              className="mt-4 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container p-3 text-sm outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
-              max={cancellation.maximum}
-              min={1}
-              onChange={(event) => setQuantity(Number(event.target.value))}
-              type="number"
-              value={quantity}
-            />
+            <div className="mt-4">
+              <p className="text-xs font-bold text-cas-on-surface-variant">
+                Số lượng muốn hủy · tối đa {cancellation.maximum} phần đã gọi
+              </p>
+              <div className="mt-2 inline-flex h-12 overflow-hidden rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container">
+                <button
+                  aria-label="Giảm số lượng hủy"
+                  className="grid w-10 place-items-center border-r border-cas-outline-variant/45 text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={quantity === 1}
+                  onClick={() => setCancellationQuantity(quantity - 1)}
+                  type="button"
+                >
+                  <CasIcon className="size-3 rotate-90" name="arrow" />
+                </button>
+                <input
+                  aria-label="Số lượng muốn hủy"
+                  className="w-12 bg-transparent text-center text-base font-extrabold outline-none focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                  max={cancellation.maximum}
+                  min={1}
+                  onChange={(event) => setCancellationQuantity(Number(event.target.value))}
+                  type="number"
+                  value={quantity}
+                />
+                <button
+                  aria-label="Tăng số lượng hủy"
+                  className="grid w-10 place-items-center border-l border-cas-outline-variant/45 text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={quantity === cancellation.maximum}
+                  onClick={() => setCancellationQuantity(quantity + 1)}
+                  type="button"
+                >
+                  <CasIcon className="size-3 -rotate-90" name="arrow" />
+                </button>
+              </div>
+            </div>
             <textarea
               className="mt-3 min-h-24 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container p-3 text-sm outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
               onChange={(event) => setReason(event.target.value)}

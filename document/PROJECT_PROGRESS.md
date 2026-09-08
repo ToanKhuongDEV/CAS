@@ -625,6 +625,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Rà soát Customer: đồng bộ trạng thái ghép API create order, bill và hủy phiên bàn trong tài liệu; card dịch vụ thêm mở Zalo bằng hotline của store; xóa component yêu cầu hủy món cũ chỉ đổi state cục bộ và không còn được render.
 - [x] Trang Đơn hàng Customer polling bill mỗi 10 giây để nhận order mới, kết quả xử lý yêu cầu hủy món và thay đổi tiền từ thiết bị hoặc nhân viên khác.
 - [x] Đơn hàng Customer ẩn dòng món đã được duyệt hủy và hiển thị “Chờ xác nhận” cho yêu cầu hủy đang `PENDING`.
+- [x] Form yêu cầu hủy món Customer có nút mũi tên tăng/giảm, chỉ nhận số lượng từ `1` đến số phần đã gọi của dòng món.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.

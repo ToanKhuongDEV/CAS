@@ -99,7 +99,15 @@ describe("OrdersPage", () => {
     );
     expect(screen.queryByText("#ORD-001")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Yêu cầu hủy" }));
-    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "1" } });
+    expect(screen.getByRole("spinbutton", { name: "Số lượng muốn hủy" })).toHaveAttribute(
+      "max",
+      "2",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Tăng số lượng hủy" }));
+    expect(screen.getByRole("spinbutton", { name: "Số lượng muốn hủy" })).toHaveValue(2);
+    expect(screen.getByRole("button", { name: "Tăng số lượng hủy" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Giảm số lượng hủy" }));
+    expect(screen.getByRole("spinbutton", { name: "Số lượng muốn hủy" })).toHaveValue(1);
     fireEvent.change(screen.getByPlaceholderText("Lý do hủy (không bắt buộc)"), {
       target: { value: "Gọi nhầm món" },
     });
