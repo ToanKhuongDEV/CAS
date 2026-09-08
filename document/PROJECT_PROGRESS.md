@@ -602,6 +602,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Cố định toàn bộ panel giỏ món bên phải trong màn Operator tạo order hộ và cho phép panel tự cuộn độc lập với menu.
 - [x] Đồng bộ UI xác nhận gửi món của Operator với trang Đơn hàng Customer: hiển thị bàn, thời gian và danh sách món vừa gửi, gồm option, số lượng và thành tiền.
 - [x] Bổ sung toast dùng chung toàn ứng dụng cho thông báo thành công, lỗi, cảnh báo và thông tin; áp dụng thay `alert` tại màn quản lý bàn Admin.
+- [x] Tối giản màn Operator Payment: bỏ nút xem bill trùng lặp; nút xác nhận thanh toán vẫn mở modal hiển thị đầy đủ bill trước khi gửi xác nhận.
 - [x] Hiển thị lỗi đăng nhập qua toast: lỗi Firebase sai thông tin đăng nhập được chuyển sang tiếng Việt, lỗi Firebase kỹ thuật khác giữ nguyên để debug, còn lỗi CAS Backend lấy trực tiếp `message` do backend cấu hình.
 - [x] Bổ sung nút mắt bật/tắt hiển thị mật khẩu tại form đăng nhập dùng chung cho Admin và Operator.
 - [x] Bổ sung UI chọn voucher cho luồng Operator tạo order hộ; giỏ món và màn xác nhận hiển thị số tiền giảm cùng giá trị cần thanh toán tạm thời.

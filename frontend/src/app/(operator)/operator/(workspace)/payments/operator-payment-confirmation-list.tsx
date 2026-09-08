@@ -340,13 +340,6 @@ export function OperatorPaymentConfirmationList({
               <p className="font-extrabold text-cas-primary">{payment.amount}</p>
               <div className="flex flex-wrap gap-2">
                 <button
-                  className="w-fit rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                  onClick={() => setViewedPayment(payment)}
-                  type="button"
-                >
-                  Xem hóa đơn
-                </button>
-                <button
                   className="inline-flex w-fit items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                   onClick={() => handlePrintBill(payment)}
                   type="button"
@@ -501,10 +494,6 @@ export function OperatorPaymentConfirmationList({
                   <strong className="print-bill__grand-total">{activePayment.payableAmount}</strong>
                 </div>
                 <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
-                <p className="text-xs text-cas-on-surface-variant">
-                  Trạng thái:{" "}
-                  {activePayment.status === "PENDING" ? "Chờ xác nhận thanh toán" : "Đã thanh toán"}
-                </p>
                 <footer className="text-center text-xs text-cas-on-surface-variant">
                   Cảm ơn quý khách. Hẹn gặp lại!
                 </footer>
@@ -517,7 +506,7 @@ export function OperatorPaymentConfirmationList({
                 </div>
                 {selectedPayment ? (
                   <p className="mt-4 border-t border-cas-outline-variant/25 pt-4 text-sm leading-6 text-cas-on-surface">
-                    Bạn chỉ xác nhận khi đã kiểm tra loa bên ngoài CAS báo giao dịch thành công.
+                    Bạn chỉ xác nhận khi đã kiểm tra loa bên ngoài báo giao dịch thành công.
                   </p>
                 ) : null}
               </div>

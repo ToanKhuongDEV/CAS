@@ -111,15 +111,6 @@ describe("OperatorPaymentsPage", () => {
     expect(screen.queryByRole("button", { name: "Kiểm tra payment" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "In bill" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Xem hóa đơn" }));
-    const billDialog = screen.getByRole("dialog", { name: "Xem hóa đơn" });
-    expect(within(billDialog).getAllByText("Mỳ cay hải sản")).toHaveLength(2);
-    expect(within(billDialog).getByText("Ghi chú: Không hành")).toBeInTheDocument();
-    expect(billDialog).not.toHaveTextContent("payment-05");
-    expect(billDialog).not.toHaveTextContent("801a5c7c-f5d9-4882-b0ec-c672ba3e1649");
-    expect(confirmOperatorPayment).not.toHaveBeenCalled();
-    fireEvent.click(within(billDialog).getByRole("button", { name: "Đóng hóa đơn" }));
-
     fireEvent.click(confirmationButton);
 
     const dialog = screen.getByRole("dialog", { name: "Xác nhận thanh toán" });
@@ -127,6 +118,10 @@ describe("OperatorPaymentsPage", () => {
     expect(within(dialog).getByText("123 Đường Ăn Vặt")).toBeInTheDocument();
     expect(within(dialog).getByText("Người xác nhận: Operator One")).toBeInTheDocument();
     expect(within(dialog).getByText("Bàn 05", { selector: "p" })).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Mỳ cay hải sản")).toHaveLength(2);
+    expect(within(dialog).getByText("Ghi chú: Không hành")).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("payment-05");
+    expect(dialog).not.toHaveTextContent("801a5c7c-f5d9-4882-b0ec-c672ba3e1649");
     expect(within(dialog).getByText("Số tiền").parentElement).toHaveTextContent("170.000đ");
     expect(within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i)).toBeInTheDocument();
 
