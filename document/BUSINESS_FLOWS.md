@@ -225,6 +225,7 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 
 - Món `SOLD_OUT` vẫn có thể hiển thị nhưng không được chọn để đặt.
 - Món `INACTIVE` không hiển thị cho khách.
+- `OPERATOR` có thể chuyển món đang hiển thị giữa `ACTIVE` và `SOLD_OUT` để xử lý hết hàng trong ca; không được đổi món `INACTIVE` thành đang bán hoặc sửa dữ liệu catalog khác.
 - Category loại `OPTION` và các menu item trong đó không hiển thị như món chính; chúng chỉ xuất hiện qua option group của món được liên kết.
 - Giá cộng thêm của option lấy từ `menu_items.price` của option.
 - Frontend hiển thị option group `SINGLE` bằng radio và `MULTIPLE` bằng checkbox, dựa trên `selectionType` do backend trả về.
@@ -283,7 +284,9 @@ Khách hàng gửi một order mới trong session bàn.
 ### Ngoại lệ
 
 - Session không còn `OPEN`: không cho gửi order.
-- Món hết hàng hoặc không tồn tại: từ chối dòng món tương ứng.
+- Món hết hàng hoặc không tồn tại: từ chối dòng món tương ứng. Nếu món đã được
+  thêm vào giỏ nhưng sau đó bị chuyển `SOLD_OUT`, Backend trả thông báo nêu rõ
+  tên món và hướng dẫn khách bỏ món đó khỏi giỏ để chọn món khác.
 - Số option vượt quá `max_select`: không cho gửi order.
 - Option value không thuộc option group được liên kết với món qua `menu_item_option_groups`: không cho gửi order.
 
@@ -607,7 +610,7 @@ Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa đượ
 
 1. Nhân viên mở session có order nhưng chưa thanh toán.
 2. Nhân viên chọn ghi nhận chưa thanh toán và nhập lý do nếu cần.
-3. Nếu session chưa có payment, backend tạo payment `PENDING`; `amount` và `bill_snapshot` được lấy từ dữ liệu order đã chốt.
+3. Nếu session chưa có payment, backend tạo payment `PENDING`; `amount` và `bill_snapshot` được lấy từ dữ liệu order đã chốt. Khi ghi nhận chưa thanh toán, backend bỏ mọi khuyến mãi khỏi payment đang chờ và dùng tổng bill gốc.
 4. Hệ thống tạo một `unpaid_records` trạng thái `OPEN`, liên kết duy nhất với session và sao chép `amount`, `bill_snapshot` từ payment.
 5. Hệ thống đóng session để giải phóng bàn và ghi audit log.
 
@@ -617,6 +620,7 @@ Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa đượ
 - Mỗi table session có tối đa một payment và một `unpaid_records`.
 - `unpaid_records` chỉ là bản ghi trạng thái chưa thanh toán phục vụ vận hành; CAS không quản lý phương thức thu tiền, đối soát hoặc giao dịch tài chính.
 - Nếu payment được nhân viên xác nhận sau đó, payment chuyển sang `PAID` và `unpaid_records` chuyển sang `RESOLVED`.
+- Nếu payment đã từng được ghi nhận chưa thanh toán, lần thu tiền sau đó không áp dụng khuyến mãi và không tạo promotion redemption. Với khoản chưa thanh toán cũ đã lưu discount, backend chuyển payment và unpaid snapshot về bill không khuyến mãi trong transaction xác nhận thu tiền.
 - Không tính lại theo giá menu hiện tại.
 - `OPERATOR` và `ADMIN` có thể thực hiện thao tác kết thúc phiên và ghi nhận chưa thanh toán; `ADMIN` có thêm quyền theo dõi số lượng, tổng tiền, trạng thái và bill snapshot của các khoản chưa thanh toán.
 

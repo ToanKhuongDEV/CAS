@@ -202,7 +202,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Nhãn `Chưa chọn bàn` trên Customer Header là liên kết đến trang quét QR để khách chọn bàn trước khi gọi món.
 - [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
 - [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
-- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log.
+- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log. Payment đã ghi nhận không thanh toán bỏ khuyến mãi, dùng tổng bill gốc và không tạo promotion redemption khi thu lại; các khoản unpaid cũ có discount cũng được chuẩn hóa trong transaction thu tiền.
 - [x] Customer chỉ đọc session `OPEN` hoặc `PAYMENT_PENDING`; session `CLOSED` sau khi Operator xác nhận payment không còn trả lại order/bill/payment cũ qua cookie session.
 - [x] Thêm index `payments(status, created_at, table_session_id)` bằng Flyway để phục vụ danh sách và số lượng payment `PENDING` theo thời điểm tạo, không thay đổi schema nghiệp vụ.
 - [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Frontend chưa ghép API payment đã thanh toán trong ngày]**
@@ -212,6 +212,12 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/pending-count`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; API count chỉ trả số lượng `PENDING` theo store để badge polling không tải danh sách, API detail trả snapshot giá món/option để form xác nhận hiển thị đúng dữ liệu; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
+
+- [x] `GET /api/v1/operator/unpaid-records`, `GET /api/v1/operator/unpaid-records/eligible-sessions` và `POST /api/v1/operator/unpaid-records`: Operator/Admin xem và ghi nhận khoản chưa thanh toán theo store; server tạo payment/bill snapshot khi cần, đóng phiên và ghi audit log. UI Operator/Admin đã ghép API; xác nhận payment tự chuyển record `OPEN` sang `RESOLVED`.
+- [x] `GET /api/v1/operator/catalog/items` và `PATCH /api/v1/operator/catalog/items/{id}/availability-status`: Operator chỉ xem món đang hiển thị và chuyển `ACTIVE`/`SOLD_OUT`; không thể tạo, xóa, sửa món hoặc mở lại món `INACTIVE`. Đã thêm tab `Món hàng` tại giao diện Operator.
+- [x] Đồng bộ bố cục tab `Món hàng` của Operator với danh sách Catalog Admin: thanh tìm kiếm/lọc trạng thái, bảng tên món, thứ tự hiển thị, giá, trạng thái và đúng một thao tác đổi Đang bán/Hết hàng.
+- [x] Hiển thị thumbnail ảnh món tại bảng Menu Operator, dùng icon dự phòng khi món chưa có ảnh.
+- [x] Gộp điều hướng thanh toán của Operator tại `/operator/payments`: đổi toggle thành `Chờ xác nhận`, thêm nút `Phiên bàn chưa thanh toán` mở phần theo dõi unpaid ngay trong màn, đồng thời bỏ tab unpaid riêng; danh sách và badge payment không còn tính các session đã có unpaid record.
 
 #### Danh sách API theo luồng nghiệp vụ
 
@@ -465,6 +471,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Chia màn `/operator/orders` thành hai cột: tổng hợp số lượng theo món ở
       bên trái và cây món còn cần làm theo từng bàn ở bên phải; hai cột cập nhật
       đồng thời khi nhân viên ghi nhận số phần hoàn thành.
+- [x] Làm mới khu vực “Món theo bàn” tại `/operator/orders`: mỗi bàn là một thẻ
+      riêng, có tổng phần chờ, danh sách món/option, số lượng và giờ gửi để nhân
+      viên quét nhanh trên desktop hoặc tablet.
+- [x] Món cùng một mốc gửi trong thẻ bàn được gom dưới một nhãn thời gian; mốc
+      mới có dải ngăn cách, và món không có option không hiển thị dòng option.
 - [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
       thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
       lượng đã làm/còn lại cùng tổng tiền của một order.
@@ -626,6 +637,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Trang Đơn hàng Customer polling bill mỗi 10 giây để nhận order mới, kết quả xử lý yêu cầu hủy món và thay đổi tiền từ thiết bị hoặc nhân viên khác.
 - [x] Đơn hàng Customer ẩn dòng món đã được duyệt hủy và hiển thị “Chờ xác nhận” cho yêu cầu hủy đang `PENDING`.
 - [x] Form yêu cầu hủy món Customer có nút mũi tên tăng/giảm, chỉ nhận số lượng từ `1` đến số phần đã gọi của dòng món.
+- [x] Hiển thị toast thành công sau khi gửi món xuống bếp từ Giỏ hàng Customer hoặc màn tạo order hộ của Operator.
+- [x] Khi món trong giỏ vừa bị Operator chuyển sang `SOLD_OUT`, Backend trả lỗi
+      `409` nêu rõ tên món và hướng dẫn bỏ món khỏi giỏ; Giỏ hàng Customer hiển
+      thị lỗi này bằng toast, không mất các món đang chọn.
+- [x] Chuyển thông báo ghi nhận không thanh toán và xác nhận đã thu trên màn Operator sang toast thành công.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.

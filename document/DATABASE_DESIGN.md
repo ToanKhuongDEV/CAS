@@ -736,9 +736,9 @@ Ghi nhận trường hợp table session được đóng khi payment vẫn chưa
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` từ payment, sau đó đóng table session. Snapshot là bất biến.
+Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, bỏ discount khuyến mãi khỏi payment và dùng tổng bill gốc, rồi tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` đó trước khi đóng table session. Snapshot là bất biến.
 
-Nếu payment được nhân viên xác nhận sau đó, hệ thống chuyển payment sang `PAID`, chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` bằng chính payment của session và lưu `resolved_at`. CAS chỉ lưu trạng thái nghiệp vụ; không lưu hoặc xác minh dữ liệu giao dịch tài chính.
+Nếu payment được nhân viên xác nhận sau đó, hệ thống chuyển payment sang `PAID`, chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` bằng chính payment của session và lưu `resolved_at`. Payment đã được ghi nhận chưa thanh toán không tạo promotion redemption khi được thu lại. CAS chỉ lưu trạng thái nghiệp vụ; không lưu hoặc xác minh dữ liệu giao dịch tài chính.
 
 #### `payments`
 

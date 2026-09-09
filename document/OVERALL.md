@@ -44,6 +44,7 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được nh
 - **In hóa đơn:** In hóa đơn thanh toán cho khách khi payment ở trạng thái `PAID` qua máy in kết nối nội bộ (LAN/USB).
 - **In phiếu bếp:** In phiếu chế biến cho bếp trực tiếp từ màn hình vận hành khi máy in kết nối nội bộ.
 - **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới; **Tạo Báo cáo sự cố phát sinh** trong ca trực (lưu tên người tạo, thời gian và mô tả sự cố) để gửi trực tiếp cho ADMIN.
+- **Trạng thái món:** Chỉ chuyển món đang hiển thị giữa `ACTIVE` (đang bán) và `SOLD_OUT` (hết hàng); không được tạo, xóa hoặc sửa thông tin món.
 - **Dịch vụ đặt trước:** Tạo dịch vụ sau khi chốt qua Zalo, nhập giá đã thỏa thuận và xác nhận thanh toán thủ công khi khách thanh toán.
 
 ### 3.3. Quản lý / Quản trị viên (ADMIN)
