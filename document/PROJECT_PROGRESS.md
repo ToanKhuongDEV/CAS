@@ -641,6 +641,9 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Khi món trong giỏ vừa bị Operator chuyển sang `SOLD_OUT`, Backend trả lỗi
       `409` nêu rõ tên món và hướng dẫn bỏ món khỏi giỏ; Giỏ hàng Customer hiển
       thị lỗi này bằng toast, không mất các món đang chọn.
+- [x] Tối ưu đọc/validate khi tạo order: Backend batch tải món, nhóm option và
+      option được chọn theo toàn bộ giỏ, sau đó vẫn kiểm tra từng dòng đã chuẩn
+      hóa theo cùng quy tắc trạng thái, option và giá server-side.
 - [x] Chuyển thông báo ghi nhận không thanh toán và xác nhận đã thu trên màn Operator sang toast thành công.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)

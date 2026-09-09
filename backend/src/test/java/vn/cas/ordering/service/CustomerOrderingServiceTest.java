@@ -36,12 +36,12 @@ class CustomerOrderingServiceTest {
     @Test
     void shouldCreateOrderWithServerCalculatedSnapshots() {
         currentOpenSession();
-        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
-                new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
-        when(mapper.findActiveOptionGroups(2L, 11L))
-                .thenReturn(List.of(new OrderOptionGroup(9L, 1, 1)));
-        when(mapper.findActiveOptionValues(2L, 11L, List.of(21L))).thenReturn(
-                List.of(new OrderOptionValue(21L, 9L, "Size", "L", new BigDecimal("5000.00"))));
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L)))
+                .thenReturn(List.of(new OrderOptionGroup(11L, 9L, 1, 1)));
+        when(mapper.findActiveOptionValuesForOrder(2L, List.of(11L), List.of(21L))).thenReturn(List
+                .of(new OrderOptionValue(11L, 21L, 9L, "Size", "L", new BigDecimal("5000.00"))));
         when(mapper.lastInsertId()).thenReturn(44L);
         when(mapper.lastInsertOrderItemId()).thenReturn(45L);
 
@@ -74,12 +74,37 @@ class CustomerOrderingServiceTest {
     }
 
     @Test
+    void shouldLoadOrderValidationDataOnceForMultipleLines() {
+        currentOpenSession();
+        var menuItemIds = List.of(11L, 12L);
+        var optionValueIds = List.of(21L, 22L);
+        when(mapper.findMenuItemsForOrder(2L, menuItemIds)).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"),
+                        new OrderMenuItem(12L, "Bạc xỉu", new BigDecimal("28000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, menuItemIds)).thenReturn(
+                List.of(new OrderOptionGroup(11L, 9L, 1, 1), new OrderOptionGroup(12L, 10L, 1, 1)));
+        when(mapper.findActiveOptionValuesForOrder(2L, menuItemIds, optionValueIds)).thenReturn(
+                List.of(new OrderOptionValue(11L, 21L, 9L, "Size", "L", new BigDecimal("5000.00")),
+                        new OrderOptionValue(12L, 22L, 10L, "Đá", "Ít đá", BigDecimal.ZERO)));
+        when(mapper.lastInsertId()).thenReturn(44L);
+        when(mapper.lastInsertOrderItemId()).thenReturn(45L, 46L);
+
+        service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of(21L)),
+                        new CustomerOrderingService.OrderLine(12L, 1, List.of(22L))));
+
+        verify(mapper).findMenuItemsForOrder(2L, menuItemIds);
+        verify(mapper).findActiveOptionGroupsForOrder(2L, menuItemIds);
+        verify(mapper).findActiveOptionValuesForOrder(2L, menuItemIds, optionValueIds);
+    }
+
+    @Test
     void shouldRejectMissingRequiredOptionBeforeCreatingOrder() {
         currentOpenSession();
-        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
-                new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
-        when(mapper.findActiveOptionGroups(2L, 11L))
-                .thenReturn(List.of(new OrderOptionGroup(9L, 1, 1)));
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L)))
+                .thenReturn(List.of(new OrderOptionGroup(11L, 9L, 1, 1)));
 
         assertThatThrownBy(() -> service.create("session-1", "key-1", null,
                 List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()))))
@@ -114,8 +139,8 @@ class CustomerOrderingServiceTest {
     @Test
     void shouldExplainWhenAnItemWasMarkedSoldOutAfterCustomerAddedItToCart() {
         currentOpenSession();
-        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
-                new OrderMenuItem(11L, "Tra dao", new BigDecimal("32000.00"), "SOLD_OUT"));
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Tra dao", new BigDecimal("32000.00"), "SOLD_OUT")));
 
         assertThatThrownBy(() -> service.create("session-1", "key-1", null,
                 List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()))))
@@ -131,9 +156,9 @@ class CustomerOrderingServiceTest {
     @Test
     void shouldRecordOperatorAsOrderCreatorAndWriteAuditLog() {
         currentOpenSession();
-        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
-                new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
-        when(mapper.findActiveOptionGroups(2L, 11L)).thenReturn(List.of());
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L))).thenReturn(List.of());
         when(mapper.lastInsertId()).thenReturn(44L);
         var auditLogs = mock(AuditLogService.class);
         var operatorService = new CustomerOrderingService(mapper, sessions, auditLogs);

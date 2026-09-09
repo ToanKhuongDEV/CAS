@@ -173,9 +173,23 @@ public class CustomerOrderingService {
     }
 
     private List<ResolvedOrderLine> resolveLines(long storeId, List<OrderLine> lines) {
+        var menuItemIds = lines.stream().map(OrderLine::menuItemId).distinct().toList();
+        var menuItemsById = mapper.findMenuItemsForOrder(storeId, menuItemIds).stream()
+                .collect(Collectors.toMap(OrderMenuItem::id, item -> item));
+        var groupsByMenuItem = mapper.findActiveOptionGroupsForOrder(storeId, menuItemIds).stream()
+                .collect(Collectors.groupingBy(v -> v.menuItemId(), LinkedHashMap::new,
+                        Collectors.toList()));
+        var optionValueIds = lines.stream().flatMap(line -> line.optionValueIds().stream())
+                .distinct().toList();
+        var valuesByMenuItem = optionValueIds.isEmpty()
+                ? Map.<Long, Map<Long, OrderOptionValue>>of()
+                : mapper.findActiveOptionValuesForOrder(storeId, menuItemIds, optionValueIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(v -> v.menuItemId(), LinkedHashMap::new,
+                                Collectors.toMap(OrderOptionValue::id, value -> value)));
         var resolved = new ArrayList<ResolvedOrderLine>();
         for (var line : lines) {
-            var item = mapper.findMenuItemForOrder(storeId, line.menuItemId());
+            var item = menuItemsById.get(line.menuItemId());
             if (item == null)
                 throw new ApiException(HttpStatus.BAD_REQUEST,
                         ApiMessages.CATALOG_RESOURCE_NOT_FOUND);
@@ -185,7 +199,8 @@ public class CustomerOrderingService {
                         : ApiMessages.MENU_ITEM_UNAVAILABLE.formatted(item.name());
                 throw new ApiException(HttpStatus.CONFLICT, message);
             }
-            var options = options(storeId, line);
+            var options = options(groupsByMenuItem.getOrDefault(line.menuItemId(), List.of()),
+                    valuesByMenuItem.getOrDefault(line.menuItemId(), Map.of()), line);
             var optionsAmount = options.stream().map(OrderOptionValue::extraPrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             resolved.add(new ResolvedOrderLine(item, options, optionsAmount, line.quantity(),
@@ -194,14 +209,14 @@ public class CustomerOrderingService {
         return resolved;
     }
 
-    private List<OrderOptionValue> options(long storeId, OrderLine line) {
-        var groups = mapper.findActiveOptionGroups(storeId, line.menuItemId());
+    private List<OrderOptionValue> options(List<vn.cas.ordering.model.OrderOptionGroup> groups,
+            Map<Long, OrderOptionValue> valuesById, OrderLine line) {
         if (line.optionValueIds().isEmpty()) {
             validateSelectionCounts(groups, Map.of());
             return List.of();
         }
-        var values = mapper.findActiveOptionValues(storeId, line.menuItemId(),
-                line.optionValueIds());
+        var values = line.optionValueIds().stream().map(valuesById::get)
+                .filter(java.util.Objects::nonNull).toList();
         if (values.size() != line.optionValueIds().size())
             throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
         var selections = new LinkedHashMap<Long, Integer>();

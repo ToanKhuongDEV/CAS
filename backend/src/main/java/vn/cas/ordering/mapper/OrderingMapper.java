@@ -24,15 +24,15 @@ import vn.cas.ordering.model.StoredPreparationBatchCompletion;
 @Mapper
 public interface OrderingMapper {
 
-    OrderMenuItem findMenuItemForOrder(@Param("storeId") long storeId,
-            @Param("menuItemId") long menuItemId);
+    List<OrderMenuItem> findMenuItemsForOrder(@Param("storeId") long storeId,
+            @Param("menuItemIds") List<Long> menuItemIds);
 
-    List<OrderOptionValue> findActiveOptionValues(@Param("storeId") long storeId,
-            @Param("menuItemId") long menuItemId,
+    List<OrderOptionValue> findActiveOptionValuesForOrder(@Param("storeId") long storeId,
+            @Param("menuItemIds") List<Long> menuItemIds,
             @Param("optionValueIds") List<Long> optionValueIds);
 
-    List<OrderOptionGroup> findActiveOptionGroups(@Param("storeId") long storeId,
-            @Param("menuItemId") long menuItemId);
+    List<OrderOptionGroup> findActiveOptionGroupsForOrder(@Param("storeId") long storeId,
+            @Param("menuItemIds") List<Long> menuItemIds);
 
     StoredOrder findBySessionIdAndIdempotencyKey(@Param("sessionId") long sessionId,
             @Param("idempotencyKey") String idempotencyKey);
