@@ -115,6 +115,14 @@ public final class ApiPaths {
         }
     }
 
+    public static final class UnpaidRecord {
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/unpaid-records";
+        public static final String ELIGIBLE_SESSIONS = OPERATOR + "/eligible-sessions";
+
+        private UnpaidRecord() {
+        }
+    }
+
     public static final class Images {
         public static final String UPLOAD_SIGNATURE = API_ADMIN_PREFIX + "/images/upload-signature";
 

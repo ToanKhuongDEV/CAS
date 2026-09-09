@@ -2,11 +2,55 @@
 <sql id="cols">payments.id, payments.public_id AS publicId, payments.table_session_id AS tableSessionId, dining_tables.code AS tableCode, payments.amount, payments.bill_snapshot AS billSnapshot, payments.status, payments.confirmed_by_name AS confirmedByName, payments.confirmed_at AS confirmedAt, payments.created_at AS createdAt</sql>
 <select id="findBySessionId" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE payments.table_session_id=#{sessionId}</select>
 <select id="findByPublicId" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.public_id=#{publicId}</select>
-<select id="findPending" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PENDING' ORDER BY payments.created_at ASC</select>
+<select id="findPending" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PENDING' AND NOT EXISTS (SELECT 1 FROM unpaid_records WHERE unpaid_records.table_session_id=payments.table_session_id) ORDER BY payments.created_at ASC</select>
 <select id="findPaidBetween" resultType="vn.cas.payment.model.PaymentView">SELECT <include refid="cols"/> FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PAID' AND payments.confirmed_at &gt;= #{confirmedAtStart} AND payments.confirmed_at &lt; #{confirmedAtEnd} ORDER BY payments.confirmed_at DESC</select>
-<select id="countPending" resultType="long">SELECT COUNT(*) FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PENDING'</select>
+<select id="countPending" resultType="long">SELECT COUNT(*) FROM payments INNER JOIN table_sessions ON table_sessions.id=payments.table_session_id INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id WHERE dining_tables.store_id=#{storeId} AND payments.status='PENDING' AND NOT EXISTS (SELECT 1 FROM unpaid_records WHERE unpaid_records.table_session_id=payments.table_session_id)</select>
    <insert id="insert">INSERT INTO payments(public_id,table_session_id,amount,bill_snapshot,status) VALUES(#{publicId},#{sessionId},#{amount},#{snapshot},'PENDING')</insert>
    <select id="lastInsertId" resultType="long">SELECT LAST_INSERT_ID()</select>
 <update id="confirm">UPDATE payments SET status='PAID',confirmed_by=#{accountId},confirmed_by_name=#{name},confirmed_at=CURRENT_TIMESTAMP(3) WHERE id=#{id} AND status='PENDING'</update>
+<update id="removePendingPaymentDiscount">UPDATE payments SET amount=#{amount},bill_snapshot=#{snapshot} WHERE id=#{id} AND status='PENDING'</update>
+<update id="removeOpenUnpaidRecordDiscount">UPDATE unpaid_records SET amount=#{amount},bill_snapshot=#{snapshot} WHERE table_session_id=#{sessionId} AND status='OPEN'</update>
+<select id="hasOpenUnpaidRecord" resultType="boolean">SELECT EXISTS(SELECT 1 FROM unpaid_records WHERE table_session_id=#{sessionId} AND status='OPEN')</select>
 <update id="resolveOpenUnpaidRecord">UPDATE unpaid_records SET status='RESOLVED',resolution_payment_id=#{paymentId},resolved_at=CURRENT_TIMESTAMP(3) WHERE table_session_id=#{sessionId} AND status='OPEN'</update>
+<select id="findUnpaidRecords" resultType="vn.cas.payment.model.UnpaidRecordView">
+SELECT unpaid_records.public_id AS publicId, table_sessions.public_id AS tableSessionId,
+ dining_tables.code AS tableCode, unpaid_records.amount,
+ unpaid_records.bill_snapshot AS billSnapshot, unpaid_records.status, unpaid_records.reason,
+ unpaid_records.reported_by_name AS reportedByName, payments.public_id AS paymentId,
+ unpaid_records.resolved_at AS resolvedAt, unpaid_records.created_at AS createdAt
+FROM unpaid_records
+INNER JOIN table_sessions ON table_sessions.id=unpaid_records.table_session_id
+INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+INNER JOIN payments ON payments.table_session_id=table_sessions.id
+WHERE dining_tables.store_id=#{storeId}
+<if test="status != null">AND unpaid_records.status=#{status}</if>
+ORDER BY unpaid_records.created_at DESC
+</select>
+<select id="findUnpaidRecordByPublicId" resultType="vn.cas.payment.model.UnpaidRecordView">
+SELECT unpaid_records.public_id AS publicId, table_sessions.public_id AS tableSessionId,
+ dining_tables.code AS tableCode, unpaid_records.amount,
+ unpaid_records.bill_snapshot AS billSnapshot, unpaid_records.status, unpaid_records.reason,
+ unpaid_records.reported_by_name AS reportedByName, payments.public_id AS paymentId,
+ unpaid_records.resolved_at AS resolvedAt, unpaid_records.created_at AS createdAt
+FROM unpaid_records
+INNER JOIN table_sessions ON table_sessions.id=unpaid_records.table_session_id
+INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+INNER JOIN payments ON payments.table_session_id=table_sessions.id
+WHERE dining_tables.store_id=#{storeId} AND unpaid_records.public_id=#{publicId}
+</select>
+<select id="findEligibleUnpaidSessions" resultType="vn.cas.payment.model.UnpaidSessionView">
+SELECT table_sessions.id AS sessionId, table_sessions.public_id AS sessionPublicId,
+ dining_tables.code AS tableCode, table_sessions.status AS sessionStatus,
+ payments.public_id AS paymentPublicId, table_sessions.created_at AS openedAt
+FROM table_sessions
+INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+LEFT JOIN payments ON payments.table_session_id=table_sessions.id
+WHERE dining_tables.store_id=#{storeId}
+ AND table_sessions.status IN ('OPEN','PAYMENT_PENDING')
+ AND TIMESTAMPDIFF(MINUTE, table_sessions.created_at, CURRENT_TIMESTAMP(3)) &gt;= #{minimumOpenMinutes}
+ AND EXISTS (SELECT 1 FROM orders WHERE orders.table_session_id=table_sessions.id)
+ORDER BY table_sessions.created_at ASC
+</select>
+<insert id="insertUnpaidRecord">INSERT INTO unpaid_records(public_id,table_session_id,amount,bill_snapshot,status,reason,reported_by,reported_by_name)
+VALUES(#{publicId},#{sessionId},#{amount},#{billSnapshot},'OPEN',#{reason},#{reportedBy},#{reportedByName})</insert>
 </mapper>

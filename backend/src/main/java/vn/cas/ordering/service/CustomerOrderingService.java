@@ -175,10 +175,16 @@ public class CustomerOrderingService {
     private List<ResolvedOrderLine> resolveLines(long storeId, List<OrderLine> lines) {
         var resolved = new ArrayList<ResolvedOrderLine>();
         for (var line : lines) {
-            var item = mapper.findActiveMenuItem(storeId, line.menuItemId());
+            var item = mapper.findMenuItemForOrder(storeId, line.menuItemId());
             if (item == null)
                 throw new ApiException(HttpStatus.BAD_REQUEST,
                         ApiMessages.CATALOG_RESOURCE_NOT_FOUND);
+            if (!"ACTIVE".equals(item.availabilityStatus())) {
+                String message = "SOLD_OUT".equals(item.availabilityStatus())
+                        ? ApiMessages.MENU_ITEM_SOLD_OUT.formatted(item.name())
+                        : ApiMessages.MENU_ITEM_UNAVAILABLE.formatted(item.name());
+                throw new ApiException(HttpStatus.CONFLICT, message);
+            }
             var options = options(storeId, line);
             var optionsAmount = options.stream().map(OrderOptionValue::extraPrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);

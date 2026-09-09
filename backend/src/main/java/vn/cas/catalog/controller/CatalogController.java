@@ -217,6 +217,14 @@ public class CatalogController {
         return ok(catalog.item(p.storeId(), id, true), r);
     }
 
+    @PatchMapping(ApiPaths.Catalog.OPERATOR + "/items/{id}/availability-status")
+    public ResponseEntity<ApiResponse<Void>> updateOperatorItemAvailability(
+            @AuthenticationPrincipal OperationalPrincipal p, @Positive @PathVariable long id,
+            @Valid @RequestBody OperatorAvailabilityRequest b, HttpServletRequest r) {
+        catalog.updateOperatorItemAvailability(p, id, b.status(), rid(r));
+        return ok(null, r);
+    }
+
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/items")
     public ResponseEntity<ApiResponse<List<CatalogMenuItem>>> customerItems(
             @CookieValue(name = "cas_customer_session", required = false) String s,
@@ -325,5 +333,8 @@ public class CatalogController {
 
     public record BulkStatusRequest(@NotEmpty List<@Positive Long> itemIds,
             @Pattern(regexp = "ACTIVE|INACTIVE|SOLD_OUT") String status) {
+    }
+
+    public record OperatorAvailabilityRequest(@Pattern(regexp = "ACTIVE|SOLD_OUT") String status) {
     }
 }

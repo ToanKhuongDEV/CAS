@@ -24,7 +24,7 @@ import vn.cas.ordering.model.StoredPreparationBatchCompletion;
 @Mapper
 public interface OrderingMapper {
 
-    OrderMenuItem findActiveMenuItem(@Param("storeId") long storeId,
+    OrderMenuItem findMenuItemForOrder(@Param("storeId") long storeId,
             @Param("menuItemId") long menuItemId);
 
     List<OrderOptionValue> findActiveOptionValues(@Param("storeId") long storeId,

@@ -83,6 +83,8 @@ Ví dụ gửi order Customer. Dùng lại cookie nhận từ bước quét QR; 
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
+
+# Nếu món trong giỏ vừa bị chuyển SOLD_OUT, lệnh trên trả 409 kèm tên món và hướng dẫn chọn món khác.
 curl.exe http://localhost:8080/api/v1/customer/orders -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/orders/<order-public-id> -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/orders/bill -b customer-session-cookie.txt
@@ -132,7 +134,14 @@ curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Beare
 curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/operator/unpaid-records?status=OPEN" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/operator/unpaid-records/eligible-sessions?minimumOpenMinutes=120" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/unpaid-records -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionId\":\"<session-public-id>\",\"reason\":\"Khách rời quán chưa thanh toán\"}"
+curl.exe http://localhost:8080/api/v1/operator/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X PATCH http://localhost:8080/api/v1/operator/catalog/items/<menu-item-id>/availability-status -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"status\":\"SOLD_OUT\"}"
 ```
+
+Khi payment đã được ghi nhận qua API `unpaid-records`, bill snapshot và số tiền thu lại không áp dụng khuyến mãi; xác nhận payment sau đó cũng không tạo lượt sử dụng khuyến mãi. Các khoản unpaid cũ đã có discount được tự động chuyển về bill không khuyến mãi khi nhân viên xác nhận thu tiền.
 
 Ví dụ API chế biến cho `OPERATOR`. Lấy `groupKey` từ response của API danh sách
 nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành mẻ:

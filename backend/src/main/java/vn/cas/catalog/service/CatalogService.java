@@ -188,6 +188,19 @@ public class CatalogService {
         log(p, r, "UPDATE", "MENU_ITEM", "Bulk status");
     }
 
+    @Transactional
+    public void updateOperatorItemAvailability(OperationalPrincipal p, long id, String status,
+            UUID r) {
+        var current = mapper.findMenuItem(p.storeId(), id, false);
+        if (current == null)
+            throw notFound();
+        if ("INACTIVE".equals(current.availabilityStatus()))
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Món đang ẩn chỉ có Admin mới được thay đổi trạng thái.");
+        required(mapper.bulkUpdateMenuItemStatus(p.storeId(), List.of(id), status, p.accountId()));
+        log(p, r, "UPDATE_AVAILABILITY", "MENU_ITEM", current.name());
+    }
+
     private void validItem(long storeId, MenuCommand c) {
         if (mapper.findCategory(storeId, c.categoryId()) == null)
             throw notFound();

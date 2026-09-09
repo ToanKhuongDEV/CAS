@@ -30,6 +30,8 @@ public final class ApiMessages {
     public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";
     public static final String PREPARATION_BATCH_COMPLETED = "Đã ghi nhận hoàn thành món theo mẻ.";
     public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
+    public static final String MENU_ITEM_SOLD_OUT = "Món \"%s\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";
+    public static final String MENU_ITEM_UNAVAILABLE = "Món \"%s\" hiện không còn bán. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";
     public static final String CATALOG_RESOURCE_IN_USE = "Dữ liệu thực đơn đang được sử dụng nên không thể xóa.";
     public static final String INVALID_CATALOG_IMAGE = "Ảnh món không thuộc Cloudinary của cửa hàng.";
     public static final String CLOUDINARY_NOT_CONFIGURED = "Cloudinary chưa được cấu hình.";

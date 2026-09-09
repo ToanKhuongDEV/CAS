@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="vn.cas.ordering.mapper.OrderingMapper">
-    <select id="findActiveMenuItem" resultType="vn.cas.ordering.model.OrderMenuItem">
+    <select id="findMenuItemForOrder" resultType="vn.cas.ordering.model.OrderMenuItem">
         SELECT
             menu_items.id,
             menu_items.name,
             menu_items.price,
             menu_items.availability_status AS availabilityStatus
         FROM menu_items
-        WHERE store_id=#{storeId} AND id=#{menuItemId} AND availability_status='ACTIVE'
+        WHERE menu_items.store_id = #{storeId}
+          AND menu_items.id = #{menuItemId}
     </select>
     <select id="findActiveOptionValues" resultType="vn.cas.ordering.model.OrderOptionValue">
         SELECT option_values.id, option_groups.id AS groupId, option_groups.name AS groupName,

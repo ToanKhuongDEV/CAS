@@ -36,7 +36,7 @@ class CustomerOrderingServiceTest {
     @Test
     void shouldCreateOrderWithServerCalculatedSnapshots() {
         currentOpenSession();
-        when(mapper.findActiveMenuItem(2L, 11L)).thenReturn(
+        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
                 new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
         when(mapper.findActiveOptionGroups(2L, 11L))
                 .thenReturn(List.of(new OrderOptionGroup(9L, 1, 1)));
@@ -76,7 +76,7 @@ class CustomerOrderingServiceTest {
     @Test
     void shouldRejectMissingRequiredOptionBeforeCreatingOrder() {
         currentOpenSession();
-        when(mapper.findActiveMenuItem(2L, 11L)).thenReturn(
+        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
                 new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
         when(mapper.findActiveOptionGroups(2L, 11L))
                 .thenReturn(List.of(new OrderOptionGroup(9L, 1, 1)));
@@ -112,9 +112,26 @@ class CustomerOrderingServiceTest {
     }
 
     @Test
+    void shouldExplainWhenAnItemWasMarkedSoldOutAfterCustomerAddedItToCart() {
+        currentOpenSession();
+        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
+                new OrderMenuItem(11L, "Tra dao", new BigDecimal("32000.00"), "SOLD_OUT"));
+
+        assertThatThrownBy(() -> service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()))))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.CONFLICT,
+                        "Món \"Tra dao\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.");
+
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
     void shouldRecordOperatorAsOrderCreatorAndWriteAuditLog() {
         currentOpenSession();
-        when(mapper.findActiveMenuItem(2L, 11L)).thenReturn(
+        when(mapper.findMenuItemForOrder(2L, 11L)).thenReturn(
                 new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"));
         when(mapper.findActiveOptionGroups(2L, 11L)).thenReturn(List.of());
         when(mapper.lastInsertId()).thenReturn(44L);
