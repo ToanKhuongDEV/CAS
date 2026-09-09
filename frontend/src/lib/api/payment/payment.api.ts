@@ -17,6 +17,26 @@ export type Payment = {
   createdAt: string;
   billSnapshot: string;
 };
+export type UnpaidRecord = {
+  publicId: string;
+  tableSessionId: string;
+  tableCode: number;
+  amount: number;
+  billSnapshot: string;
+  status: "OPEN" | "RESOLVED";
+  reason: string | null;
+  reportedByName: string;
+  paymentId: string;
+  resolvedAt: string | null;
+  createdAt: string;
+};
+export type EligibleUnpaidSession = {
+  sessionId: string;
+  tableCode: number;
+  amount: number;
+  sessionStatus: "OPEN" | "PAYMENT_PENDING";
+  openedAt: string;
+};
 
 export function loadCustomerPayment() {
   return customer<Payment>("/payments");
@@ -35,6 +55,22 @@ export function loadOperatorPendingPaymentCount() {
 }
 export function confirmOperatorPayment(id: string) {
   return operator<Payment>(`/payments/${encodeURIComponent(id)}/confirm`, { method: "POST" });
+}
+export function loadOperatorUnpaidRecords(status?: "OPEN" | "RESOLVED") {
+  const query = status ? `?status=${status}` : "";
+  return operator<UnpaidRecord[]>(`/unpaid-records${query}`);
+}
+export function loadEligibleUnpaidSessions(minimumOpenMinutes: number) {
+  return operator<EligibleUnpaidSession[]>(
+    `/unpaid-records/eligible-sessions?minimumOpenMinutes=${minimumOpenMinutes}`,
+  );
+}
+export function recordOperatorUnpaid(input: { sessionId: string; reason: string | null }) {
+  return operator<UnpaidRecord>("/unpaid-records", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
 }
 
 async function customer<T>(path: string, init: RequestInit = {}) {

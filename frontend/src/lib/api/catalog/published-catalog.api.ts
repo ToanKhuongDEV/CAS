@@ -34,6 +34,13 @@ export function loadOperatorCatalog() {
   return loadCatalog("operator");
 }
 
+export function updateOperatorItemAvailability(id: number, status: "ACTIVE" | "SOLD_OUT") {
+  return request<void>("operator", `/items/${id}/availability-status`, {
+    body: JSON.stringify({ status }),
+    method: "PATCH",
+  });
+}
+
 async function loadCatalog(audience: CatalogAudience): Promise<PublishedCatalog> {
   const [categories, items, optionGroups, tags] = await Promise.all([
     request<CatalogCategory[]>(audience, "/categories"),
@@ -44,7 +51,7 @@ async function loadCatalog(audience: CatalogAudience): Promise<PublishedCatalog>
   return { categories, items, optionGroups, tags };
 }
 
-async function request<T>(audience: CatalogAudience, path: string) {
+async function request<T>(audience: CatalogAudience, path: string, init: RequestInit = {}) {
   const headers: HeadersInit = {};
   if (audience === "operator") {
     const user = getFirebaseAuth().currentUser;
@@ -53,9 +60,14 @@ async function request<T>(audience: CatalogAudience, path: string) {
   }
 
   const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}`, {
+    ...init,
     cache: "no-store",
     credentials: audience === "customer" ? "include" : "same-origin",
-    headers,
+    headers: {
+      ...headers,
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...init.headers,
+    },
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isApiResponse<T>(body)) {

@@ -33,7 +33,7 @@ describe("OperatorTabNavigation", () => {
       [/Đơn gọi món/, "/operator/orders"],
       [/Hủy món/, "/operator/cancellations"],
       [/Thanh toán/, "/operator/payments"],
-      [/Chưa thanh toán/, "/operator/unpaid"],
+      [/Menu/, "/operator/catalog"],
       [/Dịch vụ thêm/, "/operator/services"],
     ] as const;
 

@@ -130,15 +130,27 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
       </header>
 
       <section className="mt-7 rounded-3xl bg-cas-surface-container p-5 shadow-[0_5px_18px_var(--cas-shadow-color)]">
-        <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-4">
-          <div>
-            <h2 className="text-lg font-extrabold">Chi tiết món đã gọi</h2>
-            <p className="mt-1 text-xs text-cas-on-surface-variant">Các món đã gửi xuống bếp.</p>
+        {totalItemQuantity > 0 ? (
+          <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-4">
+            <div>
+              <h2 className="text-lg font-extrabold">Chi tiết món đã gọi</h2>
+              <p className="mt-1 text-xs text-cas-on-surface-variant">Các món đã gửi xuống bếp.</p>
+            </div>
+            <span className="rounded-full bg-cas-secondary-container/35 px-3 py-1.5 text-xs font-extrabold text-cas-secondary">
+              {totalItemQuantity} món
+            </span>
           </div>
-          <span className="rounded-full bg-cas-secondary-container/35 px-3 py-1.5 text-xs font-extrabold text-cas-secondary">
-            {totalItemQuantity} món
-          </span>
-        </div>
+        ) : (
+          <div className="py-8 text-center">
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-cas-secondary-container/25 text-cas-secondary">
+              <CasIcon className="size-6" name="bill" />
+            </span>
+            <h2 className="mt-4 text-lg font-extrabold">Chưa có món nào được gọi</h2>
+            <p className="mt-1 text-sm text-cas-on-surface-variant">
+              Bạn có thể chọn món từ thực đơn khi sẵn sàng.
+            </p>
+          </div>
+        )}
 
         <div className="divide-y divide-cas-outline-variant/40">
           {visibleOrders.map((order) => (

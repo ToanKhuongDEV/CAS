@@ -14,6 +14,7 @@ import {
   type CustomerCartLine,
 } from "../../lib/customer/cart";
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 
 const money = new Intl.NumberFormat("vi-VN");
 
@@ -30,9 +31,9 @@ function lineUnitPrice(line: CustomerCartLine) {
 
 export function CustomerCartView() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [cart, setCart] = useState<CustomerCartLine[]>([]);
   const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
   const { data: catalog } = useCustomerCatalog();
@@ -84,7 +85,6 @@ export function CustomerCartView() {
   async function submit() {
     if (cart.length === 0 || submitting) return;
     setSubmitting(true);
-    setError(null);
     try {
       await createCustomerOrder({
         note: note.trim() || null,
@@ -95,9 +95,13 @@ export function CustomerCartView() {
         })),
       });
       clearCustomerCart();
+      showToast({ type: "success", message: "Đã gửi món xuống bếp." });
       router.push("/orders");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể gửi món.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể gửi món xuống bếp.",
+      });
       setSubmitting(false);
     }
   }
@@ -283,7 +287,6 @@ export function CustomerCartView() {
       {cart.length > 0 ? (
         <div className="fixed inset-x-0 bottom-20 z-40 border-t border-cas-outline-variant/30 bg-cas-navigation px-5 py-3 shadow-[0_-8px_24px_var(--cas-shadow-color)] backdrop-blur-xl md:bottom-0">
           <div className="mx-auto w-full max-w-[42rem]">
-            {error ? <p className="mb-2 text-sm font-bold text-cas-error">{error}</p> : null}
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs text-cas-on-surface-variant">

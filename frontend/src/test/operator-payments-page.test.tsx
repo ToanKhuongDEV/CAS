@@ -14,9 +14,12 @@ import { loadPublicStore } from "../lib/api/store/public-store.api";
 
 vi.mock("../lib/api/payment/payment.api", () => ({
   confirmOperatorPayment: vi.fn(),
+  loadEligibleUnpaidSessions: vi.fn(),
   loadOperatorPaidTodayPayments: vi.fn(),
   loadOperatorPayments: vi.fn(),
+  loadOperatorUnpaidRecords: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
+  recordOperatorUnpaid: vi.fn(),
 }));
 vi.mock("../lib/auth/firebase", () => ({
   getFirebaseAuth: () => ({ currentUser: { uid: "operator-1" } }),
@@ -100,10 +103,11 @@ describe("OperatorPaymentsPage", () => {
       </StrictMode>,
     );
 
-    expect(await screen.findByRole("button", { name: "Chưa thanh toán" })).toHaveAttribute(
+    expect(await screen.findByRole("button", { name: "Chờ xác nhận" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
+    expect(screen.getByRole("button", { name: "Không thanh toán" })).toBeInTheDocument();
     const confirmationButton = await screen.findByRole("button", {
       name: "Xác nhận đã thanh toán",
     });
@@ -138,7 +142,7 @@ describe("OperatorPaymentsPage", () => {
     expect(screen.getByRole("button", { name: "Xác nhận đã thanh toán" })).toBeDisabled();
 
     vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValueOnce([]);
-    fireEvent.click(screen.getByRole("button", { name: "Chưa thanh toán" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chờ xác nhận" }));
     fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));
     expect(
       await screen.findByRole("heading", { name: "Chưa có thanh toán đã xác nhận hôm nay" }),

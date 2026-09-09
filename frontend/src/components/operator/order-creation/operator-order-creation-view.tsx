@@ -14,6 +14,7 @@ import {
   type MenuOptionGroup,
 } from "../../customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../ui/cas-icon";
+import { useToast } from "../../ui/toast-provider";
 import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
 import {
   createOperatorOrder,
@@ -370,6 +371,7 @@ type OperatorOrderCreationViewProps = {
 export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
+  const { showToast } = useToast();
   const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
   const [catalogItems, setCatalogItems] = useState<MenuItemData[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -596,6 +598,7 @@ export function OperatorOrderCreationView({
       setCartItems([]);
       setOrderNote("");
       setIsMobileDrawerOpen(false);
+      showToast({ type: "success", message: "Đã gửi món xuống bếp." });
     } catch (cause) {
       setOperationError(cause instanceof Error ? cause.message : "Không thể tạo order.");
     } finally {

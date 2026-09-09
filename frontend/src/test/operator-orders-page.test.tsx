@@ -37,6 +37,24 @@ const group = {
   remainingQuantity: 12,
 };
 
+const sameTimeGroup = {
+  allocations: [
+    {
+      orderCreatedAt: "2026-08-30T18:55:00",
+      orderId: "order-3",
+      orderItemId: "item-3",
+      remainingQuantity: 2,
+      tableCode: 3,
+    },
+  ],
+  groupKey: "10-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  itemName: "Cơm chiên hải sản",
+  menuItemId: 10,
+  optionConfigurationHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  options: [],
+  remainingQuantity: 2,
+};
+
 describe("OperatorOrdersPage", () => {
   beforeEach(() => {
     vi.mocked(loadPreparationGroups).mockReset();
@@ -44,7 +62,9 @@ describe("OperatorOrdersPage", () => {
   });
 
   it("loads preparation groups and records a completed batch", async () => {
-    vi.mocked(loadPreparationGroups).mockResolvedValueOnce([group]).mockResolvedValueOnce([]);
+    vi.mocked(loadPreparationGroups)
+      .mockResolvedValueOnce([group, sameTimeGroup])
+      .mockResolvedValueOnce([]);
     vi.mocked(completePreparationBatch).mockResolvedValue({
       allocations: [],
       groupKey: group.groupKey,
@@ -54,7 +74,7 @@ describe("OperatorOrdersPage", () => {
 
     render(<OperatorOrdersPage />);
 
-    expect(await screen.findByText("Bò sốt tiêu đen")).toBeInTheDocument();
+    expect((await screen.findAllByText("Bò sốt tiêu đen")).length).toBeGreaterThan(0);
     const itemView = screen.getByRole("region", { name: "Tổng hợp theo món" });
     const beefGroup = within(itemView).getByText("Bò sốt tiêu đen").closest("details");
     expect(beefGroup).not.toBeNull();
@@ -63,6 +83,15 @@ describe("OperatorOrdersPage", () => {
         .getAllByText(/^Bàn \d+$/)
         .map((item) => item.textContent),
     ).toEqual(["Bàn 03", "Bàn 05"]);
+
+    const tableView = screen.getByRole("region", { name: "Món theo bàn" });
+    expect(within(tableView).getByText("2 bàn đang chờ")).toBeInTheDocument();
+    expect(within(tableView).getByRole("heading", { name: "Bàn 03" })).toBeInTheDocument();
+    expect(within(tableView).getByText("×4")).toBeInTheDocument();
+    const tableThreeItems = within(tableView).getByRole("list", { name: "Món chờ tại Bàn 03" });
+    expect(within(tableThreeItems).getAllByText("Gửi lúc 18:55")).toHaveLength(1);
+    expect(within(tableThreeItems).getByText("Cơm chiên hải sản")).toBeInTheDocument();
+    expect(within(tableThreeItems).queryByText("Không có option")).not.toBeInTheDocument();
 
     fireEvent.change(
       within(beefGroup as HTMLElement).getByRole("spinbutton", { name: "Số phần vừa làm xong" }),

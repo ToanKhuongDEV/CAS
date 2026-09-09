@@ -140,6 +140,28 @@ describe("OrdersPage", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("shows an empty-order message instead of a zero-item summary", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValueOnce({
+      ...bill,
+      originalAmount: 0,
+      orders: [],
+      payableAmount: 0,
+    });
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Chưa có món nào được gọi" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0 món")).not.toBeInTheDocument();
+  });
+
   it("guides customers without an active table session to QR scanning", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValueOnce(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),

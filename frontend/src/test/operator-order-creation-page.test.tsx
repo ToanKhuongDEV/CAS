@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OperatorOrderCreationView } from "../components/operator/order-creation/operator-order-creation-view";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { loadOperatorCatalog } from "../lib/api/catalog/published-catalog.api";
 import {
   createOperatorOrder,
@@ -100,8 +101,15 @@ describe("OperatorOrderCreationView", () => {
     vi.mocked(createOperatorOrder).mockResolvedValue({ orderId: "order-1", payableAmount: 35_000 });
   });
 
+  const renderOrderCreationView = () =>
+    render(
+      <ToastProvider>
+        <OperatorOrderCreationView defaultTableId="table-05" />
+      </ToastProvider>,
+    );
+
   it("renders table context, allows selecting items and adding options to cart", async () => {
-    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+    renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
 
@@ -166,7 +174,7 @@ describe("OperatorOrderCreationView", () => {
   });
 
   it("allows selecting a different table to serve via table selector modal", async () => {
-    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+    renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
 
@@ -186,7 +194,7 @@ describe("OperatorOrderCreationView", () => {
   });
 
   it("creates an order with the active table session and selected menu item", async () => {
-    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+    renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
 
@@ -206,11 +214,12 @@ describe("OperatorOrderCreationView", () => {
         note: null,
       }),
     );
+    expect(await screen.findByText("Đã gửi món xuống bếp.")).toBeInTheDocument();
     expect(await screen.findByText("order-1")).toBeInTheDocument();
   });
 
   it("asks for confirmation before opening an empty table session", async () => {
-    render(<OperatorOrderCreationView defaultTableId="table-05" />);
+    renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
 

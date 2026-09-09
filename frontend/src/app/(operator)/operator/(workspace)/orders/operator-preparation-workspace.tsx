@@ -12,21 +12,23 @@ import { CasIcon } from "../../../../../components/ui/cas-icon";
 
 type ActionFeedback = { message: string; tone: "error" | "success" };
 
+type TablePreparationItem = {
+  id: string;
+  itemName: string;
+  optionSummary: string | null;
+  remainingQuantity: number;
+  requestedAt: string;
+};
+
 type TablePreparationGroup = {
-  items: {
-    id: string;
-    itemName: string;
-    optionSummary: string;
-    remainingQuantity: number;
-    requestedAt: string;
-  }[];
+  items: TablePreparationItem[];
   table: string;
   totalRemainingQuantity: number;
 };
 
 function optionSummary(group: PreparationGroup) {
   return group.options.length === 0
-    ? "Không có option"
+    ? null
     : group.options
         .map((option) =>
           option.quantityPerItem > 1
@@ -62,6 +64,19 @@ function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparati
   return [...byTable.values()].sort((first, second) =>
     first.table.localeCompare(second.table, "vi"),
   );
+}
+
+function groupTableItemsByRequestedAt(items: TablePreparationItem[]) {
+  const groups = new Map<string, TablePreparationItem[]>();
+  items.forEach((item) => {
+    const current = groups.get(item.requestedAt) ?? [];
+    current.push(item);
+    groups.set(item.requestedAt, current);
+  });
+  return [...groups.entries()].map(([requestedAt, groupedItems]) => ({
+    items: groupedItems,
+    requestedAt,
+  }));
 }
 
 export function OperatorPreparationWorkspace() {
@@ -192,7 +207,8 @@ export function OperatorPreparationWorkspace() {
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-extrabold">{group.itemName}</h3>
                       <p className="mt-0.5 truncate text-xs text-cas-on-surface-variant">
-                        {optionSummary(group)} · {group.allocations.length} bàn
+                        {optionSummary(group) && `${optionSummary(group)} · `}
+                        {group.allocations.length} bàn
                       </p>
                     </div>
                     <span className="rounded-lg bg-cas-primary/8 px-2.5 py-1 text-xs font-extrabold text-cas-primary">
@@ -264,38 +280,93 @@ export function OperatorPreparationWorkspace() {
         </section>
 
         <section aria-labelledby="table-preparation-title">
-          <h2 className="text-lg font-extrabold" id="table-preparation-title">
-            Món theo bàn
-          </h2>
-          <p className="mt-1 text-xs text-cas-on-surface-variant">
-            Xem các món còn cần làm của từng bàn.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold" id="table-preparation-title">
+                Món theo bàn
+              </h2>
+              <p className="mt-1 text-xs text-cas-on-surface-variant">
+                Theo dõi phần còn chờ theo từng bàn để ưu tiên phục vụ đúng lượt.
+              </p>
+            </div>
+            {tableGroups.length > 0 && (
+              <p className="rounded-lg bg-cas-secondary-container/25 px-3 py-1.5 text-xs font-extrabold text-cas-secondary">
+                {tableGroups.length} bàn đang chờ
+              </p>
+            )}
+          </div>
           {tableGroups.length > 0 ? (
-            <div className="mt-4 overflow-hidden rounded-xl border border-cas-outline-variant/30 bg-cas-glass">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {tableGroups.map((table) => (
-                <div
-                  className="border-b border-cas-outline-variant/25 p-4 last:border-b-0"
+                <article
+                  className="overflow-hidden rounded-2xl border border-cas-outline-variant/30 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
                   key={table.table}
                 >
-                  <div className="flex justify-between">
-                    <h3 className="font-extrabold">{table.table}</h3>
-                    <span className="text-sm font-extrabold text-cas-primary">
+                  <header className="flex items-center justify-between gap-3 border-b border-cas-outline-variant/20 bg-cas-surface-container/45 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-cas-primary/10 text-cas-primary">
+                        <CasIcon className="size-5" name="table" />
+                      </span>
+                      <div>
+                        <h3 className="font-extrabold">{table.table}</h3>
+                        <p className="text-xs text-cas-on-surface-variant">
+                          {table.items.length} món đang chờ
+                        </p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-lg bg-cas-primary/10 px-2.5 py-1 text-sm font-extrabold text-cas-primary">
                       {table.totalRemainingQuantity} phần
                     </span>
+                  </header>
+                  <div className="px-4" aria-label={`Món chờ tại ${table.table}`} role="list">
+                    {groupTableItemsByRequestedAt(table.items).map((timeGroup, index) => (
+                      <section
+                        className={index === 0 ? "" : "border-t border-cas-outline-variant/20"}
+                        key={timeGroup.requestedAt}
+                      >
+                        <div className="flex items-center gap-2 py-3 text-xs font-bold text-cas-on-surface-variant">
+                          <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
+                          <CasIcon className="size-3.5" name="clock" />
+                          <span>Gửi lúc {timeGroup.requestedAt}</span>
+                          <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
+                        </div>
+                        <ul className="pb-3" role="list">
+                          {timeGroup.items.map((item) => (
+                            <li className="py-2 first:pt-0 last:pb-0" key={item.id}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-extrabold">{item.itemName}</p>
+                                  {item.optionSummary && (
+                                    <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
+                                      {item.optionSummary}
+                                    </p>
+                                  )}
+                                </div>
+                                <span className="shrink-0 rounded-lg bg-cas-secondary-container/25 px-2 py-1 text-xs font-extrabold text-cas-secondary">
+                                  ×{item.remainingQuantity}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
                   </div>
-                  {table.items.map((item) => (
-                    <p className="mt-2 text-xs text-cas-on-surface-variant" key={item.id}>
-                      {item.itemName} · {item.optionSummary} · {item.remainingQuantity} phần · Gửi
-                      lúc {item.requestedAt}
-                    </p>
-                  ))}
-                </div>
+                </article>
               ))}
             </div>
           ) : (
-            <p className="mt-4 rounded-xl border border-dashed border-cas-outline-variant/50 p-6 text-center text-sm text-cas-on-surface-variant">
-              Không còn bàn nào đang chờ món.
-            </p>
+            <div className="mt-4 grid min-h-52 place-items-center rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-glass p-6 text-center">
+              <div>
+                <span className="mx-auto grid size-11 place-items-center rounded-full bg-cas-secondary-container/30 text-cas-secondary">
+                  <CasIcon className="size-5" name="check" />
+                </span>
+                <p className="mt-3 text-sm font-extrabold">Không còn bàn nào đang chờ món</p>
+                <p className="mt-1 text-xs text-cas-on-surface-variant">
+                  Các món mới gửi sẽ xuất hiện ở đây theo từng bàn.
+                </p>
+              </div>
+            </div>
           )}
         </section>
       </div>

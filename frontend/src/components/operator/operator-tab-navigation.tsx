@@ -27,7 +27,7 @@ const operatorTabs: OperatorTab[] = [
   { href: "/operator/orders", icon: "bill", label: "Đơn gọi món" },
   { href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
   { href: "/operator/payments", icon: "payment", label: "Thanh toán" },
-  { href: "/operator/unpaid", icon: "clock", label: "Chưa thanh toán" },
+  { href: "/operator/catalog", icon: "restaurant", label: "Menu" },
   { href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
 ];
 

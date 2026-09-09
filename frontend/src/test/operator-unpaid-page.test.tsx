@@ -1,53 +1,103 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  confirmOperatorPayment,
+  loadEligibleUnpaidSessions,
+  loadOperatorUnpaidRecords,
+  recordOperatorUnpaid,
+} from "../lib/api/payment/payment.api";
 import { OperatorUnpaidView } from "../components/operator/operator-unpaid-view";
+import { ToastProvider } from "../components/ui/toast-provider";
+
+vi.mock("../lib/api/payment/payment.api", () => ({
+  confirmOperatorPayment: vi.fn(),
+  loadEligibleUnpaidSessions: vi.fn(),
+  loadOperatorUnpaidRecords: vi.fn(),
+  recordOperatorUnpaid: vi.fn(),
+}));
+
+const records = [
+  {
+    amount: 320000,
+    billSnapshot: JSON.stringify({ bill: { billNumber: "BILL-20260808-009" } }),
+    createdAt: "2026-08-08T18:15:00",
+    paymentId: "payment-1",
+    publicId: "unpaid-1",
+    reason: "Khách rời quán chưa thanh toán",
+    reportedByName: "Operator One",
+    resolvedAt: null,
+    status: "OPEN" as const,
+    tableCode: 9,
+    tableSessionId: "session-1",
+  },
+];
 
 describe("OperatorUnpaidView", () => {
-  it("renders the list of unpaid records and opens bill snapshot modal on click", () => {
-    render(<OperatorUnpaidView />);
-
-    // Verify page title and unpaid records
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Khoản chưa thanh toán" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Bàn 09")).toBeInTheDocument();
-    expect(screen.getByText("320.000đ")).toBeInTheDocument();
-
-    // Open snapshot modal for Bàn 09
-    const snapshotButtons = screen.getAllByRole("button", { name: /xem bill snapshot/i });
-    fireEvent.click(snapshotButtons[0]);
-
-    // Verify modal content
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("BILL-20260808-009")).toBeInTheDocument();
-    expect(screen.getByText("Mỳ Cay Hải Sản")).toBeInTheDocument();
-    expect(screen.getByText("Trà Sữa Ô Long")).toBeInTheDocument();
-    expect(screen.getAllByText("320.000đ").length).toBeGreaterThan(0);
-
-    // Close modal
-    const closeButton = screen.getByRole("button", { name: "Đóng bill snapshot" });
-    fireEvent.click(closeButton);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.sessionStorage.clear();
+    vi.mocked(loadOperatorUnpaidRecords).mockResolvedValue(records);
+    vi.mocked(loadEligibleUnpaidSessions).mockResolvedValue([
+      {
+        amount: 320000,
+        openedAt: "2026-08-08T16:00:00",
+        sessionId: "session-1",
+        sessionStatus: "OPEN",
+        tableCode: 9,
+      },
+    ]);
   });
 
-  it("allows marking an open record as resolved", () => {
-    render(<OperatorUnpaidView />);
+  const renderUnpaidView = () =>
+    render(
+      <ToastProvider>
+        <OperatorUnpaidView />
+      </ToastProvider>,
+    );
 
-    // Open snapshot modal for Bàn 09
-    const snapshotButtons = screen.getAllByRole("button", { name: /xem bill snapshot/i });
-    fireEvent.click(snapshotButtons[0]);
+  it("loads unpaid records from the API and opens the immutable bill snapshot", async () => {
+    renderUnpaidView();
 
-    // Click resolve button in modal
-    const resolveButton = screen.getByRole("button", { name: /xác nhận đã thu tiền/i });
-    fireEvent.click(resolveButton);
+    expect(await screen.findByRole("heading", { name: "Không thanh toán" })).toBeInTheDocument();
+    const snapshotButton = await screen.findByRole("button", { name: "Xem bill snapshot" });
+    expect(screen.getByText(/Bàn 9/)).toBeInTheDocument();
+    fireEvent.click(snapshotButton);
 
-    const confirmationDialog = screen.getByRole("alertdialog");
-    expect(confirmationDialog).toBeInTheDocument();
-    const confirmButton = Array.from(confirmationDialog.querySelectorAll("button")).at(-1);
-    expect(confirmButton).toBeDefined();
-    fireEvent.click(confirmButton!);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/BILL-20260808-009/)).toBeInTheDocument();
+    expect(loadEligibleUnpaidSessions).toHaveBeenCalledWith(120);
+  });
 
-    expect(screen.getAllByText("RESOLVED").length).toBeGreaterThan(0);
+  it("requires confirmation before confirming the linked pending payment", async () => {
+    vi.mocked(confirmOperatorPayment).mockResolvedValue({} as never);
+    renderUnpaidView();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận đã thu" }));
+
+    const dialog = screen.getByRole("alertdialog", { name: "Xác nhận đã thu tiền" });
+    expect(dialog).toHaveTextContent("Thao tác này không thể hoàn tác.");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Xác nhận đã thu" }));
+
+    await waitFor(() => expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-1"));
+  });
+
+  it("shows a success toast after recording an unpaid table session", async () => {
+    vi.mocked(recordOperatorUnpaid).mockResolvedValue({} as never);
+    renderUnpaidView();
+
+    const recordButton = await screen.findByRole("button", {
+      name: /ghi nhận không được thanh toán/i,
+    });
+    await waitFor(() => expect(recordButton).toBeEnabled());
+    fireEvent.click(recordButton);
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận ghi nhận" }));
+
+    await waitFor(() =>
+      expect(recordOperatorUnpaid).toHaveBeenCalledWith({ reason: null, sessionId: "session-1" }),
+    );
+    expect(
+      await screen.findByText("Đã đóng phiên bàn và ghi nhận khoản chưa thanh toán."),
+    ).toBeInTheDocument();
   });
 });

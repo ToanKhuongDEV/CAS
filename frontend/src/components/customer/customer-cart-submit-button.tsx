@@ -36,6 +36,7 @@ export function CustomerCartSubmitButton() {
           })),
         });
         clearCustomerCart();
+        showToast({ type: "success", message: "Đã gửi món xuống bếp." });
         router.push("/orders");
       } catch (cause) {
         showToast({

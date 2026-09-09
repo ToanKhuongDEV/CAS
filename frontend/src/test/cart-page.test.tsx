@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import CartPage from "../app/(customer)/(ordering)/cart/page";
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
 import { QueryProvider } from "../components/providers/query-provider";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
 import { createCustomerOrder } from "../lib/api/ordering/ordering.api";
 import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
@@ -11,6 +12,7 @@ import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
 const push = vi.fn();
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/cart",
   useRouter: () => ({ push }),
 }));
 
@@ -94,11 +96,13 @@ describe("CartPage", () => {
 
   it("hydrates legacy cart data with image, price, and selected options", async () => {
     render(
-      <QueryProvider>
-        <OrderingLayout>
-          <CartPage />
-        </OrderingLayout>
-      </QueryProvider>,
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
     );
 
     expect(screen.getByRole("heading", { name: "Giỏ hàng của bạn" })).toBeInTheDocument();
@@ -112,7 +116,7 @@ describe("CartPage", () => {
     expect(await screen.findByText("+ Phô mai")).toBeInTheDocument();
     expect(screen.getByText("Giá món gốc")).toBeInTheDocument();
     expect(screen.getByText("Tạm tính (2 món)")).toBeInTheDocument();
-    expect(screen.getAllByText("120.000đ")).toHaveLength(3);
+    expect(screen.getAllByText("120.000đ")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Xóa tất cả" })).toBeInTheDocument();
     const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
     expect(submitButton).toBeInTheDocument();
@@ -122,11 +126,13 @@ describe("CartPage", () => {
 
   it("requires confirmation before clearing the cart", async () => {
     render(
-      <QueryProvider>
-        <OrderingLayout>
-          <CartPage />
-        </OrderingLayout>
-      </QueryProvider>,
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Xóa tất cả" }));
@@ -144,16 +150,19 @@ describe("CartPage", () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
     vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("Session not found"));
     render(
-      <QueryProvider>
-        <OrderingLayout>
-          <CartPage />
-        </OrderingLayout>
-      </QueryProvider>,
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
 
     await vi.waitFor(() => expect(createCustomerOrder).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Đã gửi món xuống bếp.")).toBeInTheDocument();
     expect(push).toHaveBeenCalledWith("/orders");
   });
 
@@ -165,15 +174,44 @@ describe("CartPage", () => {
       tableCode: 5,
     });
     render(
-      <QueryProvider>
-        <OrderingLayout>
-          <CartPage />
-        </OrderingLayout>
-      </QueryProvider>,
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/orders"));
+  });
+
+  it("shows the sold-out message as a toast and preserves the cart", async () => {
+    vi.mocked(createCustomerOrder).mockRejectedValueOnce(
+      new Error(
+        'Món "Món từ giỏ hàng" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.',
+      ),
+    );
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
+
+    expect(
+      await screen.findByText(
+        'Món "Món từ giỏ hàng" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Món từ giỏ hàng")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
   });
 });

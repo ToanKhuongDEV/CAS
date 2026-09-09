@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import { OperatorUnpaidView } from "../../../../../components/operator/operator-unpaid-view";
 import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
@@ -139,6 +140,7 @@ export function OperatorPaymentConfirmationList({
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
   const [operatorName, setOperatorName] = useState<string | null>(null);
+  const [showUnpaidSessions, setShowUnpaidSessions] = useState(false);
   const paymentLoads = useRef<Partial<Record<PaymentListMode, Promise<Payment[]>>>>({});
   const queryClient = useQueryClient();
 
@@ -258,9 +260,29 @@ export function OperatorPaymentConfirmationList({
     }, 0);
   }
 
+  if (showUnpaidSessions) {
+    return (
+      <>
+        <header>
+          <button
+            className="inline-flex items-center gap-2 rounded-xl border border-cas-outline-variant/35 px-4 py-2 text-sm font-extrabold text-cas-on-surface-variant transition hover:text-cas-primary"
+            onClick={() => setShowUnpaidSessions(false)}
+            type="button"
+          >
+            <CasIcon className="size-4 rotate-180" name="arrow" />
+            Quay lại
+          </button>
+        </header>
+        <div className="mt-6">
+          <OperatorUnpaidView />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div
           aria-label="Bộ lọc trạng thái thanh toán"
           className="inline-flex rounded-xl border border-cas-outline-variant/35 bg-cas-surface-container/50 p-1"
@@ -279,7 +301,7 @@ export function OperatorPaymentConfirmationList({
             }}
             type="button"
           >
-            Chưa thanh toán
+            Chờ xác nhận
           </button>
           <button
             aria-pressed={mode === "PAID"}
@@ -298,6 +320,14 @@ export function OperatorPaymentConfirmationList({
             Đã thanh toán hôm nay
           </button>
         </div>
+        <button
+          className="inline-flex items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10"
+          onClick={() => setShowUnpaidSessions(true)}
+          type="button"
+        >
+          <CasIcon className="size-4" name="clock" />
+          Không thanh toán
+        </button>
       </header>
 
       {confirmedMessage ? (
