@@ -20,6 +20,7 @@ import vn.cas.ordering.model.OrderOverview;
 import vn.cas.ordering.model.PreparationItemRow;
 import vn.cas.ordering.model.PreparationOptionRow;
 import vn.cas.ordering.model.StoredPreparationBatchCompletion;
+import vn.cas.ordering.model.StoredPreparationTableCompletion;
 
 @Mapper
 public interface OrderingMapper {
@@ -78,8 +79,12 @@ public interface OrderingMapper {
 
     List<PreparationItemRow> findPreparationItems(@Param("storeId") long storeId);
 
+    int countPendingPreparationTables(@Param("storeId") long storeId);
+
     List<PreparationItemRow> findPreparationItemsForUpdate(@Param("storeId") long storeId,
             @Param("menuItemId") long menuItemId);
+    List<PreparationItemRow> findPreparationItemsByTableCodeForUpdate(
+            @Param("storeId") long storeId, @Param("tableCode") int tableCode);
 
     List<PreparationOptionRow> findPreparationOptions(
             @Param("orderItemIds") List<Long> orderItemIds);
@@ -98,6 +103,14 @@ public interface OrderingMapper {
 
     int addPreparedQuantity(@Param("orderItemId") long orderItemId,
             @Param("quantity") int quantity);
+    StoredPreparationTableCompletion findPreparationTableCompletion(@Param("storeId") long storeId,
+            @Param("idempotencyKey") String idempotencyKey);
+    int insertPreparationTableCompletion(@Param("publicId") String publicId,
+            @Param("storeId") long storeId, @Param("tableId") long tableId,
+            @Param("idempotencyKey") String idempotencyKey,
+            @Param("requestFingerprint") String requestFingerprint,
+            @Param("allocationSnapshot") String allocationSnapshot,
+            @Param("completedByAccountId") long completedByAccountId);
 
     List<OperatorCancellationRequestRow> findPendingCancellationRequests(
             @Param("storeId") long storeId);

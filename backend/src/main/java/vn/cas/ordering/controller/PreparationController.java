@@ -47,6 +47,14 @@ public class PreparationController {
                 preparations.groups(principal), request);
     }
 
+    @GetMapping("/pending-table-count")
+    public ResponseEntity<ApiResponse<Integer>> pendingTableCount(
+            @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK,
+                ApiMessages.PREPARATION_PENDING_TABLE_COUNT_RETRIEVED,
+                preparations.pendingTableCount(principal), request);
+    }
+
     @PostMapping("/groups/{groupKey}/completions")
     public ResponseEntity<ApiResponse<PreparationService.BatchCompletion>> complete(
             @AuthenticationPrincipal OperationalPrincipal principal, @PathVariable String groupKey,
@@ -57,6 +65,20 @@ public class PreparationController {
                 completion, request);
     }
 
+    @PostMapping("/tables/{tableCode}/completions")
+    public ResponseEntity<ApiResponse<PreparationService.TableCompletion>> completeTable(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @PathVariable @Positive int tableCode, @Valid @RequestBody CompleteTableRequest body,
+            HttpServletRequest request) {
+        var completion = preparations.completeTable(principal, tableCode, body.idempotencyKey(),
+                (UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.CREATED, "Đã hoàn thành toàn bộ món của bàn.",
+                completion, request);
+    }
+
     public record CompleteBatchRequest(@NotBlank String idempotencyKey, @Positive int quantity) {
+    }
+
+    public record CompleteTableRequest(@NotBlank String idempotencyKey) {
     }
 }

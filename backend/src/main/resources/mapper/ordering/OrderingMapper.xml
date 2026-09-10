@@ -228,6 +228,36 @@
           AND table_sessions.status = 'OPEN'
         ORDER BY orders.created_at ASC, order_items.id ASC
     </select>
+    <select id="countPendingPreparationTables" resultType="int">
+        SELECT COUNT(DISTINCT dining_tables.id)
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND table_sessions.status = 'OPEN'
+          AND order_items.quantity > order_items.prepared_quantity + COALESCE((
+              SELECT SUM(cancellation_requests.requested_quantity)
+              FROM order_item_cancellation_requests cancellation_requests
+              WHERE cancellation_requests.order_item_id = order_items.id
+                AND cancellation_requests.status = 'APPROVED'
+          ), 0)
+    </select>
+    <select id="findPreparationItemsByTableCodeForUpdate" resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items INNER JOIN orders ON orders.id=order_items.order_id
+        INNER JOIN table_sessions ON table_sessions.id=orders.table_session_id
+        INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+        WHERE dining_tables.store_id=#{storeId} AND dining_tables.code=#{tableCode}
+          AND table_sessions.status='OPEN'
+        ORDER BY orders.created_at ASC, order_items.id ASC FOR UPDATE
+    </select>
+    <select id="findPreparationTableCompletion" resultType="vn.cas.ordering.model.StoredPreparationTableCompletion">
+        SELECT dining_tables.code AS tableCode, preparation_table_completions.request_fingerprint AS requestFingerprint, preparation_table_completions.allocation_snapshot AS allocationSnapshot
+        FROM preparation_table_completions INNER JOIN dining_tables ON dining_tables.id=preparation_table_completions.table_id
+        WHERE preparation_table_completions.store_id=#{storeId} AND preparation_table_completions.idempotency_key=#{idempotencyKey}
+    </select>
+    <insert id="insertPreparationTableCompletion">INSERT INTO preparation_table_completions(public_id,store_id,table_id,idempotency_key,request_fingerprint,allocation_snapshot,completed_by_account_id) VALUES(#{publicId},#{storeId},#{tableId},#{idempotencyKey},#{requestFingerprint},#{allocationSnapshot},#{completedByAccountId})</insert>
     <select id="findPreparationItemsForUpdate"
             resultType="vn.cas.ordering.model.PreparationItemRow">
         SELECT <include refid="preparationItemColumns"/>

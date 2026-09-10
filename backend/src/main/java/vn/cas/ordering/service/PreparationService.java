@@ -25,6 +25,7 @@ import vn.cas.operation.service.AuditLogService;
 import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.model.PreparationItemRow;
 import vn.cas.ordering.model.PreparationOptionRow;
+import vn.cas.ordering.model.StoredPreparationTableCompletion;
 import vn.cas.store.service.LongWaitWarningSettingService;
 
 @Service
@@ -69,6 +70,11 @@ public class PreparationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public int pendingTableCount(OperationalPrincipal principal) {
+        return mapper.countPendingPreparationTables(principal.storeId());
+    }
+
     @Transactional(noRollbackFor = DuplicateKeyException.class)
     public BatchCompletion complete(OperationalPrincipal principal, String groupKey,
             String idempotencyKey, int requestedQuantity, UUID requestId) {
@@ -109,6 +115,43 @@ public class PreparationService {
                 principal.displayName(), "Nhân viên ghi nhận hoàn thành món theo mẻ."));
         return new BatchCompletion(groupKey, requestedQuantity,
                 group.remainingQuantity() - requestedQuantity, allocations);
+    }
+
+    @Transactional(noRollbackFor = DuplicateKeyException.class)
+    public TableCompletion completeTable(OperationalPrincipal principal, int tableCode,
+            String idempotencyKey, UUID requestId) {
+        var existing = mapper.findPreparationTableCompletion(principal.storeId(), idempotencyKey);
+        if (existing != null)
+            return existingTableCompletion(existing, tableCode);
+        var items = mapper.findPreparationItemsByTableCodeForUpdate(principal.storeId(), tableCode)
+                .stream().filter(item -> remainingQuantity(item) > 0).toList();
+        if (items.isEmpty())
+            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+        var allocations = items.stream()
+                .map(item -> new Allocation(item.orderItemId(), item.orderItemPublicId(),
+                        item.orderPublicId(), item.tableCode(), remainingQuantity(item)))
+                .toList();
+        String snapshot = writeAllocations(allocations);
+        String fingerprint = sha256("table:" + tableCode + ":" + snapshot);
+        try {
+            mapper.insertPreparationTableCompletion(UUID.randomUUID().toString(),
+                    principal.storeId(), items.getFirst().tableId(), idempotencyKey, fingerprint,
+                    snapshot, principal.accountId());
+        } catch (DuplicateKeyException exception) {
+            var duplicate = mapper.findPreparationTableCompletion(principal.storeId(),
+                    idempotencyKey);
+            if (duplicate != null)
+                return existingTableCompletion(duplicate, tableCode);
+            throw exception;
+        }
+        for (var allocation : allocations)
+            mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity());
+        auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
+                "PREPARATION_TABLE_COMPLETED", "PREPARATION_TABLE_COMPLETION",
+                mapper.lastInsertId(), "Bàn " + tableCode, snapshot, principal.accountId(),
+                principal.displayName(), "Nhân viên ghi nhận hoàn thành toàn bộ món của bàn."));
+        return new TableCompletion(tableCode,
+                allocations.stream().mapToInt(Allocation::quantity).sum(), allocations);
     }
 
     private Map<String, GroupState> groupItems(List<PreparationItemRow> items) {
@@ -155,6 +198,21 @@ public class PreparationService {
                     allocations);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Stored preparation allocation is invalid", exception);
+        }
+    }
+
+    private TableCompletion existingTableCompletion(StoredPreparationTableCompletion completion,
+            int requestedTableCode) {
+        if (completion.tableCode() != requestedTableCode)
+            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+        try {
+            var allocations = List.of(
+                    objectMapper.readValue(completion.allocationSnapshot(), Allocation[].class));
+            return new TableCompletion(completion.tableCode(),
+                    allocations.stream().mapToInt(Allocation::quantity).sum(), allocations);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Stored preparation table allocation is invalid",
+                    exception);
         }
     }
 
@@ -264,6 +322,10 @@ public class PreparationService {
     }
 
     public record BatchCompletion(String groupKey, int requestedQuantity, Integer remainingQuantity,
+            List<Allocation> allocations) {
+    }
+
+    public record TableCompletion(int tableCode, int completedQuantity,
             List<Allocation> allocations) {
     }
 

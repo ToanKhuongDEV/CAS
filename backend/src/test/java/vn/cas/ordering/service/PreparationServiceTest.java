@@ -50,6 +50,14 @@ class PreparationServiceTest {
                 eq(EMPTY_OPTIONS_HASH), eq("batch-key"), any(), eq(4), any(), eq(3L));
     }
 
+    @Test
+    void shouldReturnPendingPreparationTableCountForOperatorStore() {
+        when(mapper.countPendingPreparationTables(2L)).thenReturn(4);
+
+        assertThat(service.pendingTableCount(operator)).isEqualTo(4);
+        verify(mapper).countPendingPreparationTables(2L);
+    }
+
     private static PreparationItemRow item(long id, String publicId, String orderId, int tableCode,
             int quantity, LocalDateTime createdAt) {
         return new PreparationItemRow(id, publicId, id, orderId, id, tableCode, 9L, "Mì cay",
