@@ -90,7 +90,9 @@ public final class ApiPaths {
         public static final String COMMON = API_OPERATOR_PREFIX + "/preparation";
         public static final String LONG_WAIT_TABLES = COMMON + "/long-wait-tables";
         public static final String GROUPS = COMMON + "/groups";
+        public static final String PENDING_TABLE_COUNT = COMMON + "/pending-table-count";
         public static final String GROUP_COMPLETIONS = GROUPS + "/{groupKey}/completions";
+        public static final String TABLE_COMPLETIONS = COMMON + "/tables/{tableCode}/completions";
 
         private Preparation() {
         }
@@ -127,6 +129,17 @@ public final class ApiPaths {
         public static final String UPLOAD_SIGNATURE = API_ADMIN_PREFIX + "/images/upload-signature";
 
         private Images() {
+        }
+    }
+
+    public static final class ServiceBooking {
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/service-bookings";
+        public static final String OPERATOR_ID = OPERATOR + "/{serviceBookingId}";
+        public static final String OPERATOR_UPDATE = OPERATOR_ID;
+        public static final String OPERATOR_CONFIRM = OPERATOR_ID + "/confirm";
+        public static final String OPERATOR_CANCEL = OPERATOR_ID + "/cancel";
+
+        private ServiceBooking() {
         }
     }
 

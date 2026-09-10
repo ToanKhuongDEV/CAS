@@ -149,7 +149,9 @@ nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành m�
 ```powershell
 curl.exe http://localhost:8080/api/v1/operator/preparation/long-wait-tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/preparation/pending-table-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/groups/<group-key>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"quantity\":3}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/tables/5/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\"}"
 ```
 
 Ví dụ Thông báo hệ thống: `ADMIN` tạo, xem và xóa notification của store. Khi
@@ -182,6 +184,16 @@ curl.exe -X DELETE http://localhost:8080/api/v1/admin/operators/1 -H "Authorizat
 ```
 
 ## Kiểm thử
+
+Service bookings API examples:
+
+```powershell
+curl.exe http://localhost:8080/api/v1/operator/service-bookings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"clientName\":\"Nguyen Van A\",\"clientPhone\":\"0901234567\",\"serviceName\":\"Birthday party\",\"note\":\"Confirm one day before\",\"agreedPrice\":1500000,\"paymentStatus\":\"PAY_LATER\"}"
+curl.exe -X PUT http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"clientName\":\"Nguyen Van A\",\"serviceName\":\"Birthday party 15 guests\",\"note\":\"Updated note\",\"agreedPrice\":1800000}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id>/cancel -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+```
 
 ```bash
 mvn test

@@ -28,6 +28,7 @@ public final class ApiMessages {
     public static final String OPERATOR_ORDER_CREATED = "Đã gửi món xuống bếp.";
     public static final String PREPARATION_LONG_WAIT_TABLES_RETRIEVED = "Đã lấy danh sách bàn chờ lâu.";
     public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";
+    public static final String PREPARATION_PENDING_TABLE_COUNT_RETRIEVED = "Đã lấy số bàn đang chờ món.";
     public static final String PREPARATION_BATCH_COMPLETED = "Đã ghi nhận hoàn thành món theo mẻ.";
     public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
     public static final String MENU_ITEM_SOLD_OUT = "Món \"%s\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";
@@ -52,6 +53,12 @@ public final class ApiMessages {
     public static final String FIREBASE_CREDENTIALS_UNAVAILABLE = "Dịch vụ xác thực hiện chưa sẵn sàng.";
     public static final String FIREBASE_AUTH_UNAVAILABLE = "Không thể kết nối dịch vụ xác thực. Vui lòng thử lại sau.";
     public static final String OPERATIONAL_ACCOUNT_UNAVAILABLE = "Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.";
+
+    public static final String SERVICE_BOOKINGS_RETRIEVED = "Đã lấy danh sách dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_CREATED = "Đã tạo dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_UPDATED = "Đã cập nhật dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_PAYMENT_CONFIRMED = "Đã xác nhận thanh toán dịch vụ.";
+    public static final String SERVICE_BOOKING_CANCELLED = "Đã hủy dịch vụ đặt trước.";
 
     private ApiMessages() {
     }
