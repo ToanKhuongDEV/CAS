@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ScanTableQrPage from "../app/(customer)/scan/page";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { resolveCustomerTableSession } from "../lib/customer/table-session";
 
 const replace = vi.fn();
@@ -21,15 +22,17 @@ describe("ScanTableQrPage", () => {
 
   it("keeps manual entry available when the QR token is invalid", async () => {
     vi.mocked(resolveCustomerTableSession).mockRejectedValue(new Error("QR không hợp lệ"));
-    render(<ScanTableQrPage />);
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
 
     const input = screen.getByRole("textbox", { name: "Nhập mã QR của bàn" });
     fireEvent.change(input, { target: { value: "Q00000000" } });
     fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
 
-    expect(
-      await screen.findByText("Mã QR không hợp lệ. Hãy quét mã QR của bàn CAS."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("QR không hợp lệ")).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
     expect(input).toHaveValue("Q00000000");
     expect(input).toHaveFocus();

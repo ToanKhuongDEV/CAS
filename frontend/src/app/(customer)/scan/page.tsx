@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { useToast } from "../../../components/ui/toast-provider";
 import { resolveCustomerTableSession } from "../../../lib/customer/table-session";
 
 type BarcodeDetectorLike = {
@@ -17,6 +18,7 @@ export default function ScanTableQrPage() {
   const video = useRef<HTMLVideoElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const isResolving = useRef(false);
+  const { showToast } = useToast();
   const [message, setMessage] = useState("Đưa mã QR của bàn vào khung camera.");
   const [manualQrValue, setManualQrValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,8 +45,14 @@ export default function ScanTableQrPage() {
       router.replace(
         `/table/${encodeURIComponent(token)}?returnTo=${encodeURIComponent(params.get("returnTo") ?? "/menu")}`,
       );
-    } catch {
-      setMessage("Mã QR không hợp lệ. Hãy quét mã QR của bàn CAS.");
+    } catch (error) {
+      showToast({
+        type: "error",
+        message:
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : "Không thể xác thực mã QR.",
+      });
       input.current?.focus();
     } finally {
       isResolving.current = false;

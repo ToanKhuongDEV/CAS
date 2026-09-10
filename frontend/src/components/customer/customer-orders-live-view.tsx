@@ -295,7 +295,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                   onClick={() => setCancellationQuantity(quantity - 1)}
                   type="button"
                 >
-                  <CasIcon className="size-3 rotate-90" name="arrow" />
+                  <CasIcon className="size-4" name="minus" />
                 </button>
                 <input
                   aria-label="Số lượng muốn hủy"
@@ -313,7 +313,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                   onClick={() => setCancellationQuantity(quantity + 1)}
                   type="button"
                 >
-                  <CasIcon className="size-3 -rotate-90" name="arrow" />
+                  <CasIcon className="size-4" name="plus" />
                 </button>
               </div>
             </div>

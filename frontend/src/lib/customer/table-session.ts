@@ -22,7 +22,7 @@ export async function resolveCustomerTableSession(
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isCustomerTableSessionResolutionResponse(body)) {
-    throw new Error("Không thể xác thực phiên bàn từ mã QR.");
+    throw new Error(getBackendErrorMessage(body, "Không thể xác thực phiên bàn từ mã QR."));
   }
 
   return body.data;
@@ -66,4 +66,14 @@ function isCustomerTableSessionResolutionResponse(
       data.sessionStatus === "OPEN" ||
       data.sessionStatus === "PAYMENT_PENDING"),
   );
+}
+
+function getBackendErrorMessage(body: unknown, fallback: string) {
+  return body &&
+    typeof body === "object" &&
+    "message" in body &&
+    typeof body.message === "string" &&
+    body.message.trim()
+    ? body.message
+    : fallback;
 }
