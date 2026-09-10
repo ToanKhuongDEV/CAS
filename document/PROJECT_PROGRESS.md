@@ -309,10 +309,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Màn Đơn hàng Customer chỉ hiển thị một dòng `Tổng tiền`, không tách giá gốc và giảm giá.
 - [x] Sửa polling Payment Customer để effect bị dọn trong React Strict Mode không chặn lần tải bill/payment đầu tiên của effect hiện hành.
 - [x] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
-- [ ] **Dịch vụ đặt trước:** xem danh sách booking.
-- [ ] **Dịch vụ đặt trước:** tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`.
-- [ ] **Dịch vụ đặt trước:** xác nhận booking thành `PAID`.
-- [ ] **Dịch vụ đặt trước:** hủy booking thành `CANCELLED`.
+- [x] **Dịch vụ đặt trước:** `GET /api/v1/operator/service-bookings` xem danh sách booking theo store. **[Đã ghép Frontend Operator/Admin]**
+- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings` tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`, nhận diện khách theo số điện thoại. **[Đã ghép Frontend Operator/Admin]**
+- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/confirm` xác nhận booking `PENDING` thành `PAID`; thao tác lặp lại với booking đã thanh toán an toàn. **[Đã ghép Frontend Operator/Admin]**
+- [x] **Dịch vụ đặt trước:** `PUT /api/v1/operator/service-bookings/{serviceBookingId}` cập nhật tên khách, tên dịch vụ, ghi chú và giá thỏa thuận khi booking còn `PAY_LATER` hoặc `PENDING`; mọi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
+- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/cancel` hủy booking `PAY_LATER` hoặc `PENDING` thành `CANCELLED`. Mỗi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
 - [ ] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
 - [ ] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
 - [ ] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
@@ -474,8 +475,22 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Làm mới khu vực “Món theo bàn” tại `/operator/orders`: mỗi bàn là một thẻ
       riêng, có tổng phần chờ, danh sách món/option, số lượng và giờ gửi để nhân
       viên quét nhanh trên desktop hoặc tablet.
+- [x] Chuyển khu vực “Món theo bàn” tại `/operator/orders` sang masonry grid hai cột
+      trên màn hình phù hợp, để thẻ bàn có chiều cao khác nhau xếp sát nhau.
+- [x] Trang `/operator/orders` polling API chế biến mỗi 10 giây để nhận order mới và
+      số lượng món còn chờ từ các thiết bị khác.
+- [x] Các kết quả tải, kiểm tra số lượng và ghi nhận hoàn thành tại `/operator/orders`
+      hiển thị bằng toast; không chèn thêm khối thông báo vào nội dung trang.
+- [x] `POST /api/v1/operator/preparation/tables/{tableCode}/completions`: hoàn thành toàn bộ món còn chờ của một bàn trong transaction, có idempotency bền vững và audit log; đã ghép nút tại thẻ bàn.
+- [x] Header `/operator/orders` canh giữa dọc title với nút tạo order hộ; thống kê tổng món cần làm hiển thị trên cùng một dòng và cùng chiều cao với nút tạo order hộ.
+- [x] `GET /api/v1/operator/preparation/pending-table-count`: trả số bàn còn món
+      chờ theo store để badge “Đơn gọi món” polling mỗi 10 giây không tải toàn bộ nhóm món.
+- [x] Bỏ viền ngoài của các card bàn trong khu “Món theo bàn” tại `/operator/orders`.
+- [x] Bỏ bo góc của các card bàn trong khu “Món theo bàn” tại `/operator/orders`.
 - [x] Món cùng một mốc gửi trong thẻ bàn được gom dưới một nhãn thời gian; mốc
       mới có dải ngăn cách, và món không có option không hiển thị dòng option.
+- [x] Các thẻ “Món theo bàn” ưu tiên bàn có món gửi lâu nhất; trong từng bàn,
+      các mốc gửi và món cũng hiển thị theo FIFO từ cũ đến mới.
 - [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
       thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
       lượng đã làm/còn lại cùng tổng tiền của một order.
@@ -636,7 +651,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Rà soát Customer: đồng bộ trạng thái ghép API create order, bill và hủy phiên bàn trong tài liệu; card dịch vụ thêm mở Zalo bằng hotline của store; xóa component yêu cầu hủy món cũ chỉ đổi state cục bộ và không còn được render.
 - [x] Trang Đơn hàng Customer polling bill mỗi 10 giây để nhận order mới, kết quả xử lý yêu cầu hủy món và thay đổi tiền từ thiết bị hoặc nhân viên khác.
 - [x] Đơn hàng Customer ẩn dòng món đã được duyệt hủy và hiển thị “Chờ xác nhận” cho yêu cầu hủy đang `PENDING`.
-- [x] Form yêu cầu hủy món Customer có nút mũi tên tăng/giảm, chỉ nhận số lượng từ `1` đến số phần đã gọi của dòng món.
+- [x] Form yêu cầu hủy món Customer dùng nút trừ/cộng để tăng/giảm, chỉ nhận số lượng từ `1` đến số phần đã gọi của dòng món.
 - [x] Hiển thị toast thành công sau khi gửi món xuống bếp từ Giỏ hàng Customer hoặc màn tạo order hộ của Operator.
 - [x] Khi món trong giỏ vừa bị Operator chuyển sang `SOLD_OUT`, Backend trả lỗi
       `409` nêu rõ tên món và hướng dẫn bỏ món khỏi giỏ; Giỏ hàng Customer hiển
@@ -645,6 +660,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
       option được chọn theo toàn bộ giỏ, sau đó vẫn kiểm tra từng dòng đã chuẩn
       hóa theo cùng quy tắc trạng thái, option và giá server-side.
 - [x] Chuyển thông báo ghi nhận không thanh toán và xác nhận đã thu trên màn Operator sang toast thành công.
+- [x] Trang quét mã QR Customer hiển thị lỗi xác thực từ `message` của API bằng toast, giữ ô nhập để khách sửa hoặc quét lại mã.
 
 1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
 2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
