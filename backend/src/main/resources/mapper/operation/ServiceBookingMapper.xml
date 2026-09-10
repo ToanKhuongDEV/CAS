@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.operation.mapper.ServiceBookingMapper">
+    <sql id="viewColumns">service_bookings.id AS id, service_bookings.public_id AS publicId, client_accounts.display_name AS clientName, client_accounts.phone AS clientPhone, service_bookings.service_name AS serviceName, service_bookings.note AS note, service_bookings.agreed_price AS agreedPrice, service_bookings.payment_status AS paymentStatus, service_bookings.created_by_name AS createdByName, service_bookings.confirmed_by_name AS confirmedByName, service_bookings.confirmed_at AS confirmedAt, service_bookings.created_at AS createdAt</sql>
+    <select id="findAllByStoreId" resultType="vn.cas.operation.model.ServiceBookingView">SELECT <include refid="viewColumns"/> FROM service_bookings INNER JOIN client_accounts ON client_accounts.id=service_bookings.client_account_id WHERE service_bookings.store_id=#{storeId} ORDER BY service_bookings.created_at DESC, service_bookings.id DESC</select>
+    <select id="findByPublicId" resultType="vn.cas.operation.model.ServiceBookingView">SELECT <include refid="viewColumns"/> FROM service_bookings INNER JOIN client_accounts ON client_accounts.id=service_bookings.client_account_id WHERE service_bookings.store_id=#{storeId} AND service_bookings.public_id=#{publicId}</select>
+    <select id="findRecordByPublicIdForUpdate" resultType="vn.cas.operation.model.ServiceBookingRecord">SELECT id, public_id AS publicId, client_account_id AS clientAccountId, payment_status AS paymentStatus FROM service_bookings WHERE store_id=#{storeId} AND public_id=#{publicId} FOR UPDATE</select>
+    <select id="findClientAccountIdByStoreIdAndPhone" resultType="long">SELECT id FROM client_accounts WHERE store_id=#{storeId} AND phone=#{phone}</select>
+    <insert id="insertClientAccount" useGeneratedKeys="true" keyProperty="id">INSERT INTO client_accounts(store_id,phone,display_name) VALUES(#{storeId},#{customerPhone},#{customerName})</insert>
+    <update id="updateClientAccountName">UPDATE client_accounts SET display_name=#{name} WHERE id=#{id}</update>
+    <insert id="insert">INSERT INTO service_bookings(public_id,store_id,client_account_id,service_name,note,agreed_price,payment_status,created_by_account_id,created_by_name) VALUES(#{publicId},#{storeId},#{clientAccountId},#{serviceName},#{note},#{agreedPrice},#{paymentStatus},#{createdByAccountId},#{createdByName})</insert>
+    <update id="update">UPDATE service_bookings SET service_name=#{serviceName}, note=#{note}, agreed_price=#{agreedPrice} WHERE id=#{id} AND payment_status IN ('PAY_LATER','PENDING')</update>
+    <update id="confirm">UPDATE service_bookings SET payment_status='PAID', confirmed_by_account_id=#{accountId}, confirmed_by_name=#{name}, confirmed_at=CURRENT_TIMESTAMP(3) WHERE id=#{id} AND payment_status='PENDING'</update>
+    <update id="cancel">UPDATE service_bookings SET payment_status='CANCELLED' WHERE id=#{id} AND payment_status IN ('PAY_LATER','PENDING')</update>
+</mapper>
