@@ -50,12 +50,22 @@ export type PreparationBatchCompletion = {
   }[];
 };
 
+export const operatorPendingPreparationTableCountQueryKey = [
+  "operator",
+  "preparation",
+  "pending-table-count",
+] as const;
+
 export function loadLongWaitTables() {
   return request<LongWaitTable[]>("/preparation/long-wait-tables");
 }
 
 export function loadPreparationGroups() {
   return request<PreparationGroup[]>("/preparation/groups");
+}
+
+export function loadOperatorPendingPreparationTableCount() {
+  return request<number>("/preparation/pending-table-count");
 }
 
 export function completePreparationBatch(
@@ -66,6 +76,14 @@ export function completePreparationBatch(
     `/preparation/groups/${encodeURIComponent(groupKey)}/completions`,
     { body: JSON.stringify(input), method: "POST" },
   );
+}
+
+export function completePreparationTable(tableCode: number, idempotencyKey: string) {
+  return request<{ completedQuantity: number }>(`/preparation/tables/${tableCode}/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idempotencyKey }),
+  });
 }
 
 async function request<T>(path: string, init: RequestInit = {}) {

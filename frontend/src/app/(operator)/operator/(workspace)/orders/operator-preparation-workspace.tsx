@@ -5,12 +5,12 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import {
   completePreparationBatch,
+  completePreparationTable,
   loadPreparationGroups,
   type PreparationGroup,
 } from "../../../../../lib/api/ordering/preparation.api";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
-
-type ActionFeedback = { message: string; tone: "error" | "success" };
+import { useToast } from "../../../../../components/ui/toast-provider";
 
 type TablePreparationItem = {
   id: string;
@@ -23,6 +23,7 @@ type TablePreparationItem = {
 type TablePreparationGroup = {
   items: TablePreparationItem[];
   table: string;
+  tableCode: number;
   totalRemainingQuantity: number;
 };
 
@@ -49,21 +50,34 @@ function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparati
   groups.forEach((group) => {
     group.allocations.forEach((allocation) => {
       const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
-      const current = byTable.get(table) ?? { items: [], table, totalRemainingQuantity: 0 };
+      const current = byTable.get(table) ?? {
+        items: [],
+        table,
+        tableCode: allocation.tableCode,
+        totalRemainingQuantity: 0,
+      };
       current.items.push({
         id: `${group.groupKey}-${allocation.orderItemId}`,
         itemName: group.itemName,
         optionSummary: optionSummary(group),
         remainingQuantity: allocation.remainingQuantity,
-        requestedAt: formatTime(allocation.orderCreatedAt),
+        requestedAt: allocation.orderCreatedAt,
       });
       current.totalRemainingQuantity += allocation.remainingQuantity;
       byTable.set(table, current);
     });
   });
-  return [...byTable.values()].sort((first, second) =>
-    first.table.localeCompare(second.table, "vi"),
-  );
+  return [...byTable.values()]
+    .map((table) => ({
+      ...table,
+      items: [...table.items].sort(
+        (first, second) => Date.parse(first.requestedAt) - Date.parse(second.requestedAt),
+      ),
+    }))
+    .sort(
+      (first, second) =>
+        Date.parse(first.items[0].requestedAt) - Date.parse(second.items[0].requestedAt),
+    );
 }
 
 function groupTableItemsByRequestedAt(items: TablePreparationItem[]) {
@@ -73,28 +87,34 @@ function groupTableItemsByRequestedAt(items: TablePreparationItem[]) {
     current.push(item);
     groups.set(item.requestedAt, current);
   });
-  return [...groups.entries()].map(([requestedAt, groupedItems]) => ({
-    items: groupedItems,
-    requestedAt,
-  }));
+  return [...groups.entries()]
+    .sort(([firstRequestedAt], [secondRequestedAt]) =>
+      firstRequestedAt.localeCompare(secondRequestedAt),
+    )
+    .map(([requestedAt, groupedItems]) => ({
+      items: groupedItems,
+      requestedAt,
+    }));
 }
 
 export function OperatorPreparationWorkspace() {
-  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const { showToast } = useToast();
   const [groups, setGroups] = useState<PreparationGroup[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submittingGroupKey, setSubmittingGroupKey] = useState<string | null>(null);
+  const [submittingTableCode, setSubmittingTableCode] = useState<number | null>(null);
 
-  async function refreshGroups() {
+  async function refreshGroups(showError = true) {
     setIsLoading(true);
     try {
       setGroups(await loadPreparationGroups());
     } catch (error) {
-      setFeedback({
+      if (!showError) return;
+      showToast({
         message:
           error instanceof Error ? error.message : "Không thể tải danh sách món cần chế biến.",
-        tone: "error",
+        type: "error",
       });
     } finally {
       setIsLoading(false);
@@ -103,7 +123,9 @@ export function OperatorPreparationWorkspace() {
 
   useEffect(() => {
     void refreshGroups();
-  }, []);
+    const timer = window.setInterval(() => void refreshGroups(false), 10_000);
+    return () => window.clearInterval(timer);
+  }, [showToast]);
 
   const totalRemainingQuantity = groups.reduce(
     (total, group) => total + group.remainingQuantity,
@@ -121,9 +143,9 @@ export function OperatorPreparationWorkspace() {
       quantity < 1 ||
       quantity > group.remainingQuantity
     ) {
-      setFeedback({
+      showToast({
         message: `Vui lòng nhập số phần từ 1 đến ${group?.remainingQuantity ?? 1}.`,
-        tone: "error",
+        type: "error",
       });
       return;
     }
@@ -135,50 +157,62 @@ export function OperatorPreparationWorkspace() {
         quantity,
       });
       setInputValues((values) => ({ ...values, [groupKey]: "" }));
-      setFeedback({
+      showToast({
         message: `Đã ghi nhận ${completion.requestedQuantity} phần ${group.itemName} hoàn thành.`,
-        tone: "success",
+        type: "success",
       });
       await refreshGroups();
     } catch (error) {
-      setFeedback({
+      showToast({
         message: error instanceof Error ? error.message : "Không thể ghi nhận hoàn thành món.",
-        tone: "error",
+        type: "error",
       });
     } finally {
       setSubmittingGroupKey(null);
     }
   }
 
+  async function handleCompleteTable(table: TablePreparationGroup) {
+    setSubmittingTableCode(table.tableCode);
+    try {
+      const completion = await completePreparationTable(table.tableCode, crypto.randomUUID());
+      showToast({
+        message: `Đã hoàn thành ${completion.completedQuantity} phần của ${table.table}.`,
+        type: "success",
+      });
+      await refreshGroups();
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể hoàn thành món của bàn.",
+        type: "error",
+      });
+    } finally {
+      setSubmittingTableCode(null);
+    }
+  }
+
   return (
     <>
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-extrabold">Đơn gọi món</h1>
         <div className="flex items-center gap-3">
           <Link
-            className="inline-flex items-center gap-2 rounded-xl bg-cas-primary px-4 py-3 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover sm:text-sm"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-cas-primary px-4 text-xs font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover sm:text-sm"
             href="/operator/orders/new"
           >
             <CasIcon className="size-4" name="plus" />
             Tạo order hộ
           </Link>
-          <div className="rounded-xl border border-cas-outline-variant/25 bg-cas-glass px-4 py-2.5 text-right">
-            <p className="text-xs font-bold text-cas-on-surface-variant">Tổng còn cần làm</p>
-            <p className="mt-0.5 text-lg font-extrabold text-cas-primary">
+          <div className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-cas-outline-variant/25 bg-cas-glass px-4">
+            <span className="whitespace-nowrap text-xs font-bold text-cas-on-surface-variant">
+              Tổng còn cần làm:
+            </span>
+            <strong className="whitespace-nowrap text-sm font-extrabold text-cas-primary">
               {totalRemainingQuantity} phần
-            </p>
+            </strong>
           </div>
         </div>
       </header>
-
-      {feedback && (
-        <p
-          className={`mt-5 rounded-xl border p-4 text-sm font-bold ${feedback.tone === "success" ? "border-cas-secondary/25 bg-cas-secondary-container/20 text-cas-secondary" : "border-cas-error/25 bg-cas-error-container/20 text-cas-on-error-container"}`}
-          role={feedback.tone === "error" ? "alert" : "status"}
-        >
-          {feedback.message}
-        </p>
-      )}
 
       <div className="mt-7 grid items-start gap-6 xl:grid-cols-2">
         <section aria-labelledby="preparation-groups-title">
@@ -211,7 +245,7 @@ export function OperatorPreparationWorkspace() {
                         {group.allocations.length} bàn
                       </p>
                     </div>
-                    <span className="rounded-lg bg-cas-primary/8 px-2.5 py-1 text-xs font-extrabold text-cas-primary">
+                    <span className="px-2.5 py-1 text-sm font-extrabold text-cas-on-surface">
                       {group.remainingQuantity} phần
                     </span>
                   </summary>
@@ -296,63 +330,81 @@ export function OperatorPreparationWorkspace() {
             )}
           </div>
           {tableGroups.length > 0 ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {tableGroups.map((table) => (
-                <article
-                  className="overflow-hidden rounded-2xl border border-cas-outline-variant/30 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
-                  key={table.table}
-                >
-                  <header className="flex items-center justify-between gap-3 border-b border-cas-outline-variant/20 bg-cas-surface-container/45 px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-cas-primary/10 text-cas-primary">
-                        <CasIcon className="size-5" name="table" />
-                      </span>
-                      <div>
-                        <h3 className="font-extrabold">{table.table}</h3>
-                        <p className="text-xs text-cas-on-surface-variant">
-                          {table.items.length} món đang chờ
-                        </p>
-                      </div>
-                    </div>
-                    <span className="shrink-0 rounded-lg bg-cas-primary/10 px-2.5 py-1 text-sm font-extrabold text-cas-primary">
-                      {table.totalRemainingQuantity} phần
-                    </span>
-                  </header>
-                  <div className="px-4" aria-label={`Món chờ tại ${table.table}`} role="list">
-                    {groupTableItemsByRequestedAt(table.items).map((timeGroup, index) => (
-                      <section
-                        className={index === 0 ? "" : "border-t border-cas-outline-variant/20"}
-                        key={timeGroup.requestedAt}
+            <div className="mt-4 grid grid-cols-2 items-start gap-3">
+              {[0, 1].map((columnIndex) => (
+                <div className="space-y-3" key={columnIndex}>
+                  {tableGroups
+                    .filter((_, index) => index % 2 === columnIndex)
+                    .map((table) => (
+                      <article
+                        className="block w-full overflow-hidden bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
+                        key={table.table}
                       >
-                        <div className="flex items-center gap-2 py-3 text-xs font-bold text-cas-on-surface-variant">
-                          <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
-                          <CasIcon className="size-3.5" name="clock" />
-                          <span>Gửi lúc {timeGroup.requestedAt}</span>
-                          <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
-                        </div>
-                        <ul className="pb-3" role="list">
-                          {timeGroup.items.map((item) => (
-                            <li className="py-2 first:pt-0 last:pb-0" key={item.id}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-extrabold">{item.itemName}</p>
-                                  {item.optionSummary && (
-                                    <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
-                                      {item.optionSummary}
-                                    </p>
-                                  )}
-                                </div>
-                                <span className="shrink-0 rounded-lg bg-cas-secondary-container/25 px-2 py-1 text-xs font-extrabold text-cas-secondary">
-                                  ×{item.remainingQuantity}
-                                </span>
+                        <header className="flex items-center justify-between gap-3 border-b border-cas-outline-variant/20 bg-cas-surface-container/45 px-4 py-3">
+                          <div className="min-w-0">
+                            <div>
+                              <h3 className="font-extrabold">{table.table}</h3>
+                              <p className="text-xs text-cas-on-surface-variant">
+                                {table.items.length} món đang chờ
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="px-2.5 py-1 text-sm font-extrabold text-cas-on-surface">
+                              {table.totalRemainingQuantity} phần
+                            </span>
+                            <button
+                              aria-label={`Hoàn thành toàn bộ món của ${table.table}`}
+                              className="grid size-8 place-items-center rounded-lg text-cas-secondary transition hover:bg-cas-secondary-container/40 disabled:opacity-60"
+                              disabled={submittingTableCode === table.tableCode}
+                              onClick={() => void handleCompleteTable(table)}
+                              type="button"
+                            >
+                              <CasIcon className="size-5" name="check" />
+                            </button>
+                          </div>
+                        </header>
+                        <div className="px-4" aria-label={`Món chờ tại ${table.table}`} role="list">
+                          {groupTableItemsByRequestedAt(table.items).map((timeGroup, index) => (
+                            <section
+                              className={
+                                index === 0 ? "" : "border-t border-cas-outline-variant/20"
+                              }
+                              key={timeGroup.requestedAt}
+                            >
+                              <div className="flex items-center gap-2 py-3 text-xs font-bold text-cas-on-surface-variant">
+                                <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
+                                <CasIcon className="size-3.5" name="clock" />
+                                <span>Gửi lúc {formatTime(timeGroup.requestedAt)}</span>
+                                <span className="h-px min-w-3 flex-1 bg-cas-outline-variant/40" />
                               </div>
-                            </li>
+                              <ul className="pb-3" role="list">
+                                {timeGroup.items.map((item) => (
+                                  <li className="py-2 first:pt-0 last:pb-0" key={item.id}>
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-extrabold">
+                                          {item.itemName}
+                                        </p>
+                                        {item.optionSummary && (
+                                          <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
+                                            {item.optionSummary}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <span className="shrink-0 rounded-lg bg-cas-secondary-container/25 px-2 py-1 text-xs font-extrabold text-cas-secondary">
+                                        ×{item.remainingQuantity}
+                                      </span>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </section>
                           ))}
-                        </ul>
-                      </section>
+                        </div>
+                      </article>
                     ))}
-                  </div>
-                </article>
+                </div>
               ))}
             </div>
           ) : (

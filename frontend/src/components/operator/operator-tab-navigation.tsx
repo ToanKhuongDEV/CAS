@@ -14,6 +14,10 @@ import {
   loadOperatorPendingCancellationCount,
   operatorPendingCancellationCountQueryKey,
 } from "../../lib/api/ordering/cancellation.api";
+import {
+  loadOperatorPendingPreparationTableCount,
+  operatorPendingPreparationTableCountQueryKey,
+} from "../../lib/api/ordering/preparation.api";
 
 type OperatorTab = {
   badge?: number;
@@ -34,9 +38,11 @@ const operatorTabs: OperatorTab[] = [
 export function OperatorTabNavigation({
   cancellationPollIntervalMs = 10_000,
   paymentPollIntervalMs = 10_000,
+  preparationPollIntervalMs = 10_000,
 }: {
   cancellationPollIntervalMs?: number;
   paymentPollIntervalMs?: number;
+  preparationPollIntervalMs?: number;
 }) {
   const pathname = usePathname();
   const { data: pendingPaymentCount } = useQuery({
@@ -51,7 +57,16 @@ export function OperatorTabNavigation({
     refetchInterval: cancellationPollIntervalMs,
     refetchIntervalInBackground: false,
   });
+  const { data: pendingPreparationTableCount } = useQuery({
+    queryKey: operatorPendingPreparationTableCountQueryKey,
+    queryFn: loadOperatorPendingPreparationTableCount,
+    refetchInterval: preparationPollIntervalMs,
+    refetchIntervalInBackground: false,
+  });
   const tabs = operatorTabs.map((tab) => {
+    if (tab.href === "/operator/orders") {
+      return { ...tab, badge: pendingPreparationTableCount ?? 0 };
+    }
     if (tab.href === "/operator/payments") return { ...tab, badge: pendingPaymentCount ?? 0 };
     if (tab.href === "/operator/cancellations") {
       return { ...tab, badge: pendingCancellationCount ?? 0 };
@@ -83,7 +98,13 @@ export function OperatorTabNavigation({
               <span>{tab.label}</span>
               {tab.badge ? (
                 <span
-                  aria-label={`${tab.badge} ${tab.href === "/operator/cancellations" ? "yêu cầu hủy món chờ xử lý" : "yêu cầu thanh toán chờ xác nhận"}`}
+                  aria-label={`${tab.badge} ${
+                    tab.href === "/operator/orders"
+                      ? "bàn đang chờ món"
+                      : tab.href === "/operator/cancellations"
+                        ? "yêu cầu hủy món chờ xử lý"
+                        : "yêu cầu thanh toán chờ xác nhận"
+                  }`}
                   className={`inline-flex size-5 items-center justify-center rounded-full text-[0.65rem] font-black leading-none ${
                     isActive
                       ? "bg-cas-secondary text-cas-on-secondary"
