@@ -315,8 +315,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Dịch vụ đặt trước:** `PUT /api/v1/operator/service-bookings/{serviceBookingId}` cập nhật tên khách, tên dịch vụ, ghi chú và giá thỏa thuận khi booking còn `PAY_LATER` hoặc `PENDING`; mọi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/cancel` hủy booking `PAY_LATER` hoặc `PENDING` thành `CANCELLED`. Mỗi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
 - [ ] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
-- [ ] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
-- [ ] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
+- [x] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
+- [x] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
 - [ ] **Thông báo hệ thống:** `ADMIN` tạo thông báo.
 - [ ] **Thông báo hệ thống:** `ADMIN` xóa thông báo.
 - [ ] **Thông báo hệ thống:** Customer/Operator xem danh sách notification của mình, gồm số chưa đọc.
@@ -398,7 +398,15 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 - [ ] Module danh sách `report` được thực hiện sau cùng, sau khi phạm vi và API contract được chốt.
 
+- [x] `POST /api/v1/operator/operational-incidents`: Operator gửi báo cáo sự cố với người báo cáo và mô tả, lưu bền vững kèm audit log. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/admin/operational-incidents`: Admin tra cứu danh sách báo cáo sự cố trong store. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/dashboard/summary`: trả số order tạo trong ngày theo giờ Việt Nam, số bàn `OPEN`/tổng số bàn và số payment chờ xác nhận; dashboard Operator tự làm mới mỗi 10 giây. **[Đã ghép Frontend]**
+
 ## 6. Frontend
+
+- [x] Loại bỏ khối giao diện thanh toán Customer không thể chạy sau khi đã trả về `PaymentRequestForm`, khắc phục lỗi TypeScript khi `bill` có thể là `null` và đồng bộ test theo UI hiện hành.
+- [x] Màn Operator hủy món do sự cố không còn fallback món mẫu; chỉ hiển thị dữ liệu từ API chế biến và có trạng thái tải, rỗng hoặc lỗi để không thể gửi `orderItemId` giả.
+- [x] Gỡ khối Khiếu nại dùng dữ liệu mẫu khỏi dashboard Operator vì Customer chưa có nghiệp vụ và API gửi phản ánh được chốt.
 
 - [x] Thiết kế lại giỏ hàng Customer theo card “Món đang chọn”: ảnh thumbnail, giá món/topping đã chọn, tăng giảm/xóa món, xóa tất cả có popup xác nhận, ghi chú chung và thanh gửi món cố định có tạm tính; ảnh, giá và option được lưu cùng dòng giỏ, còn giỏ cũ tự bù dữ liệu từ catalog hiện hành; hiển thị toast thành công khi thêm món từ menu hoặc trang chi tiết; số lượng ×N nằm cùng hàng tên món; thanh tạm tính/gửi món chừa khoảng cho navigation trên mobile.
 - [x] Chuẩn hóa toast dùng chung: hiển thị cố định ở góc dưới bên phải, nền trắng; chữ/icon xanh cho thành công, thông tin và lưu ý, chữ/icon đỏ cho lỗi.
@@ -510,7 +518,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Popup xem/xác nhận bill Operator là một hóa đơn cuộn tự nhiên trong khung giới hạn viewport; thanh cuộn được ẩn trên mobile và desktop.
 - [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món, hiển thị đầy đủ món gốc, option, đơn giá, số lượng và thành tiền cần đối chiếu.
 - [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
-- [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) cho phép nhân viên `OPERATOR` tạo và ghi nhận các sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`.
+- [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) qua nút cạnh “Hủy món do sự cố”, cho phép nhân viên `OPERATOR` tạo và ghi nhận sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`; không hiển thị danh sách tạm trên màn Operator.
 - [x] Cập nhật hệ thống tài liệu thiết kế (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`, `PROJECT_PROGRESS.md`) phân định rõ: `OPERATOR` tạo báo cáo sự cố phát sinh, `ADMIN` có quyền xem và tra cứu danh sách báo cáo sự cố.
 - [x] Bổ sung badge số nhỏ (counter badge) hiển thị số lượng yêu cầu/thông tin chờ xử lý trên thanh điều hướng `OperatorTabNavigation` cho các tab Đơn gọi món (8), Hủy món (3), Thanh toán (3), Chưa thanh toán (1) và Dịch vụ thêm (1).
 - [x] Xây dựng UI bộ giao diện Admin hoàn chỉnh tại `/admin` theo đúng thiết kế Stitch và tài liệu dự án, bao gồm Admin Header & AdminTabNavigation (`/admin/layout.tsx`), Dashboard Tổng quan (`/admin/page.tsx`), Quản lý Thực đơn & Catalog (`/admin/catalog/page.tsx`), Quản lý Bàn & Mã QR (`/admin/tables/page.tsx`), Quản lý Nhân viên OPERATOR (`/admin/operators/page.tsx`), Báo cáo Sự cố ca trực (`/admin/incidents/page.tsx`), Cấu hình & Nhật ký Audit Logs (`/admin/settings/page.tsx`).
