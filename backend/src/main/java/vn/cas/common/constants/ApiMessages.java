@@ -59,6 +59,9 @@ public final class ApiMessages {
     public static final String SERVICE_BOOKING_UPDATED = "Đã cập nhật dịch vụ đặt trước.";
     public static final String SERVICE_BOOKING_PAYMENT_CONFIRMED = "Đã xác nhận thanh toán dịch vụ.";
     public static final String SERVICE_BOOKING_CANCELLED = "Đã hủy dịch vụ đặt trước.";
+    public static final String OPERATIONAL_INCIDENT_CREATED = "Đã gửi báo cáo sự cố.";
+    public static final String OPERATIONAL_INCIDENTS_RETRIEVED = "Đã lấy danh sách báo cáo sự cố.";
+    public static final String OPERATOR_DASHBOARD_SUMMARY_RETRIEVED = "Đã lấy tổng quan vận hành.";
 
     private ApiMessages() {
     }

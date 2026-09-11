@@ -143,6 +143,21 @@ public final class ApiPaths {
         }
     }
 
+    public static final class OperationalIncident {
+        public static final String OPERATOR = API_OPERATOR_PREFIX + "/operational-incidents";
+        public static final String ADMIN = API_ADMIN_PREFIX + "/operational-incidents";
+
+        private OperationalIncident() {
+        }
+    }
+
+    public static final class OperatorDashboard {
+        public static final String SUMMARY = API_OPERATOR_PREFIX + "/dashboard/summary";
+
+        private OperatorDashboard() {
+        }
+    }
+
     public static final class Notification {
         public static final String ADMIN = API_ADMIN_PREFIX + "/notifications";
         public static final String ADMIN_ID = ADMIN + "/{notificationId}";

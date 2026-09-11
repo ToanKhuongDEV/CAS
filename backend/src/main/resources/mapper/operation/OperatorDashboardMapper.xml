@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.operation.mapper.OperatorDashboardMapper">
+
+    <select id="findSummary" resultType="vn.cas.operation.model.OperatorDashboardSummary">
+        SELECT
+            (
+                SELECT COUNT(*)
+                FROM orders
+                INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                WHERE dining_tables.store_id = #{storeId}
+                  AND orders.created_at &gt;= #{todayStart}
+                  AND orders.created_at &lt; #{tomorrowStart}
+            ) AS ordersToday,
+            (
+                SELECT COUNT(*)
+                FROM table_sessions
+                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                WHERE dining_tables.store_id = #{storeId}
+                  AND table_sessions.status = 'OPEN'
+            ) AS activeTableCount,
+            (
+                SELECT COUNT(*)
+                FROM dining_tables
+                WHERE dining_tables.store_id = #{storeId}
+            ) AS totalTableCount,
+            (
+                SELECT COUNT(*)
+                FROM payments
+                INNER JOIN table_sessions ON table_sessions.id = payments.table_session_id
+                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                WHERE dining_tables.store_id = #{storeId}
+                  AND payments.status = 'PENDING'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM unpaid_records
+                      WHERE unpaid_records.table_session_id = payments.table_session_id
+                  )
+            ) AS pendingPaymentCount
+    </select>
+</mapper>

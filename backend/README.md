@@ -193,6 +193,9 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings -H "Auth
 curl.exe -X PUT http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"clientName\":\"Nguyen Van A\",\"serviceName\":\"Birthday party 15 guests\",\"note\":\"Updated note\",\"agreedPrice\":1800000}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings/<service-booking-id>/cancel -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/operational-incidents -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"reporterName\":\"Nguyen Van A\",\"description\":\"May in bep bi ket giay.\"}"
+curl.exe http://localhost:8080/api/v1/admin/operational-incidents -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/dashboard/summary -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
 ```bash
