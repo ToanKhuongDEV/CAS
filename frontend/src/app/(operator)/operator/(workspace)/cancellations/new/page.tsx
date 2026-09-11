@@ -16,60 +16,6 @@ type TableOrderItem = {
   options: { name: string; price: number }[];
 };
 
-const mockTableOrders: Record<string, TableOrderItem[]> = {
-  "Bàn 01": [
-    {
-      id: "item-01-1",
-      name: "Gà chiên mắm",
-      unitPrice: 49000,
-      quantity: 2,
-      options: [{ name: "Không cay", price: 0 }],
-    },
-    {
-      id: "item-01-2",
-      name: "Trà sữa Trân châu Đường đen",
-      unitPrice: 35000,
-      quantity: 2,
-      options: [
-        { name: "50% đường, ít đá", price: 0 },
-        { name: "Thêm trân châu", price: 10000 },
-      ],
-    },
-  ],
-  "Bàn 03": [
-    {
-      id: "item-03-1",
-      name: "Mỳ cay đặc biệt 7 cấp độ",
-      unitPrice: 45000,
-      quantity: 2,
-      options: [
-        { name: "Cấp độ 2", price: 0 },
-        { name: "Thêm xúc xích", price: 10000 },
-        { name: "Thêm bò viên", price: 15000 },
-      ],
-    },
-    {
-      id: "item-03-2",
-      name: "Gà rán giòn rụm",
-      unitPrice: 35000,
-      quantity: 1,
-      options: [{ name: "Thêm sốt phô mai", price: 10000 }],
-    },
-  ],
-  "Bàn 05": [
-    {
-      id: "item-05-1",
-      name: "Bò sốt tiêu đen",
-      unitPrice: 59000,
-      quantity: 4,
-      options: [
-        { name: "Chín vừa", price: 0 },
-        { name: "Thêm nấm đùi gà", price: 15000 },
-      ],
-    },
-  ],
-};
-
 const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export default function IncidentCancellationPage() {
@@ -80,7 +26,9 @@ export default function IncidentCancellationPage() {
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [reason, setReason] = useState("Đổ/bể trong lúc phục vụ");
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [tableOrders, setTableOrders] = useState(mockTableOrders);
+  const [tableOrders, setTableOrders] = useState<Record<string, TableOrderItem[]>>({});
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadPreparationGroups()
@@ -103,8 +51,13 @@ export default function IncidentCancellationPage() {
           }
         }
         setTableOrders(next);
+        setLoadError(null);
       })
-      .catch(() => undefined);
+      .catch((cause) => {
+        setTableOrders({});
+        setLoadError(cause instanceof Error ? cause.message : "Không thể tải các món cần xử lý.");
+      })
+      .finally(() => setIsLoadingOrders(false));
   }, []);
 
   const handleTableChange = (tableName: string) => {
@@ -194,6 +147,7 @@ export default function IncidentCancellationPage() {
               required
               value={selectedTable}
               onChange={(e) => handleTableChange(e.target.value)}
+              disabled={isLoadingOrders || Boolean(loadError)}
               className="h-13 w-full cursor-pointer appearance-none rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-4 text-sm font-medium outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
             >
               <option value="" disabled>
@@ -206,6 +160,16 @@ export default function IncidentCancellationPage() {
               ))}
             </select>
           </label>
+
+          {isLoadingOrders ? (
+            <p className="text-sm text-cas-on-surface-variant">Đang tải món đã gọi...</p>
+          ) : null}
+          {loadError ? <p className="text-sm font-bold text-cas-error">{loadError}</p> : null}
+          {!isLoadingOrders && !loadError && Object.keys(tableOrders).length === 0 ? (
+            <p className="text-sm text-cas-on-surface-variant">
+              Chưa có món nào có thể hủy do sự cố.
+            </p>
+          ) : null}
 
           {selectedTable ? (
             <div className="space-y-3 pt-2">
@@ -398,7 +362,7 @@ export default function IncidentCancellationPage() {
             size="lg"
             icon="trash"
             className="w-full sm:w-auto shadow-[0_8px_20px_var(--cas-shadow-color)]"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoadingOrders || Boolean(loadError)}
           >
             {isSubmitting ? "Đang xử lý..." : "Xác nhận Hủy món & Cập nhật"}
           </CasButton>
