@@ -1,40 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
+import { createOperationalIncident } from "../../lib/api/operation/operational-incidents.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 
-export type OperationalIncident = {
-  createdAt: string;
-  createdByName: string;
-  description: string;
-  id: string;
-};
-
-const initialIncidents: OperationalIncident[] = [
-  {
-    createdAt: "17:15 - Hôm nay",
-    createdByName: "Nguyễn Văn A (Nhân viên ca trực)",
-    description:
-      "Máy in bếp 1 bị kẹt giấy trong 10 phút, đã xử lý xong và in lại các phiếu order bị hoãn.",
-    id: "inc-1",
-  },
-  {
-    createdAt: "15:40 - Hôm nay",
-    createdByName: "Trần Thị B (Thu ngân)",
-    description: "Bàn 04 vô tình làm vỡ 1 ly nước. Đã dọn dẹp sạch sẽ và đổi ly mới cho khách.",
-    id: "inc-2",
-  },
-];
-
 export function OperatorIncidentsPanel() {
-  const [incidents, setIncidents] = useState<OperationalIncident[]>(initialIncidents);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [description, setDescription] = useState("");
-  const [createdByName, setCreatedByName] = useState("Nhân viên ca trực");
+  const [reporterName, setReporterName] = useState("Nhân viên ca trực");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenModal = () => {
     setDescription("");
@@ -42,102 +20,51 @@ export function OperatorIncidentsPanel() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (!description.trim()) {
       setError("Vui lòng nhập nội dung mô tả sự cố.");
       return;
     }
 
-    const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")} - Vừa xong`;
-
-    const newIncident: OperationalIncident = {
-      createdAt: timeStr,
-      createdByName: createdByName.trim() || "Nhân viên ca trực",
-      description: description.trim(),
-      id: `inc-${Date.now()}`,
-    };
-
-    setIncidents([newIncident, ...incidents]);
-    setIsModalOpen(false);
-    setFeedback("Đã ghi nhận báo cáo sự cố thành công.");
-
-    setTimeout(() => setFeedback(null), 4000);
+    setIsSubmitting(true);
+    try {
+      await createOperationalIncident({
+        reporterName: reporterName.trim() || "Nhân viên ca trực",
+        description: description.trim(),
+      });
+      setIsModalOpen(false);
+      setFeedback("Đã ghi nhận báo cáo sự cố thành công.");
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Không thể gửi báo cáo sự cố.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <>
-      <section
-        className="rounded-2xl border border-cas-outline-variant/20 bg-cas-glass p-5 shadow-[0_5px_18px_var(--cas-shadow-color)]"
-        aria-labelledby="incidents-title"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-extrabold" id="incidents-title">
-              Sự cố phát sinh
-            </h2>
-            <span className="rounded-full bg-cas-error/10 px-2.5 py-0.5 text-xs font-extrabold text-cas-error">
-              {incidents.length} sự cố
-            </span>
-          </div>
+      <CasButton variant="outline" onClick={handleOpenModal}>
+        <CasIcon className="size-4" name="plus" />
+        <span>Báo cáo sự cố</span>
+      </CasButton>
 
-          <CasButton size="sm" variant="outline" onClick={handleOpenModal}>
-            <CasIcon className="size-4" name="plus" />
-            <span>Báo cáo sự cố</span>
-          </CasButton>
+      {feedback ? (
+        <div
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-xl border border-cas-secondary/25 bg-cas-secondary-container px-4 py-3 text-sm font-bold text-cas-secondary shadow-[0_5px_18px_var(--cas-shadow-color)]"
+          role="status"
+        >
+          <CasIcon className="size-4 shrink-0" name="check" />
+          <span>{feedback}</span>
         </div>
+      ) : null}
 
-        {feedback ? (
-          <div
-            className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-cas-secondary/25 bg-cas-secondary-container/20 p-3 text-xs font-bold text-cas-secondary"
-            role="status"
-          >
-            <div className="flex items-center gap-2">
-              <CasIcon className="size-4 shrink-0" name="check" />
-              <span>{feedback}</span>
-            </div>
-            <button
-              onClick={() => setFeedback(null)}
-              className="opacity-75 hover:opacity-100"
-              type="button"
-            >
-              ✕
-            </button>
-          </div>
-        ) : null}
-
-        {incidents.length > 0 ? (
-          <ul className="mt-4 divide-y divide-cas-outline-variant/20">
-            {incidents.map((inc) => (
-              <li className="py-3 first:pt-1 last:pb-0" key={inc.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-xs font-extrabold text-cas-on-surface">
-                    {inc.createdByName}
-                  </span>
-                  <time className="text-[0.7rem] text-cas-on-surface-variant shrink-0">
-                    {inc.createdAt}
-                  </time>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-cas-on-surface-variant/90">
-                  {inc.description}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 text-center text-xs text-cas-on-surface-variant py-4">
-            Chưa có sự cố nào được ghi nhận trong ca.
-          </p>
-        )}
-      </section>
-
-      {/* MODAL TẠO BÁO CÁO SỰ CỐ */}
       {isModalOpen ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setIsModalOpen(false);
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsModalOpen(false);
           }}
         >
           <section
@@ -148,7 +75,7 @@ export function OperatorIncidentsPanel() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="text-xs font-extrabold tracking-wider text-cas-error uppercase">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-cas-error">
                   Vận hành ca trực
                 </span>
                 <h2 className="mt-1 text-xl font-extrabold" id="create-incident-title">
@@ -167,7 +94,7 @@ export function OperatorIncidentsPanel() {
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               <div>
                 <label
-                  className="block text-xs font-bold text-cas-on-surface mb-1.5"
+                  className="mb-1.5 block text-xs font-bold text-cas-on-surface"
                   htmlFor="incident-creator-input"
                 >
                   Người tạo báo cáo
@@ -175,8 +102,8 @@ export function OperatorIncidentsPanel() {
                 <input
                   id="incident-creator-input"
                   type="text"
-                  value={createdByName}
-                  onChange={(e) => setCreatedByName(e.target.value)}
+                  value={reporterName}
+                  onChange={(event) => setReporterName(event.target.value)}
                   placeholder="Tên nhân viên..."
                   className="w-full rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 px-3.5 py-2.5 text-sm font-medium focus:border-cas-primary focus:outline-none"
                 />
@@ -184,7 +111,7 @@ export function OperatorIncidentsPanel() {
 
               <div>
                 <label
-                  className="block text-xs font-bold text-cas-on-surface mb-1.5"
+                  className="mb-1.5 block text-xs font-bold text-cas-on-surface"
                   htmlFor="incident-description-input"
                 >
                   Mô tả chi tiết sự cố <span className="text-cas-error">*</span>
@@ -193,22 +120,22 @@ export function OperatorIncidentsPanel() {
                   id="incident-description-input"
                   rows={4}
                   value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
+                  onChange={(event) => {
+                    setDescription(event.target.value);
                     if (error) setError(null);
                   }}
                   placeholder="Nhập nội dung sự cố phát sinh trong ca..."
-                  className="w-full rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 px-3.5 py-2.5 text-sm font-medium focus:border-cas-primary focus:outline-none resize-none"
+                  className="w-full resize-none rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 px-3.5 py-2.5 text-sm font-medium focus:border-cas-primary focus:outline-none"
                 />
                 {error ? <p className="mt-1.5 text-xs font-bold text-cas-error">{error}</p> : null}
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <CasButton type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                   Hủy
                 </CasButton>
-                <CasButton type="submit" variant="primary">
-                  Gửi báo cáo
+                <CasButton disabled={isSubmitting} type="submit" variant="primary">
+                  {isSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
                 </CasButton>
               </div>
             </form>
