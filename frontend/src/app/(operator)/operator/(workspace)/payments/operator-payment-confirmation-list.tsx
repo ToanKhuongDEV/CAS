@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
-import { OperatorUnpaidView } from "../../../../../components/operator/operator-unpaid-view";
+import { OperatorPaymentControlView } from "../../../../../components/operator/operator-payment-control-view";
 import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
@@ -140,7 +140,8 @@ export function OperatorPaymentConfirmationList({
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
   const [operatorName, setOperatorName] = useState<string | null>(null);
-  const [showUnpaidSessions, setShowUnpaidSessions] = useState(false);
+  const [showPaymentControl, setShowPaymentControl] = useState(false);
+  const [paymentRefreshKey, setPaymentRefreshKey] = useState(0);
   const paymentLoads = useRef<Partial<Record<PaymentListMode, Promise<Payment[]>>>>({});
   const queryClient = useQueryClient();
 
@@ -182,7 +183,7 @@ export function OperatorPaymentConfirmationList({
       if (timer !== undefined) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [mode, pollIntervalMs]);
+  }, [mode, paymentRefreshKey, pollIntervalMs]);
 
   useEffect(() => {
     let isActive = true;
@@ -260,13 +261,13 @@ export function OperatorPaymentConfirmationList({
     }, 0);
   }
 
-  if (showUnpaidSessions) {
+  if (showPaymentControl) {
     return (
       <>
         <header>
           <button
             className="inline-flex items-center gap-2 rounded-xl border border-cas-outline-variant/35 px-4 py-2 text-sm font-extrabold text-cas-on-surface-variant transition hover:text-cas-primary"
-            onClick={() => setShowUnpaidSessions(false)}
+            onClick={() => setShowPaymentControl(false)}
             type="button"
           >
             <CasIcon className="size-4 rotate-180" name="arrow" />
@@ -274,7 +275,13 @@ export function OperatorPaymentConfirmationList({
           </button>
         </header>
         <div className="mt-6">
-          <OperatorUnpaidView />
+          <OperatorPaymentControlView
+            onPaymentRequested={() => {
+              setShowPaymentControl(false);
+              setMode("PENDING");
+              setPaymentRefreshKey((current) => current + 1);
+            }}
+          />
         </div>
       </>
     );
@@ -322,11 +329,11 @@ export function OperatorPaymentConfirmationList({
         </div>
         <button
           className="inline-flex items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10"
-          onClick={() => setShowUnpaidSessions(true)}
+          onClick={() => setShowPaymentControl(true)}
           type="button"
         >
           <CasIcon className="size-4" name="clock" />
-          Không thanh toán
+          Kiểm soát thanh toán
         </button>
       </header>
 

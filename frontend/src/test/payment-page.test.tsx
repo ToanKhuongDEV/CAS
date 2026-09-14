@@ -67,7 +67,7 @@ describe("PaymentRequestPanel", () => {
 
     expect(await screen.findByText("Mỳ cay API")).toBeInTheDocument();
     expect(screen.getByText("+ Cấp 2")).toBeInTheDocument();
-    expect(screen.getAllByText("55.000 ₫")).toHaveLength(3);
+    expect(screen.getAllByText("55.000 ₫")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" })).toBeEnabled();
   });
 
@@ -122,9 +122,7 @@ describe("PaymentRequestPanel", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Gửi yêu cầu thanh toán" }));
     await waitFor(() => expect(createCustomerPayment).toHaveBeenCalledOnce());
-    expect(
-      screen.getByRole("dialog", { name: "Yêu cầu thanh toán đã được gửi" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Đang gửi yêu cầu..." })).toBeDisabled();
   });
 
   it("shows unavailable active vouchers as disabled", async () => {

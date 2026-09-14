@@ -107,7 +107,7 @@ describe("OperatorPaymentsPage", () => {
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: "Không thanh toán" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kiểm soát thanh toán" })).toBeInTheDocument();
     const confirmationButton = await screen.findByRole("button", {
       name: "Xác nhận đã thanh toán",
     });

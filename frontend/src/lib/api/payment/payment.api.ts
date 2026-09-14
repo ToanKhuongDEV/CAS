@@ -53,6 +53,11 @@ export function loadOperatorPaidTodayPayments() {
 export function loadOperatorPendingPaymentCount() {
   return operator<number>("/payments/pending-count");
 }
+export function createOperatorPayment(sessionId: string) {
+  return operator<Payment>(`/table-sessions/${encodeURIComponent(sessionId)}/payments`, {
+    method: "POST",
+  });
+}
 export function confirmOperatorPayment(id: string) {
   return operator<Payment>(`/payments/${encodeURIComponent(id)}/confirm`, { method: "POST" });
 }

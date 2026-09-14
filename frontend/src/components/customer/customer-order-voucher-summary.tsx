@@ -5,6 +5,10 @@ import {
   clearCustomerPromotion,
   loadCustomerEligiblePromotions,
   loadCustomerPromotions,
+  clearOperatorPromotion,
+  loadOperatorEligiblePromotions,
+  loadOperatorPromotions,
+  selectOperatorPromotion,
   selectCustomerPromotion,
   type CustomerPromotion,
   type EligiblePromotion,
@@ -22,6 +26,7 @@ const formatMoney = (value: number) => `${new Intl.NumberFormat("vi-VN").format(
 type Props = {
   onSummaryChange?: (summary: VoucherSummary) => void;
   originalAmount: number;
+  operatorSessionId?: string;
 };
 
 type VoucherDisplay = Pick<
@@ -34,7 +39,11 @@ type VoucherDisplay = Pick<
   | "discountAmount"
 >;
 
-export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }: Props) {
+export function CustomerOrderVoucherSummary({
+  onSummaryChange,
+  operatorSessionId,
+  originalAmount,
+}: Props) {
   const [codeVouchers, setCodeVouchers] = useState<EligiblePromotion[]>([]);
   const [publicVouchers, setPublicVouchers] = useState<CustomerPromotion[]>([]);
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
@@ -50,10 +59,11 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
   const payableAmount = selected?.payableAmount ?? originalAmount;
 
   useEffect(() => {
-    void loadCustomerPromotions()
-      .then(setPublicVouchers)
-      .catch(() => setPublicVouchers([]));
-  }, [originalAmount]);
+    const request = operatorSessionId
+      ? loadOperatorPromotions(operatorSessionId)
+      : loadCustomerPromotions();
+    void request.then(setPublicVouchers).catch(() => setPublicVouchers([]));
+  }, [operatorSessionId, originalAmount]);
 
   useEffect(() => {
     onSummaryChange?.({
@@ -68,13 +78,16 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
     setError(null);
     try {
       if (!promotionId) {
-        await clearCustomerPromotion();
+        if (operatorSessionId) await clearOperatorPromotion(operatorSessionId);
+        else await clearCustomerPromotion();
         setSelectedVoucherId("");
         setIsVoucherModalOpen(false);
         return;
       }
 
-      const applied = await selectCustomerPromotion(promotionId, selectedCode);
+      const applied = operatorSessionId
+        ? await selectOperatorPromotion(operatorSessionId, promotionId, selectedCode)
+        : await selectCustomerPromotion(promotionId, selectedCode);
       setCodeVouchers((current) =>
         current.map((item) => (item.promotionId === promotionId ? applied : item)),
       );
@@ -91,7 +104,9 @@ export function CustomerOrderVoucherSummary({ onSummaryChange, originalAmount }:
 
     setError(null);
     try {
-      const available = await loadCustomerEligiblePromotions(code);
+      const available = operatorSessionId
+        ? await loadOperatorEligiblePromotions(operatorSessionId, code)
+        : await loadCustomerEligiblePromotions(code);
       setCodeVouchers(available.filter((voucher) => voucher.code !== null));
       const matched = available.find(
         (voucher) => voucher.code?.toLowerCase() === code.trim().toLowerCase(),

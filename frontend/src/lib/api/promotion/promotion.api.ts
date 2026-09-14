@@ -121,9 +121,16 @@ export function clearCustomerPromotion() {
   return customerRequest<void>("/api/v1/customer/promotions/selection", { method: "DELETE" });
 }
 
-export function loadOperatorEligiblePromotions(sessionId: string) {
+export function loadOperatorEligiblePromotions(sessionId: string, code?: string) {
+  const query = code?.trim() ? `?code=${encodeURIComponent(code.trim())}` : "";
   return operationalRequest<EligiblePromotion[]>(
-    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions/eligible`,
+    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions/eligible${query}`,
+  );
+}
+
+export function loadOperatorPromotions(sessionId: string) {
+  return operationalRequest<CustomerPromotion[]>(
+    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions`,
   );
 }
 
