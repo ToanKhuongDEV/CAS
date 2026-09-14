@@ -4,6 +4,7 @@ import { OperatorOrderCreationView } from "../components/operator/order-creation
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadOperatorCatalog } from "../lib/api/catalog/published-catalog.api";
 import {
+  cancelOperatorTableSession,
   createOperatorOrder,
   loadOperatorTables,
   openOperatorTableSession,
@@ -11,6 +12,7 @@ import {
 
 vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadOperatorCatalog: vi.fn() }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({
+  cancelOperatorTableSession: vi.fn(),
   createOperatorOrder: vi.fn(),
   loadOperatorTables: vi.fn(),
   openOperatorTableSession: vi.fn(),
@@ -99,6 +101,7 @@ describe("OperatorOrderCreationView", () => {
       tableCode: 2,
     });
     vi.mocked(createOperatorOrder).mockResolvedValue({ orderId: "order-1", payableAmount: 35_000 });
+    vi.mocked(cancelOperatorTableSession).mockResolvedValue(undefined);
   });
 
   const renderOrderCreationView = () =>
@@ -173,24 +176,26 @@ describe("OperatorOrderCreationView", () => {
     expect(noteInput).toHaveValue("Mang kèm thêm ớt tươi và khăn giấy");
   });
 
-  it("allows selecting a different table to serve via table selector modal", async () => {
+  it("opens item details from the item name and adds the item with its options", async () => {
     renderOrderCreationView();
 
-    await screen.findByText("Gà rán giòn rụm");
+    const itemName = "Mỳ cay đặc biệt 7 cấp độ";
+    await screen.findByText(itemName);
 
-    const switchTableBtns = screen.getAllByRole("button", {
-      name: /chọn bàn khác/i,
-    });
-    fireEvent.click(switchTableBtns[0]);
+    fireEvent.click(screen.getByRole("button", { name: itemName }));
 
-    // Modal dialog
-    expect(screen.getByRole("heading", { name: "Chọn bàn phục vụ" })).toBeInTheDocument();
+    const detailDialog = screen.getByRole("dialog", { name: itemName });
+    expect(detailDialog).toBeInTheDocument();
+    expect(within(detailDialog).getByText("Chi tiết món")).toBeInTheDocument();
+    expect(within(detailDialog).getByText("Món cay")).toBeInTheDocument();
 
-    const table01Option = screen.getByRole("button", { name: /Bàn 01/i });
-    fireEvent.click(table01Option);
+    fireEvent.click(
+      within(detailDialog).getByRole("button", { name: /chọn tùy chọn cho mỳ cay/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /thêm vào giỏ/i }));
 
-    // Context should now show Bàn 01
-    expect(screen.getAllByText(/Bàn 01/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Món đã chọn")).toBeInTheDocument();
+    expect(screen.getAllByText(itemName).length).toBeGreaterThan(1);
   });
 
   it("creates an order with the active table session and selected menu item", async () => {
@@ -218,26 +223,14 @@ describe("OperatorOrderCreationView", () => {
     expect(await screen.findByText("order-1")).toBeInTheDocument();
   });
 
-  it("asks for confirmation before opening an empty table session", async () => {
+  it("cancels the selected table session after confirmation", async () => {
     renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
+    fireEvent.click(screen.getByRole("button", { name: "Hủy phiên bàn" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy phiên" }));
 
-    fireEvent.click(screen.getAllByRole("button", { name: /chọn bàn khác/i })[0]);
-    const tableSelectionDialog = screen.getByRole("dialog");
-    fireEvent.click(within(tableSelectionDialog).getByRole("button", { name: /Bàn 02/i }));
-
-    expect(screen.getByRole("heading", { name: "Tạo phiên mới cho Bàn 02?" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
-
-    expect(screen.getByRole("heading", { name: "Thông tin khách tại Bàn 02" })).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("textbox", { name: /tên của bạn/i }), {
-      target: { value: "Nguyễn Văn A" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Tạo phiên bàn và chọn món" }));
-
-    expect(screen.getAllByText(/Bàn 02/i).length).toBeGreaterThan(0);
-    expect(await screen.findByText(/Bàn 02.*Nguyễn Văn A/)).toBeInTheDocument();
+    await vi.waitFor(() => expect(cancelOperatorTableSession).toHaveBeenCalledWith("session-5"));
+    expect(await screen.findByText("Đã hủy phiên bàn.")).toBeInTheDocument();
   });
 });

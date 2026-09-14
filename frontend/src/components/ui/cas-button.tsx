@@ -38,7 +38,7 @@ const sizeClasses: Record<CasButtonSize, string> = {
 export const CasButton = forwardRef<HTMLButtonElement | HTMLAnchorElement, CasButtonProps>(
   ({ variant = "primary", size = "md", href, className = "", icon, children, ...props }, ref) => {
     const baseClasses =
-      "inline-flex items-center justify-center gap-2 rounded-xl font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring active:translate-y-px disabled:opacity-50 disabled:pointer-events-none";
+      "inline-flex items-center justify-center gap-2 rounded-lg font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring active:translate-y-px disabled:opacity-50 disabled:pointer-events-none";
 
     const combinedClasses =
       `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`.trim();

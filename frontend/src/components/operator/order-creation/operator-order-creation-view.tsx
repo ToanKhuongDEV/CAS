@@ -14,19 +14,15 @@ import {
   type MenuOptionGroup,
 } from "../../customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../ui/cas-icon";
+import { CasButton } from "../../ui/cas-button";
 import { useToast } from "../../ui/toast-provider";
 import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
 import {
+  cancelOperatorTableSession,
   createOperatorOrder,
   loadOperatorTables,
   openOperatorTableSession,
 } from "../../../lib/api/ordering/ordering.api";
-import {
-  clearOperatorPromotion,
-  loadOperatorEligiblePromotions,
-  selectOperatorPromotion,
-  type EligiblePromotion,
-} from "../../../lib/api/promotion/promotion.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -388,9 +384,10 @@ export function OperatorOrderCreationView({
   const [orderNote, setOrderNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<MenuItemData | null>(null);
   const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
-  const [eligiblePromotions, setEligiblePromotions] = useState<EligiblePromotion[]>([]);
-  const [selectedPromotionId, setSelectedPromotionId] = useState("");
+  const [isCancelSessionDialogOpen, setIsCancelSessionDialogOpen] = useState(false);
+  const [isCancellingSession, setIsCancellingSession] = useState(false);
 
   useEffect(() => {
     void loadOperatorCatalog()
@@ -440,33 +437,6 @@ export function OperatorOrderCreationView({
         ),
       );
   }, []);
-
-  useEffect(() => {
-    if (!selectedTable.sessionPublicId) {
-      setEligiblePromotions([]);
-      setSelectedPromotionId("");
-      return;
-    }
-    void loadOperatorEligiblePromotions(selectedTable.sessionPublicId)
-      .then(setEligiblePromotions)
-      .catch(() => setEligiblePromotions([]));
-  }, [selectedTable.sessionPublicId]);
-
-  const selectPromotion = async (promotionId: string) => {
-    if (!selectedTable.sessionPublicId) return;
-    try {
-      if (!promotionId) {
-        await clearOperatorPromotion(selectedTable.sessionPublicId);
-        setSelectedPromotionId("");
-        return;
-      }
-      const promotion = eligiblePromotions.find((item) => item.promotionId === promotionId);
-      await selectOperatorPromotion(selectedTable.sessionPublicId, promotionId, promotion?.code);
-      setSelectedPromotionId(promotionId);
-    } catch (cause) {
-      setOperationError(cause instanceof Error ? cause.message : "Không thể áp dụng khuyến mãi.");
-    }
-  };
 
   useEffect(() => {
     void loadOperatorTables()
@@ -606,58 +576,84 @@ export function OperatorOrderCreationView({
     }
   };
 
+  const handleCancelTableSession = async () => {
+    if (!selectedTable.sessionPublicId || isCancellingSession) return;
+    setIsCancellingSession(true);
+    setOperationError(null);
+    try {
+      await cancelOperatorTableSession(selectedTable.sessionPublicId);
+      setOperatorTables((current) =>
+        current.map((table) =>
+          table.id === selectedTable.id
+            ? { ...table, sessionPublicId: undefined, status: "EMPTY" as const }
+            : table,
+        ),
+      );
+      setSelectedTable(unselectedTable);
+      setCartItems([]);
+      setOrderNote("");
+      setIsCancelSessionDialogOpen(false);
+      showToast({ type: "success", message: "Đã hủy phiên bàn." });
+    } catch (cause) {
+      setOperationError(cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.");
+    } finally {
+      setIsCancellingSession(false);
+    }
+  };
+
   return (
     <div className="relative pb-24 lg:pb-0">
-      {/* Top Header - No Breadcrumbs, Clean Context & Table Switch */}
-      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
-            Tạo order hộ tại bàn
-          </h1>
-        </div>
-        {selectedTable.sessionPublicId && (
-          <label className="flex items-center gap-2 rounded-xl border border-cas-outline-variant/30 bg-cas-surface px-3 py-2 text-xs font-semibold text-cas-on-surface-variant">
-            Khuyến mãi
-            <select
-              className="min-w-40 bg-transparent text-cas-on-surface outline-none"
-              onChange={(event) => void selectPromotion(event.target.value)}
-              value={selectedPromotionId}
-            >
-              <option value="">Không áp dụng</option>
-              {eligiblePromotions.map((promotion) => (
-                <option key={promotion.promotionId} value={promotion.promotionId}>
-                  {promotion.code ? `${promotion.code} · ` : ""}
-                  {promotion.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        {/* Selected Table Context Card */}
-        <div className="flex items-center gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-2.5 shadow-sm sm:p-3">
-          <span className="grid size-9 place-items-center rounded-xl bg-cas-secondary text-xs font-black text-cas-on-primary">
-            {selectedTable.code}
-          </span>
-          <div className="pr-2">
-            <p className="text-xs font-extrabold text-cas-on-surface">
-              {selectedTable.label}
-              {selectedTable.customerName ? ` (${selectedTable.customerName})` : ""}
-            </p>
-            <p className="text-[0.68rem] font-semibold text-cas-secondary">
-              {selectedTable.sessionPublicId ? "Phiên bàn đang mở" : "Chưa chọn bàn"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsTableModalOpen(true)}
-            className="rounded-xl bg-cas-secondary-container/30 px-3 py-1.5 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/50 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
-          >
-            Chọn bàn khác
-          </button>
-        </div>
+      <header className="mb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
+          Tạo order hộ tại bàn
+        </h1>
       </header>
       {operationError ? <p className="mb-4 text-sm text-cas-error">{operationError}</p> : null}
+
+      {isCancelSessionDialogOpen ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isCancellingSession) {
+              setIsCancelSessionDialogOpen(false);
+            }
+          }}
+          role="presentation"
+        >
+          <section
+            aria-labelledby="operator-cancel-session-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl"
+            role="dialog"
+          >
+            <h2 className="text-xl font-extrabold" id="operator-cancel-session-title">
+              Hủy phiên {selectedTable.label}?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
+              Chỉ có thể hủy khi bàn chưa gửi món nào xuống bếp. Hệ thống sẽ kiểm tra lại điều kiện
+              này trước khi đóng phiên.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => setIsCancelSessionDialogOpen(false)}
+                type="button"
+                variant="outline"
+              >
+                Quay lại
+              </CasButton>
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => void handleCancelTableSession()}
+                type="button"
+                variant="danger"
+              >
+                {isCancellingSession ? "Đang hủy..." : "Xác nhận hủy phiên"}
+              </CasButton>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {/* Main Content Layout (2 Columns on Desktop) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -721,7 +717,7 @@ export function OperatorOrderCreationView({
                         className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:p-4"
                         key={item.id}
                       >
-                        <div className="relative min-h-32 overflow-hidden rounded-2xl md:aspect-[4/3] md:min-h-0">
+                        <div className="relative min-h-32 overflow-hidden rounded-2xl md:h-full md:min-h-0">
                           <Image
                             className="object-cover transition-transform duration-500 hover:scale-105"
                             src={item.imageSrc}
@@ -747,8 +743,14 @@ export function OperatorOrderCreationView({
                         </div>
 
                         <div className="flex min-w-0 flex-col">
-                          <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
-                            {item.name}
+                          <h3>
+                            <button
+                              className="line-clamp-2 text-left text-sm leading-snug font-extrabold transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring md:text-base"
+                              type="button"
+                              onClick={() => setDetailItem(item)}
+                            >
+                              {item.name}
+                            </button>
                           </h3>
                           <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
                             {item.description}
@@ -813,13 +815,14 @@ export function OperatorOrderCreationView({
 
         {/* Right Column: Persistent Cart Panel on Desktop */}
         <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
-          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start">
+          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start lg:-mt-22">
             <OperatorCartPanel
               selectedTable={selectedTable}
               cartItems={cartItems}
               orderNote={orderNote}
               isSubmitting={isSubmitting}
               onChangeTableClick={() => setIsTableModalOpen(true)}
+              onCancelTableSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
@@ -863,6 +866,7 @@ export function OperatorOrderCreationView({
                 setIsMobileDrawerOpen(false);
                 setIsTableModalOpen(true);
               }}
+              onCancelTableSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
@@ -993,6 +997,74 @@ export function OperatorOrderCreationView({
             >
               Quay lại
             </button>
+          </div>
+        </div>
+      )}
+
+      {detailItem && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-menu-item-detail-title"
+        >
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.6rem] bg-cas-surface shadow-2xl">
+            <div className="relative aspect-[16/9] overflow-hidden bg-cas-surface-container">
+              <Image
+                className="object-cover"
+                src={detailItem.imageSrc}
+                alt={detailItem.imageAlt}
+                fill
+                sizes="(max-width: 767px) calc(100vw - 2rem), 42rem"
+              />
+              <button
+                className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-cas-glass text-cas-on-surface shadow-lg backdrop-blur-xl focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                type="button"
+                aria-label="Đóng chi tiết món"
+                onClick={() => setDetailItem(null)}
+              >
+                <CasIcon className="size-5" name="close" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                    Chi tiết món
+                  </p>
+                  <h2
+                    className="mt-2 text-2xl leading-tight font-extrabold tracking-tight text-cas-on-surface"
+                    id="operator-menu-item-detail-title"
+                  >
+                    {detailItem.name}
+                  </h2>
+                </div>
+                <strong className="shrink-0 text-xl text-cas-primary">{detailItem.price}</strong>
+              </div>
+
+              {detailItem.description ? (
+                <p className="mt-4 text-sm leading-relaxed text-cas-on-surface-variant">
+                  {detailItem.description}
+                </p>
+              ) : null}
+
+              <div className="mt-6 border-t border-cas-outline-variant/45 pt-5">
+                {detailItem.availabilityStatus === "SOLD_OUT" ? (
+                  <p className="text-sm font-bold text-cas-error">Món này hiện đã hết hàng.</p>
+                ) : (
+                  <AddToCartOptionDialog
+                    basePrice={detailItem.basePrice}
+                    itemName={detailItem.name}
+                    optionGroups={detailItem.optionGroups}
+                    onAddToCart={(payload) => {
+                      handleAddItemToCart(detailItem, payload);
+                      setDetailItem(null);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -81,6 +81,12 @@ export async function loadOperatorTables() {
   return operatorRequest<OperatorTable[]>("/table-sessions/tables");
 }
 
+export async function loadOperatorBill(sessionPublicId: string) {
+  return operatorRequest<CustomerBill>(
+    `/table-sessions/${encodeURIComponent(sessionPublicId)}/bill`,
+  );
+}
+
 export async function openOperatorTableSession(
   tableId: number,
   customer?: { customerName: string; customerPhone: string | null },
@@ -92,6 +98,12 @@ export async function openOperatorTableSession(
       body: JSON.stringify({ tableId, ...customer }),
     },
   );
+}
+
+export async function cancelOperatorTableSession(sessionPublicId: string) {
+  await operatorRequest<void>(`/table-sessions/${encodeURIComponent(sessionPublicId)}`, {
+    method: "DELETE",
+  });
 }
 
 export function createOperatorOrder(

@@ -26,6 +26,7 @@ type OperatorCartPanelProps = {
   orderNote: string;
   isSubmitting: boolean;
   onChangeTableClick: () => void;
+  onCancelTableSession?: () => void;
   onUpdateQuantity: (cartItemId: string, delta: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onClearCart: () => void;
@@ -42,6 +43,7 @@ export function OperatorCartPanel({
   orderNote,
   isSubmitting,
   onChangeTableClick,
+  onCancelTableSession,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
@@ -53,7 +55,7 @@ export function OperatorCartPanel({
   const totalCartAmount = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-[1.4rem] border border-cas-outline-variant/30 bg-cas-surface shadow-[0_8px_24px_var(--cas-shadow-color)]">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-[1.4rem] border border-cas-outline-variant/30 bg-cas-surface shadow-[0_8px_24px_var(--cas-shadow-color)] lg:rounded-none">
       {/* Table Context Header */}
       <div className="shrink-0 border-b border-cas-outline-variant/20 bg-cas-secondary-container/15 p-4 sm:p-5">
         <div className="flex items-center justify-between">
@@ -82,6 +84,15 @@ export function OperatorCartPanel({
           </div>
 
           <div className="flex items-center gap-2">
+            {selectedTable.sessionPublicId && onCancelTableSession ? (
+              <button
+                type="button"
+                onClick={onCancelTableSession}
+                className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-2.5 py-1 text-xs font-extrabold text-cas-on-error-container transition hover:bg-cas-error-container/55 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
+              >
+                Hủy phiên bàn
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onChangeTableClick}

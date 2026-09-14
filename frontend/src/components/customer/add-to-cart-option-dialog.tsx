@@ -143,7 +143,7 @@ export function AddToCartOptionDialog({
   return (
     <>
       {disabled ? (
-        <span className="rounded-full bg-cas-outline-variant/45 px-3 py-2 text-xs font-bold text-cas-on-surface-variant">
+        <span className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-cas-outline-variant/45 px-3 text-xs font-bold text-cas-on-surface-variant">
           Hết hàng
         </span>
       ) : currentQuantity && currentQuantity > 0 ? (
