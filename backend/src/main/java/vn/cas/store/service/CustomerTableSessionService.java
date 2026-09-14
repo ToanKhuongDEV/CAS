@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.operation.dto.AuditLogCommand;
+import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
@@ -17,9 +20,12 @@ import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
 public class CustomerTableSessionService {
 
     private final DiningTableMapper diningTableMapper;
+    private final AuditLogService auditLogService;
 
-    public CustomerTableSessionService(DiningTableMapper diningTableMapper) {
+    public CustomerTableSessionService(DiningTableMapper diningTableMapper,
+            AuditLogService auditLogService) {
         this.diningTableMapper = diningTableMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -116,6 +122,28 @@ public class CustomerTableSessionService {
             throw new ApiException(HttpStatus.CONFLICT,
                     ApiMessages.CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED);
         }
+    }
+
+    @Transactional
+    public void cancelForOperator(OperationalPrincipal principal, String sessionPublicId,
+            UUID requestId) {
+        var session = requireCurrentForUpdate(sessionPublicId);
+        if (session.storeId() != principal.storeId()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
+        }
+        if (!"OPEN".equals(session.sessionStatus())
+                || diningTableMapper.hasOrders(session.sessionId())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    ApiMessages.OPERATOR_TABLE_SESSION_CANNOT_BE_CANCELLED);
+        }
+        if (diningTableMapper.closeSessionWithoutOrders(session.sessionId()) != 1) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    ApiMessages.OPERATOR_TABLE_SESSION_CANNOT_BE_CANCELLED);
+        }
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CANCEL",
+                "TABLE_SESSION", session.sessionId(), session.sessionPublicId(),
+                "{\"tableCode\":" + session.tableCode() + "}", principal.accountId(),
+                principal.displayName(), "Cancelled an open table session without orders"));
     }
 
     @Transactional

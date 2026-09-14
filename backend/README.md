@@ -120,6 +120,8 @@ bàn đã có session `OPEN`, có thể bỏ `customerName` và `customerPhone`:
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
 curl.exe http://localhost:8080/api/v1/operator/table-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X DELETE http://localhost:8080/api/v1/operator/table-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 
@@ -130,6 +132,7 @@ Response payment trả `createdAt` để giao diện vận hành hiển thị đ
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"

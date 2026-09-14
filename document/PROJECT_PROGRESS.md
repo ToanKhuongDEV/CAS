@@ -636,10 +636,16 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Cố định toàn bộ panel giỏ món bên phải trong màn Operator tạo order hộ và cho phép panel tự cuộn độc lập với menu.
 - [x] Đồng bộ UI xác nhận gửi món của Operator với trang Đơn hàng Customer: hiển thị bàn, thời gian và danh sách món vừa gửi, gồm option, số lượng và thành tiền.
 - [x] Bổ sung toast dùng chung toàn ứng dụng cho thông báo thành công, lỗi, cảnh báo và thông tin; áp dụng thay `alert` tại màn quản lý bàn Admin.
+- [x] Giảm bo góc dùng chung của `CasButton` từ 0.75rem (`rounded-xl`) xuống 0.5rem (`rounded-lg`).
+- [x] Cho phép `OPERATOR` hủy phiên bàn chưa có món ngay tại màn tạo order hộ; backend xác thực store, trạng thái `OPEN` và điều kiện chưa có order trước khi đóng phiên.
+- [x] Chốt yêu cầu: `OPERATOR` có thể tạo yêu cầu thanh toán hộ khách cho toàn bộ order của phiên bàn, theo cùng điều kiện và phép tính server-side như luồng Customer.
 - [x] Tối giản màn Operator Payment: bỏ nút xem bill trùng lặp; nút xác nhận thanh toán vẫn mở modal hiển thị đầy đủ bill trước khi gửi xác nhận.
 - [x] Hiển thị lỗi đăng nhập qua toast: lỗi Firebase sai thông tin đăng nhập được chuyển sang tiếng Việt, lỗi Firebase kỹ thuật khác giữ nguyên để debug, còn lỗi CAS Backend lấy trực tiếp `message` do backend cấu hình.
 - [x] Bổ sung nút mắt bật/tắt hiển thị mật khẩu tại form đăng nhập dùng chung cho Admin và Operator.
-- [x] Bổ sung UI chọn voucher cho luồng Operator tạo order hộ; giỏ món và màn xác nhận hiển thị số tiền giảm cùng giá trị cần thanh toán tạm thời.
+- [x] Loại bỏ UI chọn voucher khỏi luồng Operator tạo order hộ; `OPERATOR` sẽ chọn khuyến mãi khi tạo yêu cầu thanh toán hộ khách.
+- [x] Đặt thao tác hủy phiên cạnh nút chọn bàn khác trong header panel giỏ món bên phải của màn tạo order hộ, với cùng kích thước và bố cục nút.
+- [x] Bỏ bo góc panel giỏ món cố định bên phải trên desktop, vẫn giữ bo góc cho drawer giỏ món trên mobile.
+- [x] Cố định panel giỏ món desktop sát dưới thanh điều hướng Operator, kéo dài đến đáy viewport và tự cuộn độc lập với thực đơn.
 - [x] Cho phép Operator chọn bàn trống tại màn tạo order hộ và xác nhận tạo phiên bàn mới trước khi chọn món.
 - [x] Tái sử dụng form thông tin khách (tên và SĐT) từ luồng quét QR khi Operator tạo phiên bàn mới trước khi tạo order hộ.
 - [x] Bảo vệ toàn bộ trang Admin và Operator bằng Firebase session cùng kiểm tra danh tính/role qua CAS Backend; phiên đăng nhập chỉ duy trì trong phiên trình duyệt.
@@ -664,6 +670,11 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Khi món trong giỏ vừa bị Operator chuyển sang `SOLD_OUT`, Backend trả lỗi
       `409` nêu rõ tên món và hướng dẫn bỏ món khỏi giỏ; Giỏ hàng Customer hiển
       thị lỗi này bằng toast, không mất các món đang chọn.
+- [x] Ổn định nhãn “Hết hàng” trong card món dùng chung: không xuống dòng khi không đủ chỗ, giữ thẳng hàng với giá và nút thao tác ở màn tạo order của Operator.
+- [x] Card món tại màn tạo order hộ của Operator giữ ảnh phủ hết chiều cao card trên desktop, tránh khoảng trống thừa khi phần mô tả dài; bố cục ảnh mobile không đổi.
+- [x] Operator bấm tên món tại màn tạo order hộ để mở chi tiết ảnh, mô tả, giá, trạng thái và chọn đầy đủ tùy chọn trước khi thêm vào giỏ, tương đương luồng xem món của Customer mà không làm mất giỏ đang tạo.
+- [x] `GET /api/v1/operator/table-sessions/{sessionId}/bill` và `POST /api/v1/operator/table-sessions/{sessionId}/payments`: Operator xem bill, chọn promotion đã đủ điều kiện và tạo yêu cầu thanh toán hộ trong phạm vi store; thao tác tạo ghi audit log và dùng lại payment `PENDING` hiện có để xác nhận thanh toán.
+- [x] Đổi nút “Không thanh toán” tại tab Thanh toán thành “Kiểm soát thanh toán”: liệt kê các bàn `OPEN`, cho tạo yêu cầu thanh toán hộ hoặc đánh dấu chưa thanh toán ngay trên từng bàn.
 - [x] Tối ưu đọc/validate khi tạo order: Backend batch tải món, nhóm option và
       option được chọn theo toàn bộ giỏ, sau đó vẫn kiểm tra từng dòng đã chuẩn
       hóa theo cùng quy tắc trạng thái, option và giá server-side.

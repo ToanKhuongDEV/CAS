@@ -85,6 +85,23 @@ public class PaymentService {
             throw new IllegalStateException(e);
         }
     }
+    @Transactional
+    public PaymentView createForOperator(OperationalPrincipal principal, String sessionPublicId,
+            UUID requestId) {
+        var session = sessions.requireCurrentForUpdate(sessionPublicId);
+        if (session.storeId() != principal.storeId())
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Không có quyền tạo yêu cầu thanh toán cho phiên bàn này.");
+        var existing = payments.findBySessionId(session.sessionId());
+        var payment = create(sessionPublicId);
+        if (existing == null) {
+            auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
+                    "PAYMENT_REQUESTED_FOR_CUSTOMER", "PAYMENT", payment.id(), payment.publicId(),
+                    "{}", principal.accountId(), principal.displayName(),
+                    "Nhân viên tạo yêu cầu thanh toán hộ khách."));
+        }
+        return payment;
+    }
     @Transactional(readOnly = true)
     public PaymentView current(String id) {
         return payments.findBySessionId(sessions.requireCurrent(id).sessionId());

@@ -22,7 +22,7 @@ Các luồng thuộc phạm vi hiện tại:
 - Đóng phiên bàn.
 - Tạo và xem Báo cáo sự cố phát sinh (OPERATOR tạo, ADMIN xem).
 - Admin tra cứu khách hàng đã mở bàn và lịch sử sử dụng bàn.
-- Quản lý và áp dụng khuyến mãi (ADMIN quản lý, Customer/OPERATOR áp dụng khi đặt món).
+- Quản lý và áp dụng khuyến mãi (ADMIN quản lý; Customer áp dụng theo luồng hiện có, còn `OPERATOR` chọn khi tạo yêu cầu thanh toán hộ khách).
 - Quản lý và nhận Thông báo hệ thống (ADMIN tạo và gửi, OPERATOR/CUSTOMER nhận thông báo).
 - Ghi nhận dịch vụ đặt trước được chốt qua Zalo và thanh toán độc lập với phiên bàn.
 - Admin quản lý banner/ảnh giới thiệu hiển thị cho Customer tại Welcome và Menu.
@@ -538,13 +538,12 @@ Khách hàng gửi yêu cầu hủy một phần hoặc toàn bộ số lượng
 
 ### Mục tiêu
 
-Khách hàng gửi yêu cầu thanh toán cho toàn bộ các order trong phiên bàn.
+Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn bộ các order trong phiên bàn. Khi `OPERATOR` tạo hộ, hệ thống vẫn áp dụng cùng điều kiện và backend vẫn tự tính payment từ dữ liệu phiên bàn.
 
 ### Luồng chính
 
-1. Khách hàng bấm yêu cầu thanh toán.
-   Thao tác này nằm trong trang Đơn hàng; Thanh toán không xuất hiện như một tab
-   thường trực trên thanh điều hướng Customer.
+1. Khách hàng bấm yêu cầu thanh toán tại trang Đơn hàng, hoặc `OPERATOR` tạo yêu cầu thanh toán hộ khách tại phiên bàn đang phục vụ.
+   Thanh toán không xuất hiện như một tab thường trực trên thanh điều hướng Customer.
 2. Hệ thống kiểm tra session đang `OPEN`.
 3. Hệ thống kiểm tra session có ít nhất một order cần thanh toán.
 4. Hệ thống kiểm tra không còn cancellation request `PENDING`.
@@ -558,7 +557,7 @@ Khách hàng gửi yêu cầu thanh toán cho toàn bộ các order trong phiên
 - Thanh toán áp dụng cho toàn bộ các order của phiên bàn.
 - Hệ thống chưa hỗ trợ tách hóa đơn.
 - Mỗi table session chỉ có một payment.
-- `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; client không được cung cấp hoặc ghi đè số tiền.
+- `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè số tiền.
 - `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
@@ -673,7 +672,7 @@ Ghi nhận các sự cố vận hành đột xuất trong ca (hỏng hóc thiế
 ### Tác nhân
 
 - `ADMIN`: Quản lý chương trình khuyến mãi, điều kiện, phạm vi áp dụng và mã khuyến mãi.
-- Khách hàng (`CLIENT`) / `OPERATOR`: Chọn một khuyến mãi cho bill của table session; nhập mã khi chương trình yêu cầu code.
+- Khách hàng (`CLIENT`) / `OPERATOR`: Chọn một khuyến mãi cho bill của table session; `OPERATOR` thực hiện lựa chọn khi tạo yêu cầu thanh toán hộ khách và nhập mã khi chương trình yêu cầu code.
 
 ### Mục tiêu
 

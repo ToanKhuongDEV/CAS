@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,6 +63,24 @@ public class OperatorOrderingController {
                 new TableSessionResponse(session.sessionPublicId(), session.tableCode(),
                         session.sessionStatus()),
                 request);
+    }
+
+    @DeleteMapping("/{sessionPublicId}")
+    public ResponseEntity<ApiResponse<Void>> cancel(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @PathVariable String sessionPublicId, HttpServletRequest request) {
+        sessions.cancelForOperator(principal, sessionPublicId,
+                (UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_TABLE_SESSION_CANCELLED,
+                null, request);
+    }
+
+    @GetMapping("/{sessionPublicId}/bill")
+    public ResponseEntity<ApiResponse<CustomerOrderingService.Bill>> bill(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @PathVariable String sessionPublicId, HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy hóa đơn phiên bàn.",
+                orders.currentBillForOperator(principal, sessionPublicId), request);
     }
 
     @PostMapping("/{sessionPublicId}/orders")

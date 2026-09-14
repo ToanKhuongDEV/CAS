@@ -139,6 +139,18 @@ public class CustomerOrderingService {
     @Transactional(readOnly = true)
     public Bill currentBill(String sessionPublicId) {
         var session = sessions.requireCurrent(sessionPublicId);
+        return currentBill(session);
+    }
+
+    @Transactional(readOnly = true)
+    public Bill currentBillForOperator(OperationalPrincipal principal, String sessionPublicId) {
+        var session = sessions.requireCurrent(sessionPublicId);
+        if (session.storeId() != principal.storeId())
+            throw new ApiException(HttpStatus.FORBIDDEN, ApiMessages.FORBIDDEN);
+        return currentBill(session);
+    }
+
+    private Bill currentBill(vn.cas.store.model.CustomerTableSessionLookup session) {
         var orders = loadOrderDetails(session.sessionId());
         var originalAmount = orders.stream().map(OrderDetail::originalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

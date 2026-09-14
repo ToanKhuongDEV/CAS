@@ -25,6 +25,8 @@ public final class ApiMessages {
     public static final String CUSTOMER_TABLE_SESSION_CANCELLED = "Đã hủy phiên bàn.";
     public static final String CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED = "Phiên bàn đã có món, không thể hủy.";
     public static final String OPERATOR_TABLE_SESSION_READY = "Phiên bàn đã sẵn sàng để gọi món.";
+    public static final String OPERATOR_TABLE_SESSION_CANCELLED = "Đã hủy phiên bàn.";
+    public static final String OPERATOR_TABLE_SESSION_CANNOT_BE_CANCELLED = "Phiên bàn đã có món hoặc không còn mở, không thể hủy.";
     public static final String OPERATOR_ORDER_CREATED = "Đã gửi món xuống bếp.";
     public static final String PREPARATION_LONG_WAIT_TABLES_RETRIEVED = "Đã lấy danh sách bàn chờ lâu.";
     public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";

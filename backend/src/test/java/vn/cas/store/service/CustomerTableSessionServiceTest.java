@@ -17,12 +17,15 @@ import vn.cas.store.mapper.DiningTableMapper;
 import vn.cas.store.model.CustomerTableSessionLookup;
 import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
 import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.operation.service.AuditLogService;
 
 class CustomerTableSessionServiceTest {
 
     private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final CustomerTableSessionService service = new CustomerTableSessionService(
-            diningTableMapper);
+            diningTableMapper, auditLogService);
 
     @Test
     void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
@@ -118,5 +121,21 @@ class CustomerTableSessionServiceTest {
         assertThat(session.sessionPublicId()).isNotBlank();
         verify(diningTableMapper).insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(),
                 any());
+    }
+
+    @Test
+    void shouldAllowOperatorToCloseOwnOpenSessionWithoutOrders() {
+        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
+                        "OPEN"));
+        when(diningTableMapper.hasOrders(1L)).thenReturn(false);
+        when(diningTableMapper.closeSessionWithoutOrders(1L)).thenReturn(1);
+
+        service.cancelForOperator(
+                new OperationalPrincipal(7L, 2L, "firebase-user-1", "Operator One", "OPERATOR"),
+                "session-public-id", java.util.UUID.randomUUID());
+
+        verify(diningTableMapper).closeSessionWithoutOrders(1L);
+        verify(auditLogService).record(any());
     }
 }

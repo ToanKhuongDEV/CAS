@@ -116,12 +116,30 @@ public class PromotionService {
     @Transactional(readOnly = true)
     public List<Eligible> eligibleForOperator(OperationalPrincipal principal,
             String sessionPublicId) {
+        return eligibleForOperator(principal, sessionPublicId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Eligible> eligibleForOperator(OperationalPrincipal principal,
+            String sessionPublicId, String code) {
         var session = sessions.requireCurrent(sessionPublicId);
         if (session.storeId() != principal.storeId())
             throw new ApiException(HttpStatus.FORBIDDEN, "Không có quyền truy cập phiên bàn.");
         return mapper.findByStoreId(session.storeId()).stream()
-                .map(promotion -> eligible(session, promotion, null))
+                .map(promotion -> eligible(session, promotion, code))
                 .flatMap(java.util.Optional::stream).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerPromotion> customerPromotionsForOperator(OperationalPrincipal principal,
+            String sessionPublicId) {
+        var session = sessions.requireCurrent(sessionPublicId);
+        if (session.storeId() != principal.storeId())
+            throw new ApiException(HttpStatus.FORBIDDEN, "Không có quyền truy cập phiên bàn.");
+        return mapper.findByStoreId(session.storeId()).stream()
+                .filter(promotion -> "ACTIVE".equals(promotion.status()))
+                .filter(promotion -> mapper.findCodes(promotion.id()).isEmpty())
+                .map(promotion -> customerPromotion(session, promotion)).toList();
     }
 
     @Transactional
