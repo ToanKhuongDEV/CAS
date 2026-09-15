@@ -15,6 +15,11 @@ public final class ApiMessages {
     public static final String DINING_TABLE_IN_USE = "Bàn ăn đã có dữ liệu phiên, không thể xóa.";
     public static final String OPERATOR_CREATED = "Đã tạo tài khoản nhân viên.";
     public static final String OPERATOR_DEACTIVATED = "Đã vô hiệu hóa tài khoản nhân viên.";
+    public static final String OPERATOR_ACTIVATED = "Đã kích hoạt tài khoản nhân viên.";
+    public static final String OPERATORS_RETRIEVED = "Đã lấy danh sách tài khoản nhân viên.";
+    public static final String CUSTOMERS_RETRIEVED = "Đã lấy danh sách khách hàng.";
+    public static final String CUSTOMER_RETRIEVED = "Đã lấy chi tiết khách hàng.";
+    public static final String AUDIT_LOGS_RETRIEVED = "Đã lấy nhật ký thao tác.";
     public static final String OPERATOR_NOT_FOUND = "Không tìm thấy tài khoản nhân viên.";
     public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Email này đã được đăng ký cho tài khoản nhân viên.";
     public static final String FIREBASE_UID_ALREADY_EXISTS = "Tài khoản Firebase này đã được đăng ký.";

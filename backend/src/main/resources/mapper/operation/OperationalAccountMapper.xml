@@ -46,4 +46,21 @@
           AND role = 'OPERATOR'
           AND status = 'ACTIVE'
     </update>
+
+    <update id="activateOperatorAccount">
+        UPDATE accounts
+        SET status = 'ACTIVE'
+        WHERE id = #{accountId}
+          AND store_id = #{storeId}
+          AND role = 'OPERATOR'
+          AND status = 'INACTIVE'
+    </update>
+
+    <select id="findOperatorsByStoreId" resultType="vn.cas.operation.mapper.OperatorAccountView">
+        SELECT id, email, phone, display_name AS displayName, status, created_at AS createdAt,
+               last_login_at AS lastLoginAt
+        FROM accounts
+        WHERE store_id = #{storeId} AND role = 'OPERATOR'
+        ORDER BY created_at DESC, id DESC
+    </select>
 </mapper>

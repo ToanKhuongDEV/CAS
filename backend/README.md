@@ -189,6 +189,11 @@ curl.exe http://localhost:8080/api/v1/auth/me -H "Authorization: Bearer $env:CAS
 curl.exe -X POST http://localhost:8080/api/v1/admin/admins -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"firebaseUid\":\"firebase-admin-uid\",\"email\":\"admin@example.com\",\"phone\":\"0901234567\",\"displayName\":\"Admin Two\"}"
 curl.exe -X POST http://localhost:8080/api/v1/admin/operators -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"email\":\"operator@example.com\",\"phone\":\"0901234567\",\"displayName\":\"Cashier One\"}"
 curl.exe -X DELETE http://localhost:8080/api/v1/admin/operators/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/admin/operators -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/admin/operators/1/activate -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/customers?query=Nguyen" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/admin/customers/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/audit-logs?query=PAYMENT&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
 ## Kiểm thử

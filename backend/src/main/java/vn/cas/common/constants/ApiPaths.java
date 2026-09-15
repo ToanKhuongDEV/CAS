@@ -57,8 +57,25 @@ public final class ApiPaths {
         private static final String PRE_FIX = API_ADMIN_PREFIX + "/operators";
         public static final String OPERATOR_COMMON = PRE_FIX;
         public static final String OPERATOR_ID = PRE_FIX + "/{operatorId}";
+        public static final String OPERATOR_ACTIVATE = OPERATOR_ID + "/activate";
 
         private Operator() {
+        }
+    }
+
+    public static final class CustomerAccount {
+        private static final String PRE_FIX = API_ADMIN_PREFIX + "/customers";
+        public static final String COMMON = PRE_FIX;
+        public static final String DETAIL = PRE_FIX + "/{customerId}";
+
+        private CustomerAccount() {
+        }
+    }
+
+    public static final class AuditLog {
+        public static final String ADMIN = API_ADMIN_PREFIX + "/audit-logs";
+
+        private AuditLog() {
         }
     }
 

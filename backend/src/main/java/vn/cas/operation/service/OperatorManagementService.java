@@ -1,6 +1,8 @@
 package vn.cas.operation.service;
 
 import java.util.UUID;
+import java.util.List;
+import vn.cas.operation.mapper.OperatorAccountView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -66,6 +68,20 @@ public class OperatorManagementService {
         auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "DEACTIVATE",
                 "ACCOUNT", operatorId, "Operator " + operatorId, "{\"status\":\"INACTIVE\"}",
                 principal.accountId(), principal.displayName(), "Deactivated operator account"));
+    }
+
+    @Transactional
+    public void activate(OperationalPrincipal principal, long operatorId, UUID requestId) {
+        if (accountMapper.activateOperatorAccount(operatorId, principal.storeId()) != 1)
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.OPERATOR_NOT_FOUND);
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "ACTIVATE",
+                "ACCOUNT", operatorId, "Operator " + operatorId, "{\"status\":\"ACTIVE\"}",
+                principal.accountId(), principal.displayName(), "Activated operator account"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OperatorAccountView> findAll(OperationalPrincipal principal) {
+        return accountMapper.findOperatorsByStoreId(principal.storeId());
     }
 
     public record Operator(long id, String firebaseUid, String displayName, String status) {

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.operation.mapper.AdminLookupMapper">
+    <sql id="customerFilter">
+        <if test="query != null and query != ''">
+            AND (client_accounts.display_name LIKE CONCAT('%', #{query}, '%') OR client_accounts.phone LIKE CONCAT('%', #{query}, '%'))
+        </if>
+    </sql>
+    <select id="findCustomers" resultType="vn.cas.operation.model.AdminCustomerSummary">
+        SELECT client_accounts.id, client_accounts.display_name AS displayName,
+               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '•••', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
+               COUNT(table_sessions.id) AS sessionCount, MAX(table_sessions.created_at) AS lastVisitedAt
+        FROM client_accounts LEFT JOIN table_sessions ON table_sessions.client_account_id = client_accounts.id
+        WHERE client_accounts.store_id = #{storeId}<include refid="customerFilter"/>
+        GROUP BY client_accounts.id, client_accounts.display_name, client_accounts.phone
+        ORDER BY lastVisitedAt DESC, client_accounts.id DESC
+    </select>
+    <select id="findCustomer" resultType="vn.cas.operation.model.AdminCustomerSummary">
+        SELECT client_accounts.id, client_accounts.display_name AS displayName,
+               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '•••', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
+               COUNT(table_sessions.id) AS sessionCount, MAX(table_sessions.created_at) AS lastVisitedAt
+        FROM client_accounts LEFT JOIN table_sessions ON table_sessions.client_account_id = client_accounts.id
+        WHERE client_accounts.store_id = #{storeId} AND client_accounts.id = #{customerId}
+        GROUP BY client_accounts.id, client_accounts.display_name, client_accounts.phone
+    </select>
+    <select id="findCustomerPhone" resultType="string">SELECT phone FROM client_accounts WHERE store_id=#{storeId} AND id=#{customerId}</select>
+    <select id="findCustomerSessions" resultType="vn.cas.operation.model.AdminCustomerSession">
+        SELECT table_sessions.public_id AS publicId, dining_tables.code AS tableCode, table_sessions.status,
+               (SELECT COUNT(*) FROM orders WHERE orders.table_session_id=table_sessions.id) AS orderCount,
+               payments.status AS paymentStatus, payments.amount AS paymentAmount,
+               unpaid_records.status AS unpaidStatus, unpaid_records.amount AS unpaidAmount,
+               table_sessions.created_at AS openedAt, table_sessions.closed_at AS closedAt
+        FROM table_sessions INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+        LEFT JOIN payments ON payments.table_session_id=table_sessions.id
+        LEFT JOIN unpaid_records ON unpaid_records.table_session_id=table_sessions.id
+        WHERE dining_tables.store_id=#{storeId} AND table_sessions.client_account_id=#{customerId}
+        ORDER BY table_sessions.created_at DESC, table_sessions.id DESC
+    </select>
+    <sql id="auditFilter">
+        <if test="query != null and query != ''">AND (audit_logs.actor_name LIKE CONCAT('%',#{query},'%') OR audit_logs.action LIKE CONCAT('%',#{query},'%') OR audit_logs.entity_type LIKE CONCAT('%',#{query},'%') OR audit_logs.entity_name LIKE CONCAT('%',#{query},'%') OR audit_logs.description LIKE CONCAT('%',#{query},'%'))</if>
+        <if test="action != null and action != ''">AND audit_logs.action=#{action}</if>
+        <if test="entityType != null and entityType != ''">AND audit_logs.entity_type=#{entityType}</if>
+    </sql>
+    <select id="findAuditLogs" resultType="vn.cas.operation.model.AuditLogView">
+        SELECT audit_logs.id, audit_logs.action, audit_logs.entity_type AS entityType, audit_logs.entity_id AS entityId,
+               audit_logs.entity_name AS entityName, audit_logs.actor_name AS actorName, audit_logs.description, audit_logs.created_at AS createdAt
+        FROM audit_logs WHERE audit_logs.store_id=#{storeId}<include refid="auditFilter"/>
+        ORDER BY audit_logs.created_at DESC, audit_logs.id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countAuditLogs" resultType="long">SELECT COUNT(*) FROM audit_logs WHERE audit_logs.store_id=#{storeId}<include refid="auditFilter"/></select>
+</mapper>

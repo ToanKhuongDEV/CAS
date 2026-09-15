@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,6 +52,22 @@ public class OperatorManagementController {
         operatorService.deactivate(principal, operatorId,
                 (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
         return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_DEACTIVATED, null, request);
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<java.util.List<vn.cas.operation.mapper.OperatorAccountView>>> findAll(
+            @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATORS_RETRIEVED,
+                operatorService.findAll(principal), request);
+    }
+
+    @PostMapping("/{operatorId}/activate")
+    public ResponseEntity<ApiResponse<Void>> activate(
+            @AuthenticationPrincipal OperationalPrincipal principal, @PathVariable long operatorId,
+            HttpServletRequest request) {
+        operatorService.activate(principal, operatorId,
+                (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_ACTIVATED, null, request);
     }
 
     public record CreateOperatorRequest(@NotBlank @Email @Size(max = 254) String email,
