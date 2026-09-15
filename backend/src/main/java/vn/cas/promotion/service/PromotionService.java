@@ -185,9 +185,19 @@ public class PromotionService {
 
     @Transactional(readOnly = true)
     public Eligible selected(CustomerTableSessionLookup session) {
+        return selected(session, false);
+    }
+
+    public Eligible selectedForPayment(CustomerTableSessionLookup session) {
+        return selected(session, true);
+    }
+
+    private Eligible selected(CustomerTableSessionLookup session, boolean lockPromotion) {
         if (session.selectedPromotionId() == null)
             return null;
-        var promotion = mapper.findById(session.storeId(), session.selectedPromotionId());
+        var promotion = lockPromotion
+                ? mapper.findByIdForUpdate(session.storeId(), session.selectedPromotionId())
+                : mapper.findById(session.storeId(), session.selectedPromotionId());
         if (promotion == null)
             return null;
         String code = null;
@@ -209,9 +219,21 @@ public class PromotionService {
                 discount.codeId(), discount.code(), discount.discountAmount(), snapshot);
     }
 
-    public void redeem(long paymentId) {
-        if (mapper.insertRedemptionFromDiscount(paymentId) != 1)
+    public void reserve(long paymentId) {
+        if (mapper.insertReservedRedemptionFromDiscount(paymentId) != 1)
             throw new ApiException(HttpStatus.CONFLICT, "Khuyến mãi đã hết lượt sử dụng.");
+    }
+
+    public void complete(long paymentId) {
+        if (mapper.completeRedemption(paymentId) != 1)
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Không thể hoàn tất lượt sử dụng khuyến mãi.");
+    }
+
+    public void forfeit(long paymentId) {
+        if (mapper.forfeitRedemption(paymentId) != 1)
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Không thể ghi nhận lượt khuyến mãi không thanh toán.");
     }
 
     private java.util.Optional<Eligible> eligible(CustomerTableSessionLookup session,
@@ -270,17 +292,17 @@ public class PromotionService {
             }
         }
         if (promotion.maxRedemptions() != null
-                && mapper.countCompletedRedemptions(promotion.id()) >= promotion.maxRedemptions()) {
+                && mapper.countConsumedRedemptions(promotion.id()) >= promotion.maxRedemptions()) {
             log.debug("Promotion {} excluded: promotion quota reached", promotion.publicId());
             return java.util.Optional.empty();
         }
         if (code != null && code.maxRedemptions() != null
-                && mapper.countCompletedRedemptionsByCode(code.id()) >= code.maxRedemptions()) {
+                && mapper.countConsumedRedemptionsByCode(code.id()) >= code.maxRedemptions()) {
             log.debug("Promotion {} excluded: code quota reached", promotion.publicId());
             return java.util.Optional.empty();
         }
         if (promotion.maxRedemptionsPerCustomer() != null && (clientAccountId == null
-                || mapper.countCompletedRedemptionsByPromotionAndCustomer(promotion.id(),
+                || mapper.countConsumedRedemptionsByPromotionAndCustomer(promotion.id(),
                         clientAccountId) >= promotion.maxRedemptionsPerCustomer())) {
             log.debug("Promotion {} excluded: customer quota reached", promotion.publicId());
             return java.util.Optional.empty();
@@ -309,10 +331,10 @@ public class PromotionService {
         if (target.signum() <= 0)
             return "Đơn hàng chưa có món thuộc phạm vi áp dụng.";
         if (promotion.maxRedemptions() != null
-                && mapper.countCompletedRedemptions(promotion.id()) >= promotion.maxRedemptions())
+                && mapper.countConsumedRedemptions(promotion.id()) >= promotion.maxRedemptions())
             return "Khuyến mãi đã hết lượt sử dụng.";
         if (promotion.maxRedemptionsPerCustomer() != null && (clientAccountId == null
-                || mapper.countCompletedRedemptionsByPromotionAndCustomer(promotion.id(),
+                || mapper.countConsumedRedemptionsByPromotionAndCustomer(promotion.id(),
                         clientAccountId) >= promotion.maxRedemptionsPerCustomer()))
             return "Bạn đã dùng hết lượt của khuyến mãi này.";
         return null;

@@ -161,6 +161,10 @@ Ngày cập nhật gần nhất: 2026-09-05
       schema và hành vi nghiệp vụ.
 ### Các API đã làm
 
+- [x] Payment request with a selected promotion now reserves one quota atomically; confirmation
+      completes it, while recording a session unpaid removes the discount and forfeits the same
+      quota without returning it.
+
 Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế từ Frontend; **Ghép một phần** = chỉ một phần API trong nhóm đã được gọi; **Chưa ghép** = giao diện hiện vẫn dùng dữ liệu/trạng thái cục bộ hoặc chưa có giao diện gọi API.
 
 - [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS. **[Chưa ghép Frontend]**

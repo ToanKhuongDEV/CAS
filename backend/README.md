@@ -146,7 +146,11 @@ curl.exe -X PATCH http://localhost:8080/api/v1/operator/catalog/items/<menu-item
 
 Khi payment đã được ghi nhận qua API `unpaid-records`, bill snapshot và số tiền thu lại không áp dụng khuyến mãi; xác nhận payment sau đó cũng không tạo lượt sử dụng khuyến mãi. Các khoản unpaid cũ đã có discount được tự động chuyển về bill không khuyến mãi khi nhân viên xác nhận thu tiền.
 
-Ví dụ API chế biến cho `OPERATOR`. Lấy `groupKey` từ response của API danh sách
+> Promotion quota is reserved when a payment request is created. Confirming the payment completes
+> that reservation. Recording the session as unpaid removes its discount but forfeits the reserved
+> quota, so it is never returned to later customers.
+
+  Ví dụ API chế biến cho `OPERATOR`. Lấy `groupKey` từ response của API danh sách
 nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành mẻ:
 
 ```powershell

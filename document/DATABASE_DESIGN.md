@@ -430,6 +430,11 @@ gồm `COMPLETED` và `REVERSED`; redemption `REVERSED` không được tính v�
 sử dụng. Backend kiểm tra quota theo promotion và `client_account_id` trong
 transaction tạo redemption.
 
+Promotion quota is consumed at payment-request creation, not at confirmation. Redemption status
+is `RESERVED` while the payment is pending, `COMPLETED` after confirmation, or `FORFEITED` when
+the session is recorded unpaid; all three states count against quota. `REVERSED` is the only
+state that releases quota. The promotion row is locked while the reservation is created.
+
 #### `bill_discounts`
 
 Promotion được chọn cho toàn bộ bill của table session. Trước khi tạo payment,

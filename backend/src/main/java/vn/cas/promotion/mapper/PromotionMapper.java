@@ -13,6 +13,7 @@ public interface PromotionMapper {
     List<Promotion> findByStoreId(@Param("storeId") long storeId);
     Promotion findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
     Promotion findById(@Param("storeId") long storeId, @Param("id") long id);
+    Promotion findByIdForUpdate(@Param("storeId") long storeId, @Param("id") long id);
     List<PromotionCode> findCodes(@Param("promotionId") long promotionId);
     List<PromotionTarget> findTargets(@Param("promotionId") long promotionId);
     List<PromotionTargetName> findTargetNames(@Param("promotionId") long promotionId);
@@ -20,6 +21,10 @@ public interface PromotionMapper {
     long countCompletedRedemptions(@Param("promotionId") long promotionId);
     long countCompletedRedemptionsByCode(@Param("promotionCodeId") long promotionCodeId);
     long countCompletedRedemptionsByPromotionAndCustomer(@Param("promotionId") long promotionId,
+            @Param("clientAccountId") long clientAccountId);
+    long countConsumedRedemptions(@Param("promotionId") long promotionId);
+    long countConsumedRedemptionsByCode(@Param("promotionCodeId") long promotionCodeId);
+    long countConsumedRedemptionsByPromotionAndCustomer(@Param("promotionId") long promotionId,
             @Param("clientAccountId") long clientAccountId);
     List<PromotionRedemptionView> findRedemptions(@Param("promotionId") long promotionId,
             @Param("limit") int limit, @Param("offset") int offset);
@@ -49,7 +54,9 @@ public interface PromotionMapper {
             @Param("paymentId") long paymentId, @Param("promotion") Promotion promotion,
             @Param("codeId") Long codeId, @Param("code") String code,
             @Param("amount") BigDecimal amount, @Param("snapshot") String snapshot);
-    int insertRedemptionFromDiscount(@Param("paymentId") long paymentId);
+    int insertReservedRedemptionFromDiscount(@Param("paymentId") long paymentId);
+    int completeRedemption(@Param("paymentId") long paymentId);
+    int forfeitRedemption(@Param("paymentId") long paymentId);
 
     record PromotionRedemptionView(long id, String customerName, BigDecimal discountAmount,
             java.time.LocalDateTime paidAt, String status) {

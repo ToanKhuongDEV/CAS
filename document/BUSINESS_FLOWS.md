@@ -131,6 +131,11 @@ của hệ thống.
   đổi trạng thái report.
 - Không coi đây là chức năng báo cáo và phân tích nâng cao.
 
+- Promotion quota is reserved at payment-request creation. `RESERVED`, `COMPLETED`, and
+  `FORFEITED` redemptions consume quota; only `REVERSED` does not. A recorded unpaid session
+  loses its discount and forfeits the reservation, while payment confirmation changes the same
+  reservation to `COMPLETED` without checking quota or the promotion period again.
+
 ### Nội dung cần chốt
 
 - Khái niệm và các loại `report` trong phạm vi CAS.

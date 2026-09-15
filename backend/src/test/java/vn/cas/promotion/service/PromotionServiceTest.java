@@ -67,9 +67,24 @@ class PromotionServiceTest {
         when(mapper.findByStoreId(2L)).thenReturn(List.of(promotion));
         when(mapper.currentPayableAmount(10L)).thenReturn(BigDecimal.valueOf(100_000));
         when(mapper.findCodes(1L)).thenReturn(List.of());
-        when(mapper.countCompletedRedemptions(1L)).thenReturn(1L);
+        when(mapper.countConsumedRedemptions(1L)).thenReturn(1L);
 
         assertThat(service.eligible("session-1")).isEmpty();
+    }
+
+    @Test
+    void shouldLockPromotionWhileSelectingItForPayment() {
+        var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, 1L, null, "session-1",
+                "OPEN");
+        var promotion = promotion("PERCENT_OFF", 1);
+        when(mapper.findByIdForUpdate(2L, 1L)).thenReturn(promotion);
+        when(mapper.currentPayableAmount(10L)).thenReturn(BigDecimal.valueOf(100_000));
+        when(mapper.findCodes(1L)).thenReturn(List.of());
+        when(mapper.countConsumedRedemptions(1L)).thenReturn(0L);
+
+        assertThat(service.selectedForPayment(session)).isNotNull();
+
+        verify(mapper).findByIdForUpdate(2L, 1L);
     }
 
     @Test

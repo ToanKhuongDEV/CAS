@@ -66,7 +66,7 @@ public class PaymentService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Vui lòng chờ xử lý các yêu cầu hủy món trước khi thanh toán.");
         var bill = orders.currentBill(sessionPublicId);
-        var discount = promotions == null ? null : promotions.selected(session);
+        var discount = promotions == null ? null : promotions.selectedForPayment(session);
         var amount = discount == null ? bill.payableAmount() : discount.payableAmount();
         if (amount.signum() < 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
@@ -77,8 +77,12 @@ public class PaymentService {
             String snapshotValue = json.writeValueAsString(snapshot);
             payments.insert(UUID.randomUUID().toString(), session.sessionId(), amount,
                     snapshotValue);
-            if (promotions != null)
-                promotions.snapshot(session, payments.lastInsertId(), discount, snapshotValue);
+            long paymentId = payments.lastInsertId();
+            if (promotions != null) {
+                promotions.snapshot(session, paymentId, discount, snapshotValue);
+                if (discount != null)
+                    promotions.reserve(paymentId);
+            }
             tables.moveSessionToPaymentPending(session.sessionId());
             return payments.findBySessionId(session.sessionId());
         } catch (JsonProcessingException e) {
@@ -177,7 +181,7 @@ public class PaymentService {
                 payments.resolveOpenUnpaidRecord(v.tableSessionId(), v.id());
                 if (promotions != null && !collectingRecordedUnpaidPayment
                         && !v.billSnapshot().contains("\"discount\":null"))
-                    promotions.redeem(v.id());
+                    promotions.complete(v.id());
                 tables.closePaymentSession(v.tableSessionId());
                 auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
                         "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),
@@ -210,6 +214,8 @@ public class PaymentService {
                     snapshotValue) != 1)
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Không thể bỏ khuyến mãi khỏi khoản không thanh toán.");
+            if (promotions != null)
+                promotions.forfeit(payment.id());
             return new PaymentView(payment.id(), payment.publicId(), payment.tableSessionId(),
                     payment.tableCode(), bill.payableAmount(), snapshotValue, payment.status(),
                     payment.confirmedByName(), payment.confirmedAt(), payment.createdAt());
@@ -239,6 +245,8 @@ public class PaymentService {
                             snapshotValue) != 1)
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Không thể bỏ khuyến mãi khỏi khoản không thanh toán.");
+            if (promotions != null)
+                promotions.forfeit(payment.id());
             return new PaymentView(payment.id(), payment.publicId(), payment.tableSessionId(),
                     payment.tableCode(), amount, snapshotValue, payment.status(),
                     payment.confirmedByName(), payment.confirmedAt(), payment.createdAt());
