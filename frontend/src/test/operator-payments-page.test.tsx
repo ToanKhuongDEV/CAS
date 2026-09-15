@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import OperatorPaymentsPage from "../app/(operator)/operator/(workspace)/payments/page";
 import { QueryProvider } from "../components/providers/query-provider";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
@@ -98,7 +99,9 @@ describe("OperatorPaymentsPage", () => {
     render(
       <StrictMode>
         <QueryProvider>
-          <OperatorPaymentsPage />
+          <ToastProvider>
+            <OperatorPaymentsPage />
+          </ToastProvider>
         </QueryProvider>
       </StrictMode>,
     );

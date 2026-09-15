@@ -18,7 +18,7 @@ public interface PromotionMapper {
     List<PromotionTarget> findTargets(@Param("promotionId") long promotionId);
     List<PromotionTargetName> findTargetNames(@Param("promotionId") long promotionId);
     PromotionCode findCode(@Param("promotionId") long promotionId, @Param("id") long id);
-    long countCompletedRedemptions(@Param("promotionId") long promotionId);
+    long countUsedRedemptions(@Param("promotionId") long promotionId);
     long countCompletedRedemptionsByCode(@Param("promotionCodeId") long promotionCodeId);
     long countCompletedRedemptionsByPromotionAndCustomer(@Param("promotionId") long promotionId,
             @Param("clientAccountId") long clientAccountId);

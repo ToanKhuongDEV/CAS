@@ -164,6 +164,9 @@ Ngày cập nhật gần nhất: 2026-09-05
 - [x] Payment request with a selected promotion now reserves one quota atomically; confirmation
       completes it, while recording a session unpaid removes the discount and forfeits the same
       quota without returning it.
+- [x] Recording an unpaid session that has no payment now creates a base-bill payment with no
+      promotion discount or redemption; an existing discounted pending payment is still normalized
+      and its reserved quota is forfeited.
 
 Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế từ Frontend; **Ghép một phần** = chỉ một phần API trong nhóm đã được gọi; **Chưa ghép** = giao diện hiện vẫn dùng dữ liệu/trạng thái cục bộ hoặc chưa có giao diện gọi API.
 
@@ -187,9 +190,9 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET /api/v1/customer/table-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Đã ghép Frontend]**
 - [x] `DELETE /api/v1/customer/table-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/operator/table-sessions`: `OPERATOR` mở session mới cho bàn trống hoặc dùng session `OPEN` tại bàn thuộc store của mình. **[Chưa ghép Frontend]**
-- [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Chưa ghép Frontend]**
-- [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Chưa ghép Frontend]**
+- [x] `POST /api/v1/operator/table-sessions`: `OPERATOR` mở session mới cho bàn trống hoặc dùng session `OPEN` tại bàn thuộc store của mình. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/operator/table-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/table-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/orders/{orderId}`: `OPERATOR` xem chi tiết order theo public ID trong phạm vi store, gồm thông tin khách mở phiên (tên và SĐT nếu có), món, option, số lượng đã làm/hủy và tổng tiền snapshot. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền, số lượng hủy đã duyệt và số lượng yêu cầu hủy đang chờ xác nhận đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
@@ -210,7 +213,10 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log. Payment đã ghi nhận không thanh toán bỏ khuyến mãi, dùng tổng bill gốc và không tạo promotion redemption khi thu lại; các khoản unpaid cũ có discount cũng được chuẩn hóa trong transaction thu tiền.
 - [x] Customer chỉ đọc session `OPEN` hoặc `PAYMENT_PENDING`; session `CLOSED` sau khi Operator xác nhận payment không còn trả lại order/bill/payment cũ qua cookie session.
 - [x] Thêm index `payments(status, created_at, table_session_id)` bằng Flyway để phục vụ danh sách và số lượng payment `PENDING` theo thời điểm tạo, không thay đổi schema nghiệp vụ.
-- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Frontend chưa ghép API payment đã thanh toán trong ngày]**
+- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Đã ghép Frontend]**
+- [x] Xác nhận payment parse JSON của bill snapshot để chỉ hoàn tất redemption khi `discount` thực sự có dữ liệu; snapshot `discount: null` với bất kỳ khoảng trắng nào không còn bị nhận nhầm là promotion.
+- [x] Popup xác nhận payment của Operator xóa lỗi xác nhận cũ khi mở, đóng hoặc chuyển sang payment khác.
+- [x] Xác nhận payment thành công của Operator hiển thị bằng toast dùng chung thay vì banner trong trang.
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của table session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
@@ -291,7 +297,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Promotion:** xem danh sách promotion.
 - [x] `GET/POST/PUT /api/v1/admin/promotions`, `GET /api/v1/admin/promotions/{promotionId}` và `PATCH /api/v1/admin/promotions/{promotionId}/status`: `ADMIN` quản lý chương trình, code, target và trạng thái promotion.
 - [x] `POST/PUT /api/v1/admin/promotions`: chỉ nhận target cho promotion `ITEM_*`, kiểm tra quota promotion/code/khách hàng khi trả hoặc chọn promotion hợp lệ, và xác thực số tiền không âm cùng quota dương tại API boundary.
-- [x] `GET /api/v1/admin/promotions/{promotionId}/redemptions?page=0&size=10`: `ADMIN` xem lịch sử redemption phân trang; dữ liệu danh sách promotion trả thêm số lượt `COMPLETED` thực tế để UI hiển thị quota.
+- [x] `GET /api/v1/admin/promotions/{promotionId}/redemptions?page=0&size=10`: `ADMIN` xem lịch sử redemption phân trang; dữ liệu danh sách promotion trả thêm số lượt đã dùng gồm `COMPLETED` và `FORFEITED` để UI hiển thị quota.
 - [x] `max_discount_amount` áp dụng cho `PERCENT_OFF` và `ITEM_PERCENT_OFF`; UI xoá giá trị khi đổi sang loại giảm tiền và backend từ chối payload có trường này ngoài hai loại giảm %.
 - [x] Payment có thể có số tiền `0` sau khi áp dụng promotion; hệ thống vẫn tạo payment `PENDING` và nhân viên xác nhận `PAID` theo luồng thủ công hiện có.
 - [x] `GET/PUT/DELETE /api/v1/customer/promotions/eligible|selection` và các route tương ứng theo table session cho `OPERATOR`: xem, chọn hoặc bỏ promotion trước payment; backend tính discount từ bill server-side.
@@ -309,6 +315,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Popup voucher Customer hiển thị giá trị giảm thực tế một lần trên mỗi thẻ, đưa phạm vi/điều kiện xuống mô tả, cho phép thay đổi mã đã chọn và nhận thêm mức giảm tối đa từ API để mô tả đúng promotion giảm phần trăm.
 - [x] Thẻ voucher Customer dùng ba dòng nội dung cố định: mức ưu đãi, phạm vi áp dụng và điều kiện; tên chương trình là nhãn phụ và phía phải chỉ hiển thị trạng thái chọn.
 - [x] Voucher chưa đủ điều kiện chỉ hiển thị điều kiện áp dụng trên thẻ; không hiển thị lý do nội bộ như giá trị đơn hàng hiện tại chưa đạt.
+- [x] Popup voucher Customer cuộn dọc toàn bộ nội dung khi danh sách voucher dài, tránh tràn khỏi viewport và không tạo thanh cuộn riêng cho từng danh sách.
+- [x] Toast dùng chung tự hiển thị `message` của mọi HTTP response lỗi từ CAS Backend, gồm trường hợp promotion bị ngừng sau khi Customer đã tải danh sách voucher.
 - [x] API promotion trả phạm vi bằng tên đầy đủ của tất cả món và danh mục target, để Customer hiển thị trực tiếp “Áp dụng cho …” thay cho nhãn chung.
 - [x] Form Admin promotion hiển thị target món/danh mục từ catalog API thay vì dữ liệu mẫu cũ.
 - [x] Màn Đơn hàng Customer chỉ hiển thị một dòng `Tổng tiền`, không tách giá gốc và giảm giá.
@@ -409,6 +417,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 ## 6. Frontend
 
+- [x] Sửa trang Admin Settings: bắt và hiển thị lỗi khi tải cấu hình cửa hàng; hiển thị phản hồi thành công trong từng form sau khi lưu cấu hình cửa hàng hoặc ngưỡng cảnh báo.
 - [x] Loại bỏ khối giao diện thanh toán Customer không thể chạy sau khi đã trả về `PaymentRequestForm`, khắc phục lỗi TypeScript khi `bill` có thể là `null` và đồng bộ test theo UI hiện hành.
 - [x] Màn Operator hủy món do sự cố không còn fallback món mẫu; chỉ hiển thị dữ liệu từ API chế biến và có trạng thái tải, rỗng hoặc lỗi để không thể gửi `orderItemId` giả.
 - [x] Gỡ khối Khiếu nại dùng dữ liệu mẫu khỏi dashboard Operator vì Customer chưa có nghiệp vụ và API gửi phản ánh được chốt.
@@ -477,7 +486,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
       gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
 động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
 - [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
-- [x] Ghép sơ đồ bàn mini tại `/operator/dashboard` với `GET /api/v1/operator/table-sessions/tables`; hiển thị trạng thái thật, tự làm mới mỗi 10 giây và mở màn tạo order theo bàn đang có session.
+- [x] Ghép sơ đồ bàn mini tại `/operator/dashboard` với `GET /api/v1/operator/table-sessions/tables`; hiển thị trạng thái thật, tự làm mới mỗi 10 giây. Bấm bàn có session mở popup các món/option và tổng bill thật; `OPEN` có thao tác gọi thêm món hoặc kiểm soát thanh toán, còn `PAYMENT_PENDING` chỉ có xác nhận thanh toán.
 - [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món
       và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
       phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có

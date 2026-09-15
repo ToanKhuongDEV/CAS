@@ -111,6 +111,23 @@ class PaymentServiceTest {
     }
 
     @Test
+    void shouldNotCompletePromotionForSpacedNullDiscountSnapshot() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var pending = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(123_000),
+                "{\"discount\": null}", "PENDING", null, null, LocalDateTime.now());
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, payment("PAID"));
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        serviceWithPromotions.confirm(principal, "payment-1");
+
+        verify(promotions, never()).complete(1L);
+    }
+
+    @Test
     void shouldResolveUnpaidRecordCloseSessionAndAuditWhenConfirming() {
         var pending = payment("PENDING");
         var confirmed = payment("PAID");
@@ -239,6 +256,38 @@ class PaymentServiceTest {
         assertThat(result).isEqualTo(recorded);
         verify(tables).closePaymentSession(10L);
         verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldCreateBaseBillWithoutPromotionWhenRecordingUnpaidWithoutPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var bill = new CustomerOrderingService.Bill(5L, "OPEN", BigDecimal.valueOf(200000),
+                BigDecimal.valueOf(200000), List.of());
+        var unpaidPayment = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(200000),
+                "{\"discount\":null}", "PENDING", null, null, LocalDateTime.now());
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(tables.hasOrders(10L)).thenReturn(true);
+        when(ordering.hasPendingCancellationRequests(10L)).thenReturn(false);
+        when(payments.findBySessionId(10L)).thenReturn(null, unpaidPayment);
+        when(orders.currentBill("session-1")).thenReturn(bill);
+        when(payments.insertUnpaidRecord(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"), any(),
+                org.mockito.ArgumentMatchers.anyLong(), any())).thenReturn(1);
+        when(tables.closePaymentSession(10L)).thenReturn(1);
+
+        serviceWithPromotions.recordUnpaid(principal, "session-1", null);
+
+        verify(payments).insert(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"));
+        verify(promotions, never()).selectedForPayment(any());
+        verify(promotions, never()).reserve(org.mockito.ArgumentMatchers.anyLong());
+        verify(promotions, never()).forfeit(org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test

@@ -586,10 +586,6 @@ export default function AdminPromotionsPage() {
           <h1 className="text-2xl font-black text-cas-on-surface">
             Quản lý chương trình khuyến mãi
           </h1>
-          <p className="mt-1 max-w-3xl text-xs font-medium leading-5 text-cas-on-surface-variant">
-            Mỗi promotion có một mã nhập duy nhất. Khách nhập đúng mã mới được áp dụng. Mỗi bill
-            hiện chỉ dùng tối đa một promotion.
-          </p>
         </div>
         <CasButton onClick={openCreateForm} icon="plus" variant="primary" size="md">
           Tạo promotion

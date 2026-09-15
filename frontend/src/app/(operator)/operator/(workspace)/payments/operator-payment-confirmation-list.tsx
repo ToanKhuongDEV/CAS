@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import { useToast } from "../../../../../components/ui/toast-provider";
 import { OperatorPaymentControlView } from "../../../../../components/operator/operator-payment-control-view";
 import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
@@ -131,7 +132,7 @@ export function OperatorPaymentConfirmationList({
 }: {
   pollIntervalMs?: number;
 }) {
-  const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [mode, setMode] = useState<PaymentListMode>("PENDING");
   const [payments, setPayments] = useState<OperatorPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -242,15 +243,28 @@ export function OperatorPaymentConfirmationList({
       queryClient.setQueryData<number>(operatorPendingPaymentCountQueryKey, (currentCount) =>
         Math.max(0, (currentCount ?? 1) - 1),
       );
-      setConfirmedMessage(
-        `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
-      );
+      showToast({
+        message: `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
+        type: "success",
+      });
       setSelectedPayment(null);
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : "Không thể xác nhận thanh toán.");
     } finally {
       setIsConfirming(false);
     }
+  }
+
+  function openConfirmation(payment: OperatorPayment) {
+    setConfirmError(null);
+    setSelectedPayment(payment);
+    setViewedPayment(null);
+  }
+
+  function closePaymentDialog() {
+    setConfirmError(null);
+    setSelectedPayment(null);
+    setViewedPayment(null);
   }
 
   function handlePrintBill(payment: OperatorPayment) {
@@ -303,8 +317,7 @@ export function OperatorPaymentConfirmationList({
             }`}
             onClick={() => {
               setMode("PENDING");
-              setSelectedPayment(null);
-              setViewedPayment(null);
+              closePaymentDialog();
             }}
             type="button"
           >
@@ -319,8 +332,7 @@ export function OperatorPaymentConfirmationList({
             }`}
             onClick={() => {
               setMode("PAID");
-              setSelectedPayment(null);
-              setViewedPayment(null);
+              closePaymentDialog();
             }}
             type="button"
           >
@@ -336,16 +348,6 @@ export function OperatorPaymentConfirmationList({
           Kiểm soát thanh toán
         </button>
       </header>
-
-      {confirmedMessage ? (
-        <div
-          className="mt-5 flex items-start gap-3 rounded-xl border border-cas-secondary/25 bg-cas-secondary-container/20 p-4 text-sm font-bold text-cas-secondary"
-          role="status"
-        >
-          <CasIcon className="mt-0.5 size-5 shrink-0" name="check" />
-          <p>{confirmedMessage}</p>
-        </div>
-      ) : null}
 
       {loadError ? (
         <div
@@ -387,7 +389,7 @@ export function OperatorPaymentConfirmationList({
                 <button
                   className={`w-fit rounded-xl bg-cas-primary px-4 py-2 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${mode === "PENDING" ? "" : "hidden"}`}
                   disabled={mode !== "PENDING"}
-                  onClick={() => setSelectedPayment(payment)}
+                  onClick={() => openConfirmation(payment)}
                   type="button"
                 >
                   Xác nhận đã thanh toán
@@ -418,8 +420,7 @@ export function OperatorPaymentConfirmationList({
           className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              setSelectedPayment(null);
-              setViewedPayment(null);
+              closePaymentDialog();
             }
           }}
         >
@@ -441,8 +442,7 @@ export function OperatorPaymentConfirmationList({
               <button
                 className="grid size-10 shrink-0 place-items-center rounded-xl border border-cas-outline-variant/35 text-cas-on-surface-variant transition hover:border-cas-primary/30 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                 onClick={() => {
-                  setSelectedPayment(null);
-                  setViewedPayment(null);
+                  closePaymentDialog();
                 }}
                 type="button"
                 aria-label={selectedPayment ? "Đóng xác nhận thanh toán" : "Đóng hóa đơn"}
@@ -559,8 +559,7 @@ export function OperatorPaymentConfirmationList({
               <button
                 className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-extrabold transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                 onClick={() => {
-                  setSelectedPayment(null);
-                  setViewedPayment(null);
+                  closePaymentDialog();
                 }}
                 type="button"
               >
@@ -579,8 +578,7 @@ export function OperatorPaymentConfirmationList({
                 <button
                   className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                   onClick={() => {
-                    setSelectedPayment(activePayment);
-                    setViewedPayment(null);
+                    openConfirmation(activePayment);
                   }}
                   type="button"
                 >

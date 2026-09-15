@@ -147,5 +147,9 @@ describe("PaymentRequestPanel", () => {
 
     expect(await screen.findByText("Chưa thể áp dụng")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Giảm giá đơn lớn/ })).toBeDisabled();
+    expect(screen.getByRole("list", { name: "Voucher chưa đủ điều kiện" })).not.toHaveClass(
+      "overflow-y-auto",
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("max-h-[calc(100dvh-2rem)]", "flex-col");
   });
 });

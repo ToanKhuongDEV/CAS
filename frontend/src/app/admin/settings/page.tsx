@@ -175,6 +175,7 @@ export default function AdminSettingsPage() {
   const [logoStorageKey, setLogoStorageKey] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
+  const [storeError, setStoreError] = useState<string>("");
 
   // State cho Tham số Vận hành & Cảnh báo
   const [warningMins, setWarningMins] = useState<number>(25);
@@ -191,6 +192,8 @@ export default function AdminSettingsPage() {
       return;
     }
     try {
+      setSavedStoreMsg("");
+      setStoreError("");
       await updateStoreSettings({
         name: storeName,
         phone,
@@ -204,8 +207,10 @@ export default function AdminSettingsPage() {
         logoStorageKey,
         status: storeStatus,
       });
+      setSavedStoreMsg("Đã lưu thông tin cửa hàng.");
       showToast({ message: "Đã cập nhật thông tin cửa hàng thành công.", type: "success" });
     } catch (error) {
+      setStoreError(error instanceof Error ? error.message : "Không thể lưu thông tin cửa hàng.");
       showToast({
         message: error instanceof Error ? error.message : "Không thể lưu thông tin cửa hàng.",
         type: "error",
@@ -216,11 +221,14 @@ export default function AdminSettingsPage() {
   const handleSaveOpsSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setSavedOpsMsg("");
       const savedMinutes = await updateLongWaitWarningMinutes(warningMins);
       setWarningMins(savedMinutes);
       setOpsError("");
+      setSavedOpsMsg("Đã lưu tham số vận hành.");
       showToast({ message: "Đã lưu tham số vận hành thành công.", type: "success" });
     } catch (error) {
+      setSavedOpsMsg("");
       setOpsError(error instanceof Error ? error.message : "Không thể lưu tham số vận hành.");
       showToast({
         message: error instanceof Error ? error.message : "Không thể lưu tham số vận hành.",
@@ -246,19 +254,33 @@ export default function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
-    void loadStoreSettings().then((s) => {
-      setStoreName(s.name);
-      setPhone(s.phone);
-      setEmail(s.email);
-      setAddress(s.address);
-      setGoogleMapUrl(s.googleMapsLocation ?? "");
-      setOpenTime(s.openTime);
-      setCloseTime(s.closeTime);
-      setSlogan(s.welcomeSlogan ?? "");
-      setStoreStatus(s.status);
-      setLogoPreviewUrl(s.logoUrl);
-      setLogoStorageKey(s.logoStorageKey);
-    });
+    let active = true;
+    void loadStoreSettings()
+      .then((s) => {
+        if (!active) return;
+        setStoreName(s.name);
+        setPhone(s.phone);
+        setEmail(s.email);
+        setAddress(s.address);
+        setGoogleMapUrl(s.googleMapsLocation ?? "");
+        setOpenTime(s.openTime);
+        setCloseTime(s.closeTime);
+        setSlogan(s.welcomeSlogan ?? "");
+        setStoreStatus(s.status);
+        setLogoPreviewUrl(s.logoUrl);
+        setLogoStorageKey(s.logoStorageKey);
+        setStoreError("");
+      })
+      .catch((error) => {
+        if (active) {
+          setStoreError(
+            error instanceof Error ? error.message : "Không thể tải thông tin cửa hàng.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -327,6 +349,7 @@ export default function AdminSettingsPage() {
             </div>
 
             <form onSubmit={handleSaveStoreInfo} className="mt-6 space-y-5 text-xs">
+              {storeError && <p className="font-bold text-cas-error">{storeError}</p>}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-2">
                   Logo cửa hàng

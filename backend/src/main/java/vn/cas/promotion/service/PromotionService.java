@@ -413,8 +413,7 @@ public class PromotionService {
 
     private AdminPromotion details(Promotion promotion) {
         return new AdminPromotion(promotion, mapper.findCodes(promotion.id()),
-                mapper.findTargets(promotion.id()),
-                mapper.countCompletedRedemptions(promotion.id()));
+                mapper.findTargets(promotion.id()), mapper.countUsedRedemptions(promotion.id()));
     }
 
     private static boolean inPeriod(Promotion promotion) {

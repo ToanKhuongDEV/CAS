@@ -73,6 +73,22 @@ class PromotionServiceTest {
     }
 
     @Test
+    void shouldReturnCompletedAndForfeitedRedemptionsForAdminUsageCount() {
+        var promotion = promotion("PERCENT_OFF", 1);
+        when(mapper.findByStoreId(2L)).thenReturn(List.of(promotion));
+        when(mapper.findCodes(1L)).thenReturn(List.of());
+        when(mapper.findTargets(1L)).thenReturn(List.of());
+        when(mapper.countUsedRedemptions(1L)).thenReturn(1L);
+
+        var result = service.list(principal);
+
+        assertThat(result).singleElement()
+                .extracting(PromotionService.AdminPromotion::completedRedemptionCount)
+                .isEqualTo(1L);
+        verify(mapper).countUsedRedemptions(1L);
+    }
+
+    @Test
     void shouldLockPromotionWhileSelectingItForPayment() {
         var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, 1L, null, "session-1",
                 "OPEN");

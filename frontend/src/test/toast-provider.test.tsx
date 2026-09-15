@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { ToastProvider, useToast } from "../components/ui/toast-provider";
 
@@ -30,4 +30,29 @@ it("shows and dismisses a shared toast", () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Đóng thông báo" }));
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+it("shows the Backend error message for every failed CAS API response", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "Khuyến mãi này không còn hiệu lực." }), {
+        headers: { "Content-Type": "application/json" },
+        status: 409,
+      }),
+    ),
+  );
+  render(
+    <ToastProvider>
+      <span />
+    </ToastProvider>,
+  );
+
+  await fetch("http://localhost:8080/api/v1/customer/promotions/selection");
+
+  await waitFor(() =>
+    expect(screen.getByRole("alert")).toHaveTextContent("Khuyến mãi này không còn hiệu lực."),
+  );
 });

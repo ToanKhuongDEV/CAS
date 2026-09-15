@@ -148,7 +148,7 @@ public class PaymentService {
                     "Vui lòng chờ xử lý các yêu cầu hủy món trước khi ghi nhận chưa thanh toán.");
         var payment = payments.findBySessionId(session.sessionId());
         if (payment == null) {
-            payment = create(sessionPublicId);
+            payment = createUnpaidPayment(sessionPublicId, session);
         }
         if (!"PENDING".equals(payment.status()))
             throw new ApiException(HttpStatus.CONFLICT,
@@ -167,6 +167,28 @@ public class PaymentService {
                 principal.accountId(), principal.displayName(), "Ghi nhận phiên chưa thanh toán."));
         return payments.findUnpaidRecordByPublicId(principal.storeId(), publicId);
     }
+
+    private PaymentView createUnpaidPayment(String sessionPublicId,
+            vn.cas.store.model.CustomerTableSessionLookup session) {
+        if (!"OPEN".equals(session.sessionStatus()))
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Phiên bàn không thể ghi nhận chưa thanh toán.");
+        var bill = orders.currentBill(sessionPublicId);
+        if (bill.payableAmount().signum() < 0)
+            throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
+        try {
+            var snapshot = new LinkedHashMap<String, Object>();
+            snapshot.put("bill", bill);
+            snapshot.put("discount", null);
+            payments.insert(UUID.randomUUID().toString(), session.sessionId(), bill.payableAmount(),
+                    json.writeValueAsString(snapshot));
+            tables.moveSessionToPaymentPending(session.sessionId());
+            return payments.findBySessionId(session.sessionId());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     @Transactional
     public PaymentView confirm(OperationalPrincipal p, String publicId) {
         var v = payments.findByPublicId(p.storeId(), publicId);
@@ -180,7 +202,7 @@ public class PaymentService {
             if (payments.confirm(v.id(), p.accountId(), p.displayName()) == 1) {
                 payments.resolveOpenUnpaidRecord(v.tableSessionId(), v.id());
                 if (promotions != null && !collectingRecordedUnpaidPayment
-                        && !v.billSnapshot().contains("\"discount\":null"))
+                        && hasDiscount(v.billSnapshot()))
                     promotions.complete(v.id());
                 tables.closePaymentSession(v.tableSessionId());
                 auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
@@ -201,8 +223,7 @@ public class PaymentService {
 
     private PaymentView removePromotionFromUnpaidPayment(String sessionPublicId,
             PaymentView payment) {
-        if (!payment.billSnapshot().contains("\"discount\":")
-                || payment.billSnapshot().contains("\"discount\":null"))
+        if (!hasDiscount(payment.billSnapshot()))
             return payment;
         try {
             var bill = orders.currentBill(sessionPublicId);
@@ -225,8 +246,7 @@ public class PaymentService {
     }
 
     private PaymentView removePromotionFromRecordedUnpaidPayment(PaymentView payment) {
-        if (!payment.billSnapshot().contains("\"discount\":")
-                || payment.billSnapshot().contains("\"discount\":null"))
+        if (!hasDiscount(payment.billSnapshot()))
             return payment;
         try {
             var snapshot = json.readTree(payment.billSnapshot());
@@ -258,6 +278,15 @@ public class PaymentService {
 
     private static String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private boolean hasDiscount(String snapshotValue) {
+        try {
+            var snapshot = json.readTree(snapshotValue);
+            return snapshot instanceof ObjectNode root && root.hasNonNull("discount");
+        } catch (JsonProcessingException e) {
+            throw new ApiException(HttpStatus.CONFLICT, "Bill snapshot không hợp lệ.");
+        }
     }
     public record EligibleUnpaidSession(String sessionId, long tableCode, BigDecimal amount,
             String sessionStatus, java.time.LocalDateTime openedAt) {

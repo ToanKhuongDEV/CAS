@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { CasIcon, type CasIconName } from "./cas-icon";
 
@@ -23,6 +32,7 @@ type ToastContextValue = {
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 const toastStyles: Record<ToastType, { icon: CasIconName; className: string; title: string }> = {
   success: {
@@ -49,6 +59,7 @@ const toastStyles: Record<ToastType, { icon: CasIconName; className: string; tit
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const recentlyShown = useRef(new Map<string, number>());
 
   const dismissToast = useCallback((id: string) => {
     setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== id));
@@ -56,12 +67,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback(
     ({ message, title, type = "info" }: ToastInput) => {
+      const key = `${type}:${message}`;
+      const now = Date.now();
+      if ((recentlyShown.current.get(key) ?? 0) > now - 500) return;
+      recentlyShown.current.set(key, now);
       const id = crypto.randomUUID();
       setToasts((currentToasts) => [...currentToasts, { id, message, title, type }]);
       window.setTimeout(() => dismissToast(id), 5000);
     },
     [dismissToast],
   );
+
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    const interceptedFetch: typeof window.fetch = async (input, init) => {
+      const response = await originalFetch(input, init);
+      if (!response.ok && isBackendRequest(input)) {
+        const body: unknown = await response
+          .clone()
+          .json()
+          .catch(() => undefined);
+        showToast({ message: responseMessage(body), type: "error" });
+      }
+      return response;
+    };
+    window.fetch = interceptedFetch;
+
+    return () => {
+      if (window.fetch === interceptedFetch) window.fetch = originalFetch;
+    };
+  }, [showToast]);
 
   const value = useMemo(() => ({ dismissToast, showToast }), [dismissToast, showToast]);
 
@@ -103,6 +138,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
+}
+
+function isBackendRequest(input: RequestInfo | URL) {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  return new URL(url, window.location.origin).origin === new URL(apiUrl).origin;
+}
+
+function responseMessage(value: unknown) {
+  return value &&
+    typeof value === "object" &&
+    "message" in value &&
+    typeof value.message === "string" &&
+    value.message.trim()
+    ? value.message
+    : "Yêu cầu không thể được xử lý. Vui lòng thử lại.";
 }
 
 export function useToast() {

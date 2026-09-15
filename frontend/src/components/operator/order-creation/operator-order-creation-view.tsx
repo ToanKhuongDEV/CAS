@@ -288,56 +288,6 @@ const menuItems: MenuItemData[] = [
   },
 ];
 
-const mockActiveTables: TableOption[] = [
-  {
-    id: "table-01",
-    code: "01",
-    label: "Bàn 01",
-    status: "OPEN",
-    customerName: "Minh Anh",
-    customerPhone: "0912***456",
-    activeOrdersCount: 1,
-    openedAt: "18:30",
-  },
-  {
-    id: "table-02",
-    code: "02",
-    label: "Bàn 02",
-    status: "EMPTY",
-    activeOrdersCount: 0,
-  },
-  {
-    id: "table-05",
-    code: "05",
-    label: "Bàn 05",
-    status: "OPEN",
-    customerName: "Khách lẻ",
-    customerPhone: "0905***789",
-    activeOrdersCount: 0,
-    openedAt: "19:00",
-  },
-  {
-    id: "table-07",
-    code: "07",
-    label: "Bàn 07",
-    status: "OPEN",
-    customerName: "Thu Hà",
-    customerPhone: "0934***678",
-    activeOrdersCount: 1,
-    openedAt: "19:15",
-  },
-  {
-    id: "table-09",
-    code: "09",
-    label: "Bàn 09",
-    status: "OPEN",
-    customerName: "Văn Hùng",
-    customerPhone: "0971***999",
-    activeOrdersCount: 3,
-    openedAt: "19:20",
-  },
-];
-
 const unselectedTable: TableOption = {
   activeOrdersCount: 0,
   code: "--",
