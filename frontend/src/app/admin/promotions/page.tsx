@@ -28,7 +28,7 @@ type PromotionRedemptionPreview = {
   customerName: string;
   amount: number;
   paidAt: string;
-  status: "COMPLETED" | "REVERSED";
+  status: "RESERVED" | "COMPLETED" | "FORFEITED" | "REVERSED";
 };
 
 type Promotion = {
@@ -1195,10 +1195,18 @@ export default function AdminPromotionsPage() {
                             className={`inline-block rounded-md px-2 py-0.5 text-[0.65rem] font-bold ${
                               red.status === "COMPLETED"
                                 ? "bg-cas-secondary/15 text-cas-secondary"
-                                : "bg-cas-error/15 text-cas-error"
+                                : red.status === "RESERVED"
+                                  ? "bg-cas-primary/15 text-cas-primary"
+                                  : "bg-cas-error/15 text-cas-error"
                             }`}
                           >
-                            {red.status === "COMPLETED" ? "Hoàn thành" : "Đã hoàn trả (Reversed)"}
+                            {red.status === "COMPLETED"
+                              ? "Hoàn thành"
+                              : red.status === "RESERVED"
+                                ? "Đã giữ lượt"
+                                : red.status === "FORFEITED"
+                                  ? "Đã hao hụt"
+                                  : "Đã hoàn trả (Reversed)"}
                           </span>
                         </td>
                       </tr>

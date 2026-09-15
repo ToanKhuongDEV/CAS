@@ -39,7 +39,7 @@ export type PromotionRedemption = {
   customerName: string;
   discountAmount: number;
   paidAt: string;
-  status: "COMPLETED" | "REVERSED";
+  status: "RESERVED" | "COMPLETED" | "FORFEITED" | "REVERSED";
 };
 
 export type PromotionRedemptionPage = {
