@@ -160,6 +160,19 @@
         WHERE orders.table_session_id = #{sessionId}
         ORDER BY orders.created_at ASC
     </select>
+    <select id="findSessionByOrderPublicIdAndStoreId"
+            resultType="vn.cas.ordering.model.OperatorOrderSession">
+        SELECT
+            table_sessions.id AS sessionId,
+            dining_tables.code AS tableCode,
+            table_sessions.opened_by_customer_name AS customerName,
+            table_sessions.opened_by_customer_phone AS customerPhone
+        FROM orders
+        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND orders.public_id = #{orderPublicId}
+    </select>
     <select id="findOrderItemsBySessionId" resultType="vn.cas.ordering.model.OrderItemView">
         SELECT
             order_items.id,

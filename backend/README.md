@@ -122,6 +122,7 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions -H "Author
 curl.exe http://localhost:8080/api/v1/operator/table-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X DELETE http://localhost:8080/api/v1/operator/table-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/orders/<order-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 

@@ -21,6 +21,8 @@ import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.model.OrderMenuItem;
 import vn.cas.ordering.model.OrderOptionGroup;
 import vn.cas.ordering.model.OrderOptionValue;
+import vn.cas.ordering.model.OperatorOrderSession;
+import vn.cas.ordering.model.OrderOverview;
 import vn.cas.ordering.model.StoredOrder;
 import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.model.CustomerTableSessionLookup;
@@ -190,6 +192,25 @@ class CustomerOrderingServiceTest {
                 .isInstanceOf(ApiException.class)
                 .extracting(throwable -> ((ApiException) throwable).status())
                 .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void shouldReturnOrderDetailForOperatorWithinOwnStore() {
+        when(mapper.findSessionByOrderPublicIdAndStoreId(2L, "order-1"))
+                .thenReturn(new OperatorOrderSession(7L, 5L, "Nguyễn An", "0901234567"));
+        when(mapper.findOrderOverviewsBySessionId(7L)).thenReturn(
+                List.of(new OrderOverview(8L, "order-1", "ORD-001", new BigDecimal("55000.00"),
+                        new BigDecimal("55000.00"), null, java.time.LocalDateTime.now())));
+        when(mapper.findOrderItemsBySessionId(7L)).thenReturn(List.of());
+        when(mapper.findOrderItemOptionsBySessionId(7L)).thenReturn(List.of());
+
+        var result = service.getForOperator(
+                new OperationalPrincipal(3L, 2L, "firebase-uid", "Operator One", "OPERATOR"),
+                "order-1");
+
+        assertThat(result.tableCode()).isEqualTo(5L);
+        assertThat(result.customerName()).isEqualTo("Nguyễn An");
+        assertThat(result.order().orderId()).isEqualTo("order-1");
     }
 
     private void currentOpenSession() {

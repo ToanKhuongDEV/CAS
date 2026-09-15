@@ -17,6 +17,7 @@ import vn.cas.ordering.model.OrderItemOptionRemakeSnapshot;
 import vn.cas.ordering.model.OrderItemRemakeSnapshot;
 import vn.cas.ordering.model.OrderItemView;
 import vn.cas.ordering.model.OrderOverview;
+import vn.cas.ordering.model.OperatorOrderSession;
 import vn.cas.ordering.model.PreparationItemRow;
 import vn.cas.ordering.model.PreparationOptionRow;
 import vn.cas.ordering.model.StoredPreparationBatchCompletion;
@@ -72,6 +73,9 @@ public interface OrderingMapper {
             @Param("quantity") int quantity, @Param("totalAmount") BigDecimal totalAmount);
 
     List<OrderOverview> findOrderOverviewsBySessionId(@Param("sessionId") long sessionId);
+
+    OperatorOrderSession findSessionByOrderPublicIdAndStoreId(@Param("storeId") long storeId,
+            @Param("orderPublicId") String orderPublicId);
 
     List<OrderItemView> findOrderItemsBySessionId(@Param("sessionId") long sessionId);
 

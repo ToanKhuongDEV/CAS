@@ -137,6 +137,21 @@ public class CustomerOrderingService {
     }
 
     @Transactional(readOnly = true)
+    public OperatorOrderDetail getForOperator(OperationalPrincipal principal,
+            String orderPublicId) {
+        var session = mapper.findSessionByOrderPublicIdAndStoreId(principal.storeId(),
+                orderPublicId);
+        if (session == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST);
+        var order = loadOrderDetails(session.sessionId()).stream()
+                .filter(candidate -> candidate.orderId().equals(orderPublicId)).findFirst()
+                .orElseThrow(
+                        () -> new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST));
+        return new OperatorOrderDetail(session.tableCode(), session.customerName(),
+                session.customerPhone(), order);
+    }
+
+    @Transactional(readOnly = true)
     public Bill currentBill(String sessionPublicId) {
         var session = sessions.requireCurrent(sessionPublicId);
         return currentBill(session);
@@ -301,6 +316,10 @@ public class CustomerOrderingService {
     public record OrderDetail(String orderId, String orderNumber, BigDecimal originalAmount,
             BigDecimal payableAmount, String note, java.time.LocalDateTime createdAt,
             List<OrderItemDetail> items) {
+    }
+
+    public record OperatorOrderDetail(long tableCode, String customerName, String customerPhone,
+            OrderDetail order) {
     }
 
     public record OrderItemDetail(String orderItemId, String itemName, BigDecimal unitPrice,
