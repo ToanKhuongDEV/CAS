@@ -1,97 +1,114 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { loadAuditLogs, type AuditLogPage } from "../../../lib/api/operation/admin-lookup.api";
 
-const logs = [
-  {
-    id: 1,
-    time: "17:42 08/08/2026",
-    actor: "ADMIN Master",
-    action: "XÁC NHẬN THANH TOÁN",
-    target: "Payment P-9082 (Bàn 12)",
-  },
-  {
-    id: 2,
-    time: "17:15 08/08/2026",
-    actor: "Nguyễn Văn A",
-    action: "DUYỆT HỦY MÓN",
-    target: "Request R-102 (Bàn 05)",
-  },
-  {
-    id: 3,
-    time: "16:50 08/08/2026",
-    actor: "ADMIN Master",
-    action: "CẬP NHẬT CATALOG",
-    target: "Ốc Hương: SOLD_OUT",
-  },
-];
 export default function AdminAuditLogsPage() {
   const [query, setQuery] = useState("");
-  const visibleLogs = useMemo(
-    () =>
-      logs.filter((log) =>
-        `${log.actor} ${log.action} ${log.target}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [query],
-  );
+  const [action, setAction] = useState("");
+  const [entityType, setEntityType] = useState("");
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<AuditLogPage | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    void loadAuditLogs({ query, action, entityType, page })
+      .then((result) => {
+        if (active) {
+          setData(result);
+          setError(null);
+        }
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : "Không thể tải audit log.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [action, entityType, page, query]);
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-cas-on-surface">Nhật ký Audit Logs</h1>
+      <header>
+        <h1 className="text-2xl font-black">Nhật ký Audit Logs</h1>
         <p className="text-xs text-cas-on-surface-variant">
-          Tra cứu các thao tác quan trọng để quy trách nhiệm.
+          Tra cứu toàn bộ thao tác quan trọng trong cửa hàng.
         </p>
+      </header>
+      <div className="grid gap-3 md:grid-cols-3">
+        <input
+          className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm md:col-span-1"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(0);
+          }}
+          placeholder="Tìm tài khoản, hành động hoặc đối tượng"
+        />
+        <input
+          className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm"
+          value={action}
+          onChange={(event) => {
+            setAction(event.target.value);
+            setPage(0);
+          }}
+          placeholder="Lọc hành động, ví dụ: UPDATE"
+        />
+        <input
+          className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm"
+          value={entityType}
+          onChange={(event) => {
+            setEntityType(event.target.value);
+            setPage(0);
+          }}
+          placeholder="Lọc đối tượng, ví dụ: PAYMENT"
+        />
       </div>
-      <input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Tìm theo tài khoản, hành động hoặc đối tượng"
-        className="w-full max-w-xl rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold"
-      />
-      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30 bg-cas-glass">
+      {error ? <p className="text-cas-error">{error}</p> : null}
+      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30">
         <table className="w-full text-left text-xs">
-          <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 font-extrabold uppercase text-cas-on-surface-variant">
+          <thead>
             <tr>
-              <th className="px-5 py-4">Thời gian</th>
-              <th className="px-5 py-4">Tài khoản</th>
-              <th className="px-5 py-4">Hành động</th>
-              <th className="px-5 py-4">Đối tượng</th>
+              <th className="p-4">Thời gian</th>
+              <th className="p-4">Tài khoản</th>
+              <th className="p-4">Hành động</th>
+              <th className="p-4">Đối tượng</th>
+              <th className="p-4">Mô tả</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-cas-outline-variant/15">
-            {visibleLogs.map((log) => (
-              <tr key={log.id}>
-                <td className="px-5 py-4 text-cas-on-surface-variant">{log.time}</td>
-                <td className="px-5 py-4 font-black">{log.actor}</td>
-                <td className="px-5 py-4 font-black text-cas-primary">{log.action}</td>
-                <td className="px-5 py-4 text-cas-on-surface-variant">{log.target}</td>
+          <tbody>
+            {data?.items.map((log) => (
+              <tr key={log.id} className="border-t border-cas-outline-variant/20">
+                <td className="p-4">{new Date(log.createdAt).toLocaleString("vi-VN")}</td>
+                <td className="p-4">{log.actorName}</td>
+                <td className="p-4 font-bold text-cas-primary">{log.action}</td>
+                <td className="p-4">
+                  {log.entityType} · {log.entityName ?? log.entityId}
+                </td>
+                <td className="p-4">{log.description ?? "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <section className="rounded-3xl border border-cas-secondary/30 p-5">
-        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-cas-secondary">
-          Định hướng phát triển
-        </p>
-        <h2 className="mt-2 text-lg font-black text-cas-on-surface">
-          Các tính năng sẽ phát triển trong tương lai
-        </h2>
-        <ul className="mt-4 grid gap-3 text-sm text-cas-on-surface-variant md:grid-cols-3">
-          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
-            <p className="font-black text-cas-on-surface">Chăm sóc khách hàng qua Zalo</p>
-            <p className="mt-1 text-xs">Kết nối CRM và các hoạt động hỗ trợ khách hàng.</p>
-          </li>
-          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
-            <p className="font-black text-cas-on-surface">Tích hợp trò chơi</p>
-            <p className="mt-1 text-xs">Bổ sung các trải nghiệm tương tác cho khách hàng.</p>
-          </li>
-          <li className="rounded-2xl border border-cas-outline-variant/30 p-4">
-            <p className="font-black text-cas-on-surface">Tính năng AI</p>
-            <p className="mt-1 text-xs">Mở rộng các tiện ích thông minh theo nhu cầu vận hành.</p>
-          </li>
-        </ul>
-      </section>
+      <div className="flex items-center gap-3">
+        <button
+          disabled={page === 0}
+          onClick={() => setPage((current) => current - 1)}
+          type="button"
+        >
+          ← Trước
+        </button>
+        <span className="text-sm">
+          Trang {page + 1} / {data ? Math.max(1, Math.ceil(data.total / data.size)) : 1}
+        </span>
+        <button
+          disabled={!data || (page + 1) * data.size >= data.total}
+          onClick={() => setPage((current) => current + 1)}
+          type="button"
+        >
+          Sau →
+        </button>
+      </div>
     </div>
   );
 }

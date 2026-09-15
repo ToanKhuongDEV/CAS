@@ -404,7 +404,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
 - [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
 - [ ] Viết unit test và integration test.
-- [ ] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
+- [x] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
 - [ ] Xây dựng module danh sách `report` cho `ADMIN` sau cùng, sau khi phạm vi và API contract được chốt.
 
 #### Ngoài kế hoạch cho đến khi chốt yêu cầu
@@ -417,6 +417,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 ## 6. Frontend
 
+- [x] Ghép Admin quản lý nhân viên với danh sách API thực tế và thao tác kích hoạt lại tài khoản `INACTIVE`; ghép tra cứu khách hàng và Audit Log với dữ liệu theo store thay cho dữ liệu mẫu.
 - [x] Sửa trang Admin Settings: bắt và hiển thị lỗi khi tải cấu hình cửa hàng; hiển thị phản hồi thành công trong từng form sau khi lưu cấu hình cửa hàng hoặc ngưỡng cảnh báo.
 - [x] Loại bỏ khối giao diện thanh toán Customer không thể chạy sau khi đã trả về `PaymentRequestForm`, khắc phục lỗi TypeScript khi `bill` có thể là `null` và đồng bộ test theo UI hiện hành.
 - [x] Màn Operator hủy món do sự cố không còn fallback món mẫu; chỉ hiển thị dữ liệu từ API chế biến và có trạng thái tải, rỗng hoặc lỗi để không thể gửi `orderItemId` giả.

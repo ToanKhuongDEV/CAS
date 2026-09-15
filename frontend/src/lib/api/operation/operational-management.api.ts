@@ -10,6 +10,15 @@ export type CreatedOperator = {
   id: number;
   status: "ACTIVE" | "INACTIVE";
 };
+export type ManagedOperator = {
+  id: number;
+  email: string;
+  phone: string;
+  displayName: string;
+  status: "ACTIVE" | "INACTIVE";
+  createdAt: string;
+  lastLoginAt: string | null;
+};
 
 export function createOperator(input: { displayName: string; email: string; phone: string }) {
   return request<CreatedOperator>("/api/v1/admin/operators", {
@@ -20,6 +29,12 @@ export function createOperator(input: { displayName: string; email: string; phon
 
 export function deactivateOperator(operatorId: number) {
   return request<void>(`/api/v1/admin/operators/${operatorId}`, { method: "DELETE" });
+}
+export function activateOperator(operatorId: number) {
+  return request<void>(`/api/v1/admin/operators/${operatorId}/activate`, { method: "POST" });
+}
+export function loadOperators() {
+  return request<ManagedOperator[]>("/api/v1/admin/operators");
 }
 
 export function createAdmin(input: {

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import {
   createOperator,
   deactivateOperator,
+  activateOperator,
+  loadOperators,
 } from "../../../lib/api/operation/operational-management.api";
 
 type OperatorAccount = {
@@ -13,39 +15,9 @@ type OperatorAccount = {
   fullName: string;
   phone: string;
   role: "OPERATOR";
-  status: "ACTIVE" | "LOCKED";
+  status: "ACTIVE" | "INACTIVE";
   createdAt: string;
 };
-
-const mockOperators: OperatorAccount[] = [
-  {
-    email: "nguyenvana@example.com",
-    id: 1,
-    fullName: "Nguyễn Văn A",
-    phone: "0901234567",
-    role: "OPERATOR",
-    status: "ACTIVE",
-    createdAt: "2026-01-15",
-  },
-  {
-    email: "tranthib@example.com",
-    id: 2,
-    fullName: "Trần Thị B",
-    phone: "0912345678",
-    role: "OPERATOR",
-    status: "ACTIVE",
-    createdAt: "2026-02-01",
-  },
-  {
-    email: "lethib@example.com",
-    id: 3,
-    fullName: "Lê Văn C",
-    phone: "0987654321",
-    role: "OPERATOR",
-    status: "LOCKED",
-    createdAt: "2026-03-10",
-  },
-];
 
 type CreateOperatorErrors = {
   displayName?: string;
@@ -54,7 +26,7 @@ type CreateOperatorErrors = {
 };
 
 export default function AdminOperatorsPage() {
-  const [operators, setOperators] = useState<OperatorAccount[]>(mockOperators);
+  const [operators, setOperators] = useState<OperatorAccount[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -62,16 +34,53 @@ export default function AdminOperatorsPage() {
   const [createErrors, setCreateErrors] = useState<CreateOperatorErrors>({});
   const [requestError, setRequestError] = useState("");
 
+  const refreshOperators = async () => {
+    try {
+      const accounts = await loadOperators();
+      setOperators(
+        accounts.map((account) => ({
+          ...account,
+          fullName: account.displayName,
+          role: "OPERATOR",
+        })),
+      );
+      setRequestError("");
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : "Không thể tải tài khoản nhân viên.",
+      );
+    }
+  };
+  useEffect(() => {
+    void refreshOperators();
+  }, []);
+
   const deactivate = async (id: number) => {
     try {
       await deactivateOperator(id);
       setOperators((prev) =>
-        prev.map((operator) => (operator.id === id ? { ...operator, status: "LOCKED" } : operator)),
+        prev.map((operator) =>
+          operator.id === id ? { ...operator, status: "INACTIVE" } : operator,
+        ),
       );
       setRequestError("");
     } catch (error) {
       setRequestError(
         error instanceof Error ? error.message : "Không thể khóa tài khoản nhân viên.",
+      );
+    }
+  };
+
+  const activate = async (id: number) => {
+    try {
+      await activateOperator(id);
+      setOperators((prev) =>
+        prev.map((operator) => (operator.id === id ? { ...operator, status: "ACTIVE" } : operator)),
+      );
+      setRequestError("");
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : "Không thể kích hoạt tài khoản nhân viên.",
       );
     }
   };
@@ -116,7 +125,7 @@ export default function AdminOperatorsPage() {
       setOperators((current) => [
         ...current,
         {
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toISOString(),
           email: normalizedEmail,
           fullName: created.displayName,
           id: created.id,
@@ -319,7 +328,11 @@ export default function AdminOperatorsPage() {
                     <CasButton onClick={() => void deactivate(op.id)} variant="danger" size="sm">
                       Khóa tài khoản
                     </CasButton>
-                  ) : null}
+                  ) : (
+                    <CasButton onClick={() => void activate(op.id)} variant="outline" size="sm">
+                      Kích hoạt
+                    </CasButton>
+                  )}
                 </td>
               </tr>
             ))}
