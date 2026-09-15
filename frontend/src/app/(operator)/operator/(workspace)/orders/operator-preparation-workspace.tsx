@@ -15,6 +15,7 @@ import { useToast } from "../../../../../components/ui/toast-provider";
 type TablePreparationItem = {
   id: string;
   itemName: string;
+  orderId: string;
   optionSummary: string | null;
   remainingQuantity: number;
   requestedAt: string;
@@ -59,6 +60,7 @@ function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparati
       current.items.push({
         id: `${group.groupKey}-${allocation.orderItemId}`,
         itemName: group.itemName,
+        orderId: allocation.orderId,
         optionSummary: optionSummary(group),
         remainingQuantity: allocation.remainingQuantity,
         requestedAt: allocation.orderCreatedAt,
@@ -383,9 +385,12 @@ export function OperatorPreparationWorkspace() {
                                   <li className="py-2 first:pt-0 last:pb-0" key={item.id}>
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
-                                        <p className="truncate text-sm font-extrabold">
+                                        <Link
+                                          className="block truncate text-sm font-extrabold hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                                          href={`/operator/orders/${encodeURIComponent(item.orderId)}`}
+                                        >
                                           {item.itemName}
-                                        </p>
+                                        </Link>
                                         {item.optionSummary && (
                                           <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
                                             {item.optionSummary}

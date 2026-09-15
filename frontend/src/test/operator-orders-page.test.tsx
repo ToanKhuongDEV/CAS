@@ -6,6 +6,7 @@ import {
   completePreparationBatch,
   loadPreparationGroups,
 } from "../lib/api/ordering/preparation.api";
+import { ToastProvider } from "../components/ui/toast-provider";
 
 vi.mock("../lib/api/ordering/preparation.api", () => ({
   completePreparationBatch: vi.fn(),
@@ -72,7 +73,11 @@ describe("OperatorOrdersPage", () => {
       requestedQuantity: 5,
     });
 
-    render(<OperatorOrdersPage />);
+    render(
+      <ToastProvider>
+        <OperatorOrdersPage />
+      </ToastProvider>,
+    );
 
     expect((await screen.findAllByText("Bò sốt tiêu đen")).length).toBeGreaterThan(0);
     const itemView = screen.getByRole("region", { name: "Tổng hợp theo món" });

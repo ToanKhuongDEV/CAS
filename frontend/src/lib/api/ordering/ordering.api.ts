@@ -42,6 +42,13 @@ export type OperatorTable = {
   sessionPublicId: string | null;
 };
 
+export type OperatorOrderDetail = {
+  tableCode: number;
+  customerName: string;
+  customerPhone: string | null;
+  order: CustomerOrder;
+};
+
 export async function loadCustomerOrders() {
   return customerRequest<CustomerOrder[]>("/orders");
 }
@@ -85,6 +92,10 @@ export async function loadOperatorBill(sessionPublicId: string) {
   return operatorRequest<CustomerBill>(
     `/table-sessions/${encodeURIComponent(sessionPublicId)}/bill`,
   );
+}
+
+export async function loadOperatorOrderDetail(orderId: string) {
+  return operatorRequest<OperatorOrderDetail>(`/orders/${encodeURIComponent(orderId)}`);
 }
 
 export async function openOperatorTableSession(
