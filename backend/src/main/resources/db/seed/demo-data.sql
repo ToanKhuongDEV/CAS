@@ -1,8 +1,7 @@
 -- CAS demo data. Run this manually only after Flyway has created an empty schema.
 -- This file is intentionally outside db/migration, so Flyway never executes it automatically.
 -- Demo customer QR URL: http://localhost:3000/table/<token below>
--- Menu item images use Cloudinary URLs and storage keys. Welcome images below remain local
--- development assets and therefore keep a NULL storage key.
+-- Menu items and Welcome banners use the demo Cloudinary image URLs below.
 
 CREATE USER 'cas_codex_ro'@'localhost' IDENTIFIED BY '123456';
 
@@ -20,7 +19,7 @@ INSERT INTO stores (
     welcome_slogan, long_wait_warning_minutes, timezone, status
 ) VALUES (
     'CAS Mì Cay', '123 Đường Ẩm Thực, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-    '0900000000', 'hello@cas.local', 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787645373/cas/stores/1/1_73e62897-d02c-49b1-8968-48c5a2020a0d.svg',
+    '0900000000', 'hello@cas.local', 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787647789/cas/stores/1/1_20bbe6e4-5482-47d1-8018-6e4e25b9cff8.svg',
     'https://maps.google.com/?q=10.7769,106.7009',
     '09:00:00', '22:00:00', 'Món ngon gọi nhanh, vui trọn từng bàn.', 25,
     'Asia/Ho_Chi_Minh', 'ACTIVE'
@@ -61,14 +60,14 @@ INSERT INTO store_banners (
     status, created_by, updated_by
 ) VALUES (
     @store_id,
-    '/images/welcome/spicy-noodles.jpg', NULL,
-    '/images/welcome/street-snacks.jpg', NULL,
-    '/images/welcome/spicy-noodles.jpg', NULL,
-    '/images/welcome/matcha-drink.jpg', NULL,
-    '/images/welcome/iced-coffee.jpg', NULL,
-    '/images/welcome/milk-tea.jpg', NULL,
-    '/images/welcome/fried-chicken.jpg', NULL,
-    '/images/welcome/street-snacks.jpg', NULL,
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788427932/cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896.jpg', 'cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg', 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407065/cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809.jpg', 'cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg', 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406767/cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c.jpg', 'cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406770/cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b.jpg', 'cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406766/cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014.jpg', 'cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg', 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238',
     'ACTIVE', NULL, NULL
 );
 
@@ -145,25 +144,27 @@ INSERT INTO menu_items (
 )
 SELECT categories.id, @store_id, demo_item.name, demo_item.description, demo_item.price,
        CASE demo_item.image_url
-           WHEN '/images/welcome/fried-chicken.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407058/cas/menu/1/1_ba2d59ce-905f-4ad3-a8e0-a656a67b3643.jpg'
-           WHEN '/images/welcome/iced-coffee.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407059/cas/menu/1/1_10a842e3-07e8-4ec3-977b-42e34a85ed8c.jpg'
-           WHEN '/images/welcome/matcha-drink.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg'
-           WHEN '/images/welcome/milk-tea.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407063/cas/menu/1/1_72e32f4b-6c0f-43fe-b181-17754c962ec6.jpg'
+           WHEN '/images/welcome/spicy-noodles-featured.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788427932/cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896.jpg'
            WHEN '/images/welcome/spicy-noodles.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407065/cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809.jpg'
            WHEN '/images/welcome/street-snacks.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406770/cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b.jpg'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406767/cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c.jpg'
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406766/cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014.jpg'
        END,
        CASE demo_item.image_url
-           WHEN '/images/welcome/fried-chicken.jpg' THEN 'cas/menu/1/1_ba2d59ce-905f-4ad3-a8e0-a656a67b3643'
-           WHEN '/images/welcome/iced-coffee.jpg' THEN 'cas/menu/1/1_10a842e3-07e8-4ec3-977b-42e34a85ed8c'
-           WHEN '/images/welcome/matcha-drink.jpg' THEN 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a'
-           WHEN '/images/welcome/milk-tea.jpg' THEN 'cas/menu/1/1_72e32f4b-6c0f-43fe-b181-17754c962ec6'
+           WHEN '/images/welcome/spicy-noodles-featured.jpg' THEN 'cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896'
            WHEN '/images/welcome/spicy-noodles.jpg' THEN 'cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809'
            WHEN '/images/welcome/street-snacks.jpg' THEN 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c'
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014'
        END,
        'AVAILABLE', demo_item.display_order, NULL, NULL
 FROM categories
 INNER JOIN (
-    SELECT 'Mì cay' AS category_name, 'Mì cay đặc biệt 7 cấp độ' AS name, 'Mì cay đậm vị với rau, nấm và topping.' AS description, 55000.00 AS price, '/images/welcome/spicy-noodles.jpg' AS image_url, 1 AS display_order
+    SELECT 'Mì cay' AS category_name, 'Mì cay đặc biệt 7 cấp độ' AS name, 'Mì cay đậm vị với rau, nấm và topping.' AS description, 55000.00 AS price, '/images/welcome/spicy-noodles-featured.jpg' AS image_url, 1 AS display_order
     UNION ALL SELECT 'Mì cay', 'Mì cay xúc xích phô mai', 'Mì cay béo thơm cùng xúc xích và phô mai.', 49000.00, '/images/welcome/spicy-noodles.jpg', 2
     UNION ALL SELECT 'Mì cay', 'Mì cay nấm rau củ', 'Mì cay thanh nhẹ với nấm và rau xanh.', 42000.00, '/images/welcome/spicy-noodles.jpg', 3
     UNION ALL SELECT 'Gà rán', 'Gà rán giòn rụm', 'Gà rán vàng giòn, dùng kèm sốt cay.', 35000.00, '/images/welcome/fried-chicken.jpg', 1

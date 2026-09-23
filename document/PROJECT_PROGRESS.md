@@ -98,6 +98,7 @@ Ngày cập nhật gần nhất: 2026-09-05
 
 ## 4. Thiết kế database
 
+- [x] Seed demo tạo 15 món thuộc sáu category cùng tag và option; ảnh món để `NULL` để bổ sung URL thật sau.
 - [x] Chốt aggregate mục tiêu `sales_sessions` cho đơn `DINE_IN` và `TAKEAWAY`;
       gộp schema Flyway về baseline duy nhất và chuyển các query dine-in hiện có
       sang aggregate mới trước khi tạo lại database local.
