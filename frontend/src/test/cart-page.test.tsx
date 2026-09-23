@@ -7,7 +7,7 @@ import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
 import { createCustomerOrder } from "../lib/api/ordering/ordering.api";
-import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
+import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
 const push = vi.fn();
 
@@ -16,8 +16,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
-vi.mock("../lib/customer/table-session", () => ({
-  getCurrentCustomerTableSession: vi.fn(),
+vi.mock("../lib/customer/sales-session", () => ({
+  getCurrentCustomerSalesSession: vi.fn(),
 }));
 
 vi.mock("../lib/api/ordering/ordering.api", () => ({
@@ -43,7 +43,7 @@ describe("CartPage", () => {
         },
       ]),
     );
-    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "OPEN",
       tableCode: 5,
@@ -148,7 +148,7 @@ describe("CartPage", () => {
 
   it("submits an already validated cart without another QR check", async () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
-    vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("Session not found"));
+    vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("Session not found"));
     render(
       <ToastProvider>
         <QueryProvider>
@@ -166,9 +166,9 @@ describe("CartPage", () => {
     expect(push).toHaveBeenCalledWith("/orders");
   });
 
-  it("submits the order when this device has an active table session", async () => {
+  it("submits the order when this device has an active sales session", async () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
-    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "OPEN",
       tableCode: 5,

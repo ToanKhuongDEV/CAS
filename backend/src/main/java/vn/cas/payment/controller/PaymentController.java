@@ -52,7 +52,7 @@ public class PaymentController {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy số payment chờ xác nhận.",
                 service.pendingCount(p), r);
     }
-    @PostMapping(ApiPaths.API_OPERATOR_PREFIX + "/table-sessions/{sessionId}/payments")
+    @PostMapping(ApiPaths.API_OPERATOR_PREFIX + "/sales-sessions/{sessionId}/payments")
     public ResponseEntity<?> createForOperator(@AuthenticationPrincipal OperationalPrincipal p,
             @PathVariable String sessionId, HttpServletRequest r) {
         return ApiResponses.success(

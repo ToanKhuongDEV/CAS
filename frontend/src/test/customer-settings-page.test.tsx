@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CustomerSettingsPage from "../app/(customer)/settings/page";
-import { cancelCustomerTableSession } from "../lib/api/ordering/ordering.api";
-import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
+import { cancelCustomerSalesSession } from "../lib/api/ordering/ordering.api";
+import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
 const replace = vi.fn();
 
@@ -11,8 +11,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/settings",
   useRouter: () => ({ replace }),
 }));
-vi.mock("../lib/customer/table-session", () => ({ getCurrentCustomerTableSession: vi.fn() }));
-vi.mock("../lib/api/ordering/ordering.api", () => ({ cancelCustomerTableSession: vi.fn() }));
+vi.mock("../lib/customer/sales-session", () => ({ getCurrentCustomerSalesSession: vi.fn() }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({ cancelCustomerSalesSession: vi.fn() }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
 }));
@@ -24,12 +24,12 @@ vi.mock("../lib/api/notification/notification.api", () => ({
 
 describe("CustomerSettingsPage", () => {
   beforeEach(() => {
-    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "OPEN",
       tableCode: 1,
     });
-    vi.mocked(cancelCustomerTableSession).mockResolvedValue();
+    vi.mocked(cancelCustomerSalesSession).mockResolvedValue();
     replace.mockClear();
   });
 
@@ -46,7 +46,7 @@ describe("CustomerSettingsPage", () => {
     expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
   });
 
-  it("confirms and cancels the current table session", async () => {
+  it("confirms and cancels the current sales session", async () => {
     render(<CustomerSettingsPage />);
 
     const cancelButton = await screen.findByRole("button", { name: "Hủy phiên" });
@@ -57,7 +57,7 @@ describe("CustomerSettingsPage", () => {
     fireEvent.click(cancelButton);
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy" }));
 
-    await vi.waitFor(() => expect(cancelCustomerTableSession).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(cancelCustomerSalesSession).toHaveBeenCalledOnce());
     expect(replace).toHaveBeenCalledWith("/");
   });
 });

@@ -46,19 +46,19 @@
             request_fingerprint AS requestFingerprint,
             payable_amount AS payableAmount
         FROM orders
-        WHERE table_session_id = #{sessionId}
+        WHERE sales_session_id = #{sessionId}
           AND idempotency_key = #{idempotencyKey}
     </select>
     <select id="findCancellableOrderItemForUpdate" resultType="vn.cas.ordering.model.CancellableOrderItem">
         SELECT order_items.id, order_items.quantity,
                COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status IN ('PENDING', 'APPROVED') THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS reservedCancellationQuantity,
-               table_sessions.status AS sessionStatus
+               sales_sessions.status AS sessionStatus
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
         LEFT JOIN order_item_cancellation_requests ON order_item_cancellation_requests.order_item_id = order_items.id
-        WHERE orders.table_session_id = #{sessionId} AND order_items.public_id = #{orderItemPublicId}
-        GROUP BY order_items.id, order_items.quantity, table_sessions.status
+        WHERE orders.sales_session_id = #{sessionId} AND order_items.public_id = #{orderItemPublicId}
+        GROUP BY order_items.id, order_items.quantity, sales_sessions.status
         FOR UPDATE
     </select>
     <select id="findCancellationRequest" resultType="vn.cas.ordering.model.CancellationRequest">
@@ -72,7 +72,7 @@
             FROM order_item_cancellation_requests
             INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
             INNER JOIN orders ON orders.id = order_items.order_id
-            WHERE orders.table_session_id = #{sessionId}
+            WHERE orders.sales_session_id = #{sessionId}
               AND order_item_cancellation_requests.status = 'PENDING'
         )
     </select>
@@ -83,7 +83,7 @@
     <insert id="insertOrder">
         INSERT INTO orders (
             public_id,
-            table_session_id,
+            sales_session_id,
             created_by_account_id,
             idempotency_key,
             request_fingerprint,
@@ -157,19 +157,19 @@
             orders.note,
             orders.created_at AS createdAt
         FROM orders
-        WHERE orders.table_session_id = #{sessionId}
+        WHERE orders.sales_session_id = #{sessionId}
         ORDER BY orders.created_at ASC
     </select>
     <select id="findSessionByOrderPublicIdAndStoreId"
             resultType="vn.cas.ordering.model.OperatorOrderSession">
         SELECT
-            table_sessions.id AS sessionId,
+            sales_sessions.id AS sessionId,
             dining_tables.code AS tableCode,
-            table_sessions.opened_by_customer_name AS customerName,
-            table_sessions.opened_by_customer_phone AS customerPhone
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.opened_by_customer_phone AS customerPhone
         FROM orders
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
           AND orders.public_id = #{orderPublicId}
     </select>
@@ -192,7 +192,7 @@
         INNER JOIN orders ON orders.id = order_items.order_id
         LEFT JOIN order_item_cancellation_requests
             ON order_item_cancellation_requests.order_item_id = order_items.id
-        WHERE orders.table_session_id = #{sessionId}
+        WHERE orders.sales_session_id = #{sessionId}
         GROUP BY order_items.id, order_items.public_id, order_items.item_name,
                  order_items.unit_price, order_items.options_amount, order_items.quantity,
                  order_items.prepared_quantity, order_items.total_amount
@@ -209,7 +209,7 @@
         FROM order_item_options
         INNER JOIN order_items ON order_items.id = order_item_options.order_item_id
         INNER JOIN orders ON orders.id = order_items.order_id
-        WHERE orders.table_session_id = #{sessionId}
+        WHERE orders.sales_session_id = #{sessionId}
         ORDER BY order_item_options.order_item_id ASC, order_item_options.id ASC
     </select>
     <sql id="preparationItemColumns">
@@ -235,20 +235,20 @@
         SELECT <include refid="preparationItemColumns"/>
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
-          AND table_sessions.status = 'OPEN'
+          AND sales_sessions.status = 'OPEN'
         ORDER BY orders.created_at ASC, order_items.id ASC
     </select>
     <select id="countPendingPreparationTables" resultType="int">
         SELECT COUNT(DISTINCT dining_tables.id)
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
-          AND table_sessions.status = 'OPEN'
+          AND sales_sessions.status = 'OPEN'
           AND order_items.quantity > order_items.prepared_quantity + COALESCE((
               SELECT SUM(cancellation_requests.requested_quantity)
               FROM order_item_cancellation_requests cancellation_requests
@@ -259,10 +259,10 @@
     <select id="findPreparationItemsByTableCodeForUpdate" resultType="vn.cas.ordering.model.PreparationItemRow">
         SELECT <include refid="preparationItemColumns"/>
         FROM order_items INNER JOIN orders ON orders.id=order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id=orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id=table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id=orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id=sales_sessions.table_id
         WHERE dining_tables.store_id=#{storeId} AND dining_tables.code=#{tableCode}
-          AND table_sessions.status='OPEN'
+          AND sales_sessions.status='OPEN'
         ORDER BY orders.created_at ASC, order_items.id ASC FOR UPDATE
     </select>
     <select id="findPreparationTableCompletion" resultType="vn.cas.ordering.model.StoredPreparationTableCompletion">
@@ -276,10 +276,10 @@
         SELECT <include refid="preparationItemColumns"/>
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
-          AND table_sessions.status = 'OPEN'
+          AND sales_sessions.status = 'OPEN'
           AND order_items.menu_item_id = #{menuItemId}
         ORDER BY orders.created_at ASC, order_items.id ASC
         FOR UPDATE
@@ -342,8 +342,8 @@
         FROM order_item_cancellation_requests
         INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         LEFT JOIN order_item_cancellation_requests approved_cancellations
           ON approved_cancellations.order_item_id = order_items.id
         WHERE dining_tables.store_id = #{storeId}
@@ -365,8 +365,8 @@
         FROM order_item_cancellation_requests
         INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
         INNER JOIN orders ON orders.id = order_items.order_id
-        INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
           AND order_item_cancellation_requests.status = 'PENDING'
     </select>
@@ -427,7 +427,7 @@
     <select id="findOrderItemRemakeSnapshot"
             resultType="vn.cas.ordering.model.OrderItemRemakeSnapshot">
         SELECT
-            orders.table_session_id AS tableSessionId,
+            orders.sales_session_id AS salesSessionId,
             order_items.menu_item_id AS menuItemId,
             order_items.item_name AS itemName,
             order_items.unit_price AS unitPrice,

@@ -162,7 +162,7 @@ describe("OrdersPage", () => {
     expect(screen.queryByText("0 món")).not.toBeInTheDocument();
   });
 
-  it("guides customers without an active table session to QR scanning", async () => {
+  it("guides customers without an active sales session to QR scanning", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValueOnce(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
     );

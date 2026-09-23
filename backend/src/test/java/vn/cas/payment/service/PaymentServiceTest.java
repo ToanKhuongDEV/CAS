@@ -24,13 +24,13 @@ import vn.cas.payment.model.PaymentView;
 import vn.cas.payment.model.UnpaidRecordView;
 import vn.cas.promotion.service.PromotionService;
 import vn.cas.store.mapper.DiningTableMapper;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
 
 class PaymentServiceTest {
 
     private final PaymentMapper payments = mock(PaymentMapper.class);
-    private final CustomerTableSessionService sessions = mock(CustomerTableSessionService.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
     private final DiningTableMapper tables = mock(DiningTableMapper.class);
     private final CustomerOrderingService orders = mock(CustomerOrderingService.class);
     private final OrderingMapper ordering = mock(OrderingMapper.class);
@@ -326,8 +326,8 @@ class PaymentServiceTest {
         verify(promotions).forfeit(1L);
     }
 
-    private static CustomerTableSessionLookup session(String status) {
-        return new CustomerTableSessionLookup(10L, 20L, 3L, 5L, "session-1", status);
+    private static SalesSessionLookup session(String status) {
+        return new SalesSessionLookup(10L, 20L, 3L, 5L, "session-1", status);
     }
 
     private static PaymentView payment(String status) {

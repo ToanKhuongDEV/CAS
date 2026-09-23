@@ -2,14 +2,14 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CustomerHeader } from "../components/customer/customer-header";
-import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
+import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 import {
   loadCustomerNotifications,
   markAllCustomerNotificationsRead,
   markCustomerNotificationRead,
 } from "../lib/api/notification/notification.api";
 
-vi.mock("../lib/customer/table-session", () => ({ getCurrentCustomerTableSession: vi.fn() }));
+vi.mock("../lib/customer/sales-session", () => ({ getCurrentCustomerSalesSession: vi.fn() }));
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => "/menu",
@@ -26,7 +26,7 @@ vi.mock("../lib/api/notification/notification.api", () => ({
 
 describe("CustomerHeader", () => {
   beforeEach(() => {
-    vi.mocked(getCurrentCustomerTableSession).mockRejectedValue(new Error("No active table"));
+    vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("No active table"));
     vi.mocked(loadCustomerNotifications).mockResolvedValue({
       notifications: [
         {
@@ -58,7 +58,7 @@ describe("CustomerHeader", () => {
   });
 
   it("redirects a payment-pending session to payment", async () => {
-    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "PAYMENT_PENDING",
       tableCode: 5,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CustomerBottomNavigation } from "../../../components/customer/customer-bottom-navigation";
 import { CustomerHeader } from "../../../components/customer/customer-header";
-import { CustomerTableSessionSettings } from "../../../components/customer/customer-table-session-settings";
+import { CustomerSalesSessionSettings } from "../../../components/customer/customer-sales-session-settings";
 import { ThemeToggle } from "../../../components/ui/theme-toggle";
 
 export const metadata: Metadata = {
@@ -40,7 +40,7 @@ export default function CustomerSettingsPage() {
             </div>
             <ThemeToggle />
           </section>
-          <CustomerTableSessionSettings />
+          <CustomerSalesSessionSettings />
         </main>
       </div>
     </div>

@@ -12,28 +12,28 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import vn.cas.store.dto.CreateClientAccountCommand;
-import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
+import vn.cas.store.dto.SalesSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.model.SalesSessionResolution.ResolutionStatus;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.service.AuditLogService;
 
-class CustomerTableSessionServiceTest {
+class SalesSessionServiceTest {
 
     private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
-    private final CustomerTableSessionService service = new CustomerTableSessionService(
-            diningTableMapper, auditLogService);
+    private final SalesSessionService service = new SalesSessionService(diningTableMapper,
+            auditLogService);
 
     @Test
     void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {
-        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
+        when(diningTableMapper.findSalesSessionByActiveQrTokenForUpdate("a".repeat(64)))
+                .thenReturn(new SalesSessionLookup(null, 9L, 2L, 5L, null, null));
 
         var result = service
-                .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
+                .resolveQr(new SalesSessionResolutionCommand("a".repeat(64), null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED);
         assertThat(result.tableCode()).isEqualTo(5L);
@@ -42,11 +42,11 @@ class CustomerTableSessionServiceTest {
 
     @Test
     void shouldJoinExistingOpenSessionWithoutCustomerInformation() {
-        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64))).thenReturn(
-                new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
+        when(diningTableMapper.findSalesSessionByActiveQrTokenForUpdate("a".repeat(64)))
+                .thenReturn(new SalesSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
 
         var result = service
-                .resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64), null, null));
+                .resolveQr(new SalesSessionResolutionCommand("a".repeat(64), null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         assertThat(result.sessionPublicId()).isEqualTo("session-public-id");
@@ -55,26 +55,26 @@ class CustomerTableSessionServiceTest {
 
     @Test
     void shouldCreateOpenSessionForFirstCustomer() {
-        when(diningTableMapper.findTableSessionByActiveQrTokenForUpdate("a".repeat(64)))
-                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
+        when(diningTableMapper.findSalesSessionByActiveQrTokenForUpdate("a".repeat(64)))
+                .thenReturn(new SalesSessionLookup(null, 9L, 2L, 5L, null, null));
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
             return 1;
         }).when(diningTableMapper).insertClientAccount(any());
 
-        var result = service.resolveQr(new CustomerTableSessionResolutionCommand("a".repeat(64),
-                "Customer One", "0901234567"));
+        var result = service.resolveQr(
+                new SalesSessionResolutionCommand("a".repeat(64), "Customer One", "0901234567"));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         assertThat(result.sessionPublicId()).isNotBlank();
-        verify(diningTableMapper).insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(),
+        verify(diningTableMapper).insertOpenDineInSalesSession(anyLong(), any(), anyLong(), any(),
                 any());
     }
 
     @Test
     void shouldReturnCurrentSessionFromItsPublicId() {
-        when(diningTableMapper.findCurrentTableSessionByPublicId("session-public-id")).thenReturn(
-                new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
+        when(diningTableMapper.findCurrentSalesSessionByPublicId("session-public-id"))
+                .thenReturn(new SalesSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
 
         var result = service.getCurrent("session-public-id");
 
@@ -84,9 +84,8 @@ class CustomerTableSessionServiceTest {
 
     @Test
     void shouldCloseOpenSessionWithoutOrders() {
-        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
-                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
-                        "OPEN"));
+        when(diningTableMapper.findCurrentSalesSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new SalesSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
         when(diningTableMapper.hasOrders(1L)).thenReturn(false);
         when(diningTableMapper.closeSessionWithoutOrders(1L)).thenReturn(1);
 
@@ -97,9 +96,8 @@ class CustomerTableSessionServiceTest {
 
     @Test
     void shouldRejectCancellingSessionThatAlreadyHasOrders() {
-        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
-                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
-                        "OPEN"));
+        when(diningTableMapper.findCurrentSalesSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new SalesSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
         when(diningTableMapper.hasOrders(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.cancelCurrent("session-public-id"))
@@ -109,8 +107,8 @@ class CustomerTableSessionServiceTest {
 
     @Test
     void shouldOpenSessionForOperatorWhenTableIsAvailable() {
-        when(diningTableMapper.findTableSessionByStoreIdAndTableIdForUpdate(2L, 9L))
-                .thenReturn(new CustomerTableSessionLookup(null, 9L, 2L, 5L, null, null));
+        when(diningTableMapper.findSalesSessionByStoreIdAndTableIdForUpdate(2L, 9L))
+                .thenReturn(new SalesSessionLookup(null, 9L, 2L, 5L, null, null));
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateClientAccountCommand.class).setId(23L);
             return 1;
@@ -119,15 +117,14 @@ class CustomerTableSessionServiceTest {
         var session = service.openOrGetForOperator(2L, 9L, "Customer One", null);
 
         assertThat(session.sessionPublicId()).isNotBlank();
-        verify(diningTableMapper).insertOpenCustomerTableSession(anyLong(), any(), anyLong(), any(),
+        verify(diningTableMapper).insertOpenDineInSalesSession(anyLong(), any(), anyLong(), any(),
                 any());
     }
 
     @Test
     void shouldAllowOperatorToCloseOwnOpenSessionWithoutOrders() {
-        when(diningTableMapper.findCurrentTableSessionByPublicIdForUpdate("session-public-id"))
-                .thenReturn(new CustomerTableSessionLookup(1L, 9L, 2L, 5L, "session-public-id",
-                        "OPEN"));
+        when(diningTableMapper.findCurrentSalesSessionByPublicIdForUpdate("session-public-id"))
+                .thenReturn(new SalesSessionLookup(1L, 9L, 2L, 5L, "session-public-id", "OPEN"));
         when(diningTableMapper.hasOrders(1L)).thenReturn(false);
         when(diningTableMapper.closeSessionWithoutOrders(1L)).thenReturn(1);
 

@@ -104,7 +104,7 @@ Nhân viên xác nhận kết quả thanh toán
 
 - Mỗi promotion thuộc một store. Điều kiện cơ bản, thời gian hiệu lực và quota nằm ngay tại `promotions`; mã, phạm vi món/danh mục và lịch sử sử dụng lần lượt nằm tại `promotion_codes`, `promotion_targets` và `promotion_redemptions`.
 - Mô hình đơn giản hiện tại hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`. `BUY_X_GET_Y` và `FREE_ITEM` cần dữ liệu mua/tặng riêng nên được để cho giai đoạn mở rộng promotion phức tạp hơn.
-- Backend trả danh sách promotion đủ điều kiện cùng số tiền giảm dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của table session; backend không tự chọn phương án có lợi nhất.
+- Backend trả danh sách promotion đủ điều kiện cùng số tiền giảm dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của sales session; backend không tự chọn phương án có lợi nhất.
 - Giá niêm yết tại `menu_items.price` không bị sửa khi chạy khuyến mãi. Discount cấp bill được tính lại khi bill thay đổi và được snapshot tại `bill_discounts` khi payment được tạo, để hóa đơn lịch sử không thay đổi khi chương trình được sửa hoặc ngừng hiệu lực.
 - Quản lý danh sách thông báo hệ thống và phát hành tin tức, cảnh báo cho phép linh hoạt cấu hình đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - Tích hợp biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải giao diện Khách hàng (`Customer`) và Nhân viên (`Operator`) để xem nhanh thông báo khuyến mãi và tin tức vận hành.
@@ -143,11 +143,11 @@ hoàn thành theo giá trị suy ra khi mọi dòng món còn hiệu lực đề
 cần làm.
 
 Thời gian chờ của một bàn được tính từ `orders.created_at` của order cũ nhất vẫn
-còn ít nhất một phần chưa làm xong trong table session đang phục vụ. Một bàn
+còn ít nhất một phần chưa làm xong trong sales session đang phục vụ. Một bàn
 được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình.
 Trong giai đoạn UI chưa kết nối cấu hình backend, giá trị tạm thời là `25` phút.
 
-Order do `OPERATOR` tạo hộ vẫn thuộc đúng table session của khách và tuân theo
+Order do `OPERATOR` tạo hộ vẫn thuộc đúng sales session của khách và tuân theo
 cùng quy tắc giá, kiểm tra món/option, idempotency và FIFO như order do Customer
 gửi. Backend không tin giá hoặc tổng tiền từ giao diện vận hành. Thao tác tạo hộ
 phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
@@ -173,7 +173,7 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 
 - `ADMIN` có thể tra cứu khách hàng đã mở bàn trong phạm vi cửa hàng, theo tên hoặc số điện thoại.
 - Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách khi có, còn khách không có số điện thoại hiển thị là `Khách lẻ`.
-- Khi mở chi tiết, `ADMIN` có thể xem các table session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
+- Khi mở chi tiết, `ADMIN` có thể xem các sales session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
 - Chức năng chỉ đọc dữ liệu hiện có, không cho sửa hoặc xóa thông tin khách, order, payment hay lịch sử phiên bàn.
 - `OPERATOR` không được truy cập chức năng này.
 
@@ -238,7 +238,7 @@ CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ t
 
 ### 5.4. Dịch vụ đặt trước
 
-Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với table session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên đánh dấu dịch vụ `CANCELLED`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
+Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với sales session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên đánh dấu dịch vụ `CANCELLED`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
 
 ## 6. Kiến trúc tổng thể
 
@@ -272,7 +272,7 @@ CAS Frontend
 Customer có thể vào trực tiếp `/menu` và `/cart` công khai. Khi thêm món vào giỏ
 mà chưa có session, frontend chuyển tới `/table/{qrToken}` sau khi khách quét
 hoặc nhập QR; route này chỉ dùng để backend xác minh QR, xác định bàn và tìm
-hoặc mở table session. Sau khi có session hợp lệ, Customer tiếp tục dùng các route ngắn
+hoặc mở sales session. Sau khi có session hợp lệ, Customer tiếp tục dùng các route ngắn
 `/menu`, `/cart` và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ
 chế vận chuyển và lưu ngữ cảnh session giữa frontend và backend phải được chốt
 trong API contract. Backend không được tin table ID hoặc session ID do client tự

@@ -29,7 +29,7 @@ const records = [
     resolvedAt: null,
     status: "OPEN" as const,
     tableCode: 9,
-    tableSessionId: "session-1",
+    salesSessionId: "session-1",
   },
 ];
 
@@ -82,7 +82,7 @@ describe("OperatorUnpaidView", () => {
     await waitFor(() => expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-1"));
   });
 
-  it("shows a success toast after recording an unpaid table session", async () => {
+  it("shows a success toast after recording an unpaid sales session", async () => {
     vi.mocked(recordOperatorUnpaid).mockResolvedValue({} as never);
     renderUnpaidView();
 

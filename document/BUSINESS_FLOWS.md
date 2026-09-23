@@ -149,7 +149,7 @@ của hệ thống.
 
 ### Mục tiêu
 
-Cho phép `ADMIN` tra cứu khách đã từng mở table session tại cửa hàng và xem lịch sử sử dụng bàn có liên quan, mà không mở rộng CAS thành CRM.
+Cho phép `ADMIN` tra cứu khách đã từng mở sales session tại cửa hàng và xem lịch sử sử dụng bàn có liên quan, mà không mở rộng CAS thành CRM.
 
 ### Luồng chính
 
@@ -157,15 +157,15 @@ Cho phép `ADMIN` tra cứu khách đã từng mở table session tại cửa h�
 2. Frontend yêu cầu danh sách khách trong phạm vi cửa hàng của tài khoản.
 3. Backend xác thực Firebase ID Token, kiểm tra role `ADMIN` và giới hạn dữ liệu theo `store_id`.
 4. Backend trả thông tin nhận diện tối thiểu của `client_accounts`, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại được che một phần ở danh sách khi có, còn khách không có số điện thoại hiển thị là `Khách lẻ`.
-5. `ADMIN` có thể tìm theo tên hoặc số điện thoại, rồi mở một khách hàng để xem các `table_sessions` cùng order, payment hoặc `unpaid_records` liên quan.
+5. `ADMIN` có thể tìm theo tên hoặc số điện thoại, rồi mở một khách hàng để xem các `sales_sessions` cùng order, payment hoặc `unpaid_records` liên quan.
 6. Frontend hiển thị dữ liệu lịch sử, trạng thái tải, danh sách trống và lỗi phù hợp.
 
 ### Quy tắc nghiệp vụ
 
 - Chức năng chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập.
-- Đây là chức năng chỉ đọc, không cho sửa hoặc xóa `client_accounts`, table session, order, payment hay khoản chưa thanh toán.
+- Đây là chức năng chỉ đọc, không cho sửa hoặc xóa `client_accounts`, sales session, order, payment hay khoản chưa thanh toán.
 - Mọi truy vấn phải giới hạn theo `store_id`; không trả dữ liệu khách của cửa hàng khác.
-- Lịch sử dùng snapshot trong `table_sessions`, order và payment làm nguồn hiển thị; không thay đổi dữ liệu lịch sử khi `client_accounts.display_name` được cập nhật ở một phiên sau.
+- Lịch sử dùng snapshot trong `sales_sessions`, order và payment làm nguồn hiển thị; không thay đổi dữ liệu lịch sử khi `client_accounts.display_name` được cập nhật ở một phiên sau.
 - Danh sách không hiển thị đầy đủ số điện thoại khi có; chỉ màn chi tiết mới được trả số điện thoại đầy đủ khi thật sự cần thiết. Khách có `phone = NULL` hiển thị là `Khách lẻ` và không thể tìm bằng số điện thoại.
 - Chức năng không bao gồm phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân, chiến dịch tiếp thị hay gửi thông báo theo từng khách.
 
@@ -181,11 +181,11 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 2. QR dẫn tới đường dẫn chứa `table_qr_codes.token`.
 3. Hệ thống kiểm tra token tồn tại và có trạng thái `ACTIVE`.
 4. Hệ thống xác định `dining_tables` tương ứng.
-5. Nếu bàn đang có `table_sessions` trạng thái `OPEN`, hệ thống trả về session hiện tại.
+5. Nếu bàn đang có `sales_sessions` trạng thái `OPEN`, hệ thống trả về session hiện tại.
 6. Nếu bàn chưa có session đang mở, hệ thống yêu cầu khách đầu tiên nhập tên; số điện thoại là tùy chọn.
 7. Nếu khách cung cấp số điện thoại, hệ thống tìm `client_accounts` theo số điện thoại trong cửa hàng hiện tại.
 8. Nếu có số điện thoại nhưng chưa tồn tại, hệ thống tạo `client_accounts` mới; nếu không có số điện thoại, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`.
-9. Hệ thống tạo `table_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn; SĐT snapshot là `NULL` cho khách lẻ.
+9. Hệ thống tạo `sales_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn; SĐT snapshot là `NULL` cho khách lẻ.
 10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu`.
 
 ### Quy tắc nghiệp vụ
@@ -200,10 +200,10 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 - Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
 - QR bàn là mã cố định được in và dán tại bàn.
 - QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
-- Sau khi QR được xác minh và table session hợp lệ được tìm hoặc tạo, các màn
+- Sau khi QR được xác minh và sales session hợp lệ được tìm hoặc tạo, các màn
   Customer tiếp tục dùng `/menu`, `/cart` và `/orders`; không đưa QR token,
   table ID hoặc session ID vào các URL này.
-- Cơ chế vận chuyển và lưu ngữ cảnh table session cho các API Customer phải
+- Cơ chế vận chuyển và lưu ngữ cảnh sales session cho các API Customer phải
   được chốt trong API contract. Backend phải xác minh ngữ cảnh session ở mỗi
   thao tác và không tin định danh bàn hoặc phiên do client tự suy diễn.
 
@@ -236,7 +236,7 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 - Frontend hiển thị option group `SINGLE` bằng radio và `MULTIPLE` bằng checkbox, dựa trên `selectionType` do backend trả về.
 - Mỗi món chỉ có một ảnh.
 - Giá tại thời điểm khách gửi order sẽ được ghi lại vào `order_items`, không phụ thuộc vào giá menu thay đổi sau đó.
-- Khi chưa có session QR hợp lệ, Catalog Customer hiển thị menu của store mặc định `1`. Sau khi quét hoặc nhập QR, Catalog ưu tiên store của table session để bảo đảm đúng menu của bàn.
+- Khi chưa có session QR hợp lệ, Catalog Customer hiển thị menu của store mặc định `1`. Sau khi quét hoặc nhập QR, Catalog ưu tiên store của sales session để bảo đảm đúng menu của bàn.
 
 ## 7. Luồng gọi món
 
@@ -271,11 +271,11 @@ Khách hàng gửi một order mới trong session bàn.
 - FIFO là thứ tự ưu tiên hiển thị và xử lý thủ công; CAS theo dõi số lượng đã
   làm xong bằng `order_items.prepared_quantity`, nhưng không tự xác nhận món đã
   được lên.
-- `idempotency_key` là bắt buộc khi tạo order và chỉ duy nhất trong phạm vi một table session.
+- `idempotency_key` là bắt buộc khi tạo order và chỉ duy nhất trong phạm vi một sales session.
 - `request_fingerprint` do backend tính từ payload đã chuẩn hóa; client không được cung cấp hoặc quyết định giá trị này.
 - Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo, không tạo order mới.
 - Request dùng lại cùng key nhưng fingerprint khác bị từ chối với HTTP `409 Conflict`.
-- Database phải dùng unique constraint trên `table_session_id + idempotency_key` để bảo đảm an toàn khi có request đồng thời.
+- Database phải dùng unique constraint trên `sales_session_id + idempotency_key` để bảo đảm an toàn khi có request đồng thời.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
 - Mỗi order chỉ có một ghi chú chung trong `orders.note`; `order_items` không có ghi chú riêng.
 - `order_items.unit_price` là giá gốc của món; giá option được lưu riêng trong `order_item_options`.
@@ -306,12 +306,12 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 
 1. `OPERATOR` đăng nhập khu vực vận hành.
 2. Nhân viên mở chức năng tạo order hộ và chọn bàn cần phục vụ.
-3. Backend xác thực tài khoản `OPERATOR`, phạm vi cửa hàng và tìm table session
+3. Backend xác thực tài khoản `OPERATOR`, phạm vi cửa hàng và tìm sales session
    `OPEN` đang chiếm dụng bàn. Nếu bàn chưa có session `OPEN`, nhân viên nhập tên
-   khách bắt buộc và số điện thoại tùy chọn để backend tạo table session mới.
+   khách bắt buộc và số điện thoại tùy chọn để backend tạo sales session mới.
 4. Nhân viên xem menu hiện hành, chọn món, số lượng và các option hợp lệ.
 5. Nhân viên quản lý giỏ món và nhập ghi chú chung cho order nếu khách yêu cầu.
-6. Giao diện tạo `idempotency_key` mới và gửi order cho table session đã chọn.
+6. Giao diện tạo `idempotency_key` mới và gửi order cho sales session đã chọn.
 7. Backend thực hiện toàn bộ kiểm tra menu, option, session, giá và
    `request_fingerprint` giống luồng gọi món của Customer.
 8. Hệ thống tạo `orders`, `order_items` và `order_item_options` trong cùng
@@ -319,20 +319,20 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 9. Hệ thống ghi `audit_logs` cho order được tạo hộ, với
    `actor_account_id` là tài khoản nhân viên đang đăng nhập.
 10. Order mới tham gia hàng FIFO theo `orders.created_at` và xuất hiện trong
-    danh sách order chung của table session.
+    danh sách order chung của sales session.
 
 ### Quy tắc nghiệp vụ
 
 - Phạm vi “chức năng như Customer” trong luồng này gồm xem menu, chọn món và
   option, giỏ món, ghi chú chung, gửi order và gọi thêm món; không mặc nhiên cấp
   cho `OPERATOR` các thao tác chỉ dành cho Customer ngoài mục đích tạo order hộ.
-- `OPERATOR` được phép mở table session mới cho bàn chưa có session đang chiếm dụng.
+- `OPERATOR` được phép mở sales session mới cho bàn chưa có session đang chiếm dụng.
   Tên khách là bắt buộc, số điện thoại là tùy chọn; backend tìm hoặc tạo
   `client_accounts` theo cùng quy tắc của luồng quét QR và lưu snapshot thông tin
   người mở phiên. Session `PAYMENT_PENDING` hoặc `CLOSED` không được nhận thêm món.
 - Nhân viên không được ghi đè giá món, giá option, tổng tiền, store, danh tính
   tài khoản thực hiện hoặc thứ tự FIFO.
-- Backend phải tải menu, giá, quyền, table session và quan hệ cửa hàng từ dữ
+- Backend phải tải menu, giá, quyền, sales session và quan hệ cửa hàng từ dữ
   liệu đáng tin cậy.
 - Mỗi lần nhân viên gửi món tạo một order mới; gọi thêm không sửa order cũ.
 - Order do nhân viên tạo hộ và order do Customer tạo được xử lý giống nhau trong
@@ -352,6 +352,37 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 
 - API contract và route UI cụ thể cho thao tác chọn bàn, mở session và tạo order hộ.
 
+## 7.2. Luồng nhân viên tạo order mang về
+
+### Mục tiêu
+
+`OPERATOR` tạo và vận hành đơn mang về với toàn bộ quy tắc order tại bàn, nhưng
+không quét QR, không chọn bàn và không tạo session gắn với bàn.
+
+### Luồng chính
+
+1. `OPERATOR` chọn loại đơn `TAKEAWAY`.
+2. Nhân viên nhập tên khách bắt buộc và số điện thoại tùy chọn theo cùng quy tắc
+   nhận diện khách lẻ của đơn tại bàn.
+3. Backend tìm hoặc tạo `client_accounts`, rồi tạo `sales_session` loại
+   `TAKEAWAY` ở trạng thái `OPEN`; `table_id` luôn là `NULL`.
+4. Nhân viên chọn món, option, ghi chú và gửi order. Backend dùng cùng quy tắc
+   validation, snapshot giá, idempotency, FIFO và audit log như order tại bàn.
+5. Khi cần gọi thêm, nhân viên tiếp tục tạo order trong chính `sales_session`
+   đang `OPEN`.
+6. Nhân viên xử lý chế biến, yêu cầu hủy, payment, ghi nhận chưa thanh toán và
+   đóng phiên theo cùng quy tắc của `DINE_IN`.
+
+### Quy tắc nghiệp vụ
+
+- Đơn `TAKEAWAY` không xuất hiện trên sơ đồ bàn, không chiếm bàn và không dùng
+  QR hoặc cookie Customer.
+- `sales_session` là aggregate bill cho cả `DINE_IN` và `TAKEAWAY`; `orders`,
+  payment, unpaid, promotion snapshot và hủy món cùng tham chiếu aggregate này.
+- Đơn mang về không có trạng thái thanh toán, hủy món hoặc chế biến riêng; dùng
+  chung `OPEN → PAYMENT_PENDING → CLOSED` và các trạng thái hiện có.
+- Màn chế biến phải phân biệt rõ đơn mang về bằng mã đơn/khách thay vì mã bàn.
+
 ## 8. Luồng gọi thêm món
 
 ### Mục tiêu
@@ -364,7 +395,7 @@ Khách hàng gọi thêm món trong cùng phiên bàn trước khi yêu cầu th
 2. Hệ thống xác định session đang `OPEN` của bàn.
 3. Khách hàng chọn thêm món.
 4. Khách hàng gửi order.
-5. Hệ thống tạo một `orders` mới trong cùng `table_sessions`.
+5. Hệ thống tạo một `orders` mới trong cùng `sales_sessions`.
 6. Order gọi thêm được xếp sau các order có `created_at` sớm hơn trong hàng ưu
    tiên lên món.
 7. Hệ thống cập nhật danh sách order của phiên bàn.
@@ -442,7 +473,7 @@ chủ động kiểm tra và hỗ trợ.
 
 ### Luồng chính
 
-1. Hệ thống lấy các table session đang `OPEN`.
+1. Hệ thống lấy các sales session đang `OPEN`.
 2. Với mỗi session, hệ thống tìm order cũ nhất còn ít nhất một
    `order_items` có số lượng còn cần làm lớn hơn `0`.
 3. Hệ thống tính thời gian chờ từ `orders.created_at` của order chưa hoàn thành
@@ -457,12 +488,12 @@ chủ động kiểm tra và hỗ trợ.
 ### Quy tắc nghiệp vụ
 
 - Mốc tính thời gian chờ là `created_at` của order cũ nhất còn món chưa làm xong
-  trong table session, không phải thời điểm mở session hoặc order mới nhất.
+  trong sales session, không phải thời điểm mở session hoặc order mới nhất.
 - Order không còn phần cần làm không tham gia tính cảnh báo.
 - Bàn chưa có order không được tính thời gian chờ theo luồng này.
 - Frontend chỉ hiển thị kết quả do backend cung cấp, không tự quyết định bàn nào
   thuộc diện cảnh báo.
-- Cảnh báo không tạo trạng thái riêng cho `orders` hoặc `table_sessions`; kết
+- Cảnh báo không tạo trạng thái riêng cho `orders` hoặc `sales_sessions`; kết
   quả được suy ra từ `order_items.prepared_quantity`.
 - Ngưỡng thời gian cảnh báo do `ADMIN` cấu hình và được lưu tại `stores.long_wait_warning_minutes`.
 - API cấu hình dùng `GET` và `PUT /api/v1/admin/store/settings/long-wait-warning`; chỉ `ADMIN` được cập nhật giá trị `longWaitWarningMinutes`.
@@ -536,7 +567,7 @@ Khách hàng gửi yêu cầu hủy một phần hoặc toàn bộ số lượng
 - Số lượng còn tính tiền bằng số lượng ban đầu trừ tổng `requested_quantity` của các yêu cầu `APPROVED`.
 - `idempotency_key` là bắt buộc và duy nhất theo `order_item_id + idempotency_key`.
 - Request lặp lại với cùng key và cùng nội dung trả về yêu cầu đã tạo; cùng key nhưng khác nội dung trả HTTP `409 Conflict`.
-- Chỉ tạo và xử lý yêu cầu hủy khi table session còn `OPEN`.
+- Chỉ tạo và xử lý yêu cầu hủy khi sales session còn `OPEN`.
 - Không cho yêu cầu thanh toán khi còn cancellation request `PENDING`; nhân viên phải xử lý xong trước khi khóa bill.
 
 ## 10. Luồng yêu cầu thanh toán
@@ -561,13 +592,13 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 
 - Thanh toán áp dụng cho toàn bộ các order của phiên bàn.
 - Hệ thống chưa hỗ trợ tách hóa đơn.
-- Mỗi table session chỉ có một payment.
+- Mỗi sales session chỉ có một payment.
 - `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè số tiền.
 - `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
 - Session `PAYMENT_PENDING` vẫn chiếm dụng bàn; không tạo session mới cho bàn cho đến khi session hiện tại được đóng.
-- `orders` không có trạng thái riêng; trạng thái chờ thanh toán nằm ở `table_sessions.status`.
+- `orders` không có trạng thái riêng; trạng thái chờ thanh toán nằm ở `sales_sessions.status`.
 - Hệ thống không tạo QR thanh toán và không lưu thông tin ngân hàng hoặc giao dịch tài chính.
 - Khách không thể hoàn tất luồng thanh toán chỉ trên giao diện Customer; sau khi gửi yêu cầu, khách phải gặp nhân viên.
 
@@ -584,7 +615,7 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 3. Nhân viên chỉ tiếp tục khi loa báo giao dịch phát tín hiệu “ting ting”, xác nhận chuyển khoản thành công.
 4. Nhân viên chọn đúng yêu cầu và bấm xác nhận thanh toán thành công.
 5. Backend lấy tài khoản xác nhận từ Firebase ID Token đã verify.
-6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển table session sang `CLOSED` và lưu `closed_at`.
+6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển sales session sang `CLOSED` và lưu `closed_at`.
 7. Nếu session có `unpaid_records` trạng thái `OPEN`, hệ thống chuyển bản ghi đó sang `RESOLVED`.
 8. Hệ thống ghi audit log xác nhận thanh toán.
 9. Sau khi session `CLOSED`, API Customer không còn trả order, bill hoặc payment
@@ -600,7 +631,7 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 - CAS không kết nối với loa hoặc ngân hàng và không tự xác minh giao dịch; tín hiệu “ting ting” là bước kiểm tra thủ công bên ngoài hệ thống.
 - Khi payment đã `PAID`, session đã `CLOSED`; Customer không được gọi thêm món,
   hủy món hoặc gửi lại yêu cầu thanh toán.
-- Mọi thiết bị đang xem cùng table session phải bỏ dữ liệu cũ khi polling không
+- Mọi thiết bị đang xem cùng sales session phải bỏ dữ liệu cũ khi polling không
   còn tìm thấy session `OPEN` hoặc `PAYMENT_PENDING` và chỉ bắt đầu lượt mới sau
   khi quét QR.
 
@@ -621,7 +652,7 @@ Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa đượ
 ### Quy tắc nghiệp vụ
 
 - Payment vẫn giữ `PENDING`, thể hiện chưa được xác nhận thanh toán thành công.
-- Mỗi table session có tối đa một payment và một `unpaid_records`.
+- Mỗi sales session có tối đa một payment và một `unpaid_records`.
 - `unpaid_records` chỉ là bản ghi trạng thái chưa thanh toán phục vụ vận hành; CAS không quản lý phương thức thu tiền, đối soát hoặc giao dịch tài chính.
 - Nếu payment được nhân viên xác nhận sau đó, payment chuyển sang `PAID` và `unpaid_records` chuyển sang `RESOLVED`.
 - Nếu payment đã từng được ghi nhận chưa thanh toán, lần thu tiền sau đó không áp dụng khuyến mãi và không tạo promotion redemption. Với khoản chưa thanh toán cũ đã lưu discount, backend chuyển payment và unpaid snapshot về bill không khuyến mãi trong transaction xác nhận thu tiền.
@@ -637,7 +668,7 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 ### Luồng chính
 
 1. Payment được xác nhận `PAID`, hoặc nhân viên ghi nhận session là chưa thanh toán.
-2. Hệ thống chuyển `table_sessions` sang `CLOSED`.
+2. Hệ thống chuyển `sales_sessions` sang `CLOSED`.
 3. Hệ thống lưu `closed_at`.
 4. Bàn có thể nhận session mới ở lượt khách tiếp theo.
 
@@ -645,7 +676,7 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 
 - Order và payment không bị xóa vật lý.
 - Session đã `CLOSED` không nhận thêm order.
-- Table session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments.status`, còn `unpaid_records` ghi nhận trường hợp đóng phiên khi payment vẫn `PENDING`.
+- Sales session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments.status`, còn `unpaid_records` ghi nhận trường hợp đóng phiên khi payment vẫn `PENDING`.
 - QR bàn vẫn là QR cố định, lượt khách tiếp theo quét cùng QR sẽ tạo hoặc nhận session mới phù hợp.
 
 ## 15. Luồng Báo cáo sự cố phát sinh
@@ -677,11 +708,11 @@ Ghi nhận các sự cố vận hành đột xuất trong ca (hỏng hóc thiế
 ### Tác nhân
 
 - `ADMIN`: Quản lý chương trình khuyến mãi, điều kiện, phạm vi áp dụng và mã khuyến mãi.
-- Khách hàng (`CLIENT`) / `OPERATOR`: Chọn một khuyến mãi cho bill của table session; `OPERATOR` thực hiện lựa chọn khi tạo yêu cầu thanh toán hộ khách và nhập mã khi chương trình yêu cầu code.
+- Khách hàng (`CLIENT`) / `OPERATOR`: Chọn một khuyến mãi cho bill của sales session; `OPERATOR` thực hiện lựa chọn khi tạo yêu cầu thanh toán hộ khách và nhập mã khi chương trình yêu cầu code.
 
 ### Mục tiêu
 
-Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của table session trước khi payment được tạo. Backend tính giảm giá riêng, không sửa giá niêm yết của menu, và khóa snapshot discount khi bill được chốt.
+Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của sales session trước khi payment được tạo. Backend tính giảm giá riêng, không sửa giá niêm yết của menu, và khóa snapshot discount khi bill được chốt.
 
 ### Luồng chính
 
@@ -689,7 +720,7 @@ Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của t
 2. `ADMIN` cấu hình trực tiếp tại promotion giá trị giảm, mức giảm tối đa, điều kiện cơ bản `min_bill_amount`, thời gian hiệu lực và quota.
 3. `ADMIN` cấu hình phạm vi món/danh mục tại `promotion_targets`, và code tại `promotion_codes` nếu chương trình yêu cầu khách nhập mã.
 4. Khi Customer hoặc `OPERATOR` xem bill, backend tải các promotion `ACTIVE` của đúng store, trong thời gian hiệu lực, kiểm tra điều kiện/code và trả danh sách promotion đủ điều kiện cùng số tiền dự kiến được giảm.
-5. Khách chọn tối đa một promotion cho bill của table session. Backend không tự chọn promotion có lợi nhất; muốn đổi promotion, khách phải bỏ promotion hiện tại rồi chọn promotion khác.
+5. Khách chọn tối đa một promotion cho bill của sales session. Backend không tự chọn promotion có lợi nhất; muốn đổi promotion, khách phải bỏ promotion hiện tại rồi chọn promotion khác.
 6. Khi order trong session thay đổi do gọi thêm món hoặc yêu cầu hủy được duyệt, backend đánh giá lại promotion trước khi tạo payment. Nếu không còn đủ điều kiện, backend gỡ promotion hiện tại để khách chọn promotion khác.
 7. Khi khách yêu cầu thanh toán, backend tính lại promotion trong transaction, lưu discount cấp bill tại `bill_discounts`, rồi khóa snapshot cùng bill/payment.
 8. Khi payment của session chuyển `PAID`, hệ thống tạo `promotion_redemptions`. Nếu payment đã `PAID` bị refund hoặc hủy toàn bộ trong tương lai, redemption chuyển `REVERSED` và không tính vào quota.
@@ -699,7 +730,7 @@ Cho phép cửa hàng áp dụng một khuyến mãi cho toàn bộ bill của t
 - Backend bắt buộc tự tính toán lại tiền giảm từ server, không tin số tiền giảm do Client truyền lên.
 - Mọi record promotion, redemption và discount snapshot phải có `store_id`; backend luôn kiểm tra promotion và bill thuộc cùng store.
 - Không sửa `menu_items.price` để kích hoạt hoặc kết thúc khuyến mãi.
-- Một promotion chỉ được áp dụng một lần cho cùng bill; phiên bản hiện tại chỉ cho phép mỗi khách hàng dùng tối đa một voucher/promotion cho mỗi bill và mỗi table session chỉ áp dụng tối đa một promotion.
+- Một promotion chỉ được áp dụng một lần cho cùng bill; phiên bản hiện tại chỉ cho phép mỗi khách hàng dùng tối đa một voucher/promotion cho mỗi bill và mỗi sales session chỉ áp dụng tối đa một promotion.
 - `PERCENT_OFF` và `ITEM_PERCENT_OFF` có thể dùng `max_discount_amount`; giá trị `NULL` nghĩa là không giới hạn mức giảm.
 - Discount được làm tròn tới đơn vị đồng bằng cùng quy tắc backend `RoundingMode.HALF_UP`, dù database dùng `DECIMAL(15,2)`.
 - `BUY_X_GET_Y` và `FREE_ITEM` ngoài phạm vi mô hình promotion đơn giản hiện tại; chỉ bổ sung khi có mô hình dữ liệu mua/tặng riêng.
@@ -726,10 +757,10 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 ### Luồng chính
 
 1. `ADMIN` tạo thông báo mới tại giao diện quản trị với tiêu đề (`title`), nội dung (`content`), loại thông báo (`type`: `INFO`, `WARNING`, `URGENT`) và đối tượng nhận (`target_role`: `OPERATOR`, `CUSTOMER`, `BOTH`).
-2. Trong cùng transaction, hệ thống lưu notification và tạo `system_notification_recipients`: một record cho mỗi Operator `ACTIVE` khi target có `OPERATOR`, hoặc một record cho mỗi table session `OPEN`/`PAYMENT_PENDING` khi target có `CUSTOMER`.
+2. Trong cùng transaction, hệ thống lưu notification và tạo `system_notification_recipients`: một record cho mỗi Operator `ACTIVE` khi target có `OPERATOR`, hoặc một record cho mỗi sales session `OPEN`/`PAYMENT_PENDING` khi target có `CUSTOMER`.
 3. Giao diện Customer và Operator nhận thông báo qua Polling REST API theo recipient của mình.
 4. Khi người nhận xem thông báo, backend chuyển recipient từ `UNREAD` sang `READ` và lưu `read_at`; thao tác lặp lại không làm thay đổi `read_at`.
-5. Table session đã `CLOSED` chỉ giữ lịch sử nhận thông báo cũ, không nhận notification được phát hành sau thời điểm đóng.
+5. Sales session đã `CLOSED` chỉ giữ lịch sử nhận thông báo cũ, không nhận notification được phát hành sau thời điểm đóng.
 
 ### Quy tắc nghiệp vụ
 
@@ -759,7 +790,7 @@ Thông báo các thông tin quan trọng (tin tức ca trực, bảo trì hệ t
 
 ### Quy tắc nghiệp vụ
 
-- Dịch vụ đặt trước không tạo table session, order món, payment, bill snapshot hoặc khoản chưa thanh toán.
+- Dịch vụ đặt trước không tạo sales session, order món, payment, bill snapshot hoặc khoản chưa thanh toán.
 - Giá dịch vụ chỉ do `OPERATOR` hoặc `ADMIN` nhập từ kết quả thỏa thuận; client không gửi hoặc ghi đè giá. Giá có thể bằng `0` với dịch vụ miễn phí.
 - Số điện thoại là định danh duy nhất của khách trong cửa hàng; tên chỉ là thông tin hiển thị.
 - `ADMIN` có toàn bộ quyền thao tác của `OPERATOR` với dịch vụ đặt trước.

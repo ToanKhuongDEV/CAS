@@ -24,7 +24,7 @@ function formatConfirmedAt(value: string | null) {
 }
 
 const defaultPaymentPollIntervalMs = 10_000;
-const customerTableSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
+const customerSalesSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
 
 export function PaymentRequestPanel({
   pollIntervalMs = defaultPaymentPollIntervalMs,
@@ -59,7 +59,7 @@ export function PaymentRequestPanel({
           (result) =>
             result.status === "rejected" &&
             result.reason instanceof Error &&
-            result.reason.message === customerTableSessionRequiredMessage,
+            result.reason.message === customerSalesSessionRequiredMessage,
         );
         if (sessionIsClosed) {
           setBill(null);

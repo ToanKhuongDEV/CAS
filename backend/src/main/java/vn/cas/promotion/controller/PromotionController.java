@@ -117,28 +117,28 @@ public class PromotionController {
         promotions.clear(s);
         return ApiResponses.success(HttpStatus.OK, "Đã bỏ khuyến mãi.", null, r);
     }
-    @GetMapping("/operator/table-sessions/{sessionId}/promotions/eligible")
+    @GetMapping("/operator/sales-sessions/{sessionId}/promotions/eligible")
     public ResponseEntity<ApiResponse<List<PromotionService.Eligible>>> operatorEligible(
             @AuthenticationPrincipal OperationalPrincipal p, @PathVariable String sessionId,
             @RequestParam(required = false) @Size(max = 100) String code, HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy khuyến mãi hợp lệ.",
                 promotions.eligibleForOperator(p, sessionId, code), r);
     }
-    @GetMapping("/operator/table-sessions/{sessionId}/promotions")
+    @GetMapping("/operator/sales-sessions/{sessionId}/promotions")
     public ResponseEntity<ApiResponse<List<PromotionService.CustomerPromotion>>> operatorPromotions(
             @AuthenticationPrincipal OperationalPrincipal p, @PathVariable String sessionId,
             HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách khuyến mãi.",
                 promotions.customerPromotionsForOperator(p, sessionId), r);
     }
-    @PutMapping("/operator/table-sessions/{sessionId}/promotions/selection")
+    @PutMapping("/operator/sales-sessions/{sessionId}/promotions/selection")
     public ResponseEntity<ApiResponse<PromotionService.Eligible>> operatorSelect(
             @AuthenticationPrincipal OperationalPrincipal p, @PathVariable String sessionId,
             @Valid @RequestBody SelectionRequest b, HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã chọn khuyến mãi.",
                 promotions.selectForOperator(p, sessionId, b.promotionId(), b.code()), r);
     }
-    @DeleteMapping("/operator/table-sessions/{sessionId}/promotions/selection")
+    @DeleteMapping("/operator/sales-sessions/{sessionId}/promotions/selection")
     public ResponseEntity<ApiResponse<Void>> operatorClear(
             @AuthenticationPrincipal OperationalPrincipal p, @PathVariable String sessionId,
             HttpServletRequest r) {

@@ -14,7 +14,7 @@ import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
-const customerTableSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
+const customerSalesSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
 
 function formatOrderTime(createdAt: string) {
   return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(
@@ -56,7 +56,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
     }
     return imageUrls;
   }, [catalog]);
-  if (error === customerTableSessionRequiredMessage) {
+  if (error === customerSalesSessionRequiredMessage) {
     return (
       <main className="grid min-h-96 min-w-0 flex-1 place-items-center pb-6">
         <section className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-7 text-center shadow-[0_8px_24px_var(--cas-shadow-color)]">

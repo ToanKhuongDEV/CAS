@@ -24,7 +24,7 @@ Khách quét QR nhưng token không tồn tại, đã bị thu hồi hoặc khô
 
 ### Cách xử lý
 
-- Không tạo table session.
+- Không tạo sales session.
 - Hiển thị thông báo QR không hợp lệ.
 - Ghi log lỗi nếu cần theo dõi vận hành.
 
@@ -38,7 +38,7 @@ Nhiều khách tại cùng bàn quét cùng QR.
 
 ### Cách xử lý
 
-- Tất cả dùng chung table session đang `OPEN`.
+- Tất cả dùng chung sales session đang `OPEN`.
 - Tất cả nhìn thấy cùng danh sách order của session.
 - Chỉ người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn.
 - Người quét QR sau trong cùng session không cần nhập lại thông tin.
@@ -84,10 +84,10 @@ Khách bấm gửi order nhiều lần vì mạng chậm, hoặc frontend retry 
 ### Cách xử lý
 
 - Frontend bắt buộc gửi kèm một `idempotency_key` cho mỗi lần submit order.
-- Phạm vi duy nhất của key là trong cùng một table session.
+- Phạm vi duy nhất của key là trong cùng một sales session.
 - Backend lưu `idempotency_key` bền vững trong `orders`; Redis không phải nguồn dữ liệu chính cho cơ chế này.
 - Backend chuẩn hóa payload order, tính SHA-256 và lưu kết quả vào `orders.request_fingerprint`; client không gửi fingerprint.
-- Database đặt unique constraint cho `table_session_id + idempotency_key` để chống tạo order trùng khi có request đồng thời.
+- Database đặt unique constraint cho `sales_session_id + idempotency_key` để chống tạo order trùng khi có request đồng thời.
 - Nếu request lặp lại với cùng key và cùng fingerprint, backend trả về order đã tạo trước đó.
 - Nếu request dùng lại cùng key nhưng fingerprint khác, backend từ chối với HTTP `409 Conflict`.
 - Key gắn với order và không cần TTL.
@@ -206,7 +206,7 @@ Khách đã tạo yêu cầu thanh toán nhưng nhân viên chưa bấm xác nh�
 ### Tình huống
 
 Customer đang mở màn chờ nhân viên xác nhận trên một hoặc nhiều thiết bị. Nhân
-viên xác nhận payment `PAID` và table session được đóng.
+viên xác nhận payment `PAID` và sales session được đóng.
 
 ### Cách xử lý
 
@@ -251,12 +251,12 @@ Chi tiết option của từng dòng món vẫn còn trong `order_item_options`.
 
 ### Cách xử lý đã chốt
 
-- Backend tạo một payment `PENDING` liên kết duy nhất với table session.
+- Backend tạo một payment `PENDING` liên kết duy nhất với sales session.
 - `payments.amount` được lấy từ tổng `orders.payable_amount`; không nhận số tiền từ client.
 - Tạo `bill_snapshot` từ dữ liệu order đã chốt và lưu cùng payment.
 - Tạo một `unpaid_records` liên kết duy nhất với session, sao chép `amount` và `bill_snapshot` từ payment.
 - `bill_snapshot` trong `unpaid_records` là bất biến.
-- Đóng table session để giải phóng bàn với `status = CLOSED` và lưu `closed_at`.
+- Đóng sales session để giải phóng bàn với `status = CLOSED` và lưu `closed_at`.
 - Bản ghi `unpaid_records` bắt đầu ở trạng thái `OPEN` và được đưa vào màn hình theo dõi riêng cho admin.
 - Ghi người thực hiện, thời điểm, lý do và audit log khi ghi nhận khoản chưa thanh toán.
 - Nếu payment được xác nhận sau đó, dùng chính payment của session, không tạo payment mới; đồng thời chuyển `unpaid_records` sang `RESOLVED`.
@@ -330,7 +330,7 @@ Client không nhận được response và gửi lại yêu cầu thanh toán.
 
 ### Cách xử lý
 
-- `payments.table_session_id` là duy nhất nên mỗi session chỉ có một payment.
+- `payments.sales_session_id` là duy nhất nên mỗi session chỉ có một payment.
 - Request lặp trả lại payment hiện tại, không tạo bản ghi thứ hai.
 - Không tạo lại `bill_snapshot` hoặc thay đổi `amount` của payment đã tồn tại.
 
@@ -368,12 +368,12 @@ Khách hoặc lượt khách mới quét lại QR sau khi session cũ đã `CLOS
 
 ### Tình huống
 
-Dashboard Operation cần cảnh báo các bàn đã chờ lâu. Một table session có thể
+Dashboard Operation cần cảnh báo các bàn đã chờ lâu. Một sales session có thể
 có nhiều order và mỗi order có thể đã hoàn thành một phần hoặc toàn bộ số lượng.
 
 ### Cách xử lý đã chốt
 
-- Chỉ xét table session đang `OPEN` và đã có ít nhất một order.
+- Chỉ xét sales session đang `OPEN` và đã có ít nhất một order.
 - Mốc tính thời gian chờ là `created_at` của order cũ nhất còn ít nhất một phần
   chưa làm xong trong session.
 - Order đã hết số lượng cần làm không tham gia tính cảnh báo.
@@ -474,7 +474,7 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 
 - `OPERATOR` được dùng các chức năng xem menu, chọn món/option, giỏ món, ghi chú
   chung, gửi order và gọi thêm món để tạo order hộ.
-- Khi bàn thuộc đúng cửa hàng nhưng chưa có table session `OPEN`, `OPERATOR` được
+- Khi bàn thuộc đúng cửa hàng nhưng chưa có sales session `OPEN`, `OPERATOR` được
   phép mở session mới trước khi tạo order; tên khách là bắt buộc, số điện thoại là
   tùy chọn. Backend tìm hoặc tạo `client_accounts` và lưu snapshot thông tin người
   mở phiên theo cùng quy tắc của luồng quét QR.
@@ -504,7 +504,7 @@ Khách đang sử dụng một thẻ bàn và muốn chuyển sang vị trí ng�
 
 - Mã QR được gắn với một **thẻ bàn di động**, không dán cố định xuống mặt bàn vật lý.
 - Khi khách chuyển bàn thực tế, khách chỉ cần mang theo thẻ bàn di động đó đi.
-- Mỗi `table_sessions` vẫn gắn cố định với thẻ bàn `dining_tables` đó từ lúc `OPEN` đến khi `CLOSED`.
+- Mỗi `sales_sessions` vẫn gắn cố định với thẻ bàn `dining_tables` đó từ lúc `OPEN` đến khi `CLOSED`.
 - Hệ thống trên phần mềm không cần xử lý gộp/tách, quản lý việc di chuyển do đã được giải quyết bằng việc di chuyển tấm thẻ vật lý.
 
 ## 21.6. `option_values` bị Inactive hoặc hết hàng khi món chính còn bán
@@ -629,7 +629,7 @@ Client mất mạng, frontend timeout hoặc POS reload trang khi đang gửi re
 ### Cách xử lý
 
 - **Gửi Order**: Sử dụng `idempotency_key` (phạm vi session) + `request_fingerprint` (SHA-256 payload). Nếu retry trùng key và payload, backend trả lại kết quả order đã tạo mà không tạo đơn trùng (Mục 7).
-- **Yêu cầu Thanh toán**: `payments.table_session_id` có unique constraint. Request gửi lặp chỉ trả về thông tin payment `PENDING` hiện tại, không tạo payment mới (Mục 19).
+- **Yêu cầu Thanh toán**: `payments.sales_session_id` có unique constraint. Request gửi lặp chỉ trả về thông tin payment `PENDING` hiện tại, không tạo payment mới (Mục 19).
 - **Xác nhận Thanh toán (`PAID`)**: Thao tác confirm là idempotent. Nếu request bị gửi lặp, backend trả về kết quả `PAID` hiện tại mà không cập nhật lại thời gian hay tạo audit log trùng (Mục 20).
 
 ## 21.15. Hủy phiên bàn khi chưa gọi món (Chưa gửi order vào bếp)
@@ -699,11 +699,11 @@ bộ.
 
 - Không tạo `promotion_redemptions` khi khách chỉ chọn promotion hoặc khi bill
   đang `PAYMENT_PENDING`.
-- Chỉ tạo redemption `COMPLETED` khi payment của table session chuyển `PAID`.
+- Chỉ tạo redemption `COMPLETED` khi payment của sales session chuyển `PAID`.
 - Nếu payment đã `PAID` bị refund hoặc hủy toàn bộ trong tương lai, redemption
   chuyển `REVERSED` và không được tính vào quota.
 - Mọi record promotion, redemption và discount snapshot phải có `store_id`, và
-  backend chỉ áp dụng promotion trong cùng store với table session.
+  backend chỉ áp dụng promotion trong cùng store với sales session.
 - Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng
   order hoặc dòng món.
 
@@ -735,7 +735,7 @@ Welcome Customer có 2 ảnh Hero, 5 ảnh xem trước Menu và 1 ảnh Banner 
 ### Cách xử lý
 
 - Chỉ `ADMIN` được truy cập danh sách và chi tiết khách hàng; `OPERATOR` không được truy cập.
-- Backend luôn giới hạn `client_accounts`, table session, order, payment và `unpaid_records` theo `store_id` của tài khoản đăng nhập.
+- Backend luôn giới hạn `client_accounts`, sales session, order, payment và `unpaid_records` theo `store_id` của tài khoản đăng nhập.
 - Danh sách khách chỉ trả số điện thoại đã che một phần khi có; khách có `phone = NULL` hiển thị là `Khách lẻ`. Số đầy đủ chỉ được trả trong trang chi tiết khi cần thiết.
 - Module chỉ đọc dữ liệu đã có; không cho sửa hoặc xóa khách hàng, order, payment hay lịch sử phiên bàn.
 - Không suy diễn module này thành CRM, phân nhóm khách, ghi chú khách, tích điểm, voucher cá nhân hoặc tiếp thị trực tiếp.

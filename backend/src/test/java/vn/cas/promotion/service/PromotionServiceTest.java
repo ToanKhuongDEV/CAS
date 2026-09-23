@@ -16,13 +16,13 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.service.AuditLogService;
 import vn.cas.promotion.mapper.PromotionMapper;
 import vn.cas.promotion.model.Promotion;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
 
 class PromotionServiceTest {
 
     private final PromotionMapper mapper = mock(PromotionMapper.class);
-    private final CustomerTableSessionService sessions = mock(CustomerTableSessionService.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
     private final AuditLogService auditLogs = mock(AuditLogService.class);
     private final PromotionService service = new PromotionService(mapper, sessions, auditLogs);
     private final OperationalPrincipal principal = new OperationalPrincipal(1L, 2L, "firebase-uid",
@@ -60,8 +60,7 @@ class PromotionServiceTest {
 
     @Test
     void shouldExcludePromotionWhenItsQuotaIsReached() {
-        var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1",
-                "OPEN");
+        var session = new SalesSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1", "OPEN");
         var promotion = promotion("PERCENT_OFF", 1);
         when(sessions.requireCurrent("session-1")).thenReturn(session);
         when(mapper.findByStoreId(2L)).thenReturn(List.of(promotion));
@@ -90,8 +89,7 @@ class PromotionServiceTest {
 
     @Test
     void shouldLockPromotionWhileSelectingItForPayment() {
-        var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, 1L, null, "session-1",
-                "OPEN");
+        var session = new SalesSessionLookup(10L, 20L, 2L, 5L, 9L, 1L, null, "session-1", "OPEN");
         var promotion = promotion("PERCENT_OFF", 1);
         when(mapper.findByIdForUpdate(2L, 1L)).thenReturn(promotion);
         when(mapper.currentPayableAmount(10L)).thenReturn(BigDecimal.valueOf(100_000));
@@ -105,8 +103,7 @@ class PromotionServiceTest {
 
     @Test
     void shouldReturnActivePromotionAsUnavailableWhenMinimumBillIsNotMet() {
-        var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1",
-                "OPEN");
+        var session = new SalesSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1", "OPEN");
         var promotion = new Promotion(1L, "promotion-1", "Giảm giá", "PERCENT_OFF", BigDecimal.TEN,
                 null, BigDecimal.valueOf(100_000), null, null, "ACTIVE", null, null);
         when(sessions.requireCurrent("session-1")).thenReturn(session);
@@ -124,8 +121,7 @@ class PromotionServiceTest {
 
     @Test
     void shouldReturnEveryPromotionTargetNameInScope() {
-        var session = new CustomerTableSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1",
-                "OPEN");
+        var session = new SalesSessionLookup(10L, 20L, 2L, 5L, 9L, null, null, "session-1", "OPEN");
         var promotion = promotion("ITEM_PERCENT_OFF", null);
         when(sessions.requireCurrent("session-1")).thenReturn(session);
         when(mapper.findByStoreId(2L)).thenReturn(List.of(promotion));

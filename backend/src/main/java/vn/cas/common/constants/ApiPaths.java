@@ -42,14 +42,14 @@ public final class ApiPaths {
         }
     }
 
-    public static final class CustomerTableSession {
-        private static final String PRE_FIX = API_CUSTOMER_PREFIX + "/table-sessions";
+    public static final class CustomerSalesSession {
+        private static final String PRE_FIX = API_CUSTOMER_PREFIX + "/sales-sessions";
 
         public static final String COMMON = PRE_FIX;
         public static final String RESOLVE_QR = PRE_FIX + "/resolve-qr";
         public static final String CURRENT = PRE_FIX + "/current";
 
-        private CustomerTableSession() {
+        private CustomerSalesSession() {
         }
     }
 

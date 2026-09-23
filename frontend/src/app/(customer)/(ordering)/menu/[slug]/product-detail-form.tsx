@@ -7,7 +7,7 @@ import type { MenuOptionGroup } from "../../../../../components/customer/add-to-
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { useToast } from "../../../../../components/ui/toast-provider";
 import { addCustomerCartLine } from "../../../../../lib/customer/cart";
-import { hasOpenCustomerTableSession } from "../../../../../lib/customer/table-session";
+import { hasOpenCustomerSalesSession } from "../../../../../lib/customer/sales-session";
 
 type ProductDetailFormProps = {
   basePrice: number;
@@ -76,7 +76,7 @@ export function ProductDetailForm({
       setError(`Vui lòng chọn ${invalidGroup.label}.`);
       return;
     }
-    if (!(await hasOpenCustomerTableSession())) {
+    if (!(await hasOpenCustomerSalesSession())) {
       router.push(`/scan?returnTo=${encodeURIComponent(window.location.pathname)}`);
       return;
     }

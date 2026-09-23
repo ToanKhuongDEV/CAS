@@ -26,7 +26,7 @@ type OperatorCartPanelProps = {
   orderNote: string;
   isSubmitting: boolean;
   onChangeTableClick: () => void;
-  onCancelTableSession?: () => void;
+  onCancelSalesSession?: () => void;
   onUpdateQuantity: (cartItemId: string, delta: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onClearCart: () => void;
@@ -43,7 +43,7 @@ export function OperatorCartPanel({
   orderNote,
   isSubmitting,
   onChangeTableClick,
-  onCancelTableSession,
+  onCancelSalesSession,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
@@ -84,10 +84,10 @@ export function OperatorCartPanel({
           </div>
 
           <div className="flex items-center gap-2">
-            {selectedTable.sessionPublicId && onCancelTableSession ? (
+            {selectedTable.sessionPublicId && onCancelSalesSession ? (
               <button
                 type="button"
-                onClick={onCancelTableSession}
+                onClick={onCancelSalesSession}
                 className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-2.5 py-1 text-xs font-extrabold text-cas-on-error-container transition hover:bg-cas-error-container/55 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
               >
                 Hủy phiên bàn

@@ -90,7 +90,7 @@ describe("PaymentRequestPanel", () => {
     expect(screen.getByText("20:05")).toBeInTheDocument();
   });
 
-  it("clears the payment view when the table session is closed", async () => {
+  it("clears the payment view when the sales session is closed", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValue(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
     );

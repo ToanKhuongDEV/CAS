@@ -124,13 +124,13 @@ export function clearCustomerPromotion() {
 export function loadOperatorEligiblePromotions(sessionId: string, code?: string) {
   const query = code?.trim() ? `?code=${encodeURIComponent(code.trim())}` : "";
   return operationalRequest<EligiblePromotion[]>(
-    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions/eligible${query}`,
+    `/api/v1/operator/sales-sessions/${encodeURIComponent(sessionId)}/promotions/eligible${query}`,
   );
 }
 
 export function loadOperatorPromotions(sessionId: string) {
   return operationalRequest<CustomerPromotion[]>(
-    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions`,
+    `/api/v1/operator/sales-sessions/${encodeURIComponent(sessionId)}/promotions`,
   );
 }
 
@@ -140,14 +140,14 @@ export function selectOperatorPromotion(
   code?: string | null,
 ) {
   return operationalRequest<EligiblePromotion>(
-    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions/selection`,
+    `/api/v1/operator/sales-sessions/${encodeURIComponent(sessionId)}/promotions/selection`,
     json("PUT", { promotionId, code: code || null }),
   );
 }
 
 export function clearOperatorPromotion(sessionId: string) {
   return operationalRequest<void>(
-    `/api/v1/operator/table-sessions/${encodeURIComponent(sessionId)}/promotions/selection`,
+    `/api/v1/operator/sales-sessions/${encodeURIComponent(sessionId)}/promotions/selection`,
     { method: "DELETE" },
   );
 }

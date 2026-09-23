@@ -25,13 +25,13 @@ import vn.cas.ordering.model.OperatorOrderSession;
 import vn.cas.ordering.model.OrderOverview;
 import vn.cas.ordering.model.StoredOrder;
 import vn.cas.operation.service.AuditLogService;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
 
 class CustomerOrderingServiceTest {
 
     private final OrderingMapper mapper = mock(OrderingMapper.class);
-    private final CustomerTableSessionService sessions = mock(CustomerTableSessionService.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
     private final CustomerOrderingService service = new CustomerOrderingService(mapper, sessions,
             mock(AuditLogService.class));
 
@@ -215,6 +215,6 @@ class CustomerOrderingServiceTest {
 
     private void currentOpenSession() {
         when(sessions.requireCurrentForUpdate("session-1"))
-                .thenReturn(new CustomerTableSessionLookup(7L, 9L, 2L, 5L, "session-1", "OPEN"));
+                .thenReturn(new SalesSessionLookup(7L, 9L, 2L, 5L, "session-1", "OPEN"));
     }
 }

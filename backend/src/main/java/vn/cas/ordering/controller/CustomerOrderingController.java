@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.cas.common.response.ApiResponse;
 import vn.cas.common.response.ApiResponses;
 import vn.cas.ordering.service.CustomerOrderingService;
-import vn.cas.store.controller.CustomerTableSessionController;
+import vn.cas.store.controller.CustomerSalesSessionController;
 
 @RestController
 @RequestMapping("/api/v1/customer/orders")
@@ -34,7 +34,7 @@ public class CustomerOrderingController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> create(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
             @Valid @RequestBody CreateOrderRequest body, HttpServletRequest request) {
         var result = orders
                 .create(session, body.idempotencyKey(), normalize(body.note()),
@@ -52,7 +52,7 @@ public class CustomerOrderingController {
 
     @PostMapping("/items/{orderItemId}/cancellation-requests")
     public ResponseEntity<ApiResponse<CancellationResponse>> requestCancellation(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
             @PathVariable String orderItemId, @Valid @RequestBody CancellationRequestBody body,
             HttpServletRequest request) {
         var result = orders.requestCancellation(session, orderItemId, body.idempotencyKey(),
@@ -65,7 +65,7 @@ public class CustomerOrderingController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<OrderDetailResponse>>> list(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
             HttpServletRequest request) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách order.",
                 orders.list(session).stream().map(OrderDetailResponse::from).toList(), request);
@@ -73,7 +73,7 @@ public class CustomerOrderingController {
 
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<OrderDetailResponse>> get(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
             @PathVariable String orderId, HttpServletRequest request) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy chi tiết order.",
                 OrderDetailResponse.from(orders.get(session, orderId)), request);
@@ -81,7 +81,7 @@ public class CustomerOrderingController {
 
     @GetMapping("/bill")
     public ResponseEntity<ApiResponse<BillResponse>> bill(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String session,
             HttpServletRequest request) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy hóa đơn hiện tại.",
                 BillResponse.from(orders.currentBill(session)), request);
@@ -141,7 +141,7 @@ public class CustomerOrderingController {
         }
     }
 
-    public record BillResponse(long tableCode, String sessionStatus, BigDecimal originalAmount,
+    public record BillResponse(Long tableCode, String sessionStatus, BigDecimal originalAmount,
             BigDecimal payableAmount, List<OrderDetailResponse> orders) {
         static BillResponse from(CustomerOrderingService.Bill bill) {
             return new BillResponse(bill.tableCode(), bill.sessionStatus(), bill.originalAmount(),

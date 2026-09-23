@@ -23,15 +23,15 @@ import vn.cas.ordering.model.CancellationRequest;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.service.SalesSessionService;
 
 @Service
 public class CustomerOrderingService {
     private final OrderingMapper mapper;
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
     private final AuditLogService auditLogs;
 
-    public CustomerOrderingService(OrderingMapper mapper, CustomerTableSessionService sessions,
+    public CustomerOrderingService(OrderingMapper mapper, SalesSessionService sessions,
             AuditLogService auditLogs) {
         this.mapper = mapper;
         this.sessions = sessions;
@@ -165,7 +165,7 @@ public class CustomerOrderingService {
         return currentBill(session);
     }
 
-    private Bill currentBill(vn.cas.store.model.CustomerTableSessionLookup session) {
+    private Bill currentBill(vn.cas.store.model.SalesSessionLookup session) {
         var orders = loadOrderDetails(session.sessionId());
         var originalAmount = orders.stream().map(OrderDetail::originalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -332,7 +332,7 @@ public class CustomerOrderingService {
             int quantityPerItem) {
     }
 
-    public record Bill(long tableCode, String sessionStatus, BigDecimal originalAmount,
+    public record Bill(Long tableCode, String sessionStatus, BigDecimal originalAmount,
             BigDecimal payableAmount, List<OrderDetail> orders) {
     }
     private record ResolvedOrderLine(OrderMenuItem menuItem, List<OrderOptionValue> options,

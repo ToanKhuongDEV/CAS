@@ -13,9 +13,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadCustomerCatalog: vi.fn() }));
-vi.mock("../lib/customer/table-session", () => ({
-  getCurrentCustomerTableSession: vi.fn().mockResolvedValue({ tableCode: 5 }),
-  hasOpenCustomerTableSession: vi.fn().mockResolvedValue(true),
+vi.mock("../lib/customer/sales-session", () => ({
+  getCurrentCustomerSalesSession: vi.fn().mockResolvedValue({ tableCode: 5 }),
+  hasOpenCustomerSalesSession: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn(),

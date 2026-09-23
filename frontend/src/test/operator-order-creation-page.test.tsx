@@ -4,18 +4,18 @@ import { OperatorOrderCreationView } from "../components/operator/order-creation
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadOperatorCatalog } from "../lib/api/catalog/published-catalog.api";
 import {
-  cancelOperatorTableSession,
+  cancelOperatorSalesSession,
   createOperatorOrder,
   loadOperatorTables,
-  openOperatorTableSession,
+  openOperatorSalesSession,
 } from "../lib/api/ordering/ordering.api";
 
 vi.mock("../lib/api/catalog/published-catalog.api", () => ({ loadOperatorCatalog: vi.fn() }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({
-  cancelOperatorTableSession: vi.fn(),
+  cancelOperatorSalesSession: vi.fn(),
   createOperatorOrder: vi.fn(),
   loadOperatorTables: vi.fn(),
-  openOperatorTableSession: vi.fn(),
+  openOperatorSalesSession: vi.fn(),
 }));
 
 describe("OperatorOrderCreationView", () => {
@@ -95,13 +95,14 @@ describe("OperatorOrderCreationView", () => {
       { sessionPublicId: null, sessionStatus: null, tableCode: 2, tableId: 2 },
       { sessionPublicId: "session-1", sessionStatus: "OPEN", tableCode: 1, tableId: 1 },
     ]);
-    vi.mocked(openOperatorTableSession).mockResolvedValue({
+    vi.mocked(openOperatorSalesSession).mockResolvedValue({
       sessionId: "session-2",
+      sessionType: "DINE_IN",
       status: "OPEN",
       tableCode: 2,
     });
     vi.mocked(createOperatorOrder).mockResolvedValue({ orderId: "order-1", payableAmount: 35_000 });
-    vi.mocked(cancelOperatorTableSession).mockResolvedValue(undefined);
+    vi.mocked(cancelOperatorSalesSession).mockResolvedValue(undefined);
   });
 
   const renderOrderCreationView = () =>
@@ -198,7 +199,7 @@ describe("OperatorOrderCreationView", () => {
     expect(screen.getAllByText(itemName).length).toBeGreaterThan(1);
   });
 
-  it("creates an order with the active table session and selected menu item", async () => {
+  it("creates an order with the active sales session and selected menu item", async () => {
     renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
@@ -223,14 +224,14 @@ describe("OperatorOrderCreationView", () => {
     expect(await screen.findByText("order-1")).toBeInTheDocument();
   });
 
-  it("cancels the selected table session after confirmation", async () => {
+  it("cancels the selected sales session after confirmation", async () => {
     renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
     fireEvent.click(screen.getByRole("button", { name: "Hủy phiên bàn" }));
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy phiên" }));
 
-    await vi.waitFor(() => expect(cancelOperatorTableSession).toHaveBeenCalledWith("session-5"));
+    await vi.waitFor(() => expect(cancelOperatorSalesSession).toHaveBeenCalledWith("session-5"));
     expect(await screen.findByText("Đã hủy phiên bàn.")).toBeInTheDocument();
   });
 });

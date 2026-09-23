@@ -20,54 +20,53 @@ import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.constants.ApiPaths;
 import vn.cas.common.response.ApiResponse;
 import vn.cas.common.response.ApiResponses;
-import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
-import vn.cas.store.model.CustomerTableSessionResolution;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.dto.SalesSessionResolutionCommand;
+import vn.cas.store.model.SalesSessionResolution;
+import vn.cas.store.service.SalesSessionService;
 
 @RestController
-@RequestMapping(ApiPaths.CustomerTableSession.COMMON)
-public class CustomerTableSessionController {
+@RequestMapping(ApiPaths.CustomerSalesSession.COMMON)
+public class CustomerSalesSessionController {
 
     public static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
 
-    private final CustomerTableSessionService customerTableSessionService;
+    private final SalesSessionService customerSalesSessionService;
 
-    public CustomerTableSessionController(CustomerTableSessionService customerTableSessionService) {
-        this.customerTableSessionService = customerTableSessionService;
+    public CustomerSalesSessionController(SalesSessionService customerSalesSessionService) {
+        this.customerSalesSessionService = customerSalesSessionService;
     }
 
     @PostMapping("/resolve-qr")
-    public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> resolveQr(
+    public ResponseEntity<ApiResponse<CustomerSalesSessionResponse>> resolveQr(
             @Valid @RequestBody ResolveQrRequest resolveQrRequest, HttpServletRequest request,
             HttpServletResponse response) {
-        var resolution = customerTableSessionService
-                .resolveQr(new CustomerTableSessionResolutionCommand(resolveQrRequest.qrToken(),
-                        normalize(resolveQrRequest.customerName()),
-                        normalize(resolveQrRequest.customerPhone())));
+        var resolution = customerSalesSessionService.resolveQr(new SalesSessionResolutionCommand(
+                resolveQrRequest.qrToken(), normalize(resolveQrRequest.customerName()),
+                normalize(resolveQrRequest.customerPhone())));
         if (resolution.sessionPublicId() != null) {
             response.addHeader(HttpHeaders.SET_COOKIE,
                     customerSessionCookie(resolution.sessionPublicId(), request.isSecure())
                             .toString());
         }
-        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
-                CustomerTableSessionResponse.from(resolution), request);
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_SALES_SESSION_RESOLVED,
+                CustomerSalesSessionResponse.from(resolution), request);
     }
 
     @GetMapping("/current")
-    public ResponseEntity<ApiResponse<CustomerTableSessionResponse>> getCurrent(
+    public ResponseEntity<ApiResponse<CustomerSalesSessionResponse>> getCurrent(
             @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
             HttpServletRequest request) {
-        var resolution = customerTableSessionService.getCurrent(sessionPublicId);
-        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_RESOLVED,
-                CustomerTableSessionResponse.from(resolution), request);
+        var resolution = customerSalesSessionService.getCurrent(sessionPublicId);
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_SALES_SESSION_RESOLVED,
+                CustomerSalesSessionResponse.from(resolution), request);
     }
 
     @DeleteMapping("/current")
     public ResponseEntity<ApiResponse<Void>> cancelCurrent(
             @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
             HttpServletRequest request) {
-        customerTableSessionService.cancelCurrent(sessionPublicId);
-        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_TABLE_SESSION_CANCELLED,
+        customerSalesSessionService.cancelCurrent(sessionPublicId);
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_SALES_SESSION_CANCELLED,
                 null, request);
     }
 
@@ -84,11 +83,11 @@ public class CustomerTableSessionController {
             @Size(max = 150) String customerName, @Size(max = 20) String customerPhone) {
     }
 
-    public record CustomerTableSessionResponse(boolean customerInformationRequired,
+    public record CustomerSalesSessionResponse(boolean customerInformationRequired,
             String sessionStatus, Long tableCode) {
 
-        static CustomerTableSessionResponse from(CustomerTableSessionResolution resolution) {
-            return new CustomerTableSessionResponse(resolution.requiresCustomerInformation(),
+        static CustomerSalesSessionResponse from(SalesSessionResolution resolution) {
+            return new CustomerSalesSessionResponse(resolution.requiresCustomerInformation(),
                     resolution.status().name(), resolution.tableCode());
         }
     }

@@ -17,11 +17,11 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.notification.dto.CreateSystemNotificationCommand;
 import vn.cas.notification.mapper.SystemNotificationMapper;
 import vn.cas.operation.service.AuditLogService;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.service.SalesSessionService;
 
 class SystemNotificationServiceTest {
     private final SystemNotificationMapper mapper = mock(SystemNotificationMapper.class);
-    private final CustomerTableSessionService sessions = mock(CustomerTableSessionService.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
     private final AuditLogService auditLogs = mock(AuditLogService.class);
     private final SystemNotificationService service = new SystemNotificationService(mapper,
             sessions, auditLogs);

@@ -5,20 +5,20 @@ import { useEffect, useRef, useState } from "react";
 
 import { CustomerInformationFormFields } from "../../../../components/customer/customer-information-form-fields";
 import {
-  resolveCustomerTableSession,
-  type CustomerTableSessionResolution,
-} from "../../../../lib/customer/table-session";
+  resolveCustomerSalesSession,
+  type SalesSessionResolution,
+} from "../../../../lib/customer/sales-session";
 import { loadCustomerNotifications } from "../../../../lib/api/notification/notification.api";
 
 export function CustomerInformationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams<{ token: string }>();
-  const [resolution, setResolution] = useState<CustomerTableSessionResolution | null>(null);
+  const [resolution, setResolution] = useState<SalesSessionResolution | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedNotifications = useRef(false);
 
-  function destination(status: CustomerTableSessionResolution["sessionStatus"]) {
+  function destination(status: SalesSessionResolution["sessionStatus"]) {
     if (status === "PAYMENT_PENDING") return "/payment";
     const returnTo = searchParams.get("returnTo");
     return returnTo?.startsWith("/menu") || returnTo === "/cart" ? returnTo : "/menu";
@@ -33,7 +33,7 @@ export function CustomerInformationForm() {
   function resolve() {
     if (typeof params.token !== "string") return;
     setError(null);
-    resolveCustomerTableSession(params.token)
+    resolveCustomerSalesSession(params.token)
       .then((nextResolution) => {
         if (nextResolution.customerInformationRequired) {
           setResolution(nextResolution);
@@ -64,7 +64,7 @@ export function CustomerInformationForm() {
 
     try {
       setError(null);
-      const nextResolution = await resolveCustomerTableSession(params.token, information);
+      const nextResolution = await resolveCustomerSalesSession(params.token, information);
       if (!nextResolution.customerInformationRequired) {
         loadNotificationsOnce();
         router.push(destination(nextResolution.sessionStatus));

@@ -23,13 +23,13 @@ import vn.cas.payment.model.PaymentView;
 import vn.cas.payment.model.UnpaidRecordView;
 import vn.cas.payment.model.UnpaidSessionView;
 import vn.cas.promotion.service.PromotionService;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.service.SalesSessionService;
 import vn.cas.store.mapper.DiningTableMapper;
 
 @Service
 public class PaymentService {
     private final PaymentMapper payments;
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
     private final DiningTableMapper tables;
     private final CustomerOrderingService orders;
     private final OrderingMapper ordering;
@@ -37,7 +37,7 @@ public class PaymentService {
     private final ObjectMapper json;
     private final PromotionService promotions;
     @Autowired
-    public PaymentService(PaymentMapper payments, CustomerTableSessionService sessions,
+    public PaymentService(PaymentMapper payments, SalesSessionService sessions,
             DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
             AuditLogService auditLogs, ObjectMapper json, PromotionService promotions) {
         this.payments = payments;
@@ -49,7 +49,7 @@ public class PaymentService {
         this.json = json;
         this.promotions = promotions;
     }
-    public PaymentService(PaymentMapper payments, CustomerTableSessionService sessions,
+    public PaymentService(PaymentMapper payments, SalesSessionService sessions,
             DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
             AuditLogService auditLogs, ObjectMapper json) {
         this(payments, sessions, tables, orders, ordering, auditLogs, json, null);
@@ -169,7 +169,7 @@ public class PaymentService {
     }
 
     private PaymentView createUnpaidPayment(String sessionPublicId,
-            vn.cas.store.model.CustomerTableSessionLookup session) {
+            vn.cas.store.model.SalesSessionLookup session) {
         if (!"OPEN".equals(session.sessionStatus()))
             throw new ApiException(HttpStatus.CONFLICT,
                     "Phiên bàn không thể ghi nhận chưa thanh toán.");
@@ -196,15 +196,15 @@ public class PaymentService {
             throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy payment.");
         if ("PENDING".equals(v.status())) {
             boolean collectingRecordedUnpaidPayment = payments
-                    .hasOpenUnpaidRecord(v.tableSessionId());
+                    .hasOpenUnpaidRecord(v.salesSessionId());
             if (collectingRecordedUnpaidPayment)
                 v = removePromotionFromRecordedUnpaidPayment(v);
             if (payments.confirm(v.id(), p.accountId(), p.displayName()) == 1) {
-                payments.resolveOpenUnpaidRecord(v.tableSessionId(), v.id());
+                payments.resolveOpenUnpaidRecord(v.salesSessionId(), v.id());
                 if (promotions != null && !collectingRecordedUnpaidPayment
                         && hasDiscount(v.billSnapshot()))
                     promotions.complete(v.id());
-                tables.closePaymentSession(v.tableSessionId());
+                tables.closePaymentSession(v.salesSessionId());
                 auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
                         "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),
                         p.displayName(), "Xác nhận payment thủ công."));
@@ -237,7 +237,7 @@ public class PaymentService {
                         "Không thể bỏ khuyến mãi khỏi khoản không thanh toán.");
             if (promotions != null)
                 promotions.forfeit(payment.id());
-            return new PaymentView(payment.id(), payment.publicId(), payment.tableSessionId(),
+            return new PaymentView(payment.id(), payment.publicId(), payment.salesSessionId(),
                     payment.tableCode(), bill.payableAmount(), snapshotValue, payment.status(),
                     payment.confirmedByName(), payment.confirmedAt(), payment.createdAt());
         } catch (JsonProcessingException e) {
@@ -261,13 +261,13 @@ public class PaymentService {
             root.putNull("discount");
             String snapshotValue = json.writeValueAsString(root);
             if (payments.removePendingPaymentDiscount(payment.id(), amount, snapshotValue) != 1
-                    || payments.removeOpenUnpaidRecordDiscount(payment.tableSessionId(), amount,
+                    || payments.removeOpenUnpaidRecordDiscount(payment.salesSessionId(), amount,
                             snapshotValue) != 1)
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Không thể bỏ khuyến mãi khỏi khoản không thanh toán.");
             if (promotions != null)
                 promotions.forfeit(payment.id());
-            return new PaymentView(payment.id(), payment.publicId(), payment.tableSessionId(),
+            return new PaymentView(payment.id(), payment.publicId(), payment.salesSessionId(),
                     payment.tableCode(), amount, snapshotValue, payment.status(),
                     payment.confirmedByName(), payment.confirmedAt(), payment.createdAt());
         } catch (JsonProcessingException e) {
@@ -288,7 +288,7 @@ public class PaymentService {
             throw new ApiException(HttpStatus.CONFLICT, "Bill snapshot không hợp lệ.");
         }
     }
-    public record EligibleUnpaidSession(String sessionId, long tableCode, BigDecimal amount,
+    public record EligibleUnpaidSession(String sessionId, Long tableCode, BigDecimal amount,
             String sessionStatus, java.time.LocalDateTime openedAt) {
     }
 }

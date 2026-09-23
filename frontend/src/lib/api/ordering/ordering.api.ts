@@ -68,8 +68,8 @@ export async function loadCustomerBill() {
   return customerRequest<CustomerBill>("/orders/bill");
 }
 
-export async function cancelCustomerTableSession() {
-  await customerRequest<void>("/table-sessions/current", { method: "DELETE" });
+export async function cancelCustomerSalesSession() {
+  await customerRequest<void>("/sales-sessions/current", { method: "DELETE" });
 }
 
 export async function requestCustomerCancellation(
@@ -85,12 +85,12 @@ export async function requestCustomerCancellation(
 }
 
 export async function loadOperatorTables() {
-  return operatorRequest<OperatorTable[]>("/table-sessions/tables");
+  return operatorRequest<OperatorTable[]>("/sales-sessions/tables");
 }
 
 export async function loadOperatorBill(sessionPublicId: string) {
   return operatorRequest<CustomerBill>(
-    `/table-sessions/${encodeURIComponent(sessionPublicId)}/bill`,
+    `/sales-sessions/${encodeURIComponent(sessionPublicId)}/bill`,
   );
 }
 
@@ -98,21 +98,35 @@ export async function loadOperatorOrderDetail(orderId: string) {
   return operatorRequest<OperatorOrderDetail>(`/orders/${encodeURIComponent(orderId)}`);
 }
 
-export async function openOperatorTableSession(
+export async function openOperatorSalesSession(
   tableId: number,
   customer?: { customerName: string; customerPhone: string | null },
 ) {
-  return operatorRequest<{ sessionId: string; tableCode: number; status: "OPEN" }>(
-    "/table-sessions",
-    {
-      method: "POST",
-      body: JSON.stringify({ tableId, ...customer }),
-    },
-  );
+  return operatorRequest<{
+    sessionId: string;
+    sessionType: "DINE_IN" | "TAKEAWAY";
+    tableCode: number | null;
+    status: "OPEN";
+  }>("/sales-sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionType: "DINE_IN", tableId, ...customer }),
+  });
 }
 
-export async function cancelOperatorTableSession(sessionPublicId: string) {
-  await operatorRequest<void>(`/table-sessions/${encodeURIComponent(sessionPublicId)}`, {
+export async function openOperatorTakeawaySalesSession() {
+  return operatorRequest<{
+    sessionId: string;
+    sessionType: "TAKEAWAY";
+    tableCode: null;
+    status: "OPEN";
+  }>("/sales-sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionType: "TAKEAWAY" }),
+  });
+}
+
+export async function cancelOperatorSalesSession(sessionPublicId: string) {
+  await operatorRequest<void>(`/sales-sessions/${encodeURIComponent(sessionPublicId)}`, {
     method: "DELETE",
   });
 }
@@ -125,7 +139,7 @@ export function createOperatorOrder(
   },
 ) {
   return operatorRequest<{ orderId: string; payableAmount: number }>(
-    `/table-sessions/${encodeURIComponent(sessionPublicId)}/orders`,
+    `/sales-sessions/${encodeURIComponent(sessionPublicId)}/orders`,
     {
       method: "POST",
       body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), ...input }),

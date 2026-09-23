@@ -1,6 +1,6 @@
 package vn.cas.store.model;
 
-public record CustomerTableSessionResolution(ResolutionStatus status, String sessionPublicId,
+public record SalesSessionResolution(ResolutionStatus status, String sessionPublicId,
         long tableCode) {
 
     public enum ResolutionStatus {

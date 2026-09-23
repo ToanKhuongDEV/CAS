@@ -19,7 +19,7 @@ export type Payment = {
 };
 export type UnpaidRecord = {
   publicId: string;
-  tableSessionId: string;
+  salesSessionId: string;
   tableCode: number;
   amount: number;
   billSnapshot: string;
@@ -54,7 +54,7 @@ export function loadOperatorPendingPaymentCount() {
   return operator<number>("/payments/pending-count");
 }
 export function createOperatorPayment(sessionId: string) {
-  return operator<Payment>(`/table-sessions/${encodeURIComponent(sessionId)}/payments`, {
+  return operator<Payment>(`/sales-sessions/${encodeURIComponent(sessionId)}/payments`, {
     method: "POST",
   });
 }

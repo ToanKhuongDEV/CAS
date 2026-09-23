@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { cancelCustomerTableSession } from "../../lib/api/ordering/ordering.api";
-import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
+import { cancelCustomerSalesSession } from "../../lib/api/ordering/ordering.api";
+import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { CasIcon } from "../ui/cas-icon";
 
-export function CustomerTableSessionSettings() {
+export function CustomerSalesSessionSettings() {
   const router = useRouter();
   const [isCancellable, setIsCancellable] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -16,7 +16,7 @@ export function CustomerTableSessionSettings() {
 
   useEffect(() => {
     let active = true;
-    void getCurrentCustomerTableSession()
+    void getCurrentCustomerSalesSession()
       .then((session) => {
         if (active) setIsCancellable(session.sessionStatus === "OPEN");
       })
@@ -34,7 +34,7 @@ export function CustomerTableSessionSettings() {
     setError(null);
     setIsCancelling(true);
     try {
-      await cancelCustomerTableSession();
+      await cancelCustomerSalesSession();
       setIsConfirmOpen(false);
       router.replace("/");
     } catch (cause) {
@@ -47,12 +47,12 @@ export function CustomerTableSessionSettings() {
   return (
     <section
       className="mt-5 rounded-2xl border border-cas-error/25 bg-cas-surface-container p-5 shadow-[0_8px_24px_var(--cas-shadow-color)]"
-      aria-labelledby="table-session-setting-title"
+      aria-labelledby="sales-session-setting-title"
     >
       <div className="flex items-start justify-between gap-5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="font-extrabold" id="table-session-setting-title">
+            <h2 className="font-extrabold" id="sales-session-setting-title">
               Hủy phiên bàn
             </h2>
             <span

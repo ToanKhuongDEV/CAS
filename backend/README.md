@@ -72,10 +72,10 @@ Ví dụ quét QR để lấy hoặc tham gia phiên bàn Customer. Chỉ gửi 
 khi chưa có phiên `OPEN` tại bàn; các thiết bị quét sau chỉ gửi `qrToken`:
 
 ```powershell
-curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
-curl.exe -X POST http://localhost:8080/api/v1/customer/table-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
-curl.exe http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
-curl.exe -X DELETE http://localhost:8080/api/v1/customer/table-sessions/current -b customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+curl.exe http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt
+curl.exe -X DELETE http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt
 ```
 
 Ví dụ gửi order Customer. Dùng lại cookie nhận từ bước quét QR; giữ nguyên
@@ -105,7 +105,7 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/promotions -H "Authorization
 curl.exe "http://localhost:8080/api/v1/admin/promotions/<promotion-public-id>/redemptions?page=0&size=10" -H "Authorization: Bearer <firebase-id-token>"
 ```
 
-Sau khi khách quét hoặc nhập tay QR hợp lệ, backend lưu table session trong cookie
+Sau khi khách quét hoặc nhập tay QR hợp lệ, backend lưu sales session trong cookie
 và luôn suy ra store từ session đó. Customer không gửi `storeId`:
 
 ```powershell
@@ -118,12 +118,13 @@ Ví dụ `OPERATOR` mở hoặc dùng lại phiên của bàn, sau đó tạo or
 bàn đã có session `OPEN`, có thể bỏ `customerName` và `customerPhone`:
 
 ```powershell
-curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
-curl.exe http://localhost:8080/api/v1/operator/table-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe -X DELETE http://localhost:8080/api/v1/operator/table-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"DINE_IN\",\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"TAKEAWAY\"}"
+curl.exe http://localhost:8080/api/v1/operator/sales-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X DELETE http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/orders/<order-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 
 Ví dụ luồng thanh toán: Customer tạo/xem payment bằng cookie session; `OPERATOR` chỉ xác nhận sau khi đã kiểm tra giao dịch thành công ngoài CAS:
@@ -133,7 +134,7 @@ Response payment trả `createdAt` để giao diện vận hành hiển thị đ
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
-curl.exe -X POST http://localhost:8080/api/v1/operator/table-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"

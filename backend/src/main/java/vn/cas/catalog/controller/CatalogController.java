@@ -16,16 +16,16 @@ import vn.cas.common.exception.ApiException;
 import vn.cas.common.response.*;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.service.SalesSessionService;
 
 @RestController
 public class CatalogController {
     private static final long DEFAULT_CUSTOMER_STORE_ID = 1L;
 
     private final CatalogService catalog;
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
 
-    public CatalogController(CatalogService catalog, CustomerTableSessionService sessions) {
+    public CatalogController(CatalogService catalog, SalesSessionService sessions) {
         this.catalog = catalog;
         this.sessions = sessions;
     }

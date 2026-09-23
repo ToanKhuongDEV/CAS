@@ -286,13 +286,17 @@ CREATE TABLE client_accounts (
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE table_sessions (
+CREATE TABLE sales_sessions (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    table_id BIGINT UNSIGNED NOT NULL,
     public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    session_type VARCHAR(20) NOT NULL,
+    table_id BIGINT UNSIGNED NULL,
     client_account_id BIGINT UNSIGNED NOT NULL,
     opened_by_customer_name VARCHAR(150) NOT NULL,
     opened_by_customer_phone VARCHAR(20) NULL,
+    selected_promotion_id BIGINT UNSIGNED NULL,
+    selected_promotion_code_id BIGINT UNSIGNED NULL,
     status VARCHAR(20) NOT NULL,
     payment_requested_at DATETIME(3) NULL,
     closed_at DATETIME(3) NULL,
@@ -301,19 +305,27 @@ CREATE TABLE table_sessions (
     occupying_table_id BIGINT UNSIGNED
         GENERATED ALWAYS AS (
             CASE
-                WHEN status IN ('OPEN', 'PAYMENT_PENDING') THEN table_id
+                WHEN session_type = 'DINE_IN' AND status IN ('OPEN', 'PAYMENT_PENDING') THEN table_id
                 ELSE NULL
             END
         ) STORED,
     PRIMARY KEY (id),
-    CONSTRAINT uk_table_sessions_public_id UNIQUE (public_id),
-    CONSTRAINT uk_table_sessions_occupying_table UNIQUE (occupying_table_id),
-    KEY idx_table_sessions_table_id (table_id),
-    KEY idx_table_sessions_client_account_created_at (client_account_id, created_at),
-    CONSTRAINT fk_table_sessions_table
+    CONSTRAINT uk_sales_sessions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_sales_sessions_occupying_table UNIQUE (occupying_table_id),
+    KEY idx_sales_sessions_store_created_at (store_id, created_at),
+    KEY idx_sales_sessions_table_id (table_id),
+    KEY idx_sales_sessions_client_account_created_at (client_account_id, created_at),
+    CONSTRAINT chk_sales_sessions_type_table CHECK (
+        (session_type = 'DINE_IN' AND table_id IS NOT NULL)
+        OR (session_type = 'TAKEAWAY' AND table_id IS NULL)
+    ),
+    CONSTRAINT fk_sales_sessions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_sales_sessions_table
         FOREIGN KEY (table_id) REFERENCES dining_tables (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_table_sessions_client_account
+    CONSTRAINT fk_sales_sessions_client_account
         FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
@@ -323,7 +335,7 @@ CREATE TABLE table_sessions (
 CREATE TABLE orders (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     public_id CHAR(36) NOT NULL,
-    table_session_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
     created_by_account_id BIGINT UNSIGNED NULL,
     idempotency_key VARCHAR(100) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
@@ -337,10 +349,10 @@ CREATE TABLE orders (
     CONSTRAINT uk_orders_public_id UNIQUE (public_id),
     CONSTRAINT uk_orders_order_number UNIQUE (order_number),
     CONSTRAINT uk_orders_session_idempotency
-        UNIQUE (table_session_id, idempotency_key),
+        UNIQUE (sales_session_id, idempotency_key),
     KEY idx_orders_created_by_account_id (created_by_account_id),
-    CONSTRAINT fk_orders_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    CONSTRAINT fk_orders_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_orders_creator
         FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
@@ -469,7 +481,7 @@ CREATE TABLE order_item_cancellation_requests (
 CREATE TABLE payments (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     public_id CHAR(36) NOT NULL,
-    table_session_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     bill_snapshot JSON NOT NULL,
     status VARCHAR(20) NOT NULL,
@@ -480,10 +492,11 @@ CREATE TABLE payments (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_payments_public_id UNIQUE (public_id),
-    CONSTRAINT uk_payments_table_session UNIQUE (table_session_id),
+    CONSTRAINT uk_payments_sales_session UNIQUE (sales_session_id),
     KEY idx_payments_confirmed_by (confirmed_by),
-    CONSTRAINT fk_payments_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    KEY idx_payments_status_created_session (status, created_at, sales_session_id),
+    CONSTRAINT fk_payments_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_payments_confirmer
         FOREIGN KEY (confirmed_by) REFERENCES accounts (id)
@@ -495,7 +508,7 @@ CREATE TABLE payments (
 CREATE TABLE unpaid_records (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     public_id CHAR(36) NOT NULL,
-    table_session_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     bill_snapshot JSON NOT NULL,
     status VARCHAR(20) NOT NULL,
@@ -508,11 +521,11 @@ CREATE TABLE unpaid_records (
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT uk_unpaid_records_public_id UNIQUE (public_id),
-    CONSTRAINT uk_unpaid_records_table_session UNIQUE (table_session_id),
+    CONSTRAINT uk_unpaid_records_sales_session UNIQUE (sales_session_id),
     CONSTRAINT uk_unpaid_records_resolution_payment UNIQUE (resolution_payment_id),
     KEY idx_unpaid_records_reported_by (reported_by),
-    CONSTRAINT fk_unpaid_records_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    CONSTRAINT fk_unpaid_records_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_unpaid_records_reporter
         FOREIGN KEY (reported_by) REFERENCES accounts (id)
@@ -685,7 +698,7 @@ CREATE TABLE promotion_redemptions (
     promotion_id BIGINT UNSIGNED NOT NULL,
     promotion_code_id BIGINT UNSIGNED NULL,
     client_account_id BIGINT UNSIGNED NOT NULL,
-    table_session_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
     payment_id BIGINT UNSIGNED NOT NULL,
     status VARCHAR(20) NOT NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -696,7 +709,7 @@ CREATE TABLE promotion_redemptions (
     KEY idx_promotion_redemptions_code_status (promotion_code_id, status),
     KEY idx_promotion_redemptions_client_promotion_status
         (client_account_id, promotion_id, status),
-    KEY idx_promotion_redemptions_table_session_id (table_session_id),
+    KEY idx_promotion_redemptions_sales_session_id (sales_session_id),
     CONSTRAINT fk_promotion_redemptions_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -709,8 +722,8 @@ CREATE TABLE promotion_redemptions (
     CONSTRAINT fk_promotion_redemptions_client_account
         FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_promotion_redemptions_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    CONSTRAINT fk_promotion_redemptions_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_promotion_redemptions_payment
         FOREIGN KEY (payment_id) REFERENCES payments (id)
@@ -722,7 +735,7 @@ CREATE TABLE promotion_redemptions (
 CREATE TABLE bill_discounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     store_id BIGINT UNSIGNED NOT NULL,
-    table_session_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
     payment_id BIGINT UNSIGNED NOT NULL,
     promotion_id BIGINT UNSIGNED NOT NULL,
     promotion_code_id BIGINT UNSIGNED NULL,
@@ -737,14 +750,14 @@ CREATE TABLE bill_discounts (
     PRIMARY KEY (id),
     CONSTRAINT uk_bill_discounts_payment UNIQUE (payment_id),
     KEY idx_bill_discounts_store_id (store_id),
-    KEY idx_bill_discounts_table_session_id (table_session_id),
+    KEY idx_bill_discounts_sales_session_id (sales_session_id),
     KEY idx_bill_discounts_promotion_id (promotion_id),
     KEY idx_bill_discounts_code_id (promotion_code_id),
     CONSTRAINT fk_bill_discounts_store
         FOREIGN KEY (store_id) REFERENCES stores (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_bill_discounts_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    CONSTRAINT fk_bill_discounts_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_bill_discounts_payment
         FOREIGN KEY (payment_id) REFERENCES payments (id)
@@ -786,32 +799,32 @@ CREATE TABLE system_notification_recipients (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     notification_id BIGINT UNSIGNED NOT NULL,
     account_id BIGINT UNSIGNED NULL,
-    table_session_id BIGINT UNSIGNED NULL,
+    sales_session_id BIGINT UNSIGNED NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'UNREAD',
     read_at DATETIME(3) NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     CONSTRAINT chk_notification_recipients_exactly_one_recipient CHECK (
-        (account_id IS NOT NULL AND table_session_id IS NULL)
-        OR (account_id IS NULL AND table_session_id IS NOT NULL)
+        (account_id IS NOT NULL AND sales_session_id IS NULL)
+        OR (account_id IS NULL AND sales_session_id IS NOT NULL)
     ),
     CONSTRAINT uk_notification_recipients_notification_account
         UNIQUE (notification_id, account_id),
     CONSTRAINT uk_notification_recipients_notification_session
-        UNIQUE (notification_id, table_session_id),
+        UNIQUE (notification_id, sales_session_id),
     KEY idx_notification_recipients_account_status_created_at
         (account_id, status, created_at),
     KEY idx_notification_recipients_session_status_created_at
-        (table_session_id, status, created_at),
+        (sales_session_id, status, created_at),
     CONSTRAINT fk_notification_recipients_notification
         FOREIGN KEY (notification_id) REFERENCES system_notifications (id)
-        ON DELETE RESTRICT ON UPDATE RESTRICT,
+        ON DELETE CASCADE ON UPDATE RESTRICT,
     CONSTRAINT fk_notification_recipients_account
         FOREIGN KEY (account_id) REFERENCES accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_notification_recipients_table_session
-        FOREIGN KEY (table_session_id) REFERENCES table_sessions (id)
+    CONSTRAINT fk_notification_recipients_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
@@ -855,6 +868,66 @@ CREATE TABLE store_banners (
         FOREIGN KEY (updated_by) REFERENCES accounts (id)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT chk_store_banners_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+ALTER TABLE sales_sessions
+    ADD CONSTRAINT fk_sales_sessions_selected_promotion
+        FOREIGN KEY (selected_promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    ADD CONSTRAINT fk_sales_sessions_selected_promotion_code
+        FOREIGN KEY (selected_promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+CREATE TABLE prepared_item_transfers (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    cancellation_request_id BIGINT UNSIGNED NOT NULL,
+    source_order_item_id BIGINT UNSIGNED NOT NULL,
+    target_order_item_id BIGINT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    transferred_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_prepared_item_transfers_public_id UNIQUE (public_id),
+    KEY idx_prepared_item_transfers_cancellation_request (cancellation_request_id),
+    KEY idx_prepared_item_transfers_source_order_item (source_order_item_id),
+    KEY idx_prepared_item_transfers_target_order_item (target_order_item_id),
+    KEY idx_prepared_item_transfers_transferred_by (transferred_by_account_id),
+    CONSTRAINT fk_prepared_item_transfers_cancellation_request
+        FOREIGN KEY (cancellation_request_id) REFERENCES order_item_cancellation_requests (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_source_order_item
+        FOREIGN KEY (source_order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_target_order_item
+        FOREIGN KEY (target_order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_operator
+        FOREIGN KEY (transferred_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE preparation_table_completions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    table_id BIGINT UNSIGNED NOT NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    allocation_snapshot JSON NOT NULL,
+    completed_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_preparation_table_completions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_preparation_table_completions_store_idempotency UNIQUE (store_id, idempotency_key),
+    KEY idx_preparation_table_completions_table_created_at (table_id, created_at),
+    CONSTRAINT fk_preparation_table_completions_store FOREIGN KEY (store_id) REFERENCES stores (id),
+    CONSTRAINT fk_preparation_table_completions_table FOREIGN KEY (table_id) REFERENCES dining_tables (id),
+    CONSTRAINT fk_preparation_table_completions_completed_by FOREIGN KEY (completed_by_account_id) REFERENCES accounts (id)
 ) ENGINE = InnoDB
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;

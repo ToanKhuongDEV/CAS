@@ -25,7 +25,7 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
 import vn.cas.notification.model.SystemNotification;
 import vn.cas.notification.service.SystemNotificationService;
-import vn.cas.store.controller.CustomerTableSessionController;
+import vn.cas.store.controller.CustomerSalesSessionController;
 
 @RestController
 public class SystemNotificationController {
@@ -87,7 +87,7 @@ public class SystemNotificationController {
 
     @GetMapping(ApiPaths.Notification.CUSTOMER)
     public ResponseEntity<ApiResponse<SystemNotificationService.RecipientNotificationList>> listCustomer(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
             HttpServletRequest request) {
         return ApiResponses.success(HttpStatus.OK, ApiMessages.NOTIFICATIONS_RETRIEVED,
                 notifications.listForCustomer(sessionPublicId), request);
@@ -95,7 +95,7 @@ public class SystemNotificationController {
 
     @PatchMapping(ApiPaths.Notification.CUSTOMER_READ)
     public ResponseEntity<ApiResponse<Void>> markCustomerRead(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
             @PathVariable long notificationId, HttpServletRequest request) {
         notifications.markReadForCustomer(sessionPublicId, notificationId);
         return ApiResponses.success(HttpStatus.OK, ApiMessages.NOTIFICATION_MARKED_READ, null,
@@ -104,7 +104,7 @@ public class SystemNotificationController {
 
     @PatchMapping(ApiPaths.Notification.CUSTOMER_READ_ALL)
     public ResponseEntity<ApiResponse<Void>> markAllCustomerRead(
-            @CookieValue(name = CustomerTableSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            @CookieValue(name = CustomerSalesSessionController.CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
             HttpServletRequest request) {
         notifications.markAllReadForCustomer(sessionPublicId);
         return ApiResponses.success(HttpStatus.OK, ApiMessages.NOTIFICATIONS_MARKED_READ, null,

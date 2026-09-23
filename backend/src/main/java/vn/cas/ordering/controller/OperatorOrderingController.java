@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,18 +28,19 @@ import vn.cas.common.response.ApiResponses;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
 import vn.cas.ordering.service.CustomerOrderingService;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
 import vn.cas.store.service.DiningTableService;
 
 @RestController
-@RequestMapping(ApiPaths.API_OPERATOR_PREFIX + "/table-sessions")
+@RequestMapping(ApiPaths.API_OPERATOR_PREFIX + "/sales-sessions")
 public class OperatorOrderingController {
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
     private final CustomerOrderingService orders;
     private final DiningTableService tables;
 
-    public OperatorOrderingController(CustomerTableSessionService sessions,
-            CustomerOrderingService orders, DiningTableService tables) {
+    public OperatorOrderingController(SalesSessionService sessions, CustomerOrderingService orders,
+            DiningTableService tables) {
         this.sessions = sessions;
         this.orders = orders;
         this.tables = tables;
@@ -54,14 +56,16 @@ public class OperatorOrderingController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<TableSessionResponse>> openOrGet(
+    public ResponseEntity<ApiResponse<SalesSessionResponse>> openOrGet(
             @AuthenticationPrincipal OperationalPrincipal principal,
-            @Valid @RequestBody OpenTableSessionRequest body, HttpServletRequest request) {
-        var session = sessions.openOrGetForOperator(principal.storeId(), body.tableId(),
-                normalize(body.customerName()), normalize(body.customerPhone()));
-        return ApiResponses.success(HttpStatus.CREATED, ApiMessages.OPERATOR_TABLE_SESSION_READY,
-                new TableSessionResponse(session.sessionPublicId(), session.tableCode(),
-                        session.sessionStatus()),
+            @Valid @RequestBody OpenSalesSessionRequest body, HttpServletRequest request) {
+        var session = "TAKEAWAY".equals(body.sessionType())
+                ? openTakeaway(principal, body)
+                : sessions.openOrGetForOperator(principal.storeId(), requireTableId(body),
+                        normalize(body.customerName()), normalize(body.customerPhone()));
+        return ApiResponses.success(HttpStatus.CREATED, ApiMessages.OPERATOR_SALES_SESSION_READY,
+                new SalesSessionResponse(session.sessionPublicId(), session.sessionType(),
+                        session.tableCode(), session.sessionStatus()),
                 request);
     }
 
@@ -71,7 +75,7 @@ public class OperatorOrderingController {
             @PathVariable String sessionPublicId, HttpServletRequest request) {
         sessions.cancelForOperator(principal, sessionPublicId,
                 (UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
-        return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_TABLE_SESSION_CANCELLED,
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.OPERATOR_SALES_SESSION_CANCELLED,
                 null, request);
     }
 
@@ -103,8 +107,27 @@ public class OperatorOrderingController {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    public record OpenTableSessionRequest(@Positive long tableId,
-            @Size(max = 150) String customerName, @Size(max = 20) String customerPhone) {
+    private static long requireTableId(OpenSalesSessionRequest body) {
+        if (body.tableId() == null) {
+            throw new vn.cas.common.exception.ApiException(HttpStatus.BAD_REQUEST,
+                    ApiMessages.INVALID_REQUEST);
+        }
+        return body.tableId();
+    }
+
+    private SalesSessionLookup openTakeaway(OperationalPrincipal principal,
+            OpenSalesSessionRequest body) {
+        if (body.tableId() != null) {
+            throw new vn.cas.common.exception.ApiException(HttpStatus.BAD_REQUEST,
+                    ApiMessages.INVALID_REQUEST);
+        }
+        return sessions.openTakeawayForOperator(principal.storeId());
+    }
+
+    public record OpenSalesSessionRequest(
+            @NotBlank @Pattern(regexp = "DINE_IN|TAKEAWAY") String sessionType,
+            @Positive Long tableId, @Size(max = 150) String customerName,
+            @Size(max = 20) String customerPhone) {
     }
 
     public record CreateOrderRequest(@NotBlank @Size(max = 100) String idempotencyKey,
@@ -118,7 +141,8 @@ public class OperatorOrderingController {
         }
     }
 
-    public record TableSessionResponse(String sessionId, long tableCode, String status) {
+    public record SalesSessionResponse(String sessionId, String sessionType, Long tableCode,
+            String status) {
     }
 
     public record TableResponse(long tableId, long tableCode, String sessionStatus,

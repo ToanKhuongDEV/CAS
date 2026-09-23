@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
-import { getCurrentCustomerTableSession } from "../lib/customer/table-session";
+import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
 }));
-vi.mock("../lib/customer/table-session", () => ({
-  getCurrentCustomerTableSession: vi.fn(),
+vi.mock("../lib/customer/sales-session", () => ({
+  getCurrentCustomerSalesSession: vi.fn(),
 }));
 
 describe("Home", () => {
@@ -38,7 +38,7 @@ describe("Home", () => {
       menuPreview4ImageUrl: null,
       menuPreview5ImageUrl: null,
     });
-    vi.mocked(getCurrentCustomerTableSession).mockResolvedValue({
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       sessionStatus: "OPEN",
       tableCode: 12,

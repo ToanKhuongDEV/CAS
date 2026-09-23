@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
-import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
+import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { readCustomerCart } from "../../lib/customer/cart";
 import { loadPublicStore } from "../../lib/api/store/public-store.api";
 import {
@@ -83,7 +83,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   useEffect(() => {
     let active = true;
-    void getCurrentCustomerTableSession()
+    void getCurrentCustomerSalesSession()
       .then((session) => {
         if (!active) return;
         setTableCode(session.tableCode);

@@ -9,18 +9,18 @@
             (
                 SELECT COUNT(*)
                 FROM orders
-                INNER JOIN table_sessions ON table_sessions.id = orders.table_session_id
-                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+                INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
                 WHERE dining_tables.store_id = #{storeId}
                   AND orders.created_at &gt;= #{todayStart}
                   AND orders.created_at &lt; #{tomorrowStart}
             ) AS ordersToday,
             (
                 SELECT COUNT(*)
-                FROM table_sessions
-                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                FROM sales_sessions
+                INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
                 WHERE dining_tables.store_id = #{storeId}
-                  AND table_sessions.status = 'OPEN'
+                  AND sales_sessions.status = 'OPEN'
             ) AS activeTableCount,
             (
                 SELECT COUNT(*)
@@ -30,14 +30,14 @@
             (
                 SELECT COUNT(*)
                 FROM payments
-                INNER JOIN table_sessions ON table_sessions.id = payments.table_session_id
-                INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
+                INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+                INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
                 WHERE dining_tables.store_id = #{storeId}
                   AND payments.status = 'PENDING'
                   AND NOT EXISTS (
                       SELECT 1
                       FROM unpaid_records
-                      WHERE unpaid_records.table_session_id = payments.table_session_id
+                      WHERE unpaid_records.sales_session_id = payments.sales_session_id
                   )
             ) AS pendingPaymentCount
     </select>

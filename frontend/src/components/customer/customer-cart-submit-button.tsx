@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
-import { getCurrentCustomerTableSession } from "../../lib/customer/table-session";
+import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { clearCustomerCart, readCustomerCart } from "../../lib/customer/cart";
 import { createCustomerOrder } from "../../lib/api/ordering/ordering.api";
 
@@ -18,7 +18,7 @@ export function CustomerCartSubmitButton() {
     const tableQrToken = window.sessionStorage.getItem(tableQrTokenKey);
     if (tableQrToken) {
       try {
-        await getCurrentCustomerTableSession();
+        await getCurrentCustomerSalesSession();
       } catch {
         router.push(`/table/${encodeURIComponent(tableQrToken)}?returnTo=%2Fcart`);
         return;

@@ -17,7 +17,7 @@ import {
   loadPublicStoreWelcomeConfig,
 } from "../../../../lib/api/store/public-store.api";
 import { addCustomerCartLine } from "../../../../lib/customer/cart";
-import { hasOpenCustomerTableSession } from "../../../../lib/customer/table-session";
+import { hasOpenCustomerSalesSession } from "../../../../lib/customer/sales-session";
 import { CategoryNavigation } from "./category-navigation";
 
 type CustomerMenuItem = {
@@ -267,7 +267,7 @@ export default function MenuPage() {
                           <AddToCartOptionDialog
                             basePrice={item.basePrice}
                             beforeAddToCart={async () => {
-                              if (await hasOpenCustomerTableSession()) return true;
+                              if (await hasOpenCustomerSalesSession()) return true;
                               router.push(
                                 `/scan?returnTo=${encodeURIComponent(window.location.pathname)}`,
                               );

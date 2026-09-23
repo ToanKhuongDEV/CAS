@@ -7,7 +7,7 @@ import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.CreateDiningTableCommand;
 import vn.cas.store.model.ActiveTableQrCode;
 import vn.cas.store.model.AdminDiningTable;
-import vn.cas.store.model.CustomerTableSessionLookup;
+import vn.cas.store.model.SalesSessionLookup;
 
 @Mapper
 public interface DiningTableMapper {
@@ -28,17 +28,16 @@ public interface DiningTableMapper {
 
     int deleteDiningTable(@Param("storeId") long storeId, @Param("tableId") long tableId);
 
-    CustomerTableSessionLookup findTableSessionByActiveQrTokenForUpdate(
-            @Param("qrToken") String qrToken);
+    SalesSessionLookup findSalesSessionByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
 
-    CustomerTableSessionLookup findCurrentTableSessionByPublicId(
+    SalesSessionLookup findCurrentSalesSessionByPublicId(
             @Param("sessionPublicId") String sessionPublicId);
 
-    CustomerTableSessionLookup findCurrentTableSessionByPublicIdForUpdate(
+    SalesSessionLookup findCurrentSalesSessionByPublicIdForUpdate(
             @Param("sessionPublicId") String sessionPublicId);
 
-    CustomerTableSessionLookup findTableSessionByStoreIdAndTableIdForUpdate(
-            @Param("storeId") long storeId, @Param("tableId") long tableId);
+    SalesSessionLookup findSalesSessionByStoreIdAndTableIdForUpdate(@Param("storeId") long storeId,
+            @Param("tableId") long tableId);
 
     boolean hasOrders(@Param("sessionId") long sessionId);
 
@@ -49,10 +48,14 @@ public interface DiningTableMapper {
 
     int insertClientAccount(CreateClientAccountCommand command);
 
-    int insertOpenCustomerTableSession(@Param("tableId") long tableId,
+    int insertOpenDineInSalesSession(@Param("tableId") long tableId,
             @Param("publicId") String publicId, @Param("clientAccountId") long clientAccountId,
             @Param("customerName") String customerName,
             @Param("customerPhone") String customerPhone);
+
+    int insertOpenTakeawaySalesSession(@Param("storeId") long storeId,
+            @Param("publicId") String publicId, @Param("clientAccountId") long clientAccountId,
+            @Param("customerName") String customerName);
 
     int moveSessionToPaymentPending(@Param("sessionId") long sessionId);
     int closePaymentSession(@Param("sessionId") long sessionId);

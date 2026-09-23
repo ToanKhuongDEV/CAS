@@ -18,10 +18,10 @@ import { CasButton } from "../../ui/cas-button";
 import { useToast } from "../../ui/toast-provider";
 import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
 import {
-  cancelOperatorTableSession,
+  cancelOperatorSalesSession,
   createOperatorOrder,
   loadOperatorTables,
-  openOperatorTableSession,
+  openOperatorSalesSession,
 } from "../../../lib/api/ordering/ordering.api";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
@@ -526,12 +526,12 @@ export function OperatorOrderCreationView({
     }
   };
 
-  const handleCancelTableSession = async () => {
+  const handleCancelSalesSession = async () => {
     if (!selectedTable.sessionPublicId || isCancellingSession) return;
     setIsCancellingSession(true);
     setOperationError(null);
     try {
-      await cancelOperatorTableSession(selectedTable.sessionPublicId);
+      await cancelOperatorSalesSession(selectedTable.sessionPublicId);
       setOperatorTables((current) =>
         current.map((table) =>
           table.id === selectedTable.id
@@ -594,7 +594,7 @@ export function OperatorOrderCreationView({
               </CasButton>
               <CasButton
                 disabled={isCancellingSession}
-                onClick={() => void handleCancelTableSession()}
+                onClick={() => void handleCancelSalesSession()}
                 type="button"
                 variant="danger"
               >
@@ -772,7 +772,7 @@ export function OperatorOrderCreationView({
               orderNote={orderNote}
               isSubmitting={isSubmitting}
               onChangeTableClick={() => setIsTableModalOpen(true)}
-              onCancelTableSession={() => setIsCancelSessionDialogOpen(true)}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
@@ -816,7 +816,7 @@ export function OperatorOrderCreationView({
                 setIsMobileDrawerOpen(false);
                 setIsTableModalOpen(true);
               }}
-              onCancelTableSession={() => setIsCancelSessionDialogOpen(true)}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
@@ -850,7 +850,7 @@ export function OperatorOrderCreationView({
           className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="new-table-session-title"
+          aria-labelledby="new-sales-session-title"
         >
           <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
             <span className="grid size-12 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
@@ -861,7 +861,7 @@ export function OperatorOrderCreationView({
             </p>
             <h2
               className="mt-1 text-xl font-extrabold text-cas-on-surface"
-              id="new-table-session-title"
+              id="new-sales-session-title"
             >
               Tạo phiên mới cho {pendingSessionTable.label}?
             </h2>
@@ -915,7 +915,7 @@ export function OperatorOrderCreationView({
                 idPrefix="operator-customer"
                 submitLabel="Tạo phiên bàn và chọn món"
                 onSubmitCustomerInfo={(information: CustomerInformation) => {
-                  void openOperatorTableSession(Number(pendingSessionTable.id), information)
+                  void openOperatorSalesSession(Number(pendingSessionTable.id), information)
                     .then((session) => {
                       const openedTable = {
                         ...pendingSessionTable,

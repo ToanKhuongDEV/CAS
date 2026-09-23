@@ -17,20 +17,20 @@ public interface SystemNotificationMapper {
             @Param("storeId") long storeId);
     List<SystemNotification> findByStoreId(@Param("storeId") long storeId);
     List<RecipientNotification> findByAccountId(@Param("accountId") long accountId);
-    List<RecipientNotification> findByTableSessionId(@Param("tableSessionId") long tableSessionId);
+    List<RecipientNotification> findBySalesSessionId(@Param("salesSessionId") long salesSessionId);
     long countUnreadByAccountId(@Param("accountId") long accountId);
-    long countUnreadByTableSessionId(@Param("tableSessionId") long tableSessionId);
+    long countUnreadBySalesSessionId(@Param("salesSessionId") long salesSessionId);
     boolean existsForAccount(@Param("notificationId") long notificationId,
             @Param("accountId") long accountId);
-    boolean existsForTableSession(@Param("notificationId") long notificationId,
-            @Param("tableSessionId") long tableSessionId);
+    boolean existsForSalesSession(@Param("notificationId") long notificationId,
+            @Param("salesSessionId") long salesSessionId);
     int markReadForAccount(@Param("notificationId") long notificationId,
             @Param("accountId") long accountId, @Param("readAt") LocalDateTime readAt);
-    int markReadForTableSession(@Param("notificationId") long notificationId,
-            @Param("tableSessionId") long tableSessionId, @Param("readAt") LocalDateTime readAt);
+    int markReadForSalesSession(@Param("notificationId") long notificationId,
+            @Param("salesSessionId") long salesSessionId, @Param("readAt") LocalDateTime readAt);
     int markAllReadForAccount(@Param("accountId") long accountId,
             @Param("readAt") LocalDateTime readAt);
-    int markAllReadForTableSession(@Param("tableSessionId") long tableSessionId,
+    int markAllReadForSalesSession(@Param("salesSessionId") long salesSessionId,
             @Param("readAt") LocalDateTime readAt);
     int deleteByStoreIdAndId(@Param("storeId") long storeId,
             @Param("notificationId") long notificationId);

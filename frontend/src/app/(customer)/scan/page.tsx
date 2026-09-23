@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
-import { resolveCustomerTableSession } from "../../../lib/customer/table-session";
+import { resolveCustomerSalesSession } from "../../../lib/customer/sales-session";
 
 type BarcodeDetectorLike = {
   detect: (source: CanvasImageSource) => Promise<{ rawValue: string }[]>;
@@ -32,7 +32,7 @@ export default function ScanTableQrPage() {
 
       isResolving.current = true;
       setSubmitting(true);
-      const resolution = await resolveCustomerTableSession(token);
+      const resolution = await resolveCustomerSalesSession(token);
       window.sessionStorage.setItem("cas.tableQrToken", token);
       if (resolution.sessionStatus === "PAYMENT_PENDING") {
         router.replace("/payment");

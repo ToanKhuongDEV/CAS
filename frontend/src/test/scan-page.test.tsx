@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ScanTableQrPage from "../app/(customer)/scan/page";
 import { ToastProvider } from "../components/ui/toast-provider";
-import { resolveCustomerTableSession } from "../lib/customer/table-session";
+import { resolveCustomerSalesSession } from "../lib/customer/sales-session";
 
 const replace = vi.fn();
 const searchParams = new URLSearchParams();
@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
   useSearchParams: () => searchParams,
 }));
-vi.mock("../lib/customer/table-session", () => ({ resolveCustomerTableSession: vi.fn() }));
+vi.mock("../lib/customer/sales-session", () => ({ resolveCustomerSalesSession: vi.fn() }));
 
 describe("ScanTableQrPage", () => {
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe("ScanTableQrPage", () => {
   });
 
   it("keeps manual entry available when the QR token is invalid", async () => {
-    vi.mocked(resolveCustomerTableSession).mockRejectedValue(new Error("QR không hợp lệ"));
+    vi.mocked(resolveCustomerSalesSession).mockRejectedValue(new Error("QR không hợp lệ"));
     render(
       <ToastProvider>
         <ScanTableQrPage />

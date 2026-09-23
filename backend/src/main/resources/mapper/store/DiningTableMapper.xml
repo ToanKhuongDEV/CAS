@@ -50,13 +50,13 @@
             dining_tables.code AS code,
             dining_tables.capacity AS capacity,
             table_qr_codes.token AS activeQrToken,
-            table_sessions.status AS sessionStatus,
-            table_sessions.public_id AS sessionPublicId
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.public_id AS sessionPublicId
         FROM dining_tables
         LEFT JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
             AND table_qr_codes.status = 'ACTIVE'
-        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
-            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
+            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         WHERE dining_tables.store_id = #{storeId}
         ORDER BY dining_tables.code ASC
     </select>
@@ -88,79 +88,85 @@
           AND dining_tables.id = #{tableId}
     </delete>
 
-    <select id="findTableSessionByActiveQrTokenForUpdate"
-            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+    <select id="findSalesSessionByActiveQrTokenForUpdate"
+            resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT
-            table_sessions.id AS sessionId,
+            sales_sessions.id AS sessionId,
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
-            table_sessions.client_account_id AS clientAccountId,
-            table_sessions.selected_promotion_id AS selectedPromotionId,
-            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
-            table_sessions.public_id AS sessionPublicId,
-            table_sessions.status AS sessionStatus
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
         FROM table_qr_codes
         INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
-        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
-            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
+            AND sales_sessions.session_type = 'DINE_IN'
+            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         WHERE table_qr_codes.token = #{qrToken}
           AND table_qr_codes.status = 'ACTIVE'
         FOR UPDATE
     </select>
 
-    <select id="findCurrentTableSessionByPublicId"
-            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+    <select id="findCurrentSalesSessionByPublicId"
+            resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT
-            table_sessions.id AS sessionId,
+            sales_sessions.id AS sessionId,
             dining_tables.id AS tableId,
-            dining_tables.store_id AS storeId,
+            sales_sessions.store_id AS storeId,
             dining_tables.code AS tableCode,
-            table_sessions.client_account_id AS clientAccountId,
-            table_sessions.selected_promotion_id AS selectedPromotionId,
-            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
-            table_sessions.public_id AS sessionPublicId,
-            table_sessions.status AS sessionStatus
-        FROM table_sessions
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
-        WHERE table_sessions.public_id = #{sessionPublicId}
-          AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
     </select>
 
-    <select id="findCurrentTableSessionByPublicIdForUpdate"
-            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+    <select id="findCurrentSalesSessionByPublicIdForUpdate"
+            resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT
-            table_sessions.id AS sessionId,
+            sales_sessions.id AS sessionId,
             dining_tables.id AS tableId,
-            dining_tables.store_id AS storeId,
+            sales_sessions.store_id AS storeId,
             dining_tables.code AS tableCode,
-            table_sessions.client_account_id AS clientAccountId,
-            table_sessions.selected_promotion_id AS selectedPromotionId,
-            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
-            table_sessions.public_id AS sessionPublicId,
-            table_sessions.status AS sessionStatus
-        FROM table_sessions
-        INNER JOIN dining_tables ON dining_tables.id = table_sessions.table_id
-        WHERE table_sessions.public_id = #{sessionPublicId}
-          AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         FOR UPDATE
     </select>
 
-    <select id="findTableSessionByStoreIdAndTableIdForUpdate"
-            resultType="vn.cas.store.model.CustomerTableSessionLookup">
+    <select id="findSalesSessionByStoreIdAndTableIdForUpdate"
+            resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT
-            table_sessions.id AS sessionId,
+            sales_sessions.id AS sessionId,
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
             dining_tables.code AS tableCode,
-            table_sessions.client_account_id AS clientAccountId,
-            table_sessions.selected_promotion_id AS selectedPromotionId,
-            table_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
-            table_sessions.public_id AS sessionPublicId,
-            table_sessions.status AS sessionStatus
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
         FROM dining_tables
-        LEFT JOIN table_sessions ON table_sessions.table_id = dining_tables.id
-            AND table_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
+            AND sales_sessions.session_type = 'DINE_IN'
+            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         WHERE dining_tables.store_id = #{storeId}
           AND dining_tables.id = #{tableId}
         FOR UPDATE
@@ -170,12 +176,12 @@
         SELECT EXISTS(
             SELECT 1
             FROM orders
-            WHERE table_session_id = #{sessionId}
+            WHERE sales_session_id = #{sessionId}
         )
     </select>
 
     <update id="closeSessionWithoutOrders">
-        UPDATE table_sessions
+        UPDATE sales_sessions
         SET status = 'CLOSED', closed_at = CURRENT_TIMESTAMP(3)
         WHERE id = #{sessionId}
           AND status = 'OPEN'
@@ -200,8 +206,37 @@
         )
     </insert>
 
-    <insert id="insertOpenCustomerTableSession">
-        INSERT INTO table_sessions (
+    <insert id="insertOpenDineInSalesSession">
+        INSERT INTO sales_sessions (
+            store_id,
+            session_type,
+            table_id,
+            public_id,
+            client_account_id,
+            opened_by_customer_name,
+            opened_by_customer_phone,
+            status,
+            payment_requested_at,
+            closed_at
+        ) SELECT
+            dining_tables.store_id,
+            'DINE_IN',
+            dining_tables.id,
+            #{publicId},
+            #{clientAccountId},
+            #{customerName},
+            #{customerPhone},
+            'OPEN',
+            NULL,
+            NULL
+        FROM dining_tables
+        WHERE dining_tables.id = #{tableId}
+    </insert>
+
+    <insert id="insertOpenTakeawaySalesSession">
+        INSERT INTO sales_sessions (
+            store_id,
+            session_type,
             table_id,
             public_id,
             client_account_id,
@@ -211,16 +246,18 @@
             payment_requested_at,
             closed_at
         ) VALUES (
-            #{tableId},
+            #{storeId},
+            'TAKEAWAY',
+            NULL,
             #{publicId},
             #{clientAccountId},
             #{customerName},
-            #{customerPhone},
+            NULL,
             'OPEN',
             NULL,
             NULL
         )
     </insert>
-    <update id="moveSessionToPaymentPending">UPDATE table_sessions SET status='PAYMENT_PENDING', payment_requested_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='OPEN'</update>
-    <update id="closePaymentSession">UPDATE table_sessions SET status='CLOSED', closed_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='PAYMENT_PENDING'</update>
+    <update id="moveSessionToPaymentPending">UPDATE sales_sessions SET status='PAYMENT_PENDING', payment_requested_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='OPEN'</update>
+    <update id="closePaymentSession">UPDATE sales_sessions SET status='CLOSED', closed_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='PAYMENT_PENDING'</update>
 </mapper>

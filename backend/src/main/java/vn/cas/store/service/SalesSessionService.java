@@ -10,103 +10,103 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.dto.CreateClientAccountCommand;
-import vn.cas.store.dto.CustomerTableSessionResolutionCommand;
+import vn.cas.store.dto.SalesSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
-import vn.cas.store.model.CustomerTableSessionResolution;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.model.CustomerTableSessionResolution.ResolutionStatus;
+import vn.cas.store.model.SalesSessionResolution;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.model.SalesSessionResolution.ResolutionStatus;
 
 @Service
-public class CustomerTableSessionService {
+public class SalesSessionService {
+    private static final String ANONYMOUS_CUSTOMER_NAME = "Khách lẻ";
 
     private final DiningTableMapper diningTableMapper;
     private final AuditLogService auditLogService;
 
-    public CustomerTableSessionService(DiningTableMapper diningTableMapper,
+    public SalesSessionService(DiningTableMapper diningTableMapper,
             AuditLogService auditLogService) {
         this.diningTableMapper = diningTableMapper;
         this.auditLogService = auditLogService;
     }
 
     @Transactional
-    public CustomerTableSessionResolution resolveQr(CustomerTableSessionResolutionCommand command) {
-        var tableSession = diningTableMapper
-                .findTableSessionByActiveQrTokenForUpdate(command.qrToken());
-        if (tableSession == null) {
+    public SalesSessionResolution resolveQr(SalesSessionResolutionCommand command) {
+        var salesSession = diningTableMapper
+                .findSalesSessionByActiveQrTokenForUpdate(command.qrToken());
+        if (salesSession == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_TABLE_QR_CODE);
         }
 
-        if (tableSession.sessionPublicId() != null) {
-            return new CustomerTableSessionResolution(
-                    ResolutionStatus.valueOf(tableSession.sessionStatus()),
-                    tableSession.sessionPublicId(), tableSession.tableCode());
+        if (salesSession.sessionPublicId() != null) {
+            return new SalesSessionResolution(
+                    ResolutionStatus.valueOf(salesSession.sessionStatus()),
+                    salesSession.sessionPublicId(), salesSession.tableCode());
         }
 
         if (command.customerName() == null || command.customerName().isBlank()) {
-            return new CustomerTableSessionResolution(
-                    ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED, null, tableSession.tableCode());
+            return new SalesSessionResolution(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED, null,
+                    salesSession.tableCode());
         }
 
-        long clientAccountId = findOrCreateClientAccount(tableSession.storeId(), command);
+        long clientAccountId = findOrCreateClientAccount(salesSession.storeId(), command);
         String sessionPublicId = UUID.randomUUID().toString();
-        diningTableMapper.insertOpenCustomerTableSession(tableSession.tableId(), sessionPublicId,
+        diningTableMapper.insertOpenDineInSalesSession(salesSession.tableId(), sessionPublicId,
                 clientAccountId, command.customerName(), command.customerPhone());
-        return new CustomerTableSessionResolution(ResolutionStatus.OPEN, sessionPublicId,
-                tableSession.tableCode());
+        return new SalesSessionResolution(ResolutionStatus.OPEN, sessionPublicId,
+                salesSession.tableCode());
     }
 
     @Transactional(readOnly = true)
-    public CustomerTableSessionResolution getCurrent(String sessionPublicId) {
+    public SalesSessionResolution getCurrent(String sessionPublicId) {
         if (sessionPublicId == null || sessionPublicId.isBlank()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         }
 
-        var tableSession = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
-        if (tableSession == null) {
+        var salesSession = diningTableMapper.findCurrentSalesSessionByPublicId(sessionPublicId);
+        if (salesSession == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         }
 
-        return new CustomerTableSessionResolution(
-                ResolutionStatus.valueOf(tableSession.sessionStatus()),
-                tableSession.sessionPublicId(), tableSession.tableCode());
+        return new SalesSessionResolution(ResolutionStatus.valueOf(salesSession.sessionStatus()),
+                salesSession.sessionPublicId(), salesSession.tableCode());
     }
 
     @Transactional(readOnly = true)
     public long getCurrentStoreId(String sessionPublicId) {
         if (sessionPublicId == null || sessionPublicId.isBlank()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         }
-        var session = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
+        var session = diningTableMapper.findCurrentSalesSessionByPublicId(sessionPublicId);
         if (session == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         }
         return session.storeId();
     }
 
     @Transactional(readOnly = true)
-    public CustomerTableSessionLookup requireCurrent(String sessionPublicId) {
+    public SalesSessionLookup requireCurrent(String sessionPublicId) {
         if (sessionPublicId == null || sessionPublicId.isBlank())
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
-        var session = diningTableMapper.findCurrentTableSessionByPublicId(sessionPublicId);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
+        var session = diningTableMapper.findCurrentSalesSessionByPublicId(sessionPublicId);
         if (session == null)
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         return session;
     }
 
-    public CustomerTableSessionLookup requireCurrentForUpdate(String sessionPublicId) {
+    public SalesSessionLookup requireCurrentForUpdate(String sessionPublicId) {
         if (sessionPublicId == null || sessionPublicId.isBlank())
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
-        var session = diningTableMapper.findCurrentTableSessionByPublicIdForUpdate(sessionPublicId);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
+        var session = diningTableMapper.findCurrentSalesSessionByPublicIdForUpdate(sessionPublicId);
         if (session == null)
             throw new ApiException(HttpStatus.UNAUTHORIZED,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_REQUIRED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_REQUIRED);
         return session;
     }
 
@@ -116,11 +116,11 @@ public class CustomerTableSessionService {
         if (!"OPEN".equals(session.sessionStatus())
                 || diningTableMapper.hasOrders(session.sessionId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_CANNOT_BE_CANCELLED);
         }
         if (diningTableMapper.closeSessionWithoutOrders(session.sessionId()) != 1) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    ApiMessages.CUSTOMER_TABLE_SESSION_CANNOT_BE_CANCELLED);
+                    ApiMessages.CUSTOMER_SALES_SESSION_CANNOT_BE_CANCELLED);
         }
     }
 
@@ -134,22 +134,22 @@ public class CustomerTableSessionService {
         if (!"OPEN".equals(session.sessionStatus())
                 || diningTableMapper.hasOrders(session.sessionId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    ApiMessages.OPERATOR_TABLE_SESSION_CANNOT_BE_CANCELLED);
+                    ApiMessages.OPERATOR_SALES_SESSION_CANNOT_BE_CANCELLED);
         }
         if (diningTableMapper.closeSessionWithoutOrders(session.sessionId()) != 1) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    ApiMessages.OPERATOR_TABLE_SESSION_CANNOT_BE_CANCELLED);
+                    ApiMessages.OPERATOR_SALES_SESSION_CANNOT_BE_CANCELLED);
         }
         auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "CANCEL",
-                "TABLE_SESSION", session.sessionId(), session.sessionPublicId(),
+                "SALES_SESSION", session.sessionId(), session.sessionPublicId(),
                 "{\"tableCode\":" + session.tableCode() + "}", principal.accountId(),
-                principal.displayName(), "Cancelled an open table session without orders"));
+                principal.displayName(), "Cancelled an open sales session without orders"));
     }
 
     @Transactional
-    public CustomerTableSessionLookup openOrGetForOperator(long storeId, long tableId,
-            String customerName, String customerPhone) {
-        var current = diningTableMapper.findTableSessionByStoreIdAndTableIdForUpdate(storeId,
+    public SalesSessionLookup openOrGetForOperator(long storeId, long tableId, String customerName,
+            String customerPhone) {
+        var current = diningTableMapper.findSalesSessionByStoreIdAndTableIdForUpdate(storeId,
                 tableId);
         if (current == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
@@ -164,16 +164,25 @@ public class CustomerTableSessionService {
             throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
         }
         long clientAccountId = findOrCreateClientAccount(storeId,
-                new CustomerTableSessionResolutionCommand(null, customerName, customerPhone));
+                new SalesSessionResolutionCommand(null, customerName, customerPhone));
         String sessionPublicId = UUID.randomUUID().toString();
-        diningTableMapper.insertOpenCustomerTableSession(tableId, sessionPublicId, clientAccountId,
+        diningTableMapper.insertOpenDineInSalesSession(tableId, sessionPublicId, clientAccountId,
                 customerName, customerPhone);
-        return new CustomerTableSessionLookup(0L, tableId, storeId, current.tableCode(), 0L, null,
-                null, sessionPublicId, "OPEN");
+        return new SalesSessionLookup(0L, tableId, storeId, current.tableCode(), 0L, null, null,
+                sessionPublicId, "OPEN", "DINE_IN");
     }
 
-    private long findOrCreateClientAccount(long storeId,
-            CustomerTableSessionResolutionCommand command) {
+    @Transactional
+    public SalesSessionLookup openTakeawayForOperator(long storeId) {
+        long clientAccountId = findOrCreateClientAccount(storeId,
+                new SalesSessionResolutionCommand(null, ANONYMOUS_CUSTOMER_NAME, null));
+        String sessionPublicId = UUID.randomUUID().toString();
+        diningTableMapper.insertOpenTakeawaySalesSession(storeId, sessionPublicId, clientAccountId,
+                ANONYMOUS_CUSTOMER_NAME);
+        return requireCurrentForUpdate(sessionPublicId);
+    }
+
+    private long findOrCreateClientAccount(long storeId, SalesSessionResolutionCommand command) {
         if (command.customerPhone() != null) {
             Long existingId = diningTableMapper.findClientAccountIdByStoreIdAndPhone(storeId,
                     command.customerPhone());

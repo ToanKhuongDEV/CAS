@@ -157,7 +157,7 @@ public class CancellationService {
                 .multiply(BigDecimal.valueOf(quantity));
         String publicId = UUID.randomUUID().toString();
         String note = "[LÀM LẠI]" + (reason == null ? "" : " - " + reason);
-        mapper.insertOrder(publicId, source.tableSessionId(), principal.accountId(),
+        mapper.insertOrder(publicId, source.salesSessionId(), principal.accountId(),
                 UUID.randomUUID().toString(), publicId, publicId, amount, note);
         long orderId = mapper.lastInsertId();
         mapper.insertOrderItem(UUID.randomUUID().toString(), orderId, source.menuItemId(),

@@ -18,17 +18,17 @@ import vn.cas.promotion.mapper.PromotionMapper;
 import vn.cas.promotion.model.Promotion;
 import vn.cas.promotion.model.PromotionCode;
 import vn.cas.promotion.model.PromotionTarget;
-import vn.cas.store.model.CustomerTableSessionLookup;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
 
 @Service
 public class PromotionService {
     private static final Logger log = LoggerFactory.getLogger(PromotionService.class);
     private final PromotionMapper mapper;
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
     private final AuditLogService auditLogs;
 
-    public PromotionService(PromotionMapper mapper, CustomerTableSessionService sessions,
+    public PromotionService(PromotionMapper mapper, SalesSessionService sessions,
             AuditLogService auditLogs) {
         this.mapper = mapper;
         this.sessions = sessions;
@@ -184,15 +184,15 @@ public class PromotionService {
     }
 
     @Transactional(readOnly = true)
-    public Eligible selected(CustomerTableSessionLookup session) {
+    public Eligible selected(SalesSessionLookup session) {
         return selected(session, false);
     }
 
-    public Eligible selectedForPayment(CustomerTableSessionLookup session) {
+    public Eligible selectedForPayment(SalesSessionLookup session) {
         return selected(session, true);
     }
 
-    private Eligible selected(CustomerTableSessionLookup session, boolean lockPromotion) {
+    private Eligible selected(SalesSessionLookup session, boolean lockPromotion) {
         if (session.selectedPromotionId() == null)
             return null;
         var promotion = lockPromotion
@@ -210,7 +210,7 @@ public class PromotionService {
         return eligible(session, promotion, code).orElse(null);
     }
 
-    public void snapshot(CustomerTableSessionLookup session, long paymentId, Eligible discount,
+    public void snapshot(SalesSessionLookup session, long paymentId, Eligible discount,
             String snapshot) {
         if (discount == null)
             return;
@@ -236,8 +236,8 @@ public class PromotionService {
                     "Không thể ghi nhận lượt khuyến mãi không thanh toán.");
     }
 
-    private java.util.Optional<Eligible> eligible(CustomerTableSessionLookup session,
-            Promotion promotion, String requestedCode) {
+    private java.util.Optional<Eligible> eligible(SalesSessionLookup session, Promotion promotion,
+            String requestedCode) {
         BigDecimal bill = mapper.currentPayableAmount(session.sessionId());
         BigDecimal target = promotion.promotionType().startsWith("ITEM_")
                 ? mapper.targetedPayableAmount(session.sessionId(), promotion.id())
@@ -245,8 +245,7 @@ public class PromotionService {
         return eligible(promotion, requestedCode, bill, target, session.clientAccountId());
     }
 
-    private CustomerPromotion customerPromotion(CustomerTableSessionLookup session,
-            Promotion promotion) {
+    private CustomerPromotion customerPromotion(SalesSessionLookup session, Promotion promotion) {
         BigDecimal bill = mapper.currentPayableAmount(session.sessionId());
         BigDecimal target = promotion.promotionType().startsWith("ITEM_")
                 ? mapper.targetedPayableAmount(session.sessionId(), promotion.id())

@@ -4,53 +4,53 @@ type ApiResponse<T> = {
   data: T;
 };
 
-export type CustomerTableSessionResolution = {
+export type SalesSessionResolution = {
   customerInformationRequired: boolean;
   sessionStatus: "CUSTOMER_INFORMATION_REQUIRED" | "OPEN" | "PAYMENT_PENDING";
   tableCode: number | null;
 };
 
-export async function resolveCustomerTableSession(
+export async function resolveCustomerSalesSession(
   qrToken: string,
   customerInformation?: { customerName: string; customerPhone: string | null },
-): Promise<CustomerTableSessionResolution> {
-  const response = await fetch(`${apiUrl}/api/v1/customer/table-sessions/resolve-qr`, {
+): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-qr`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ qrToken, ...customerInformation }),
   });
   const body: unknown = await response.json().catch(() => undefined);
-  if (!response.ok || !isCustomerTableSessionResolutionResponse(body)) {
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
     throw new Error(getBackendErrorMessage(body, "Không thể xác thực phiên bàn từ mã QR."));
   }
 
   return body.data;
 }
 
-export async function getCurrentCustomerTableSession(): Promise<CustomerTableSessionResolution> {
-  const response = await fetch(`${apiUrl}/api/v1/customer/table-sessions/current`, {
+export async function getCurrentCustomerSalesSession(): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/current`, {
     credentials: "include",
   });
   const body: unknown = await response.json().catch(() => undefined);
-  if (!response.ok || !isCustomerTableSessionResolutionResponse(body)) {
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
     throw new Error("Không tìm thấy phiên bàn hiện tại.");
   }
 
   return body.data;
 }
 
-export async function hasOpenCustomerTableSession(): Promise<boolean> {
+export async function hasOpenCustomerSalesSession(): Promise<boolean> {
   try {
-    return (await getCurrentCustomerTableSession()).sessionStatus === "OPEN";
+    return (await getCurrentCustomerSalesSession()).sessionStatus === "OPEN";
   } catch {
     return false;
   }
 }
 
-function isCustomerTableSessionResolutionResponse(
+function isSalesSessionResolutionResponse(
   value: unknown,
-): value is ApiResponse<CustomerTableSessionResolution> {
+): value is ApiResponse<SalesSessionResolution> {
   if (!value || typeof value !== "object" || !("data" in value)) {
     return false;
   }

@@ -15,16 +15,16 @@ import vn.cas.notification.model.RecipientNotification;
 import vn.cas.notification.model.SystemNotification;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
-import vn.cas.store.service.CustomerTableSessionService;
+import vn.cas.store.service.SalesSessionService;
 
 @Service
 public class SystemNotificationService {
     private final SystemNotificationMapper mapper;
-    private final CustomerTableSessionService sessions;
+    private final SalesSessionService sessions;
     private final AuditLogService auditLogs;
 
-    public SystemNotificationService(SystemNotificationMapper mapper,
-            CustomerTableSessionService sessions, AuditLogService auditLogs) {
+    public SystemNotificationService(SystemNotificationMapper mapper, SalesSessionService sessions,
+            AuditLogService auditLogs) {
         this.mapper = mapper;
         this.sessions = sessions;
         this.auditLogs = auditLogs;
@@ -72,8 +72,8 @@ public class SystemNotificationService {
     @Transactional(readOnly = true)
     public RecipientNotificationList listForCustomer(String sessionPublicId) {
         var session = sessions.requireCurrent(sessionPublicId);
-        return new RecipientNotificationList(mapper.findByTableSessionId(session.sessionId()),
-                mapper.countUnreadByTableSessionId(session.sessionId()));
+        return new RecipientNotificationList(mapper.findBySalesSessionId(session.sessionId()),
+                mapper.countUnreadBySalesSessionId(session.sessionId()));
     }
 
     @Transactional
@@ -86,9 +86,9 @@ public class SystemNotificationService {
     @Transactional
     public void markReadForCustomer(String sessionPublicId, long notificationId) {
         var session = sessions.requireCurrent(sessionPublicId);
-        if (!mapper.existsForTableSession(notificationId, session.sessionId()))
+        if (!mapper.existsForSalesSession(notificationId, session.sessionId()))
             throw notFound();
-        mapper.markReadForTableSession(notificationId, session.sessionId(), LocalDateTime.now());
+        mapper.markReadForSalesSession(notificationId, session.sessionId(), LocalDateTime.now());
     }
 
     @Transactional
@@ -98,7 +98,7 @@ public class SystemNotificationService {
 
     @Transactional
     public void markAllReadForCustomer(String sessionPublicId) {
-        mapper.markAllReadForTableSession(sessions.requireCurrent(sessionPublicId).sessionId(),
+        mapper.markAllReadForSalesSession(sessions.requireCurrent(sessionPublicId).sessionId(),
                 LocalDateTime.now());
     }
 
