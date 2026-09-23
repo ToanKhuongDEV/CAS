@@ -67,6 +67,14 @@ public class ServiceBookingController {
                 request);
     }
 
+    @PostMapping("/{serviceBookingId}/request-payment")
+    public ResponseEntity<ApiResponse<ServiceBookingView>> requestPayment(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @PathVariable String serviceBookingId, HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.SERVICE_BOOKING_PAYMENT_REQUESTED,
+                bookings.requestPayment(principal, serviceBookingId), request);
+    }
+
     @PostMapping("/{serviceBookingId}/confirm")
     public ResponseEntity<ApiResponse<ServiceBookingView>> confirm(
             @AuthenticationPrincipal OperationalPrincipal principal,

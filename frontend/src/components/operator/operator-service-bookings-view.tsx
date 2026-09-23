@@ -7,6 +7,7 @@ import {
   confirmOperatorServiceBooking,
   createOperatorServiceBooking,
   loadOperatorServiceBookings,
+  requestOperatorServiceBookingPayment,
   type ServiceBooking as ApiServiceBooking,
   updateOperatorServiceBooking,
 } from "../../lib/api/operation/service-bookings.api";
@@ -274,6 +275,32 @@ export function OperatorServiceBookingsView({
     return;
   }
 
+  async function startPaymentConfirmation(booking: ServiceBooking) {
+    if (booking.paymentStatus === "PENDING") {
+      setBookingToConfirm(booking);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const saved = await requestOperatorServiceBookingPayment(booking.id);
+      const updated = bookingFromApi(saved);
+      setBookings((previous) => previous.map((item) => (item.id === booking.id ? updated : item)));
+      setClients((previous) => [
+        clientFromApi(saved),
+        ...previous.filter((item) => item.id !== booking.id),
+      ]);
+      setBookingToConfirm(updated);
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể bắt đầu xác nhận thanh toán.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function handleCancelBooking(bookingId: string) {
     const booking = bookings.find((item) => item.id === bookingId)!;
     if (!booking) return;
@@ -394,7 +421,8 @@ export function OperatorServiceBookingsView({
                 {booking.paymentStatus !== "PAID" && booking.paymentStatus !== "CANCELLED" ? (
                   <button
                     className="rounded-xl border border-cas-secondary/40 px-3.5 py-2 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    onClick={() => setBookingToConfirm(booking)}
+                    disabled={isSaving}
+                    onClick={() => startPaymentConfirmation(booking)}
                     type="button"
                   >
                     Xác nhận đã thanh toán

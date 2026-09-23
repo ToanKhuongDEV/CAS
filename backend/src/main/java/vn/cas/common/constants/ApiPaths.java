@@ -153,6 +153,7 @@ public final class ApiPaths {
         public static final String OPERATOR = API_OPERATOR_PREFIX + "/service-bookings";
         public static final String OPERATOR_ID = OPERATOR + "/{serviceBookingId}";
         public static final String OPERATOR_UPDATE = OPERATOR_ID;
+        public static final String OPERATOR_REQUEST_PAYMENT = OPERATOR_ID + "/request-payment";
         public static final String OPERATOR_CONFIRM = OPERATOR_ID + "/confirm";
         public static final String OPERATOR_CANCEL = OPERATOR_ID + "/cancel";
 

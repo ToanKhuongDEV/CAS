@@ -44,6 +44,11 @@ export function updateOperatorServiceBooking(
     body: JSON.stringify(input),
   });
 }
+export function requestOperatorServiceBookingPayment(id: string) {
+  return operator<ServiceBooking>(`/service-bookings/${encodeURIComponent(id)}/request-payment`, {
+    method: "POST",
+  });
+}
 export function confirmOperatorServiceBooking(id: string) {
   return operator<ServiceBooking>(`/service-bookings/${encodeURIComponent(id)}/confirm`, {
     method: "POST",

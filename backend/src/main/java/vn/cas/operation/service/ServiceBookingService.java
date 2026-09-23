@@ -74,6 +74,20 @@ public class ServiceBookingService {
     }
 
     @Transactional
+    public ServiceBookingView requestPayment(OperationalPrincipal principal, String publicId) {
+        ServiceBookingRecord booking = requireRecord(principal.storeId(), publicId);
+        if ("PENDING".equals(booking.paymentStatus()))
+            return requireBooking(principal.storeId(), publicId);
+        if (!"PAY_LATER".equals(booking.paymentStatus())
+                || bookings.requestPayment(booking.id()) != 1)
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Dịch vụ không ở trạng thái thanh toán sau.");
+        audit(principal, "SERVICE_BOOKING_PAYMENT_REQUESTED", booking.id(), publicId,
+                "Chuyển dịch vụ sang chờ xác nhận thanh toán.");
+        return requireBooking(principal.storeId(), publicId);
+    }
+
+    @Transactional
     public ServiceBookingView cancel(OperationalPrincipal principal, String publicId) {
         ServiceBookingRecord booking = requireRecord(principal.storeId(), publicId);
         if (!"PAY_LATER".equals(booking.paymentStatus())

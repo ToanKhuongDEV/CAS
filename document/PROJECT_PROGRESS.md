@@ -324,6 +324,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
 - [x] **Dịch vụ đặt trước:** `GET /api/v1/operator/service-bookings` xem danh sách booking theo store. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings` tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`, nhận diện khách theo số điện thoại. **[Đã ghép Frontend Operator/Admin]**
+- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/request-payment` chuyển `PAY_LATER` sang `PENDING`; giao diện tự gọi khi nhân viên bắt đầu xác nhận thanh toán, không cần thao tác riêng. **[Đã ghép Frontend Operator]**
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/confirm` xác nhận booking `PENDING` thành `PAID`; thao tác lặp lại với booking đã thanh toán an toàn. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `PUT /api/v1/operator/service-bookings/{serviceBookingId}` cập nhật tên khách, tên dịch vụ, ghi chú và giá thỏa thuận khi booking còn `PAY_LATER` hoặc `PENDING`; mọi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/cancel` hủy booking `PAY_LATER` hoặc `PENDING` thành `CANCELLED`. Mỗi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**

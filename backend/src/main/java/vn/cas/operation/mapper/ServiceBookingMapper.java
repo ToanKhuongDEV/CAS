@@ -28,6 +28,7 @@ public interface ServiceBookingMapper {
             @Param("createdByName") String createdByName);
     int update(@Param("id") long id, @Param("serviceName") String serviceName,
             @Param("note") String note, @Param("agreedPrice") BigDecimal agreedPrice);
+    int requestPayment(@Param("id") long id);
     int confirm(@Param("id") long id, @Param("accountId") long accountId,
             @Param("name") String name);
     int cancel(@Param("id") long id);

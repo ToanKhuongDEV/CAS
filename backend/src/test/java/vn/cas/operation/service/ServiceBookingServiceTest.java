@@ -55,6 +55,28 @@ class ServiceBookingServiceTest {
     }
 
     @Test
+    void shouldRequestPaymentForPayLaterBooking() {
+        when(bookings.findRecordByPublicIdForUpdate(3L, "booking-1"))
+                .thenReturn(new ServiceBookingRecord(9L, "booking-1", 8L, "PAY_LATER"));
+        when(bookings.requestPayment(9L)).thenReturn(1);
+        when(bookings.findByPublicId(3L, "booking-1")).thenReturn(view("PENDING"));
+
+        assertThat(service.requestPayment(operator, "booking-1").paymentStatus())
+                .isEqualTo("PENDING");
+        verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldKeepPendingBookingWhenRequestingPaymentAgain() {
+        when(bookings.findRecordByPublicIdForUpdate(3L, "booking-1"))
+                .thenReturn(new ServiceBookingRecord(9L, "booking-1", 8L, "PENDING"));
+        when(bookings.findByPublicId(3L, "booking-1")).thenReturn(view("PENDING"));
+
+        assertThat(service.requestPayment(operator, "booking-1").paymentStatus())
+                .isEqualTo("PENDING");
+    }
+
+    @Test
     void shouldUpdatePendingBooking() {
         when(bookings.findRecordByPublicIdForUpdate(3L, "booking-1"))
                 .thenReturn(new ServiceBookingRecord(9L, "booking-1", 8L, "PENDING"));

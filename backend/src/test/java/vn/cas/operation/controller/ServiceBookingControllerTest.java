@@ -31,4 +31,18 @@ class ServiceBookingControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().data()).containsExactly(booking);
     }
+
+    @Test
+    void shouldRequestPaymentForBooking() {
+        ServiceBookingView booking = new ServiceBookingView(9L, "booking-1", "Khach A",
+                "0901234567", "Dat tiec", null, BigDecimal.TEN, "PENDING", "Operator", null, null,
+                LocalDateTime.of(2026, 9, 10, 10, 0));
+        when(service.requestPayment(operator, "booking-1")).thenReturn(booking);
+
+        var response = controller.requestPayment(operator, "booking-1",
+                new MockHttpServletRequest());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().data()).isEqualTo(booking);
+    }
 }
