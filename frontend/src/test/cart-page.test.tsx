@@ -45,6 +45,8 @@ describe("CartPage", () => {
     );
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 5,
     });
@@ -170,6 +172,8 @@ describe("CartPage", () => {
     window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 5,
     });

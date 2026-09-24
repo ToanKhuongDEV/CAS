@@ -60,6 +60,8 @@ describe("CustomerHeader", () => {
   it("redirects a payment-pending session to payment", async () => {
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "PAYMENT_PENDING",
       tableCode: 5,
     });

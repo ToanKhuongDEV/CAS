@@ -326,6 +326,7 @@ export function OperatorOrderCreationView({
   const [operatorTables, setOperatorTables] = useState<TableOption[]>([]);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [sessionSelectionTable, setSessionSelectionTable] = useState<TableOption | null>(null);
   const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
   const [isCustomerInformationFormOpen, setIsCustomerInformationFormOpen] = useState(false);
   const [newlyOpenedTableIds, setNewlyOpenedTableIds] = useState<string[]>([]);
@@ -396,20 +397,28 @@ export function OperatorOrderCreationView({
           code: String(table.tableCode).padStart(2, "0"),
           id: String(table.tableId),
           label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
-          sessionPublicId: table.sessionPublicId,
-          status:
-            table.sessionStatus === "OPEN"
-              ? "OPEN"
-              : table.sessionStatus === "PAYMENT_PENDING"
-                ? "PAYMENT_PENDING"
-                : "EMPTY",
+          sessions: table.sessions,
+          status: table.sessions.some((session) => session.status === "OPEN")
+            ? "OPEN"
+            : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
+              ? "PAYMENT_PENDING"
+              : "EMPTY",
         }));
         setOperatorTables(mapped);
         const selected =
           mapped.find((table) => table.id === defaultTableId) ??
           mapped.find((table) => table.status === "OPEN") ??
           mapped[0];
-        if (selected) setSelectedTable(selected);
+        const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
+        if (selected && selectedSession) {
+          setSelectedTable({
+            ...selected,
+            customerName: selectedSession.customerName,
+            label: `${selected.label} · ${selectedSession.customerName}`,
+            sessionPublicId: selectedSession.sessionId,
+            status: selectedSession.status,
+          });
+        } else if (selected) setSelectedTable(selected);
       })
       .catch(() => undefined);
   }, []);
@@ -535,7 +544,19 @@ export function OperatorOrderCreationView({
       setOperatorTables((current) =>
         current.map((table) =>
           table.id === selectedTable.id
-            ? { ...table, sessionPublicId: undefined, status: "EMPTY" as const }
+            ? {
+                ...table,
+                sessions: (table.sessions ?? []).filter(
+                  (session) => session.sessionId !== selectedTable.sessionPublicId,
+                ),
+                status: (table.sessions ?? []).some(
+                  (session) =>
+                    session.sessionId !== selectedTable.sessionPublicId &&
+                    session.status === "OPEN",
+                )
+                  ? "OPEN"
+                  : "EMPTY",
+              }
             : table,
         ),
       );
@@ -840,10 +861,72 @@ export function OperatorOrderCreationView({
           setIsTableModalOpen(false);
         }}
         onSelectTable={(table) => {
-          setSelectedTable(table);
+          setSessionSelectionTable(table);
           setIsTableModalOpen(false);
         }}
       />
+
+      {sessionSelectionTable ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-session-selection-title"
+        >
+          <section className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl">
+            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              {sessionSelectionTable.label}
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold" id="operator-session-selection-title">
+              Chọn khách cần gọi món
+            </h2>
+            <div className="mt-5 space-y-2">
+              {(sessionSelectionTable.sessions ?? []).map((session) => (
+                <button
+                  className="flex w-full items-center justify-between rounded-xl border border-cas-outline-variant/35 p-4 text-left transition hover:border-cas-primary disabled:cursor-not-allowed disabled:opacity-55"
+                  disabled={session.status !== "OPEN"}
+                  key={session.sessionId}
+                  onClick={() => {
+                    setSelectedTable({
+                      ...sessionSelectionTable,
+                      customerName: session.customerName,
+                      label: `${sessionSelectionTable.label} · ${session.customerName}`,
+                      sessionPublicId: session.sessionId,
+                      status: session.status,
+                    });
+                    setSessionSelectionTable(null);
+                  }}
+                  type="button"
+                >
+                  <span className="font-extrabold">{session.customerName}</span>
+                  <span className="text-xs text-cas-on-surface-variant">
+                    {session.status === "OPEN" ? "Đang mở" : "Chờ thanh toán"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <CasButton
+              className="mt-4 w-full"
+              onClick={() => {
+                setPendingSessionTable(sessionSelectionTable);
+                setSessionSelectionTable(null);
+              }}
+              type="button"
+              variant="outline"
+            >
+              Không chung bàn · tạo phiên mới
+            </CasButton>
+            <CasButton
+              className="mt-3 w-full"
+              onClick={() => setSessionSelectionTable(null)}
+              type="button"
+              variant="ghost"
+            >
+              Đóng
+            </CasButton>
+          </section>
+        </div>
+      ) : null}
 
       {pendingSessionTable && !isCustomerInformationFormOpen && (
         <div
@@ -922,11 +1005,27 @@ export function OperatorOrderCreationView({
                         customerName: information.customerName,
                         customerPhone: information.customerPhone,
                         sessionPublicId: session.sessionId,
+                        sessions: [
+                          ...(pendingSessionTable.sessions ?? []),
+                          {
+                            customerName: information.customerName,
+                            sessionId: session.sessionId,
+                            status: "OPEN" as const,
+                          },
+                        ],
                         status: "OPEN" as const,
                       };
                       setSelectedTable(openedTable);
                       setOperatorTables((current) =>
-                        current.map((table) => (table.id === openedTable.id ? openedTable : table)),
+                        current.map((table) =>
+                          table.id === openedTable.id
+                            ? {
+                                ...table,
+                                sessions: openedTable.sessions,
+                                status: "OPEN" as const,
+                              }
+                            : table,
+                        ),
                       );
                       setNewlyOpenedTableIds((current) => [...current, openedTable.id]);
                       setIsCustomerInformationFormOpen(false);

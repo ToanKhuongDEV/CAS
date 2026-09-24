@@ -21,11 +21,10 @@ export default function CustomerInformationPage() {
             Chào mừng đến CAS
           </p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
-            Mở phiên gọi món
+            Bắt đầu gọi món
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
-            Bạn là người đầu tiên quét mã của bàn này. Vui lòng nhập thông tin người đại diện để bắt
-            đầu gọi món.
+            Chọn chung bàn với khách đang dùng chung bill, hoặc tạo phiên gọi món mới cho bạn.
           </p>
         </header>
 
@@ -41,7 +40,7 @@ export default function CustomerInformationPage() {
 
           <div className="mt-6 flex items-start justify-center gap-2 border-t border-cas-outline-variant/45 pt-5 text-xs leading-relaxed text-cas-on-surface-variant">
             <CasIcon className="mt-0.5 size-4 shrink-0" name="info" />
-            <span>Thông tin này được dùng để xác định người đại diện mở phiên bàn.</span>
+            <span>Thông tin này được dùng để xác định phiên gọi món và bill của bạn.</span>
           </div>
         </section>
 

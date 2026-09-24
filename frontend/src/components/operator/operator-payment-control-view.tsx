@@ -47,12 +47,11 @@ export function OperatorPaymentControlView({
     try {
       const result = await loadOperatorTables();
       setTables(
-        result
-          .filter((table) => table.sessionStatus === "OPEN" && table.sessionPublicId)
-          .map((table) => ({
-            sessionId: table.sessionPublicId as string,
-            tableCode: table.tableCode,
-          })),
+        result.flatMap((table) =>
+          table.sessions
+            .filter((session) => session.status === "OPEN")
+            .map((session) => ({ sessionId: session.sessionId, tableCode: table.tableCode })),
+        ),
       );
       setError(null);
     } catch (cause) {

@@ -17,12 +17,14 @@ export type CustomerInformation = {
 type CustomerInformationFormFieldsProps = {
   idPrefix?: string;
   onSubmitCustomerInfo: (information: CustomerInformation) => void;
+  phoneRequired?: boolean;
   submitLabel?: string;
 };
 
 export function CustomerInformationFormFields({
   idPrefix = "customer",
   onSubmitCustomerInfo,
+  phoneRequired = false,
   submitLabel = "Mở phiên và xem thực đơn",
 }: CustomerInformationFormFieldsProps) {
   const customerNameInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +42,9 @@ export function CustomerInformationFormFields({
       nextErrors.customerName = "Vui lòng nhập tên của bạn.";
     }
     const normalizedCustomerPhone = customerPhone.replace(/\s/g, "");
-    if (normalizedCustomerPhone && !/^0\d{9}$/.test(normalizedCustomerPhone)) {
+    if (phoneRequired && !normalizedCustomerPhone) {
+      nextErrors.customerPhone = "Vui lòng nhập số điện thoại của bạn.";
+    } else if (normalizedCustomerPhone && !/^0\d{9}$/.test(normalizedCustomerPhone)) {
       nextErrors.customerPhone = "Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0.";
     }
 
@@ -99,8 +103,10 @@ export function CustomerInformationFormFields({
 
       <label className="mt-5 block" htmlFor={`${idPrefix}-phone`}>
         <span className="text-xs font-bold">
-          Số điện thoại{" "}
-          <span className="font-medium text-cas-on-surface-variant">(không bắt buộc)</span>
+          Số điện thoại {phoneRequired ? <span aria-hidden="true">*</span> : null}
+          {!phoneRequired ? (
+            <span className="font-medium text-cas-on-surface-variant">(không bắt buộc)</span>
+          ) : null}
         </span>
         <span className="relative mt-2 block">
           <CasIcon
@@ -116,6 +122,7 @@ export function CustomerInformationFormFields({
             autoComplete="tel"
             inputMode="tel"
             maxLength={20}
+            required={phoneRequired}
             type="tel"
             value={customerPhone}
             aria-describedby={errors.customerPhone ? `${idPrefix}-phone-error` : undefined}

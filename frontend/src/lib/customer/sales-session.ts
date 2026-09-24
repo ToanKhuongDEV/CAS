@@ -6,19 +6,31 @@ type ApiResponse<T> = {
 
 export type SalesSessionResolution = {
   customerInformationRequired: boolean;
-  sessionStatus: "CUSTOMER_INFORMATION_REQUIRED" | "OPEN" | "PAYMENT_PENDING";
+  joinSessionRequired: boolean;
+  sessionStatus:
+    "CUSTOMER_INFORMATION_REQUIRED" | "JOIN_SESSION_REQUIRED" | "OPEN" | "PAYMENT_PENDING";
   tableCode: number | null;
+  joinableSessions: {
+    sessionId: string;
+    customerName: string;
+    sessionStatus: "OPEN" | "PAYMENT_PENDING";
+  }[];
 };
 
 export async function resolveCustomerSalesSession(
   qrToken: string,
-  customerInformation?: { customerName: string; customerPhone: string | null },
+  input?: {
+    customerName?: string;
+    customerPhone?: string | null;
+    joinSessionId?: string;
+    sessionType?: "DINE_IN" | "TAKEAWAY";
+  },
 ): Promise<SalesSessionResolution> {
   const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-qr`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ qrToken, ...customerInformation }),
+    body: JSON.stringify({ qrToken, ...input }),
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isSalesSessionResolutionResponse(body)) {
@@ -61,8 +73,13 @@ function isSalesSessionResolutionResponse(
     typeof data === "object" &&
     "customerInformationRequired" in data &&
     typeof data.customerInformationRequired === "boolean" &&
+    "joinSessionRequired" in data &&
+    typeof data.joinSessionRequired === "boolean" &&
+    "joinableSessions" in data &&
+    Array.isArray(data.joinableSessions) &&
     "sessionStatus" in data &&
     (data.sessionStatus === "CUSTOMER_INFORMATION_REQUIRED" ||
+      data.sessionStatus === "JOIN_SESSION_REQUIRED" ||
       data.sessionStatus === "OPEN" ||
       data.sessionStatus === "PAYMENT_PENDING"),
   );

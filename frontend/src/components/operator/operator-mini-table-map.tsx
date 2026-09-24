@@ -6,17 +6,20 @@ import {
   loadOperatorTables,
   type CustomerBill,
   type OperatorTable,
+  type OperatorTableSession,
 } from "../../lib/api/ordering/ordering.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 
-const statusLabel: Record<NonNullable<OperatorTable["sessionStatus"]> | "EMPTY", string> = {
+type TableStatus = OperatorTableSession["status"] | "EMPTY";
+
+const statusLabel: Record<TableStatus, string> = {
   EMPTY: "Trống",
   OPEN: "Đang hoạt động",
   PAYMENT_PENDING: "Chờ thanh toán",
 };
 
-function tone(status: OperatorTable["sessionStatus"]) {
+function tone(status: TableStatus) {
   if (status === "OPEN") return "border-cas-secondary bg-cas-secondary-container/20";
   if (status === "PAYMENT_PENDING") return "border-cas-tertiary bg-cas-tertiary-container/25";
   return "border-dashed border-cas-outline-variant bg-cas-glass";
@@ -25,7 +28,9 @@ function tone(status: OperatorTable["sessionStatus"]) {
 export function OperatorMiniTableMap() {
   const [tables, setTables] = useState<OperatorTable[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTable, setSelectedTable] = useState<OperatorTable | null>(null);
+  const [selectedTable, setSelectedTable] = useState<
+    (OperatorTableSession & { tableCode: number }) | null
+  >(null);
   const [bill, setBill] = useState<CustomerBill | null>(null);
   const [billError, setBillError] = useState<string | null>(null);
   useEffect(() => {
@@ -49,13 +54,12 @@ export function OperatorMiniTableMap() {
     };
   }, []);
 
-  async function openTable(table: OperatorTable) {
-    if (!table.sessionPublicId) return;
-    setSelectedTable(table);
+  async function openTable(table: OperatorTable, session: OperatorTableSession) {
+    setSelectedTable({ ...session, tableCode: table.tableCode });
     setBill(null);
     setBillError(null);
     try {
-      setBill(await loadOperatorBill(table.sessionPublicId));
+      setBill(await loadOperatorBill(session.sessionId));
     } catch (cause) {
       setBillError(cause instanceof Error ? cause.message : "Không thể tải các món đã gọi.");
     }
@@ -66,7 +70,7 @@ export function OperatorMiniTableMap() {
     setBill(null);
     setBillError(null);
   }
-  const inUse = tables.filter((table) => table.sessionStatus !== null).length;
+  const inUse = tables.filter((table) => table.sessions.length > 0).length;
   return (
     <section
       aria-labelledby="table-overview-title"
@@ -87,7 +91,11 @@ export function OperatorMiniTableMap() {
       ) : (
         <ul className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-cas-outline-variant/25 bg-cas-surface p-4">
           {tables.map((table) => {
-            const status = table.sessionStatus ?? "EMPTY";
+            const status: TableStatus = table.sessions.some((session) => session.status === "OPEN")
+              ? "OPEN"
+              : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
+                ? "PAYMENT_PENDING"
+                : "EMPTY";
             const content = (
               <div>
                 <p className="font-extrabold">Bàn {String(table.tableCode).padStart(2, "0")}</p>
@@ -100,18 +108,21 @@ export function OperatorMiniTableMap() {
             );
             return (
               <li key={table.tableId}>
-                {table.sessionPublicId ? (
+                {table.sessions.length > 0 ? (
                   <button
                     aria-label={`Mở thao tác cho bàn ${table.tableCode}`}
-                    className={`grid min-h-20 w-full place-items-center rounded-xl border-2 p-3 text-center transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${tone(table.sessionStatus)}`}
-                    onClick={() => void openTable(table)}
+                    className={`grid min-h-20 w-full place-items-center rounded-xl border-2 p-3 text-center transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${tone(status)}`}
+                    disabled={table.sessions.length !== 1}
+                    onClick={() => {
+                      if (table.sessions.length === 1) void openTable(table, table.sessions[0]);
+                    }}
                     type="button"
                   >
                     {content}
                   </button>
                 ) : (
                   <div
-                    className={`grid min-h-20 place-items-center rounded-xl border-2 p-3 text-center ${tone(null)}`}
+                    className={`grid min-h-20 place-items-center rounded-xl border-2 p-3 text-center ${tone("EMPTY")}`}
                   >
                     {content}
                   </div>
@@ -204,7 +215,7 @@ export function OperatorMiniTableMap() {
               </>
             ) : null}
             <div className="mt-6 flex flex-wrap justify-end gap-3">
-              {selectedTable.sessionStatus === "OPEN" ? (
+              {selectedTable.status === "OPEN" ? (
                 <>
                   <CasButton
                     href={`/operator/orders/new?table=${selectedTable.tableCode}`}

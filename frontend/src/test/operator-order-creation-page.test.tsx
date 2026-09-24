@@ -91,9 +91,20 @@ describe("OperatorOrderCreationView", () => {
       tags: [],
     });
     vi.mocked(loadOperatorTables).mockResolvedValue([
-      { sessionPublicId: "session-5", sessionStatus: "OPEN", tableCode: 5, tableId: 5 },
-      { sessionPublicId: null, sessionStatus: null, tableCode: 2, tableId: 2 },
-      { sessionPublicId: "session-1", sessionStatus: "OPEN", tableCode: 1, tableId: 1 },
+      {
+        sessions: [
+          { customerName: "Khách bàn 5", sessionId: "session-5", status: "OPEN" },
+          { customerName: "Customer Two", sessionId: "session-5b", status: "OPEN" },
+        ],
+        tableCode: 5,
+        tableId: 5,
+      },
+      { sessions: [], tableCode: 2, tableId: 2 },
+      {
+        sessions: [{ customerName: "Khách bàn 1", sessionId: "session-1", status: "OPEN" }],
+        tableCode: 1,
+        tableId: 1,
+      },
     ]);
     vi.mocked(openOperatorSalesSession).mockResolvedValue({
       sessionId: "session-2",

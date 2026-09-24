@@ -32,8 +32,12 @@ describe("OperatorDashboardPage", () => {
       },
     ]);
     vi.mocked(loadOperatorTables).mockResolvedValue([
-      { tableId: 5, tableCode: 5, sessionStatus: "OPEN", sessionPublicId: "session-5" },
-      { tableId: 2, tableCode: 2, sessionStatus: null, sessionPublicId: null },
+      {
+        tableId: 5,
+        tableCode: 5,
+        sessions: [{ customerName: "Khách bàn 5", sessionId: "session-5", status: "OPEN" }],
+      },
+      { tableId: 2, tableCode: 2, sessions: [] },
     ]);
     vi.mocked(loadOperatorBill).mockResolvedValue({
       tableCode: 5,
@@ -119,7 +123,13 @@ describe("OperatorDashboardPage", () => {
 
   it("shows the payment confirmation action for a table waiting for payment", async () => {
     vi.mocked(loadOperatorTables).mockResolvedValue([
-      { tableId: 5, tableCode: 5, sessionStatus: "PAYMENT_PENDING", sessionPublicId: "session-5" },
+      {
+        tableId: 5,
+        tableCode: 5,
+        sessions: [
+          { customerName: "Khách bàn 5", sessionId: "session-5", status: "PAYMENT_PENDING" },
+        ],
+      },
     ]);
     render(<OperatorDashboardPage />);
 

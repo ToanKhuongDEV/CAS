@@ -14,6 +14,7 @@ const searchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ token: "qr-ban-05" }),
+  usePathname: () => "/table/qr-ban-05",
   useRouter: () => ({ push, replace }),
   useSearchParams: () => searchParams,
 }));
@@ -35,6 +36,8 @@ describe("CustomerInformationPage", () => {
     vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("No session"));
     vi.mocked(resolveCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: true,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "CUSTOMER_INFORMATION_REQUIRED",
       tableCode: 5,
     });
@@ -47,12 +50,12 @@ describe("CustomerInformationPage", () => {
   it("renders the first-customer information form", async () => {
     render(<CustomerInformationPage />);
 
-    expect(await screen.findByRole("heading", { name: "Mở phiên gọi món" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bắt đầu gọi món" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Tên của bạn" })).toBeRequired();
     expect(screen.getByRole("textbox", { name: /Số điện thoại/i })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" })).toBeInTheDocument();
     expect(
-      screen.getByText("Thông tin này được dùng để xác định người đại diện mở phiên bàn."),
+      screen.getByText("Thông tin này được dùng để xác định phiên gọi món và bill của bạn."),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr-ban-05");
   });
@@ -78,6 +81,8 @@ describe("CustomerInformationPage", () => {
     });
     vi.mocked(resolveCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 5,
     });
@@ -87,6 +92,7 @@ describe("CustomerInformationPage", () => {
       expect(resolveCustomerSalesSession).toHaveBeenLastCalledWith("qr-ban-05", {
         customerName: "Nguyễn Văn A",
         customerPhone: "0901234567",
+        sessionType: "DINE_IN",
       }),
     );
   });
@@ -118,6 +124,8 @@ describe("CustomerInformationPage", () => {
     });
     vi.mocked(resolveCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 5,
     });
@@ -130,6 +138,8 @@ describe("CustomerInformationPage", () => {
   it("redirects a payment-pending session to payment", async () => {
     vi.mocked(resolveCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "PAYMENT_PENDING",
       tableCode: 5,
     });
@@ -138,6 +148,49 @@ describe("CustomerInformationPage", () => {
 
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/payment"));
     expect(loadCustomerNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows the customer to join a selected table session", async () => {
+    vi.mocked(resolveCustomerSalesSession)
+      .mockResolvedValueOnce({
+        customerInformationRequired: false,
+        joinSessionRequired: true,
+        joinableSessions: [
+          { customerName: "Nguyễn Văn An", sessionId: "shared-session", sessionStatus: "OPEN" },
+        ],
+        sessionStatus: "JOIN_SESSION_REQUIRED",
+        tableCode: 5,
+      })
+      .mockResolvedValueOnce({
+        customerInformationRequired: false,
+        joinSessionRequired: false,
+        joinableSessions: [],
+        sessionStatus: "OPEN",
+        tableCode: 5,
+      });
+
+    render(<CustomerInformationPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Nguyễn Văn An.*Chung bàn/i }));
+
+    await vi.waitFor(() =>
+      expect(resolveCustomerSalesSession).toHaveBeenLastCalledWith("qr-ban-05", {
+        joinSessionId: "shared-session",
+      }),
+    );
+    expect(push).toHaveBeenCalledWith("/menu");
+  });
+
+  it("requires a phone number when the customer chooses takeaway", async () => {
+    render(<CustomerInformationPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mang về" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Tên của bạn" }), {
+      target: { value: "Nguyễn Văn A" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tạo đơn mang về" }));
+
+    expect(screen.getByText("Vui lòng nhập số điện thoại của bạn.")).toBeInTheDocument();
   });
 
   it("shows a retry action when QR resolution fails", async () => {

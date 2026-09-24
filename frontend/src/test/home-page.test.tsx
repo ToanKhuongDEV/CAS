@@ -40,6 +40,8 @@ describe("Home", () => {
     });
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 12,
     });

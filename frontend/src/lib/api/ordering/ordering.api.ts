@@ -38,8 +38,13 @@ export type CustomerBill = {
 export type OperatorTable = {
   tableId: number;
   tableCode: number;
-  sessionStatus: "OPEN" | "PAYMENT_PENDING" | null;
-  sessionPublicId: string | null;
+  sessions: OperatorTableSession[];
+};
+
+export type OperatorTableSession = {
+  sessionId: string;
+  customerName: string;
+  status: "OPEN" | "PAYMENT_PENDING";
 };
 
 export type OperatorOrderDetail = {
@@ -113,7 +118,10 @@ export async function openOperatorSalesSession(
   });
 }
 
-export async function openOperatorTakeawaySalesSession() {
+export async function openOperatorTakeawaySalesSession(customer: {
+  customerName: string;
+  customerPhone: string;
+}) {
   return operatorRequest<{
     sessionId: string;
     sessionType: "TAKEAWAY";
@@ -121,7 +129,7 @@ export async function openOperatorTakeawaySalesSession() {
     status: "OPEN";
   }>("/sales-sessions", {
     method: "POST",
-    body: JSON.stringify({ sessionType: "TAKEAWAY" }),
+    body: JSON.stringify({ sessionType: "TAKEAWAY", ...customer }),
   });
 }
 

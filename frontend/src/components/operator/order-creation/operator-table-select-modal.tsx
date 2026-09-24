@@ -13,6 +13,7 @@ export type TableOption = {
   activeOrdersCount: number;
   status: "OPEN" | "EMPTY" | "PAYMENT_PENDING";
   openedAt?: string;
+  sessions?: { sessionId: string; customerName: string; status: "OPEN" | "PAYMENT_PENDING" }[];
 };
 
 export const availableTables: TableOption[] = [

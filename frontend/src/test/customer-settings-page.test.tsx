@@ -26,6 +26,8 @@ describe("CustomerSettingsPage", () => {
   beforeEach(() => {
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
       sessionStatus: "OPEN",
       tableCode: 1,
     });
