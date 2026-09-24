@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-09-05
+Ngày cập nhật gần nhất: 2026-09-24
 
 ## Quy ước
 
@@ -98,7 +98,7 @@ Ngày cập nhật gần nhất: 2026-09-05
 
 ## 4. Thiết kế database
 
-- [x] Seed demo tạo 15 món thuộc sáu category cùng tag và option; ảnh món để `NULL` để bổ sung URL thật sau.
+- [x] Seed demo tạo 15 món thuộc sáu category cùng tag và option; ảnh món, logo và Welcome dùng URL/public ID Cloudinary.
 - [x] Chốt aggregate mục tiêu `sales_sessions` cho đơn `DINE_IN` và `TAKEAWAY`;
       gộp schema Flyway về baseline duy nhất và chuyển các query dine-in hiện có
       sang aggregate mới trước khi tạo lại database local.
@@ -191,13 +191,13 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `DELETE /api/v1/admin/tables/{tableId}`: `ADMIN` xóa bàn chưa có phiên lịch sử; QR liên quan bị xóa theo khóa ngoại cascade. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/customer/sales-sessions/resolve-qr`: xác thực QR, yêu cầu thông tin chỉ khi bàn chưa có session, hoặc gắn thiết bị quét sau vào session đang chiếm dụng qua cookie `HttpOnly`. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/customer/sales-sessions/resolve-qr`: trả danh sách session `DINE_IN` đang hoạt động để Customer chọn chung bàn hoặc tạo session mới; Customer có thể tạo `TAKEAWAY` từ QR với tên/SĐT bắt buộc. **[Chờ ghép Frontend]**
 - [x] `GET /api/v1/customer/sales-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Đã ghép Frontend]**
 - [x] `DELETE /api/v1/customer/sales-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/operator/sales-sessions`: `OPERATOR` mở hoặc dùng lại sales session `DINE_IN` tại bàn, hoặc mở sales session `TAKEAWAY` không gắn bàn; luồng mang về tạo khách lẻ nội bộ để giữ `client_account_id`. **[Đã ghép Frontend API]**
+- [x] `POST /api/v1/operator/sales-sessions`: `OPERATOR` mở hoặc dùng lại sales session `DINE_IN` tại bàn, hoặc mở sales session `TAKEAWAY` không gắn bàn; đơn mang về bắt buộc tên và SĐT để tìm hoặc tạo `client_account_id`. **[Đã ghép Frontend API]**
 - [x] `POST /api/v1/operator/sales-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/sales-sessions/tables`: `OPERATOR` xem các bàn trong store, trạng thái session và `sessionPublicId` khi bàn đang mở để tạo order hộ. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/sales-sessions/tables`: `OPERATOR` xem các bàn trong store và các sales session `DINE_IN` đang hoạt động theo từng bàn để tạo order hộ. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/orders/{orderId}`: `OPERATOR` xem chi tiết order theo public ID trong phạm vi store, gồm thông tin khách mở phiên (tên và SĐT nếu có), món, option, số lượng đã làm/hủy và tổng tiền snapshot. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền, số lượng hủy đã duyệt và số lượng yêu cầu hủy đang chờ xác nhận đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
@@ -225,6 +225,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của sales session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
 - [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
 - [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
+- [x] `GET /api/v1/operator/sales-sessions/tables` trả danh sách sales session `DINE_IN` đang `OPEN`/`PAYMENT_PENDING` theo từng bàn, gồm session ID, tên khách và trạng thái. Operator chọn đúng khách trước khi gọi món, hoặc chọn **Không chung bàn** để mở session mới tại cùng bàn. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/pending-count`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; API count chỉ trả số lượng `PENDING` theo store để badge polling không tải danh sách, API detail trả snapshot giá món/option để form xác nhận hiển thị đúng dữ liệu; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
@@ -241,9 +242,9 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 
 Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết kế dữ liệu và các màn hình frontend đang dùng dữ liệu mẫu. `[x]` là API đã làm; `[ ]` là API chưa làm và chưa tự gán method/path, trừ các route đã được chốt ở trên. Mỗi dòng tương ứng một chức năng API.
 
-- [ ] **Store:** xem thông tin cửa hàng.
-- [ ] **Store:** cập nhật toàn bộ thông tin cửa hàng (tên, liên hệ, vị trí, giờ hoạt động, slogan và trạng thái) từ một form.
-- [ ] **Store:** lưu logo cửa hàng qua Cloudinary và trả URL logo trong dữ liệu cấu hình cửa hàng.
+- [x] **Store:** xem thông tin cửa hàng.
+- [x] **Store:** cập nhật toàn bộ thông tin cửa hàng (tên, liên hệ, vị trí, giờ hoạt động, slogan và trạng thái) từ một form.
+- [x] **Store:** lưu logo cửa hàng qua Cloudinary và trả URL logo trong dữ liệu cấu hình cửa hàng.
 - [x] **Store:** xem ngưỡng cảnh báo bàn chờ lâu.
 - [x] **Store:** cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
 - [x] **Bàn và QR:** xem danh sách bàn.
@@ -287,18 +288,18 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Chế biến:** xem danh sách bàn chờ lâu.
 - [x] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
 - [x] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
-- [ ] **Yêu cầu hủy món:** tạo yêu cầu hủy món.
+- [x] **Yêu cầu hủy món:** tạo yêu cầu hủy món.
 - [x] **Yêu cầu hủy món:** Operator xem danh sách và chi tiết yêu cầu hủy món.
-- [x] **Yêu cầu hủy món:** Operator duyệt/từ chối; khi duyệt có thể điều chuyển phần đã làm sang dòng món tương thích ở bàn khác, lưu lịch sử điều chuyển và tính lại tiền order nguồn. **[Frontend đang ghép]**
-- [ ] **Payment:** tạo payment `PENDING` từ bill do server tính.
-- [ ] **Payment:** xem trạng thái payment của session.
-- [ ] **Payment:** xem danh sách payment chờ xác nhận.
-- [ ] **Payment:** xem chi tiết payment và bill snapshot.
-- [ ] **Payment:** xác nhận payment thành `PAID`.
-- [ ] **Khoản chưa thanh toán:** ghi nhận khoản chưa thanh toán và đóng session.
-- [ ] **Khoản chưa thanh toán:** xem danh sách khoản chưa thanh toán.
-- [ ] **Khoản chưa thanh toán:** xem chi tiết khoản chưa thanh toán.
-- [ ] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
+- [x] **Yêu cầu hủy món:** Operator duyệt/từ chối; khi duyệt có thể điều chuyển phần đã làm sang dòng món tương thích ở bàn khác, lưu lịch sử điều chuyển và tính lại tiền order nguồn. **[Đã ghép Frontend]**
+- [x] **Payment:** tạo payment `PENDING` từ bill do server tính.
+- [x] **Payment:** xem trạng thái payment của session.
+- [x] **Payment:** xem danh sách payment chờ xác nhận.
+- [x] **Payment:** xem chi tiết payment và bill snapshot.
+- [x] **Payment:** xác nhận payment thành `PAID`.
+- [x] **Khoản chưa thanh toán:** ghi nhận khoản chưa thanh toán và đóng session.
+- [x] **Khoản chưa thanh toán:** xem danh sách khoản chưa thanh toán.
+- [x] **Khoản chưa thanh toán:** xem chi tiết khoản chưa thanh toán.
+- [x] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
 - [x] **Promotion:** xem danh sách promotion.
 - [x] `GET/POST/PUT /api/v1/admin/promotions`, `GET /api/v1/admin/promotions/{promotionId}` và `PATCH /api/v1/admin/promotions/{promotionId}/status`: `ADMIN` quản lý chương trình, code, target và trạng thái promotion.
 - [x] `POST/PUT /api/v1/admin/promotions`: chỉ nhận target cho promotion `ITEM_*`, kiểm tra quota promotion/code/khách hàng khi trả hoặc chọn promotion hợp lệ, và xác thực số tiền không âm cùng quota dương tại API boundary.
@@ -333,17 +334,17 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/confirm` xác nhận booking `PENDING` thành `PAID`; thao tác lặp lại với booking đã thanh toán an toàn. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `PUT /api/v1/operator/service-bookings/{serviceBookingId}` cập nhật tên khách, tên dịch vụ, ghi chú và giá thỏa thuận khi booking còn `PAY_LATER` hoặc `PENDING`; mọi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
 - [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/cancel` hủy booking `PAY_LATER` hoặc `PENDING` thành `CANCELLED`. Mỗi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
-- [ ] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
+- [x] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
 - [x] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
 - [x] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
-- [ ] **Thông báo hệ thống:** `ADMIN` tạo thông báo.
-- [ ] **Thông báo hệ thống:** `ADMIN` xóa thông báo.
-- [ ] **Thông báo hệ thống:** Customer/Operator xem danh sách notification của mình, gồm số chưa đọc.
-- [ ] **Thông báo hệ thống:** Customer/Operator đánh dấu một notification là đã đọc.
-- [ ] **Thông báo hệ thống:** Customer/Operator đánh dấu tất cả notification là đã đọc.
-- [ ] **Audit log:** `ADMIN` xem danh sách audit log.
-- [ ] **Tra cứu khách hàng:** `ADMIN` tìm kiếm và xem danh sách khách trong store.
-- [ ] **Tra cứu khách hàng:** `ADMIN` xem chi tiết khách, gồm lịch sử session, order, payment và khoản chưa thanh toán.
+- [x] **Thông báo hệ thống:** `ADMIN` tạo thông báo.
+- [x] **Thông báo hệ thống:** `ADMIN` xóa thông báo.
+- [x] **Thông báo hệ thống:** Customer/Operator xem danh sách notification của mình, gồm số chưa đọc.
+- [x] **Thông báo hệ thống:** Customer/Operator đánh dấu một notification là đã đọc.
+- [x] **Thông báo hệ thống:** Customer/Operator đánh dấu tất cả notification là đã đọc.
+- [x] **Audit log:** `ADMIN` xem danh sách audit log.
+- [x] **Tra cứu khách hàng:** `ADMIN` tìm kiếm và xem danh sách khách trong store.
+- [x] **Tra cứu khách hàng:** `ADMIN` xem chi tiết khách, gồm lịch sử session, order, payment và khoản chưa thanh toán.
 - [ ] **Ngoài danh sách:** API danh sách `report` chưa được liệt kê vì loại report, dữ liệu, bộ lọc và API contract đều đang `Cần chốt`.
 
 ### Kế hoạch triển khai

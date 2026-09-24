@@ -181,23 +181,23 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 2. QR dẫn tới đường dẫn chứa `table_qr_codes.token`.
 3. Hệ thống kiểm tra token tồn tại và có trạng thái `ACTIVE`.
 4. Hệ thống xác định `dining_tables` tương ứng.
-5. Nếu bàn đang có `sales_sessions` trạng thái `OPEN`, hệ thống trả về session hiện tại.
-6. Nếu bàn chưa có session đang mở, hệ thống yêu cầu khách đầu tiên nhập tên; số điện thoại là tùy chọn.
-7. Nếu khách cung cấp số điện thoại, hệ thống tìm `client_accounts` theo số điện thoại trong cửa hàng hiện tại.
-8. Nếu có số điện thoại nhưng chưa tồn tại, hệ thống tạo `client_accounts` mới; nếu không có số điện thoại, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`.
-9. Hệ thống tạo `sales_sessions` mới với trạng thái `OPEN`, gắn `client_account_id` và lưu snapshot tên/SĐT người mở phiên bàn; SĐT snapshot là `NULL` cho khách lẻ.
-10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu`.
+5. Hệ thống trả danh sách các `DINE_IN` đang `OPEN` hoặc `PAYMENT_PENDING` tại bàn, gồm tên snapshot người mở session.
+6. Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session mới.
+7. Khi chung bàn, hệ thống chỉ cấp quyền Customer vào session đã chọn; không yêu cầu lại tên hoặc SĐT.
+8. Khi tạo session mới, khách chọn `DINE_IN` (mặc định; tên bắt buộc, SĐT tùy chọn) hoặc `TAKEAWAY` (tên và SĐT bắt buộc).
+9. Backend tìm hoặc tạo `client_accounts` theo SĐT trong phạm vi cửa hàng, rồi tạo `sales_sessions` phù hợp và lưu snapshot tên/SĐT.
+10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu` sau khi session đã được chọn hoặc tạo.
 
 ### Quy tắc nghiệp vụ
 
 - Một bàn chỉ có một QR đang hoạt động tại một thời điểm.
 - Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là đang chiếm dụng bàn.
 - Trạng thái bàn trống hay đang có khách được suy ra từ session đang chiếm dụng, không lưu trong `dining_tables`.
-- Session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` đều chiếm dụng bàn. Chỉ khi session `CLOSED` mới được tạo session mới cho cùng bàn.
-- Việc tạo session phải an toàn khi có xử lý đồng thời, bảo đảm một bàn không bao giờ có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm.
+- Một bàn có thể có nhiều session `DINE_IN` ở `OPEN` hoặc `PAYMENT_PENDING`; bàn chỉ trống khi không còn session nào ở hai trạng thái này.
+- Khách chỉ dùng chung bill khi đã chọn đúng session; không có thao tác tách hoặc gộp bill sau khi session có order.
 - Người đầu tiên mở session bàn phải nhập tên; số điện thoại là tùy chọn. Khi không có số điện thoại, khách được ghi nhận là khách lẻ.
 - Nếu có số điện thoại, hệ thống tìm hoặc tạo `client_accounts` theo số đó; nếu không có, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`. Bảng này tách riêng với `accounts` nhận diện nhân viên/admin bằng email.
-- Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order.
+- Người quét QR sau chọn session để chung bàn và nhìn thấy cùng danh sách order; hoặc chọn `Không chung bàn` để tạo session độc lập tại cùng bàn.
 - QR bàn là mã cố định được in và dán tại bàn.
 - QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
 - Sau khi QR được xác minh và sales session hợp lệ được tìm hoặc tạo, các màn
@@ -323,6 +323,11 @@ khách bằng cùng khả năng chọn món của giao diện Customer.
 
 ### Quy tắc nghiệp vụ
 
+- Một bàn có thể có nhiều sales session `DINE_IN` đang hoạt động. Khi chọn bàn, `OPERATOR`
+  phải chọn đúng khách/sales session trước khi tạo order; không tự dùng phiên đầu tiên.
+- Từ danh sách khách tại bàn, `OPERATOR` có thể chọn **Không chung bàn** để nhập thông tin
+  khách và mở một sales session mới ngay tại cùng bàn. Tên khách là bắt buộc, số điện thoại
+  vẫn là tùy chọn cho `DINE_IN`.
 - Phạm vi “chức năng như Customer” trong luồng này gồm xem menu, chọn món và
   option, giỏ món, ghi chú chung, gửi order và gọi thêm món; không mặc nhiên cấp
   cho `OPERATOR` các thao tác chỉ dành cho Customer ngoài mục đích tạo order hộ.
@@ -362,8 +367,8 @@ không quét QR, không chọn bàn và không tạo session gắn với bàn.
 ### Luồng chính
 
 1. `OPERATOR` chọn loại đơn `TAKEAWAY`.
-2. Nhân viên nhập tên khách bắt buộc và số điện thoại tùy chọn theo cùng quy tắc
-   nhận diện khách lẻ của đơn tại bàn.
+2. Nhân viên nhập tên khách và số điện thoại bắt buộc. Backend nhận diện khách theo số
+   điện thoại trong phạm vi cửa hàng.
 3. Backend tìm hoặc tạo `client_accounts`, rồi tạo `sales_session` loại
    `TAKEAWAY` ở trạng thái `OPEN`; `table_id` luôn là `NULL`.
 4. Nhân viên chọn món, option, ghi chú và gửi order. Backend dùng cùng quy tắc
@@ -597,7 +602,7 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 - `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
-- Session `PAYMENT_PENDING` vẫn chiếm dụng bàn; không tạo session mới cho bàn cho đến khi session hiện tại được đóng.
+- Session `PAYMENT_PENDING` vẫn được tính là một lượt đang chiếm dụng bàn, nhưng không khóa việc tạo hoặc xử lý các session độc lập khác tại cùng bàn.
 - `orders` không có trạng thái riêng; trạng thái chờ thanh toán nằm ở `sales_sessions.status`.
 - Hệ thống không tạo QR thanh toán và không lưu thông tin ngân hàng hoặc giao dịch tài chính.
 - Khách không thể hoàn tất luồng thanh toán chỉ trên giao diện Customer; sau khi gửi yêu cầu, khách phải gặp nhân viên.

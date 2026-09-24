@@ -38,12 +38,12 @@ Nhiều khách tại cùng bàn quét cùng QR.
 
 ### Cách xử lý
 
-- Tất cả dùng chung sales session đang `OPEN`.
-- Tất cả nhìn thấy cùng danh sách order của session.
-- Chỉ người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn.
-- Người quét QR sau trong cùng session không cần nhập lại thông tin.
+- Backend trả danh sách session `DINE_IN` đang hoạt động và tên người mở session.
+- Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session độc lập.
+- Khi chung bàn, khách không cần nhập lại thông tin và nhìn thấy cùng danh sách order.
+- Khi tạo session mới, tên là bắt buộc; SĐT tùy chọn cho `DINE_IN` và bắt buộc cho `TAKEAWAY`.
 - Thông tin người đầu tiên được lưu trong `client_accounts` và gắn với session; khi không có số điện thoại, đây là record khách lẻ có `phone = NULL`.
-- Khi tạo session cần chống race condition để một bàn không bao giờ có nhiều hơn một session `OPEN` tại cùng một thời điểm.
+- Khi tạo session cần khóa ngữ cảnh QR/bàn để response danh sách session và thao tác chọn/tạo nhất quán.
 
 ## 5.1. Khách đầu tiên không nhập tên
 

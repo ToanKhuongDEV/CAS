@@ -520,12 +520,12 @@ Ràng buộc dữ liệu:
 
 - `session_type = DINE_IN` bắt buộc có `table_id`; `session_type = TAKEAWAY`
   bắt buộc `table_id` là `NULL`.
-- Chỉ `DINE_IN` ở `OPEN` hoặc `PAYMENT_PENDING` chiếm bàn. Unique generated
-  column bảo đảm mỗi bàn chỉ có một phiên đang chiếm dụng.
+- `DINE_IN` ở `OPEN` hoặc `PAYMENT_PENDING` chiếm bàn; một bàn có thể có nhiều
+  session đang chiếm dụng và chỉ được xem là trống khi không còn session nào như vậy.
 - Cả hai loại dùng cùng trạng thái `OPEN → PAYMENT_PENDING → CLOSED`, cùng
   quy tắc order, hủy món, chế biến, promotion, payment, unpaid và audit log.
-- Đơn `TAKEAWAY` do `OPERATOR` tạo; Customer QR và cookie Customer vẫn chỉ dùng
-  cho `DINE_IN`.
+- Customer có thể tạo `TAKEAWAY` từ QR bàn; session này không gắn `table_id` và
+  bắt buộc có tên cùng SĐT. `TAKEAWAY` do `OPERATOR` tạo cũng dùng cùng quy tắc.
 - `orders`, `payments`, `unpaid_records`, `promotion_redemptions`,
   `bill_discounts` và recipient Customer của notification tham chiếu
   `sales_session_id`.
@@ -1142,7 +1142,8 @@ Database không tạo `CHECK` constraint cho các quy tắc nghiệp vụ dướ
 MySQL dùng generated column kết hợp unique index cho các quy tắc cần chống race condition:
 
 - `table_qr_codes.active_table_id`: nhận `table_id` khi `status = 'ACTIVE'`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một QR `ACTIVE`.
-- `sales_sessions.occupying_table_id`: nhận `table_id` khi `session_type = 'DINE_IN'` và `status IN ('OPEN', 'PAYMENT_PENDING')`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một session đang chiếm dụng.
+- `sales_sessions` không dùng unique index theo session đang chiếm dụng; nhiều
+  `DINE_IN` đang hoạt động có thể cùng thuộc một bàn.
 
 Java vẫn phải dùng transaction và khóa scope tương ứng khi tạo QR bàn, session hoặc payment; unique index là lớp bảo vệ cuối cùng khi có request đồng thời.
 
@@ -1193,7 +1194,7 @@ Thiết kế hiện tại chưa bao gồm:
 
 - Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; use case xóa bàn xóa `table_qr_codes` trong cùng transaction trước khi xóa `dining_tables`. `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
 - Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
-- Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
+- Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE`; session đang hoạt động không bị unique theo bàn.
 - Quy tắc mỗi option group có tối đa một option mặc định chỉ được kiểm tra trong Java, không có unique constraint trong database.
 - Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
 - Authentication sử dụng Firebase Authentication; Client truyền Firebase ID Token trong header request để backend verify và phân quyền.
@@ -1235,8 +1236,8 @@ Thiết kế hiện tại chưa bao gồm:
 - Payment chỉ có trạng thái `PENDING` hoặc `PAID`; không có trạng thái `IGNORED` và không tạo lại nhiều payment cho cùng session.
 - `unpaid_records` lưu `amount` và `bill_snapshot` bất biến khi nhân viên đóng một session chưa được xác nhận thanh toán.
 - Session `OPEN` và `PAYMENT_PENDING` đều chiếm dụng bàn.
-- Một bàn không bao giờ được có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm, kể cả khi có nhiều yêu cầu tạo session đồng thời.
-- Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng danh sách order.
+- Một bàn có thể có nhiều session đang chiếm dụng cùng lúc; transaction khóa QR/bàn giúp lựa chọn hoặc tạo session nhất quán khi có yêu cầu đồng thời.
+- Nhiều điện thoại quét cùng QR chọn session để chung bàn và nhìn thấy cùng danh sách order, hoặc tạo session độc lập.
 - Người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn. Nếu không có số điện thoại, hệ thống tạo `client_accounts` khách lẻ với `phone = NULL`; người quét QR sau trong cùng session không cần nhập lại.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
 - Hệ thống không tách màn hình bếp và phục vụ.
