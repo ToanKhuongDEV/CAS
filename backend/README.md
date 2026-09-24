@@ -68,12 +68,14 @@ curl.exe http://localhost:8080/api/v1/public/stores/1/welcome
 curl.exe -X DELETE http://localhost:8080/api/v1/admin/store/welcome -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```
 
-Ví dụ quét QR để lấy hoặc tham gia phiên bàn Customer. Chỉ gửi `customerName`
-khi chưa có phiên `OPEN` tại bàn; các thiết bị quét sau chỉ gửi `qrToken`:
+Ví dụ quét QR Customer. Lần quét đầu nhận danh sách session đang hoạt động để
+khách chọn chung bàn hoặc tạo session mới; `TAKEAWAY` bắt buộc cả tên và SĐT:
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
-curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"joinSessionId\":\"<session-id-da-chon>\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"sessionType\":\"DINE_IN\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"sessionType\":\"TAKEAWAY\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt
 curl.exe -X DELETE http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt
 ```
@@ -114,12 +116,12 @@ curl.exe http://localhost:8080/api/v1/customer/catalog/items -b customer-session
 curl.exe http://localhost:8080/api/v1/customer/catalog/option-groups -b customer-session-cookie.txt
 ```
 
-Ví dụ `OPERATOR` mở hoặc dùng lại phiên của bàn, sau đó tạo order hộ khách. Khi
-bàn đã có session `OPEN`, có thể bỏ `customerName` và `customerPhone`:
+Ví dụ `OPERATOR` lấy danh sách phiên theo bàn, chọn đúng `sessionId` của khách cần gọi món,
+hoặc mở một phiên `DINE_IN` mới khi khách không chung bàn. Tên khách là bắt buộc khi mở phiên mới:
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"DINE_IN\",\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
-curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"TAKEAWAY\"}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"TAKEAWAY\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
 curl.exe http://localhost:8080/api/v1/operator/sales-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X DELETE http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"

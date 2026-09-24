@@ -4,7 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -42,7 +44,8 @@ public class CustomerSalesSessionController {
             HttpServletResponse response) {
         var resolution = customerSalesSessionService.resolveQr(new SalesSessionResolutionCommand(
                 resolveQrRequest.qrToken(), normalize(resolveQrRequest.customerName()),
-                normalize(resolveQrRequest.customerPhone())));
+                normalize(resolveQrRequest.customerPhone()), resolveQrRequest.sessionType(),
+                normalize(resolveQrRequest.joinSessionId())));
         if (resolution.sessionPublicId() != null) {
             response.addHeader(HttpHeaders.SET_COOKIE,
                     customerSessionCookie(resolution.sessionPublicId(), request.isSecure())
@@ -80,15 +83,28 @@ public class CustomerSalesSessionController {
     }
 
     public record ResolveQrRequest(@NotBlank @Size(max = 64) String qrToken,
-            @Size(max = 150) String customerName, @Size(max = 20) String customerPhone) {
+            @Size(max = 150) String customerName, @Size(max = 20) String customerPhone,
+            @Pattern(regexp = "DINE_IN|TAKEAWAY") String sessionType,
+            @Size(max = 36) String joinSessionId) {
     }
 
     public record CustomerSalesSessionResponse(boolean customerInformationRequired,
-            String sessionStatus, Long tableCode) {
+            boolean joinSessionRequired, String sessionStatus, Long tableCode,
+            List<JoinableSalesSessionResponse> joinableSessions) {
 
         static CustomerSalesSessionResponse from(SalesSessionResolution resolution) {
             return new CustomerSalesSessionResponse(resolution.requiresCustomerInformation(),
-                    resolution.status().name(), resolution.tableCode());
+                    resolution.requiresSessionSelection(), resolution.status().name(),
+                    resolution.tableCode(),
+                    resolution.joinableSessions().stream()
+                            .map(session -> new JoinableSalesSessionResponse(
+                                    session.sessionPublicId(), session.customerName(),
+                                    session.sessionStatus()))
+                            .toList());
         }
+    }
+
+    public record JoinableSalesSessionResponse(String sessionId, String customerName,
+            String sessionStatus) {
     }
 }

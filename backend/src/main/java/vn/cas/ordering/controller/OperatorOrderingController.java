@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -49,8 +50,9 @@ public class OperatorOrderingController {
     @GetMapping("/tables")
     public ResponseEntity<ApiResponse<List<TableResponse>>> listTables(
             @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
+        var sessionsByTable = activeSessionsByTable(principal);
         var response = tables.list(principal).stream().map(table -> new TableResponse(table.id(),
-                table.code(), table.sessionStatus(), table.sessionPublicId())).toList();
+                table.code(), sessionsByTable.getOrDefault(table.id(), List.of()))).toList();
         return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách bàn phục vụ.", response,
                 request);
     }
@@ -121,7 +123,13 @@ public class OperatorOrderingController {
             throw new vn.cas.common.exception.ApiException(HttpStatus.BAD_REQUEST,
                     ApiMessages.INVALID_REQUEST);
         }
-        return sessions.openTakeawayForOperator(principal.storeId());
+        String customerName = normalize(body.customerName());
+        String customerPhone = normalize(body.customerPhone());
+        if (customerName == null || customerPhone == null) {
+            throw new vn.cas.common.exception.ApiException(HttpStatus.BAD_REQUEST,
+                    ApiMessages.INVALID_REQUEST);
+        }
+        return sessions.openTakeawayForOperator(principal.storeId(), customerName, customerPhone);
     }
 
     public record OpenSalesSessionRequest(
@@ -145,8 +153,21 @@ public class OperatorOrderingController {
             String status) {
     }
 
-    public record TableResponse(long tableId, long tableCode, String sessionStatus,
-            String sessionPublicId) {
+    private Map<Long, List<TableSessionResponse>> activeSessionsByTable(
+            OperationalPrincipal principal) {
+        return sessions.findActiveDineInSessions(principal.storeId()).stream()
+                .collect(
+                        java.util.stream.Collectors.groupingBy(v -> v.tableId(),
+                                java.util.stream.Collectors.mapping(
+                                        v -> new TableSessionResponse(v.sessionPublicId(),
+                                                v.customerName(), v.sessionStatus()),
+                                        java.util.stream.Collectors.toList())));
+    }
+
+    public record TableResponse(long tableId, long tableCode, List<TableSessionResponse> sessions) {
+    }
+
+    public record TableSessionResponse(String sessionId, String customerName, String status) {
     }
 
     public record OrderResponse(String orderId, BigDecimal payableAmount) {

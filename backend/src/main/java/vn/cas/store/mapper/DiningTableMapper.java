@@ -7,6 +7,9 @@ import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.CreateDiningTableCommand;
 import vn.cas.store.model.ActiveTableQrCode;
 import vn.cas.store.model.AdminDiningTable;
+import vn.cas.store.model.JoinableSalesSession;
+import vn.cas.store.model.QrTableLookup;
+import vn.cas.store.model.OperatorTableSession;
 import vn.cas.store.model.SalesSessionLookup;
 
 @Mapper
@@ -28,7 +31,13 @@ public interface DiningTableMapper {
 
     int deleteDiningTable(@Param("storeId") long storeId, @Param("tableId") long tableId);
 
-    SalesSessionLookup findSalesSessionByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
+    QrTableLookup findTableByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
+
+    java.util.List<JoinableSalesSession> findJoinableDineInSessionsByTableId(
+            @Param("tableId") long tableId);
+
+    java.util.List<OperatorTableSession> findActiveDineInSessionsByStoreId(
+            @Param("storeId") long storeId);
 
     SalesSessionLookup findCurrentSalesSessionByPublicId(
             @Param("sessionPublicId") String sessionPublicId);
@@ -55,7 +64,8 @@ public interface DiningTableMapper {
 
     int insertOpenTakeawaySalesSession(@Param("storeId") long storeId,
             @Param("publicId") String publicId, @Param("clientAccountId") long clientAccountId,
-            @Param("customerName") String customerName);
+            @Param("customerName") String customerName,
+            @Param("customerPhone") String customerPhone);
 
     int moveSessionToPaymentPending(@Param("sessionId") long sessionId);
     int closePaymentSession(@Param("sessionId") long sessionId);

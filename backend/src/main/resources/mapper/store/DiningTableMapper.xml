@@ -55,8 +55,14 @@
         FROM dining_tables
         LEFT JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
             AND table_qr_codes.status = 'ACTIVE'
-        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
-            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        LEFT JOIN sales_sessions ON sales_sessions.id = (
+            SELECT active_sessions.id
+            FROM sales_sessions active_sessions
+            WHERE active_sessions.table_id = dining_tables.id
+              AND active_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+            ORDER BY active_sessions.created_at ASC, active_sessions.id ASC
+            LIMIT 1
+        )
         WHERE dining_tables.store_id = #{storeId}
         ORDER BY dining_tables.code ASC
     </select>
@@ -88,27 +94,44 @@
           AND dining_tables.id = #{tableId}
     </delete>
 
-    <select id="findSalesSessionByActiveQrTokenForUpdate"
-            resultType="vn.cas.store.model.SalesSessionLookup">
+    <select id="findTableByActiveQrTokenForUpdate"
+            resultType="vn.cas.store.model.QrTableLookup">
         SELECT
-            sales_sessions.id AS sessionId,
             dining_tables.id AS tableId,
             dining_tables.store_id AS storeId,
-            dining_tables.code AS tableCode,
-            sales_sessions.client_account_id AS clientAccountId,
-            sales_sessions.selected_promotion_id AS selectedPromotionId,
-            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
-            sales_sessions.public_id AS sessionPublicId,
-            sales_sessions.status AS sessionStatus,
-            sales_sessions.session_type AS sessionType
+            dining_tables.code AS tableCode
         FROM table_qr_codes
         INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
-        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
-            AND sales_sessions.session_type = 'DINE_IN'
-            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         WHERE table_qr_codes.token = #{qrToken}
           AND table_qr_codes.status = 'ACTIVE'
         FOR UPDATE
+    </select>
+
+    <select id="findJoinableDineInSessionsByTableId"
+            resultType="vn.cas.store.model.JoinableSalesSession">
+        SELECT
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.status AS sessionStatus
+        FROM sales_sessions
+        WHERE sales_sessions.table_id = #{tableId}
+          AND sales_sessions.session_type = 'DINE_IN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY sales_sessions.created_at ASC, sales_sessions.id ASC
+    </select>
+
+    <select id="findActiveDineInSessionsByStoreId"
+            resultType="vn.cas.store.model.OperatorTableSession">
+        SELECT
+            sales_sessions.table_id AS tableId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.status AS sessionStatus
+        FROM sales_sessions
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.session_type = 'DINE_IN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY sales_sessions.table_id ASC, sales_sessions.created_at ASC, sales_sessions.id ASC
     </select>
 
     <select id="findCurrentSalesSessionByPublicId"
@@ -169,6 +192,8 @@
             AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
         WHERE dining_tables.store_id = #{storeId}
           AND dining_tables.id = #{tableId}
+        ORDER BY sales_sessions.created_at ASC, sales_sessions.id ASC
+        LIMIT 1
         FOR UPDATE
     </select>
 
@@ -252,7 +277,7 @@
             #{publicId},
             #{clientAccountId},
             #{customerName},
-            NULL,
+            #{customerPhone},
             'OPEN',
             NULL,
             NULL
