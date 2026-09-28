@@ -32,7 +32,10 @@ export default function ScanTableQrPage() {
 
       isResolving.current = true;
       setSubmitting(true);
-      const resolution = await resolveCustomerSalesSession(token);
+      const storeId = Number(params.get("storeId"));
+      const resolution = await resolveCustomerSalesSession(token, {
+        ...(Number.isSafeInteger(storeId) && storeId > 0 ? { storeId } : {}),
+      });
       window.sessionStorage.setItem("cas.tableQrToken", token);
       if (resolution.sessionStatus === "PAYMENT_PENDING") {
         router.replace("/payment");

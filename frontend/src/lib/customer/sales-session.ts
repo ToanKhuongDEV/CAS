@@ -24,6 +24,7 @@ export async function resolveCustomerSalesSession(
     customerPhone?: string | null;
     joinSessionId?: string;
     sessionType?: "DINE_IN" | "TAKEAWAY";
+    storeId?: number;
   },
 ): Promise<SalesSessionResolution> {
   const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-qr`, {
@@ -37,6 +38,24 @@ export async function resolveCustomerSalesSession(
     throw new Error(getBackendErrorMessage(body, "Không thể xác thực phiên bàn từ mã QR."));
   }
 
+  return body.data;
+}
+
+export async function openCustomerTakeawaySalesSession(input: {
+  storeId: number;
+  customerName: string;
+  customerPhone: string;
+}): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/takeaway`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error(getBackendErrorMessage(body, "Không thể tạo đơn mang về."));
+  }
   return body.data;
 }
 

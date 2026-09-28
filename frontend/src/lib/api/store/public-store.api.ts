@@ -11,6 +11,23 @@ export type PublicStoreWelcomeConfig = {
   bannerImageUrl: string | null;
 };
 
+export type PublicStore = {
+  id: number;
+  name: string;
+  address: string;
+  status: "ACTIVE";
+};
+
+export async function loadPublicStores(): Promise<PublicStore[]> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const response = await fetch(`${apiUrl}/api/v1/public/stores`, { cache: "no-store" });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !body || typeof body !== "object" || !("data" in body)) {
+    throw new Error("Không thể tải danh sách chi nhánh.");
+  }
+  return (body as { data: PublicStore[] }).data;
+}
+
 export async function loadPublicStore(storeId = 1): Promise<StoreSettings> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const response = await fetch(`${apiUrl}/api/v1/public/stores/${storeId}`, { cache: "no-store" });
