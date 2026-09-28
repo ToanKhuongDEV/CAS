@@ -11,6 +11,7 @@ public final class ApiPaths {
 
     public static final String STATUS = API_V1_PREFIX + "/status";
     public static final String PUBLIC_STORE = API_V1_PREFIX + "/public/stores/{storeId}";
+    public static final String PUBLIC_STORES = API_V1_PREFIX + "/public/stores";
     public static final String ADMIN_PATTERN = API_ADMIN_PREFIX + "/**";
     public static final String OPERATOR_PATTERN = API_OPERATOR_PREFIX + "/**";
     public static final String AUTH_PATTERN = API_AUTH_PREFIX + "/**";
@@ -48,6 +49,7 @@ public final class ApiPaths {
         public static final String COMMON = PRE_FIX;
         public static final String RESOLVE_QR = PRE_FIX + "/resolve-qr";
         public static final String CURRENT = PRE_FIX + "/current";
+        public static final String TAKEAWAY = PRE_FIX + "/takeaway";
 
         private CustomerSalesSession() {
         }

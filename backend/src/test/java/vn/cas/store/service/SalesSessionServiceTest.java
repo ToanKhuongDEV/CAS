@@ -36,7 +36,7 @@ class SalesSessionServiceTest {
                 .thenReturn(java.util.List.of());
 
         var result = service.resolveQr(
-                new SalesSessionResolutionCommand("a".repeat(64), null, null, null, null));
+                new SalesSessionResolutionCommand("a".repeat(64), null, null, null, null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED);
         assertThat(result.tableCode()).isEqualTo(5L);
@@ -52,7 +52,7 @@ class SalesSessionServiceTest {
                         "Customer One", "OPEN")));
 
         var result = service.resolveQr(
-                new SalesSessionResolutionCommand("a".repeat(64), null, null, null, null));
+                new SalesSessionResolutionCommand("a".repeat(64), null, null, null, null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.JOIN_SESSION_REQUIRED);
         assertThat(result.joinableSessions()).singleElement()
@@ -73,7 +73,7 @@ class SalesSessionServiceTest {
         }).when(diningTableMapper).insertClientAccount(any());
 
         var result = service.resolveQr(new SalesSessionResolutionCommand("a".repeat(64),
-                "Customer One", "0901234567", "DINE_IN", null));
+                "Customer One", "0901234567", "DINE_IN", null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         assertThat(result.sessionPublicId()).isNotBlank();
@@ -90,7 +90,7 @@ class SalesSessionServiceTest {
                         "Customer One", "OPEN")));
 
         var result = service.resolveQr(new SalesSessionResolutionCommand("a".repeat(64), null, null,
-                null, "session-public-id"));
+                null, "session-public-id", null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         assertThat(result.sessionPublicId()).isEqualTo("session-public-id");
@@ -107,7 +107,7 @@ class SalesSessionServiceTest {
                 .thenReturn(23L);
 
         var result = service.resolveQr(new SalesSessionResolutionCommand("a".repeat(64),
-                "Customer One", "0901234567", "TAKEAWAY", null));
+                "Customer One", "0901234567", "TAKEAWAY", null, null));
 
         assertThat(result.status()).isEqualTo(ResolutionStatus.OPEN);
         verify(diningTableMapper).insertOpenTakeawaySalesSession(eq(2L), any(), eq(23L),
@@ -122,7 +122,7 @@ class SalesSessionServiceTest {
                 .thenReturn(java.util.List.of());
 
         assertThatThrownBy(() -> service.resolveQr(new SalesSessionResolutionCommand("a".repeat(64),
-                "Customer One", null, "TAKEAWAY", null))).isInstanceOf(ApiException.class);
+                "Customer One", null, "TAKEAWAY", null, null))).isInstanceOf(ApiException.class);
     }
 
     @Test

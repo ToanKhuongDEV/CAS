@@ -33,6 +33,9 @@ public class SalesSessionService {
         if (table == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_TABLE_QR_CODE);
         }
+        if (command.storeId() != null && command.storeId() != table.storeId()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
+        }
         var joinableSessions = diningTableMapper
                 .findJoinableDineInSessionsByTableId(table.tableId());
 
@@ -183,8 +186,8 @@ public class SalesSessionService {
         if (customerName == null || customerName.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
         }
-        long clientAccountId = findOrCreateClientAccount(storeId,
-                new SalesSessionResolutionCommand(null, customerName, customerPhone, null, null));
+        long clientAccountId = findOrCreateClientAccount(storeId, new SalesSessionResolutionCommand(
+                null, customerName, customerPhone, null, null, null));
         String sessionPublicId = UUID.randomUUID().toString();
         diningTableMapper.insertOpenDineInSalesSession(tableId, sessionPublicId, clientAccountId,
                 customerName, customerPhone);
@@ -195,8 +198,8 @@ public class SalesSessionService {
     @Transactional
     public SalesSessionLookup openTakeawayForOperator(long storeId, String customerName,
             String customerPhone) {
-        long clientAccountId = findOrCreateClientAccount(storeId,
-                new SalesSessionResolutionCommand(null, customerName, customerPhone, null, null));
+        long clientAccountId = findOrCreateClientAccount(storeId, new SalesSessionResolutionCommand(
+                null, customerName, customerPhone, null, null, null));
         String sessionPublicId = UUID.randomUUID().toString();
         diningTableMapper.insertOpenTakeawaySalesSession(storeId, sessionPublicId, clientAccountId,
                 customerName, customerPhone);

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.UUID;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,6 +39,12 @@ public class StoreSettingsController {
             HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy thông tin cửa hàng.",
                 service.getPublic(storeId), r);
+    }
+
+    @GetMapping(ApiPaths.PUBLIC_STORES)
+    public ResponseEntity<ApiResponse<List<StoreSettings>>> listPublic(HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách cửa hàng.",
+                service.listPublic(), r);
     }
 
     @PutMapping(ApiPaths.Store.SETTINGS)

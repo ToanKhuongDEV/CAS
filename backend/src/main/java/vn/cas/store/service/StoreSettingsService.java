@@ -41,6 +41,11 @@ public class StoreSettingsService {
         return settings;
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<StoreSettings> listPublic() {
+        return mapper.findAllActive();
+    }
+
     @Transactional
     public StoreSettings update(OperationalPrincipal principal, StoreSettings settings,
             UUID requestId) {

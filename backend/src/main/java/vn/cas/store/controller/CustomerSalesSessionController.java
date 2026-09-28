@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import vn.cas.common.response.ApiResponses;
 import vn.cas.store.dto.SalesSessionResolutionCommand;
 import vn.cas.store.model.SalesSessionResolution;
 import vn.cas.store.service.SalesSessionService;
+import vn.cas.store.service.StoreSettingsService;
 
 @RestController
 @RequestMapping(ApiPaths.CustomerSalesSession.COMMON)
@@ -33,9 +35,12 @@ public class CustomerSalesSessionController {
     public static final String CUSTOMER_SESSION_COOKIE = "cas_customer_session";
 
     private final SalesSessionService customerSalesSessionService;
+    private final StoreSettingsService storeSettingsService;
 
-    public CustomerSalesSessionController(SalesSessionService customerSalesSessionService) {
+    public CustomerSalesSessionController(SalesSessionService customerSalesSessionService,
+            StoreSettingsService storeSettingsService) {
         this.customerSalesSessionService = customerSalesSessionService;
+        this.storeSettingsService = storeSettingsService;
     }
 
     @PostMapping("/resolve-qr")
@@ -45,7 +50,7 @@ public class CustomerSalesSessionController {
         var resolution = customerSalesSessionService.resolveQr(new SalesSessionResolutionCommand(
                 resolveQrRequest.qrToken(), normalize(resolveQrRequest.customerName()),
                 normalize(resolveQrRequest.customerPhone()), resolveQrRequest.sessionType(),
-                normalize(resolveQrRequest.joinSessionId())));
+                normalize(resolveQrRequest.joinSessionId()), resolveQrRequest.storeId()));
         if (resolution.sessionPublicId() != null) {
             response.addHeader(HttpHeaders.SET_COOKIE,
                     customerSessionCookie(resolution.sessionPublicId(), request.isSecure())
@@ -53,6 +58,21 @@ public class CustomerSalesSessionController {
         }
         return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_SALES_SESSION_RESOLVED,
                 CustomerSalesSessionResponse.from(resolution), request);
+    }
+
+    @PostMapping("/takeaway")
+    public ResponseEntity<ApiResponse<CustomerSalesSessionResponse>> openTakeaway(
+            @Valid @RequestBody OpenTakeawayRequest body, HttpServletRequest request,
+            HttpServletResponse response) {
+        storeSettingsService.getPublic(body.storeId());
+        var session = customerSalesSessionService.openTakeawayForOperator(body.storeId(),
+                normalize(body.customerName()), normalize(body.customerPhone()));
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                customerSessionCookie(session.sessionPublicId(), request.isSecure()).toString());
+        return ApiResponses.success(HttpStatus.CREATED, ApiMessages.CUSTOMER_SALES_SESSION_RESOLVED,
+                new CustomerSalesSessionResponse(false, false, session.sessionStatus(), null,
+                        List.of()),
+                request);
     }
 
     @GetMapping("/current")
@@ -85,7 +105,12 @@ public class CustomerSalesSessionController {
     public record ResolveQrRequest(@NotBlank @Size(max = 64) String qrToken,
             @Size(max = 150) String customerName, @Size(max = 20) String customerPhone,
             @Pattern(regexp = "DINE_IN|TAKEAWAY") String sessionType,
-            @Size(max = 36) String joinSessionId) {
+            @Size(max = 36) String joinSessionId, @Positive Long storeId) {
+    }
+
+    public record OpenTakeawayRequest(@Positive long storeId,
+            @NotBlank @Size(max = 150) String customerName,
+            @NotBlank @Size(max = 20) String customerPhone) {
     }
 
     public record CustomerSalesSessionResponse(boolean customerInformationRequired,
