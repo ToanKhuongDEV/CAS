@@ -41,7 +41,7 @@ Nhiều khách tại cùng bàn quét cùng QR.
 - Backend trả danh sách session `DINE_IN` đang hoạt động và tên người mở session.
 - Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session độc lập.
 - Khi chung bàn, khách không cần nhập lại thông tin và nhìn thấy cùng danh sách order.
-- Khi tạo session mới, tên là bắt buộc; SĐT tùy chọn cho `DINE_IN` và bắt buộc cho `TAKEAWAY`.
+- Khi tạo session mới từ QR, tên là bắt buộc; SĐT tùy chọn cho `DINE_IN` và bắt buộc cho `TAKEAWAY`. QR chỉ xác định chi nhánh cho `TAKEAWAY`, không gắn session vào bàn.
 - Thông tin người đầu tiên được lưu trong `client_accounts` và gắn với session; khi không có số điện thoại, đây là record khách lẻ có `phone = NULL`.
 - Khi tạo session cần khóa ngữ cảnh QR/bàn để response danh sách session và thao tác chọn/tạo nhất quán.
 

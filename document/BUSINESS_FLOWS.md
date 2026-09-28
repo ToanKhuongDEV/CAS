@@ -184,7 +184,7 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 5. Hệ thống trả danh sách các `DINE_IN` đang `OPEN` hoặc `PAYMENT_PENDING` tại bàn, gồm tên snapshot người mở session.
 6. Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session mới.
 7. Khi chung bàn, hệ thống chỉ cấp quyền Customer vào session đã chọn; không yêu cầu lại tên hoặc SĐT.
-8. Khi tạo session mới, khách chọn `DINE_IN` (mặc định; tên bắt buộc, SĐT tùy chọn) hoặc `TAKEAWAY` (tên và SĐT bắt buộc).
+8. Khi tạo session mới từ QR bàn, khách chọn `DINE_IN` (tên bắt buộc, SĐT tùy chọn) hoặc `TAKEAWAY` (tên và SĐT bắt buộc); `TAKEAWAY` không gắn với bàn, QR chỉ xác định chi nhánh.
 9. Backend tìm hoặc tạo `client_accounts` theo SĐT trong phạm vi cửa hàng, rồi tạo `sales_sessions` phù hợp và lưu snapshot tên/SĐT.
 10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu` sau khi session đã được chọn hoặc tạo.
 
@@ -380,8 +380,9 @@ không quét QR, không chọn bàn và không tạo session gắn với bàn.
 
 ### Quy tắc nghiệp vụ
 
-- Đơn `TAKEAWAY` không xuất hiện trên sơ đồ bàn, không chiếm bàn và không dùng
-  QR hoặc cookie Customer.
+- Đơn `TAKEAWAY` không xuất hiện trên sơ đồ bàn, không chiếm bàn. Khách có thể tạo
+  từ browser sau khi chọn chi nhánh hoặc từ QR bàn; QR chỉ tự chọn chi nhánh và không
+  được gắn vào sales session mang về.
 - `sales_session` là aggregate bill cho cả `DINE_IN` và `TAKEAWAY`; `orders`,
   payment, unpaid, promotion snapshot và hủy món cùng tham chiếu aggregate này.
 - Đơn mang về không có trạng thái thanh toán, hủy món hoặc chế biến riêng; dùng

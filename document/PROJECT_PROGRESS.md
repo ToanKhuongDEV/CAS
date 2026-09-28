@@ -192,6 +192,8 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/sales-sessions/resolve-qr`: trả danh sách session `DINE_IN` đang hoạt động để Customer chọn chung bàn hoặc tạo session mới; Customer có thể tạo `TAKEAWAY` từ QR với tên/SĐT bắt buộc. **[Chờ ghép Frontend]**
+- [x] `GET /api/v1/public/stores`: Customer lấy danh sách chi nhánh `ACTIVE` để bắt đầu gọi món. **[Đã ghép Frontend]**
+- [x] `POST /api/v1/customer/sales-sessions/takeaway`: Customer mở session mang về theo chi nhánh đã chọn, với tên và SĐT bắt buộc; session cookie `HttpOnly` được cấp để gọi món. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/sales-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Đã ghép Frontend]**
 - [x] `DELETE /api/v1/customer/sales-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Đã ghép Frontend]**
@@ -711,6 +713,9 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 6. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
 7. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
 8. Hoàn thiện các phần còn dùng mock/dữ liệu tĩnh trong Phase 1 bằng API, dữ liệu production và kiểm thử tích hợp trước khi triển khai cửa hàng.
+
+- [x] Customer public mode suppresses background toast errors from sales-session, notification, and bill polling when no table QR session exists.
+- [x] Unified Customer entry flow: browser users choose an active branch before starting dine-in or takeaway; table QR preselects the branch and table while retaining the takeaway choice.
 
 ## 9. Tài liệu liên quan
 

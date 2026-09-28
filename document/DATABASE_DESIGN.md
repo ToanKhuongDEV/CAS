@@ -524,8 +524,9 @@ Ràng buộc dữ liệu:
   session đang chiếm dụng và chỉ được xem là trống khi không còn session nào như vậy.
 - Cả hai loại dùng cùng trạng thái `OPEN → PAYMENT_PENDING → CLOSED`, cùng
   quy tắc order, hủy món, chế biến, promotion, payment, unpaid và audit log.
-- Customer có thể tạo `TAKEAWAY` từ QR bàn; session này không gắn `table_id` và
-  bắt buộc có tên cùng SĐT. `TAKEAWAY` do `OPERATOR` tạo cũng dùng cùng quy tắc.
+- Customer có thể tạo `TAKEAWAY` từ browser sau khi chọn chi nhánh hoặc từ QR bàn;
+  QR chỉ xác định chi nhánh. Session này không gắn `table_id` và bắt buộc có tên cùng
+  SĐT. `TAKEAWAY` do `OPERATOR` tạo cũng dùng cùng quy tắc.
 - `orders`, `payments`, `unpaid_records`, `promotion_redemptions`,
   `bill_discounts` và recipient Customer của notification tham chiếu
   `sales_session_id`.
