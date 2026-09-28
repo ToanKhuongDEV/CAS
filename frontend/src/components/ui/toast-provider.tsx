@@ -82,7 +82,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const originalFetch = window.fetch;
     const interceptedFetch: typeof window.fetch = async (input, init) => {
       const response = await originalFetch(input, init);
-      if (!response.ok && isBackendRequest(input)) {
+      if (
+        !response.ok &&
+        isBackendRequest(input) &&
+        !isOptionalCustomerContextRequest(input, init)
+      ) {
         const body: unknown = await response
           .clone()
           .json()
@@ -144,6 +148,20 @@ function isBackendRequest(input: RequestInfo | URL) {
   const url =
     typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
   return new URL(url, window.location.origin).origin === new URL(apiUrl).origin;
+}
+
+function isOptionalCustomerContextRequest(input: RequestInfo | URL, init?: RequestInit) {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+  const pathname = new URL(url, window.location.origin).pathname;
+
+  return (
+    method.toUpperCase() === "GET" &&
+    (pathname === "/api/v1/customer/sales-sessions/current" ||
+      pathname === "/api/v1/customer/notifications" ||
+      pathname === "/api/v1/customer/orders/bill")
+  );
 }
 
 function responseMessage(value: unknown) {

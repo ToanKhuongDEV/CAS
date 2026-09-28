@@ -34,6 +34,31 @@ it("shows and dismisses a shared toast", () => {
 
 afterEach(() => vi.unstubAllGlobals());
 
+it.each([
+  "/api/v1/customer/sales-sessions/current",
+  "/api/v1/customer/notifications",
+  "/api/v1/customer/orders/bill",
+])("does not toast when loading optional customer context from %s", async (path) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "No active customer session." }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      }),
+    ),
+  );
+  render(
+    <ToastProvider>
+      <span />
+    </ToastProvider>,
+  );
+
+  await fetch(`http://localhost:8080${path}`);
+
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+});
+
 it("shows the Backend error message for every failed CAS API response", async () => {
   vi.stubGlobal(
     "fetch",
