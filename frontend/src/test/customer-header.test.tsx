@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
+  getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
   loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
 }));
 vi.mock("../lib/api/notification/notification.api", () => ({

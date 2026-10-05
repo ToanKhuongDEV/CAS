@@ -20,6 +20,19 @@ export type PublicStore = {
   status: "ACTIVE";
 };
 
+const selectedStoreStorageKey = "cas.selectedStoreId";
+
+export function getRememberedPublicStoreId(): number | null {
+  if (typeof window === "undefined") return null;
+  const storeId = Number(window.localStorage.getItem(selectedStoreStorageKey));
+  return Number.isSafeInteger(storeId) && storeId > 0 ? storeId : null;
+}
+
+export function rememberPublicStoreId(storeId: number) {
+  if (typeof window === "undefined" || !Number.isSafeInteger(storeId) || storeId <= 0) return;
+  window.localStorage.setItem(selectedStoreStorageKey, String(storeId));
+}
+
 export async function loadPublicStores(): Promise<PublicStore[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const response = await fetch(`${apiUrl}/api/v1/public/stores`, { cache: "no-store" });
@@ -30,7 +43,7 @@ export async function loadPublicStores(): Promise<PublicStore[]> {
   return (body as { data: PublicStore[] }).data;
 }
 
-export async function loadPublicStore(storeId = 1): Promise<StoreSettings> {
+export async function loadPublicStore(storeId: number): Promise<StoreSettings> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const response = await fetch(`${apiUrl}/api/v1/public/stores/${storeId}`, { cache: "no-store" });
   const body: unknown = await response.json().catch(() => undefined);
@@ -40,7 +53,7 @@ export async function loadPublicStore(storeId = 1): Promise<StoreSettings> {
 }
 
 export async function loadPublicStoreWelcomeConfig(
-  storeId = 1,
+  storeId: number,
 ): Promise<PublicStoreWelcomeConfig | null> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const response = await fetch(`${apiUrl}/api/v1/public/stores/${storeId}/welcome`, {

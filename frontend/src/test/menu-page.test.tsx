@@ -18,6 +18,7 @@ vi.mock("../lib/customer/sales-session", () => ({
   hasOpenCustomerSalesSession: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
+  getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
   loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
 }));

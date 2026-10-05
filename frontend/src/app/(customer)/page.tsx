@@ -7,6 +7,7 @@ import { CustomerBottomNavigation } from "../../components/customer/customer-bot
 import { CustomerHeader } from "../../components/customer/customer-header";
 import { CasIcon } from "../../components/ui/cas-icon";
 import {
+  getRememberedPublicStoreId,
   loadPublicStore,
   loadPublicStoreWelcomeConfig,
   type PublicStoreWelcomeConfig,
@@ -74,10 +75,11 @@ export default function Home() {
   const [welcome, setWelcome] = useState<PublicStoreWelcomeConfig | null>(null);
 
   useEffect(() => {
-    void loadPublicStore()
+    const storeId = getRememberedPublicStoreId() ?? 1;
+    void loadPublicStore(storeId)
       .then(setStore)
       .catch(() => undefined);
-    void loadPublicStoreWelcomeConfig()
+    void loadPublicStoreWelcomeConfig(storeId)
       .then(setWelcome)
       .catch(() => undefined);
   }, []);
@@ -173,6 +175,7 @@ export default function Home() {
                   src={heroSecondaryImage}
                   alt="Các món ăn vặt gồm cá viên, khoai tây chiên và xiên que"
                   loading="eager"
+                  fetchPriority="high"
                 />
               </div>
 

@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { CasIcon } from "../ui/cas-icon";
 import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { readCustomerCart } from "../../lib/customer/cart";
-import { loadPublicStore } from "../../lib/api/store/public-store.api";
+import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 import {
   loadCustomerNotifications,
   markAllCustomerNotificationsRead,
@@ -101,7 +101,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   useEffect(() => {
     let active = true;
-    void loadPublicStore()
+    void loadPublicStore(getRememberedPublicStoreId() ?? 1)
       .then((store) => {
         if (!active) return;
         setStoreName(store.name);

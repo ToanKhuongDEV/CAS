@@ -7,6 +7,7 @@ import { CustomerInformationFormFields } from "../../../components/customer/cust
 import {
   loadPublicStore,
   loadPublicStores,
+  rememberPublicStoreId,
   type PublicStore,
 } from "../../../lib/api/store/public-store.api";
 import type { StoreSettings } from "../../../lib/api/store/store-settings.api";
@@ -37,8 +38,6 @@ export default function StartOrderPage() {
   const [storeId, setStoreId] = useState<number | null>(null);
   const [store, setStore] = useState<Pick<StoreSettings, "name" | "logoUrl"> | null>(null);
   const [orderType, setOrderType] = useState<"DINE_IN" | "TAKEAWAY" | null>(null);
-  const [isManualDineIn, setIsManualDineIn] = useState(false);
-  const [tableCode, setTableCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
   const storeDropdownReference = useRef<HTMLDivElement>(null);
@@ -86,6 +85,10 @@ export default function StartOrderPage() {
       { maximumAge: 300_000, timeout: 8_000 },
     );
   }, [searchParams, storeId, stores]);
+
+  useEffect(() => {
+    if (storeId) rememberPublicStoreId(storeId);
+  }, [storeId]);
 
   useEffect(() => {
     const effectiveStoreId = storeId ?? stores[0]?.id;
@@ -160,8 +163,7 @@ export default function StartOrderPage() {
           <button
             className="min-h-20 rounded-xl bg-cas-primary px-3 font-bold text-cas-on-primary"
             onClick={() => {
-              setOrderType("DINE_IN");
-              setIsManualDineIn(false);
+              router.push(`/scan?returnTo=${encodeURIComponent(destination())}`);
             }}
             type="button"
           >
@@ -175,7 +177,7 @@ export default function StartOrderPage() {
             Mang về
           </button>
         </div>
-      ) : orderType === "TAKEAWAY" || isManualDineIn ? (
+      ) : orderType === "TAKEAWAY" ? (
         <>
           <p className="mt-6 text-sm font-bold" id="store-label">
             Chi nhánh
@@ -225,57 +227,6 @@ export default function StartOrderPage() {
             ) : null}
           </div>
         </>
-      ) : null}
-      {orderType === "DINE_IN" && !isManualDineIn ? (
-        <div className="mt-6 grid gap-3">
-          <button
-            className="min-h-12 rounded-xl bg-cas-primary px-4 font-bold text-cas-on-primary"
-            onClick={() => router.push(`/scan?returnTo=${encodeURIComponent(destination())}`)}
-            type="button"
-          >
-            Quét mã QR bàn
-          </button>
-          <button
-            className="min-h-12 rounded-xl border border-cas-primary px-4 font-bold text-cas-primary"
-            onClick={() => setIsManualDineIn(true)}
-            type="button"
-          >
-            Chọn số bàn
-          </button>
-        </div>
-      ) : null}
-      {orderType === "DINE_IN" && isManualDineIn && storeId ? (
-        <div className="mt-5 space-y-4">
-          <label className="block text-sm font-bold" htmlFor="table-code">
-            Số bàn
-          </label>
-          <input
-            className="min-h-12 w-full rounded-xl border border-cas-outline-variant bg-cas-surface px-3 text-cas-on-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-            id="table-code"
-            inputMode="numeric"
-            onChange={(event) => setTableCode(event.target.value.replace(/\D/g, ""))}
-            pattern="[0-9]*"
-            placeholder="Ví dụ: 1"
-            type="text"
-            value={tableCode}
-          />
-          <button
-            className="min-h-12 w-full rounded-xl bg-cas-primary px-4 font-bold text-cas-on-primary"
-            onClick={() => {
-              const normalizedTableCode = Number(tableCode);
-              if (!Number.isSafeInteger(normalizedTableCode) || normalizedTableCode <= 0) {
-                setError("Vui lòng nhập số bàn hợp lệ.");
-                return;
-              }
-              router.push(
-                `/table/manual?storeId=${storeId}&tableCode=${normalizedTableCode}&returnTo=${encodeURIComponent(destination())}`,
-              );
-            }}
-            type="button"
-          >
-            Tiếp tục
-          </button>
-        </div>
       ) : null}
       {orderType === "TAKEAWAY" && storeId ? (
         <div className="mt-5">

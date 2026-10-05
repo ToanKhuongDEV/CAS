@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadPublicStore } from "../../lib/api/store/public-store.api";
+import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 
 type StoreIdentityProps = {
+  storeId?: number;
   subtitle?: string;
   logoClassName?: string;
   nameClassName?: string;
@@ -11,6 +12,7 @@ type StoreIdentityProps = {
 };
 
 export function StoreIdentity({
+  storeId,
   subtitle,
   logoClassName = "rounded-xl",
   nameClassName = "text-xl font-black tracking-tight text-cas-primary",
@@ -19,13 +21,14 @@ export function StoreIdentity({
   const [name, setName] = useState("CAS");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   useEffect(() => {
-    void loadPublicStore()
+    const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
+    void loadPublicStore(effectiveStoreId)
       .then((store) => {
         setName(store.name);
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
-  }, []);
+  }, [storeId]);
   const logo = (
     <span
       className={`grid size-10 place-items-center overflow-hidden shadow-[0_8px_20px_var(--cas-shadow-color)] ${logoClassName}`}

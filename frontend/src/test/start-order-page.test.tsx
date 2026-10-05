@@ -17,7 +17,6 @@ vi.mock("../lib/api/store/public-store.api", () => ({
 }));
 vi.mock("../lib/customer/sales-session", () => ({
   openCustomerTakeawaySalesSession: vi.fn(),
-  resolveCustomerSalesSessionByTable: vi.fn(),
 }));
 
 describe("StartOrderPage", () => {
@@ -57,7 +56,7 @@ describe("StartOrderPage", () => {
 
   afterEach(cleanup);
 
-  it("keeps QR scanning independent from branch selection", async () => {
+  it("opens the QR screen directly for dine-in", async () => {
     render(<StartOrderPage />);
 
     expect(await screen.findByText("CAS Mỳ Cay")).toBeInTheDocument();
@@ -70,26 +69,7 @@ describe("StartOrderPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Ăn tại quán" }));
 
-    expect(screen.getByRole("button", { name: "Quét mã QR bàn" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Chi nhánh" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Chọn số bàn" }));
-
-    expect(await screen.findByRole("button", { name: "Chi nhánh" })).toBeInTheDocument();
-  });
-
-  it("accepts a numeric table code with a leading zero", async () => {
-    render(<StartOrderPage />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Ăn tại quán" }));
-    fireEvent.click(screen.getByRole("button", { name: "Chọn số bàn" }));
-    await screen.findByRole("button", { name: "Chi nhánh" });
-    fireEvent.change(screen.getByRole("textbox", { name: "Số bàn" }), {
-      target: { value: "01abc" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
-
-    expect(push).toHaveBeenCalledWith("/table/manual?storeId=1&tableCode=1&returnTo=%2Fmenu");
+    expect(push).toHaveBeenCalledWith("/scan?returnTo=%2Fmenu");
   });
 
   it("opens a takeaway session after its required customer information", async () => {

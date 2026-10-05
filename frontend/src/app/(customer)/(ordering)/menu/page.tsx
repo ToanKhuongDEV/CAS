@@ -13,6 +13,7 @@ import { CasIcon } from "../../../../components/ui/cas-icon";
 import { useToast } from "../../../../components/ui/toast-provider";
 import { useCustomerCatalog } from "../../../../lib/api/catalog/customer-catalog.query";
 import {
+  getRememberedPublicStoreId,
   loadPublicStore,
   loadPublicStoreWelcomeConfig,
 } from "../../../../lib/api/store/public-store.api";
@@ -56,10 +57,11 @@ export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    void loadPublicStoreWelcomeConfig()
+    const storeId = getRememberedPublicStoreId() ?? 1;
+    void loadPublicStoreWelcomeConfig(storeId)
       .then((config) => setWelcomeBannerImageUrl(config?.bannerImageUrl ?? null))
       .catch(() => undefined);
-    void loadPublicStore()
+    void loadPublicStore(storeId)
       .then((store) => setStorePhone(store.phone))
       .catch(() => undefined);
   }, []);

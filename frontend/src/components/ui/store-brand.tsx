@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadPublicStore } from "../../lib/api/store/public-store.api";
+import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 
-export function StoreBrand() {
+export function StoreBrand({ storeId }: { storeId?: number }) {
   const [name, setName] = useState("CAS");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   useEffect(() => {
-    void loadPublicStore()
+    const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
+    void loadPublicStore(effectiveStoreId)
       .then((store) => {
         setName(store.name);
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
-  }, []);
+  }, [storeId]);
   return (
     <>
       <span className="grid size-10 place-items-center overflow-hidden rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]">
@@ -31,13 +32,14 @@ export function StoreBrand() {
   );
 }
 
-export function StoreLogo() {
+export function StoreLogo({ storeId }: { storeId?: number }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   useEffect(() => {
-    void loadPublicStore()
+    const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
+    void loadPublicStore(effectiveStoreId)
       .then((store) => setLogoUrl(store.logoUrl))
       .catch(() => undefined);
-  }, []);
+  }, [storeId]);
   return (
     <img
       alt="Logo cửa hàng"

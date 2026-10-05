@@ -158,6 +158,7 @@ Ngày cập nhật gần nhất: 2026-10-05
 
 - [x] Loại bỏ migration V3 lỗi; giữ FK QR-bàn là `RESTRICT` do giới hạn MySQL với generated column, và xóa QR trong transaction của use case xóa bàn.
 - [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món demo dùng URL và storage key Cloudinary, còn ảnh Welcome tiếp tục dùng asset local.
+- [x] Bổ sung script thủ công `backend/src/main/resources/db/seed/clone_demo_store_2.sql`: cập nhật store `2`, clone dữ liệu Customer-facing từ store demo `1` và sinh QR mới cho các bàn.
 - [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
 
 - [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
@@ -440,6 +441,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Trang Đơn hàng Customer hiển thị empty state có nút quét QR khi chưa có session bàn hoạt động, thay cho lỗi kỹ thuật màu đỏ.
 - [x] Luồng bắt đầu order Customer chọn loại `DINE_IN`/`TAKEAWAY` trước: QR tại bàn giữ lại bàn đã quét cho `DINE_IN`; các lối vào chưa có phiên (Header, Đơn hàng, Menu và Giỏ) đi tới màn chọn loại order; trang này tải tên và logo của chi nhánh từ Public Store API; vào web hoặc QR quầy chỉ yêu cầu quét/nhập QR khi chọn `DINE_IN`; `TAKEAWAY` yêu cầu tên và SĐT rồi vào menu.
 - [x] Bổ sung `stores.latitude` và `stores.longitude`; Public Store API trả tọa độ để trang Start dùng Haversine chọn chi nhánh gần nhất theo vị trí trình duyệt, còn QR quầy dùng `storeId` để chọn sẵn chi nhánh.
+- [x] Loại bỏ fallback ngầm `storeId = 1` khỏi Public Store API frontend; trang public chọn tường minh store `1` khi chưa có ngữ cảnh, còn sau khi khách chọn chi nhánh thì Home/Menu tải đúng thương hiệu hoặc Welcome của chi nhánh đó.
 - [x] Form Customer mở phiên bàn kiểm tra số điện thoại Việt Nam tùy chọn; cho phép khoảng trắng khi nhập và gửi số 10 chữ số bắt đầu bằng `0` đã chuẩn hóa.
 - [x] Thêm React Query cho catalog Customer: Menu, Cart và Đơn hàng dùng chung cache 5 phút; ảnh tiếp tục do browser/CDN cache qua URL ảnh.
 - [x] Hoàn thiện trang Đơn hàng Customer bằng dữ liệu bill thật: khôi phục header/điều hướng, thêm gọi thêm món và chỉ cho yêu cầu thanh toán khi sales session `OPEN`.

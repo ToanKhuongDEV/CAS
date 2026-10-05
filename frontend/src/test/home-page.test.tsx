@@ -5,7 +5,13 @@ import Home from "../app/(customer)/page";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 vi.mock("../lib/api/store/public-store.api", () => ({
+  getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
   loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
 }));
@@ -53,7 +59,10 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
     expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
     expect(await screen.findByText("Bàn 12")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute("href", "/menu");
+    expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute(
+      "href",
+      "/start",
+    );
     expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute(
       "href",
       "/menu?category=M%E1%BB%B3%20cay",
