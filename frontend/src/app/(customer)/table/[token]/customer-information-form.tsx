@@ -15,7 +15,7 @@ export function CustomerInformationForm() {
   const searchParams = useSearchParams();
   const params = useParams<{ token: string }>();
   const [resolution, setResolution] = useState<SalesSessionResolution | null>(null);
-  const [sessionType, setSessionType] = useState<"DINE_IN" | "TAKEAWAY">("DINE_IN");
+  const [sessionType, setSessionType] = useState<"DINE_IN" | "TAKEAWAY" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedNotifications = useRef(false);
 
@@ -31,7 +31,7 @@ export function CustomerInformationForm() {
     void loadCustomerNotifications().catch(() => undefined);
   }
 
-  function resolve() {
+  function resolveDineIn() {
     if (typeof params.token !== "string") return;
     setError(null);
     resolveCustomerSalesSession(params.token)
@@ -51,9 +51,24 @@ export function CustomerInformationForm() {
   useEffect(() => {
     if (typeof params.token === "string") {
       window.sessionStorage.setItem("cas.tableQrToken", params.token);
-      resolve();
     }
   }, [params.token]);
+
+  function chooseDineIn() {
+    setSessionType("DINE_IN");
+    resolveDineIn();
+  }
+
+  function chooseTakeaway() {
+    setSessionType("TAKEAWAY");
+    setResolution({
+      customerInformationRequired: true,
+      joinSessionRequired: false,
+      joinableSessions: [],
+      sessionStatus: "CUSTOMER_INFORMATION_REQUIRED",
+      tableCode: null,
+    });
+  }
 
   async function handleSubmitCustomerInformation(information: {
     customerName: string;
@@ -67,7 +82,7 @@ export function CustomerInformationForm() {
       setError(null);
       const nextResolution = await resolveCustomerSalesSession(params.token, {
         ...information,
-        sessionType,
+        sessionType: sessionType ?? "DINE_IN",
       });
       if (!nextResolution.customerInformationRequired && !nextResolution.joinSessionRequired) {
         loadNotificationsOnce();
@@ -94,33 +109,30 @@ export function CustomerInformationForm() {
     }
   }
 
+  if (!sessionType) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          className="min-h-20 rounded-xl bg-cas-primary px-3 font-bold text-cas-on-primary"
+          onClick={chooseDineIn}
+          type="button"
+        >
+          Ăn tại quán
+        </button>
+        <button
+          className="min-h-20 rounded-xl border border-cas-primary px-3 font-bold text-cas-primary"
+          onClick={chooseTakeaway}
+          type="button"
+        >
+          Mang về
+        </button>
+      </div>
+    );
+  }
+
   if (resolution?.customerInformationRequired) {
     return (
       <>
-        <div className="mb-5 grid grid-cols-2 rounded-xl bg-cas-surface p-1 text-sm font-bold">
-          <button
-            className={`rounded-lg px-3 py-2 transition ${
-              sessionType === "DINE_IN"
-                ? "bg-cas-primary text-cas-on-primary"
-                : "text-cas-on-surface-variant"
-            }`}
-            onClick={() => setSessionType("DINE_IN")}
-            type="button"
-          >
-            Ăn tại quán
-          </button>
-          <button
-            className={`rounded-lg px-3 py-2 transition ${
-              sessionType === "TAKEAWAY"
-                ? "bg-cas-primary text-cas-on-primary"
-                : "text-cas-on-surface-variant"
-            }`}
-            onClick={() => setSessionType("TAKEAWAY")}
-            type="button"
-          >
-            Mang về
-          </button>
-        </div>
         <CustomerInformationFormFields
           onSubmitCustomerInfo={handleSubmitCustomerInformation}
           phoneRequired={sessionType === "TAKEAWAY"}
@@ -170,7 +182,11 @@ export function CustomerInformationForm() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-cas-error">{error}</p>
-        <button className="text-sm font-bold text-cas-primary" onClick={resolve} type="button">
+        <button
+          className="text-sm font-bold text-cas-primary"
+          onClick={resolveDineIn}
+          type="button"
+        >
           Thử lại
         </button>
       </div>

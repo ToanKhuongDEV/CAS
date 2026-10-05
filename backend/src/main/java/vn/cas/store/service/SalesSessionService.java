@@ -36,6 +36,21 @@ public class SalesSessionService {
         if (command.storeId() != null && command.storeId() != table.storeId()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
         }
+        return resolveTable(table, command);
+    }
+
+    @Transactional
+    public SalesSessionResolution resolveTable(long storeId, long tableCode,
+            SalesSessionResolutionCommand command) {
+        var table = diningTableMapper.findTableByStoreIdAndCodeForUpdate(storeId, tableCode);
+        if (table == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
+        }
+        return resolveTable(table, command);
+    }
+
+    private SalesSessionResolution resolveTable(vn.cas.store.model.QrTableLookup table,
+            SalesSessionResolutionCommand command) {
         var joinableSessions = diningTableMapper
                 .findJoinableDineInSessionsByTableId(table.tableId());
 

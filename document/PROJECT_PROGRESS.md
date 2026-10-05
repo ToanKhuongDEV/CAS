@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-09-24
+Ngày cập nhật gần nhất: 2026-10-05
 
 ## Quy ước
 
@@ -192,6 +192,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/sales-sessions/resolve-qr`: trả danh sách session `DINE_IN` đang hoạt động để Customer chọn chung bàn hoặc tạo session mới; Customer có thể tạo `TAKEAWAY` từ QR với tên/SĐT bắt buộc. **[Chờ ghép Frontend]**
+- [x] `POST /api/v1/customer/sales-sessions/resolve-table`: Customer chọn cơ sở và nhập số bàn để mở hoặc dùng chung session `DINE_IN`; số bàn được xác thực trong phạm vi cơ sở. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/public/stores`: Customer lấy danh sách chi nhánh `ACTIVE` để bắt đầu gọi món. **[Đã ghép Frontend]**
 - [x] `POST /api/v1/customer/sales-sessions/takeaway`: Customer mở session mang về theo chi nhánh đã chọn, với tên và SĐT bắt buộc; session cookie `HttpOnly` được cấp để gọi món. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/customer/sales-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
@@ -221,6 +222,7 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] Customer chỉ đọc session `OPEN` hoặc `PAYMENT_PENDING`; session `CLOSED` sau khi Operator xác nhận payment không còn trả lại order/bill/payment cũ qua cookie session.
 - [x] Thêm index `payments(status, created_at, sales_session_id)` bằng Flyway để phục vụ danh sách và số lượng payment `PENDING` theo thời điểm tạo, không thay đổi schema nghiệp vụ.
 - [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Đã ghép Frontend]**
+- [x] Bill xem/in của Operator ẩn dòng bàn khi payment thuộc phiên `TAKEAWAY` có `tableCode` là `null`.
 - [x] Xác nhận payment parse JSON của bill snapshot để chỉ hoàn tất redemption khi `discount` thực sự có dữ liệu; snapshot `discount: null` với bất kỳ khoảng trắng nào không còn bị nhận nhầm là promotion.
 - [x] Popup xác nhận payment của Operator xóa lỗi xác nhận cũ khi mở, đóng hoặc chuyển sang payment khác.
 - [x] Xác nhận payment thành công của Operator hiển thị bằng toast dùng chung thay vì banner trong trang.
@@ -436,6 +438,8 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 - [x] Chuẩn hóa toast dùng chung: hiển thị cố định ở góc dưới bên phải, nền trắng; chữ/icon xanh cho thành công, thông tin và lưu ý, chữ/icon đỏ cho lỗi.
 - [x] Thiết kế lại trang Đơn hàng Customer theo card mobile-first: chi tiết món, số lượng cùng hàng tên món, giá/tùy chọn, yêu cầu hủy, ghi chú và tổng tiền; tra catalog hiện hành để hiển thị ảnh món, dùng placeholder khi món không còn ảnh; không hiển thị mã order nội bộ cho Customer.
 - [x] Trang Đơn hàng Customer hiển thị empty state có nút quét QR khi chưa có session bàn hoạt động, thay cho lỗi kỹ thuật màu đỏ.
+- [x] Luồng bắt đầu order Customer chọn loại `DINE_IN`/`TAKEAWAY` trước: QR tại bàn giữ lại bàn đã quét cho `DINE_IN`; các lối vào chưa có phiên (Header, Đơn hàng, Menu và Giỏ) đi tới màn chọn loại order; trang này tải tên và logo của chi nhánh từ Public Store API; vào web hoặc QR quầy chỉ yêu cầu quét/nhập QR khi chọn `DINE_IN`; `TAKEAWAY` yêu cầu tên và SĐT rồi vào menu.
+- [x] Bổ sung `stores.latitude` và `stores.longitude`; Public Store API trả tọa độ để trang Start dùng Haversine chọn chi nhánh gần nhất theo vị trí trình duyệt, còn QR quầy dùng `storeId` để chọn sẵn chi nhánh.
 - [x] Form Customer mở phiên bàn kiểm tra số điện thoại Việt Nam tùy chọn; cho phép khoảng trắng khi nhập và gửi số 10 chữ số bắt đầu bằng `0` đã chuẩn hóa.
 - [x] Thêm React Query cho catalog Customer: Menu, Cart và Đơn hàng dùng chung cache 5 phút; ảnh tiếp tục do browser/CDN cache qua URL ảnh.
 - [x] Hoàn thiện trang Đơn hàng Customer bằng dữ liệu bill thật: khôi phục header/điều hướng, thêm gọi thêm món và chỉ cho yêu cầu thanh toán khi sales session `OPEN`.

@@ -15,6 +15,8 @@ export type PublicStore = {
   id: number;
   name: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   status: "ACTIVE";
 };
 

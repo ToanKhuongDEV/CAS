@@ -24,7 +24,8 @@ export default function CustomerInformationPage() {
             Bắt đầu gọi món
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
-            Chọn chung bàn với khách đang dùng chung bill, hoặc tạo phiên gọi món mới cho bạn.
+            Chọn hình thức gọi món. Đối với đơn ăn tại quán, bạn đã được xác định sẵn bàn từ mã QR
+            này.
           </p>
         </header>
 

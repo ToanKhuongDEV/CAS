@@ -269,7 +269,7 @@ export default function MenuPage() {
                             beforeAddToCart={async () => {
                               if (await hasOpenCustomerSalesSession()) return true;
                               router.push(
-                                `/scan?returnTo=${encodeURIComponent(window.location.pathname)}`,
+                                `/start?returnTo=${encodeURIComponent(window.location.pathname)}`,
                               );
                               return false;
                             }}

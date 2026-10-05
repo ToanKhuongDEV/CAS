@@ -59,6 +59,8 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Autho
 curl.exe http://localhost:8080/api/v1/admin/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/customer/catalog/categories
 curl.exe http://localhost:8080/api/v1/customer/catalog/items
+# Response `GET /api/v1/public/stores` includes `latitude` and `longitude`; Customer uses them
+# with browser location to select the nearest branch. A counter QR may link to `/start?storeId=<store-id>`.
 curl.exe http://localhost:8080/api/v1/public/stores
 curl.exe http://localhost:8080/api/v1/operator/catalog/option-groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/catalog/option-values/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Size L\",\"extraPrice\":10000,\"isDefault\":false,\"displayOrder\":1,\"status\":\"ACTIVE\"}"
@@ -76,6 +78,7 @@ khách chọn chung bàn hoặc tạo session mới; `TAKEAWAY` bắt buộc c�
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\"}" -c customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"joinSessionId\":\"<session-id-da-chon>\"}" -c customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-qr -H "Content-Type: application/json" -d "{\"qrToken\":\"<QR token>\",\"sessionType\":\"DINE_IN\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
+curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/resolve-table -H "Content-Type: application/json" -d "{\"storeId\":1,\"tableCode\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/takeaway -H "Content-Type: application/json" -d "{\"storeId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}" -c customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt
 curl.exe -X DELETE http://localhost:8080/api/v1/customer/sales-sessions/current -b customer-session-cookie.txt

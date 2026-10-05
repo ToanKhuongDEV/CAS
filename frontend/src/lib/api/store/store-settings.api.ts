@@ -11,6 +11,8 @@ export type StoreSettings = {
   logoUrl: string | null;
   logoStorageKey: string | null;
   googleMapsLocation: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   openTime: string;
   closeTime: string;
   welcomeSlogan: string | null;

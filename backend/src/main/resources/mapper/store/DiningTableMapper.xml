@@ -107,6 +107,18 @@
         FOR UPDATE
     </select>
 
+    <select id="findTableByStoreIdAndCodeForUpdate"
+            resultType="vn.cas.store.model.QrTableLookup">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode
+        FROM dining_tables
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.code = #{tableCode}
+        FOR UPDATE
+    </select>
+
     <select id="findJoinableDineInSessionsByTableId"
             resultType="vn.cas.store.model.JoinableSalesSession">
         SELECT

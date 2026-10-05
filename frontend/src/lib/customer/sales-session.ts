@@ -41,6 +41,27 @@ export async function resolveCustomerSalesSession(
   return body.data;
 }
 
+export async function resolveCustomerSalesSessionByTable(input: {
+  storeId: number;
+  tableCode: number;
+  customerName?: string;
+  customerPhone?: string | null;
+  joinSessionId?: string;
+}): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-table`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error(getBackendErrorMessage(body, "KhÃ´ng thá»ƒ xÃ¡c thá»±c bÃ n Ä‘Ã£ chá»n."));
+  }
+
+  return body.data;
+}
+
 export async function openCustomerTakeawaySalesSession(input: {
   storeId: number;
   customerName: string;

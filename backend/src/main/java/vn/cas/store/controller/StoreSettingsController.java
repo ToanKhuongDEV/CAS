@@ -64,7 +64,7 @@ public class StoreSettingsController {
             @Pattern(regexp = "ACTIVE|INACTIVE") String status) {
         StoreSettings toModel(long id) {
             return new StoreSettings(id, name, address, phone, email, logoUrl, logoStorageKey,
-                    googleMapsLocation, openTime, closeTime, welcomeSlogan, status);
+                    googleMapsLocation, null, null, openTime, closeTime, welcomeSlogan, status);
         }
     }
 }

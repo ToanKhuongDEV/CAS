@@ -48,12 +48,12 @@ describe("CustomerHeader", () => {
     replace.mockClear();
   });
 
-  it("links an unselected table indicator to QR scanning", async () => {
+  it("links an unselected table indicator to order-type selection", async () => {
     render(<CustomerHeader />);
 
-    expect(await screen.findByRole("link", { name: "Chọn bàn bằng mã QR" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Bắt đầu gọi món" })).toHaveAttribute(
       "href",
-      "/scan",
+      "/start",
     );
   });
 

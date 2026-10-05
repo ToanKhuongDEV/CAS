@@ -47,21 +47,33 @@ describe("CustomerInformationPage", () => {
     cleanup();
   });
 
-  it("renders the first-customer information form", async () => {
+  async function chooseDineIn() {
+    fireEvent.click(await screen.findByRole("button", { name: "Ăn tại quán" }));
+  }
+
+  it("shows order types before resolving the table QR", async () => {
     render(<CustomerInformationPage />);
 
     expect(await screen.findByRole("heading", { name: "Bắt đầu gọi món" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Tên của bạn" })).toBeRequired();
+    expect(screen.getByRole("button", { name: "Ăn tại quán" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mang về" })).toBeInTheDocument();
+    expect(resolveCustomerSalesSession).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr-ban-05");
+
+    await chooseDineIn();
+
+    expect(await screen.findByRole("textbox", { name: "Tên của bạn" })).toBeRequired();
     expect(screen.getByRole("textbox", { name: /Số điện thoại/i })).not.toBeRequired();
     expect(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" })).toBeInTheDocument();
     expect(
       screen.getByText("Thông tin này được dùng để xác định phiên gọi món và bill của bạn."),
     ).toBeInTheDocument();
-    expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr-ban-05");
   });
 
   it("shows a name error and focuses the invalid input", async () => {
     render(<CustomerInformationPage />);
+
+    await chooseDineIn();
 
     fireEvent.click(await screen.findByRole("button", { name: "Mở phiên và xem thực đơn" }));
 
@@ -72,6 +84,8 @@ describe("CustomerInformationPage", () => {
 
   it("accepts spaces in a Vietnamese phone number and sends normalized digits", async () => {
     render(<CustomerInformationPage />);
+
+    await chooseDineIn();
 
     fireEvent.change(await screen.findByRole("textbox", { name: "Tên của bạn" }), {
       target: { value: "Nguyễn Văn A" },
@@ -100,6 +114,8 @@ describe("CustomerInformationPage", () => {
   it("rejects an invalid Vietnamese phone number", async () => {
     render(<CustomerInformationPage />);
 
+    await chooseDineIn();
+
     fireEvent.change(await screen.findByRole("textbox", { name: "Tên của bạn" }), {
       target: { value: "Nguyễn Văn A" },
     });
@@ -118,6 +134,8 @@ describe("CustomerInformationPage", () => {
 
   it("continues to the menu when required information is present", async () => {
     render(<CustomerInformationPage />);
+
+    await chooseDineIn();
 
     fireEvent.change(await screen.findByRole("textbox", { name: "Tên của bạn" }), {
       target: { value: "Nguyễn Văn A" },
@@ -146,6 +164,8 @@ describe("CustomerInformationPage", () => {
 
     render(<CustomerInformationPage />);
 
+    await chooseDineIn();
+
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/payment"));
     expect(loadCustomerNotifications).toHaveBeenCalledTimes(1);
   });
@@ -170,6 +190,8 @@ describe("CustomerInformationPage", () => {
       });
 
     render(<CustomerInformationPage />);
+
+    await chooseDineIn();
 
     fireEvent.click(await screen.findByRole("button", { name: /Nguyễn Văn An.*Chung bàn/i }));
 
@@ -197,6 +219,8 @@ describe("CustomerInformationPage", () => {
     vi.mocked(resolveCustomerSalesSession).mockRejectedValue(new Error("QR không hợp lệ"));
 
     render(<CustomerInformationPage />);
+
+    await chooseDineIn();
 
     expect(await screen.findByText("QR không hợp lệ")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();

@@ -60,6 +60,26 @@ public class CustomerSalesSessionController {
                 CustomerSalesSessionResponse.from(resolution), request);
     }
 
+    @PostMapping("/resolve-table")
+    public ResponseEntity<ApiResponse<CustomerSalesSessionResponse>> resolveTable(
+            @Valid @RequestBody ResolveTableRequest resolveTableRequest, HttpServletRequest request,
+            HttpServletResponse response) {
+        var resolution = customerSalesSessionService.resolveTable(resolveTableRequest.storeId(),
+                resolveTableRequest.tableCode(),
+                new SalesSessionResolutionCommand(null,
+                        normalize(resolveTableRequest.customerName()),
+                        normalize(resolveTableRequest.customerPhone()), "DINE_IN",
+                        normalize(resolveTableRequest.joinSessionId()),
+                        resolveTableRequest.storeId()));
+        if (resolution.sessionPublicId() != null) {
+            response.addHeader(HttpHeaders.SET_COOKIE,
+                    customerSessionCookie(resolution.sessionPublicId(), request.isSecure())
+                            .toString());
+        }
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMER_SALES_SESSION_RESOLVED,
+                CustomerSalesSessionResponse.from(resolution), request);
+    }
+
     @PostMapping("/takeaway")
     public ResponseEntity<ApiResponse<CustomerSalesSessionResponse>> openTakeaway(
             @Valid @RequestBody OpenTakeawayRequest body, HttpServletRequest request,
@@ -106,6 +126,11 @@ public class CustomerSalesSessionController {
             @Size(max = 150) String customerName, @Size(max = 20) String customerPhone,
             @Pattern(regexp = "DINE_IN|TAKEAWAY") String sessionType,
             @Size(max = 36) String joinSessionId, @Positive Long storeId) {
+    }
+
+    public record ResolveTableRequest(@Positive long storeId, @Positive long tableCode,
+            @Size(max = 150) String customerName, @Size(max = 20) String customerPhone,
+            @Size(max = 36) String joinSessionId) {
     }
 
     public record OpenTakeawayRequest(@Positive long storeId,

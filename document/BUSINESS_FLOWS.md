@@ -177,16 +177,15 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 
 ### Luồng chính
 
-1. Khách hàng quét QR tại bàn.
-2. QR dẫn tới đường dẫn chứa `table_qr_codes.token`.
-3. Hệ thống kiểm tra token tồn tại và có trạng thái `ACTIVE`.
-4. Hệ thống xác định `dining_tables` tương ứng.
+1. Khách hàng quét QR tại bàn hoặc mở web/QR tại quầy để vào giao diện chọn loại order. Web dùng vị trí trình duyệt và tọa độ cửa hàng để chọn sẵn chi nhánh gần nhất; QR quầy chứa `storeId` để chọn sẵn đúng chi nhánh.
+2. Khách chọn `DINE_IN` hoặc `TAKEAWAY`.
+3. Với QR tại bàn và `DINE_IN`, hệ thống kiểm tra `table_qr_codes.token` `ACTIVE`, xác định `dining_tables` tương ứng; khách không phải quét lại QR.
+4. Với web/QR tại quầy và `DINE_IN`, khách hoặc quét QR ngay để hệ thống tự xác định cơ sở và bàn, hoặc chọn chi nhánh rồi nhập số bàn. Trường số bàn chỉ nhận chữ số; `01` và `1` cùng xác định bàn `1`.
 5. Hệ thống trả danh sách các `DINE_IN` đang `OPEN` hoặc `PAYMENT_PENDING` tại bàn, gồm tên snapshot người mở session.
-6. Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session mới.
-7. Khi chung bàn, hệ thống chỉ cấp quyền Customer vào session đã chọn; không yêu cầu lại tên hoặc SĐT.
-8. Khi tạo session mới từ QR bàn, khách chọn `DINE_IN` (tên bắt buộc, SĐT tùy chọn) hoặc `TAKEAWAY` (tên và SĐT bắt buộc); `TAKEAWAY` không gắn với bàn, QR chỉ xác định chi nhánh.
-9. Backend tìm hoặc tạo `client_accounts` theo SĐT trong phạm vi cửa hàng, rồi tạo `sales_sessions` phù hợp và lưu snapshot tên/SĐT.
-10. Khách hàng được chuyển từ `/table/{qrToken}` tới `/menu` sau khi session đã được chọn hoặc tạo.
+6. Khách chọn một session để chung bàn, hoặc chọn `Không chung bàn` để tạo session mới. Khi chung bàn, hệ thống chỉ cấp quyền Customer vào session đã chọn; không yêu cầu lại tên hoặc SĐT.
+7. Khi tạo session mới `DINE_IN`, khách nhập tên bắt buộc và SĐT tùy chọn. Với `TAKEAWAY`, khách nhập cả tên và SĐT; đơn không gắn với bàn. QR tại bàn chỉ xác định chi nhánh cho đơn mang về.
+8. Backend tìm hoặc tạo `client_accounts` theo SĐT trong phạm vi cửa hàng, rồi tạo `sales_sessions` phù hợp và lưu snapshot tên/SĐT.
+9. Khách hàng được chuyển tới `/menu` sau khi session đã được chọn hoặc tạo.
 
 ### Quy tắc nghiệp vụ
 

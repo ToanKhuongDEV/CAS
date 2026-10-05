@@ -77,7 +77,7 @@ export function ProductDetailForm({
       return;
     }
     if (!(await hasOpenCustomerSalesSession())) {
-      router.push(`/scan?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/start?returnTo=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     addCustomerCartLine({

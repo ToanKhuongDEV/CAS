@@ -19,7 +19,7 @@
     <select id="findByStoreId" resultType="vn.cas.store.model.StoreSettings">
         SELECT id, name, address, phone, email, logo_url AS logoUrl,
                logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, open_time AS openTime,
+               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
                close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
         FROM stores WHERE id = #{storeId}
     </select>
@@ -27,7 +27,7 @@
     <select id="findActiveByStoreId" resultType="vn.cas.store.model.StoreSettings">
         SELECT id, name, address, phone, email, logo_url AS logoUrl,
                logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, open_time AS openTime,
+               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
                close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
         FROM stores WHERE id = #{storeId} AND status = 'ACTIVE'
     </select>
@@ -35,7 +35,7 @@
     <select id="findAllActive" resultType="vn.cas.store.model.StoreSettings">
         SELECT id, name, address, phone, email, logo_url AS logoUrl,
                logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, open_time AS openTime,
+               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
                close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
         FROM stores
         WHERE status = 'ACTIVE'

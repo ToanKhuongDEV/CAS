@@ -62,7 +62,7 @@ type OperatorPayment = {
   payableAmount: string;
   requestedAt: string;
   status: PaymentListMode;
-  table: string;
+  table: string | null;
 };
 
 const currency = new Intl.NumberFormat("vi-VN");
@@ -78,6 +78,10 @@ function formatRequestedAt(value: string) {
         minute: "2-digit",
         month: "2-digit",
       }).format(date);
+}
+
+function formatTable(tableCode: number | null) {
+  return tableCode === null ? null : `Bàn ${String(tableCode).padStart(2, "0")}`;
 }
 
 function toOperatorPayment(payment: Payment): OperatorPayment {
@@ -96,7 +100,7 @@ function toOperatorPayment(payment: Payment): OperatorPayment {
   const formatCurrency = (amount: number) => `${currency.format(amount)}đ`;
   return {
     id: payment.publicId,
-    table: `Bàn ${String(payment.tableCode).padStart(2, "0")}`,
+    table: formatTable(payment.tableCode),
     amount: formatCurrency(payment.amount),
     requestedAt: formatRequestedAt(
       payment.status === "PAID" ? (payment.confirmedAt ?? payment.createdAt) : payment.createdAt,
@@ -244,7 +248,9 @@ export function OperatorPaymentConfirmationList({
         Math.max(0, (currentCount ?? 1) - 1),
       );
       showToast({
-        message: `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`,
+        message: selectedPayment.table
+          ? `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`
+          : `Đã xác nhận thanh toán ${selectedPayment.amount}.`,
         type: "success",
       });
       setSelectedPayment(null);
@@ -372,7 +378,7 @@ export function OperatorPaymentConfirmationList({
               className="grid gap-3 border-b border-cas-outline-variant/25 p-5 last:border-b-0 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"
               key={payment.id}
             >
-              <p className="font-extrabold">{payment.table}</p>
+              {payment.table ? <p className="font-extrabold">{payment.table}</p> : <span />}
               <p className="text-sm text-cas-on-surface-variant">
                 {mode === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"} {payment.requestedAt}
               </p>
@@ -432,9 +438,11 @@ export function OperatorPaymentConfirmationList({
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-                  {activePayment.table}
-                </p>
+                {activePayment.table ? (
+                  <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                    {activePayment.table}
+                  </p>
+                ) : null}
                 <h2 className="mt-1 text-xl font-extrabold" id="payment-dialog-title">
                   {selectedPayment ? "Xác nhận thanh toán" : "Xem hóa đơn"}
                 </h2>
@@ -461,7 +469,7 @@ export function OperatorPaymentConfirmationList({
 
                 <h1 className="text-center text-base font-extrabold">HÓA ĐƠN THANH TOÁN</h1>
                 <div className="print-bill__meta grid gap-1 text-xs text-cas-on-surface-variant">
-                  <span>{activePayment.table}</span>
+                  {activePayment.table ? <span>{activePayment.table}</span> : null}
                   <span>
                     {activePayment.status === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"}:{" "}
                     {activePayment.requestedAt}

@@ -10,7 +10,7 @@ export const operatorPendingPaymentCountQueryKey = [
 
 export type Payment = {
   publicId: string;
-  tableCode: number;
+  tableCode: number | null;
   amount: number;
   status: "PENDING" | "PAID";
   confirmedAt: string | null;

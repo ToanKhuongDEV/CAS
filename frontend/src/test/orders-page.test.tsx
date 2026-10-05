@@ -162,7 +162,7 @@ describe("OrdersPage", () => {
     expect(screen.queryByText("0 món")).not.toBeInTheDocument();
   });
 
-  it("guides customers without an active sales session to QR scanning", async () => {
+  it("guides customers without an active sales session to order-type selection", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValueOnce(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
     );
@@ -178,9 +178,9 @@ describe("OrdersPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Xem đơn hàng theo bàn" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Quét mã QR của bàn" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Bắt đầu gọi món" })).toHaveAttribute(
       "href",
-      "/scan",
+      "/start?returnTo=%2Forders",
     );
     expect(screen.queryByText("Vui lòng quét mã QR của bàn để tiếp tục.")).not.toBeInTheDocument();
   });

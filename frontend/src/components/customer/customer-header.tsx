@@ -137,12 +137,12 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
         <div className="flex items-center gap-2.5">
           {tableCode === null ? (
             <Link
-              aria-label="Chọn bàn bằng mã QR"
+              aria-label="Bắt đầu gọi món"
               className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary transition hover:bg-cas-secondary-container/35 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-              href="/scan"
+              href="/start"
             >
               <CasIcon className="size-4" name="table" />
-              Chưa chọn bàn
+              Bắt đầu gọi món
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">

@@ -47,7 +47,7 @@ export function CustomerCartSubmitButton() {
       return;
     }
 
-    router.push("/");
+    router.push("/start?returnTo=%2Fcart");
   }
 
   return (

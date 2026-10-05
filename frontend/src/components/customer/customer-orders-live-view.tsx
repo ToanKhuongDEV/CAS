@@ -72,10 +72,10 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
           </p>
           <Link
             className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
-            href="/scan"
+            href="/start?returnTo=%2Forders"
           >
             <CasIcon className="size-5" name="table" />
-            Quét mã QR của bàn
+            Bắt đầu gọi món
           </Link>
         </section>
       </main>

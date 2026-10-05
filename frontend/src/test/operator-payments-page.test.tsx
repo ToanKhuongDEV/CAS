@@ -155,4 +155,42 @@ describe("OperatorPaymentsPage", () => {
     );
     consoleError.mockRestore();
   });
+
+  it("does not show a table line for takeaway bills", async () => {
+    vi.mocked(loadOperatorPayments).mockResolvedValue([{ ...payment, tableCode: null }]);
+    vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Operator One",
+      role: "OPERATOR",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockResolvedValue({
+      address: "123 Đường Ăn Vặt",
+      closeTime: "22:00",
+      email: "contact@example.com",
+      googleMapsLocation: null,
+      logoStorageKey: null,
+      logoUrl: null,
+      name: "Tiệm CAS",
+      openTime: "09:00",
+      phone: "0901 234 567",
+      status: "ACTIVE",
+      welcomeSlogan: null,
+    });
+
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "In bill" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Xem hóa đơn" });
+    expect(dialog).not.toHaveTextContent("Bàn null");
+    expect(dialog).not.toHaveTextContent("Bàn 00");
+  });
 });

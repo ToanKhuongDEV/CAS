@@ -33,6 +33,9 @@ public interface DiningTableMapper {
 
     QrTableLookup findTableByActiveQrTokenForUpdate(@Param("qrToken") String qrToken);
 
+    QrTableLookup findTableByStoreIdAndCodeForUpdate(@Param("storeId") long storeId,
+            @Param("tableCode") long tableCode);
+
     java.util.List<JoinableSalesSession> findJoinableDineInSessionsByTableId(
             @Param("tableId") long tableId);
 

@@ -44,6 +44,20 @@ class SalesSessionServiceTest {
     }
 
     @Test
+    void shouldResolveTableByNumericCodeForManualDineIn() {
+        when(diningTableMapper.findTableByStoreIdAndCodeForUpdate(2L, 1L))
+                .thenReturn(new vn.cas.store.model.QrTableLookup(9L, 2L, 1L));
+        when(diningTableMapper.findJoinableDineInSessionsByTableId(9L))
+                .thenReturn(java.util.List.of());
+
+        var result = service.resolveTable(2L, 1L,
+                new SalesSessionResolutionCommand(null, null, null, "DINE_IN", null, 2L));
+
+        assertThat(result.status()).isEqualTo(ResolutionStatus.CUSTOMER_INFORMATION_REQUIRED);
+        assertThat(result.tableCode()).isEqualTo(1L);
+    }
+
+    @Test
     void shouldRequireSessionSelectionWhenTableHasAnOpenSession() {
         when(diningTableMapper.findTableByActiveQrTokenForUpdate("a".repeat(64)))
                 .thenReturn(new vn.cas.store.model.QrTableLookup(9L, 2L, 5L));

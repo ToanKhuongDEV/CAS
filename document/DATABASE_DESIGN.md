@@ -149,6 +149,8 @@ Lưu thông tin cửa hàng.
 | `logo_url` | `VARCHAR(2048) NULL` | URL logo cửa hàng đã upload lên Cloudinary |
 | `logo_storage_key` | `VARCHAR(512) NULL` | Khóa asset Cloudinary của logo để thay thế hoặc xóa ảnh |
 | `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
+| `latitude` | `DECIMAL(10,8) NULL` | Vĩ độ cửa hàng, dùng để chọn chi nhánh gần nhất |
+| `longitude` | `DECIMAL(11,8) NULL` | Kinh độ cửa hàng, dùng để chọn chi nhánh gần nhất |
 | `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
 | `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |
 | `welcome_slogan` | `VARCHAR(500) NULL` | Thông điệp/slogan chào mừng hiển thị cho khách |
