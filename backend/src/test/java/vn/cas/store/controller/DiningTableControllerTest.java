@@ -12,6 +12,7 @@ import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
 import vn.cas.store.model.DiningTable;
+import vn.cas.store.model.ActiveTableQrCode;
 import vn.cas.store.service.DiningTableService;
 
 class DiningTableControllerTest {
@@ -39,5 +40,20 @@ class DiningTableControllerTest {
                         DiningTableController.DiningTableResponse::code,
                         DiningTableController.DiningTableResponse::capacity)
                 .containsExactly(11L, 5L, 4);
+    }
+
+    @Test
+    void shouldReissueDiningTableQrCode() {
+        when(diningTableService.reissueQrCode(any(), any(Long.class), any()))
+                .thenReturn(new ActiveTableQrCode(11L, 5L, "Q12345678"));
+        var request = new MockHttpServletRequest();
+        request.setAttribute(RequestId.ATTRIBUTE_NAME, UUID.randomUUID());
+
+        var response = controller.reissueQrCode(principal, 11L, request);
+
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo(ApiMessages.TABLE_QR_CODE_REISSUED);
+        assertThat(response.getBody().data().token()).isEqualTo("Q12345678");
     }
 }

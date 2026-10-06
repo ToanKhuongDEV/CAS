@@ -34,6 +34,10 @@ export function loadActiveTableQrCode(tableId: number) {
   return request<ActiveTableQrCode>(`/${tableId}/qr`);
 }
 
+export function reissueTableQrCode(tableId: number) {
+  return request<ActiveTableQrCode>(`/${tableId}/qr/reissue`, { method: "POST" });
+}
+
 export function deleteDiningTable(tableId: number) {
   return request<void>(`/${tableId}`, { method: "DELETE" });
 }

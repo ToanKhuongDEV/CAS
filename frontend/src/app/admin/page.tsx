@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
 
 type FilterMode = "date" | "month" | "year" | "range";
@@ -132,19 +141,6 @@ export default function AdminDashboardPage() {
 
   const currentMetrics = getMetricsByFilter();
   const chartData = revenueChartData[revenueChartPeriod];
-  const chartWidth = 680;
-  const chartHeight = 250;
-  const chartPadding = { top: 18, right: 16, bottom: 38, left: 42 };
-  const chartMax = Math.ceil(Math.max(...chartData.map((item) => item.value)) / 2) * 2;
-  const chartDrawableWidth = chartWidth - chartPadding.left - chartPadding.right;
-  const chartDrawableHeight = chartHeight - chartPadding.top - chartPadding.bottom;
-  const chartPoints = chartData.map((item, index) => {
-    const x = chartPadding.left + (index / Math.max(chartData.length - 1, 1)) * chartDrawableWidth;
-    const y = chartPadding.top + (1 - item.value / chartMax) * chartDrawableHeight;
-    return { ...item, x, y };
-  });
-  const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
-  const areaPoints = `${chartPadding.left},${chartHeight - chartPadding.bottom} ${linePoints} ${chartWidth - chartPadding.right},${chartHeight - chartPadding.bottom}`;
 
   return (
     <div className="space-y-8">
@@ -332,73 +328,65 @@ export default function AdminDashboardPage() {
               </select>
             </div>
 
-            <div className="mt-6">
-              <svg
-                aria-label={`Biểu đồ doanh thu ${revenueChartPeriodLabels[revenueChartPeriod].toLowerCase()}`}
-                className="h-auto w-full overflow-visible"
-                role="img"
-                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              >
-                <defs>
-                  <linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity="0.24" />
-                    <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                  const y = chartPadding.top + ratio * chartDrawableHeight;
-                  const value = Math.round(chartMax * (1 - ratio));
-                  return (
-                    <g key={ratio}>
-                      <line
-                        x1={chartPadding.left}
-                        x2={chartWidth - chartPadding.right}
-                        y1={y}
-                        y2={y}
-                        className="stroke-cas-outline-variant/45"
-                        strokeDasharray={ratio === 1 ? "0" : "4 4"}
-                      />
-                      <text
-                        x={chartPadding.left - 8}
-                        y={y + 4}
-                        textAnchor="end"
-                        className="fill-cas-on-surface-variant text-[11px] font-medium"
-                      >
-                        {value}
-                      </text>
-                    </g>
-                  );
-                })}
-                <polygon fill="url(#revenue-area)" points={areaPoints} />
-                <polyline
-                  fill="none"
-                  points={linePoints}
-                  className="stroke-cas-primary"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="3"
-                />
-                {chartPoints.map((point) => (
-                  <g key={point.label} className="group">
-                    <title>{`${point.label}: ${point.value} triệu đồng`}</title>
-                    <circle
-                      cx={point.x}
-                      cy={point.y}
-                      r="4"
-                      className="fill-cas-surface stroke-cas-primary"
-                      strokeWidth="2.5"
-                    />
-                    <text
-                      x={point.x}
-                      y={chartHeight - 14}
-                      textAnchor="middle"
-                      className="fill-cas-on-surface-variant text-[11px] font-bold"
-                    >
-                      {point.label}
-                    </text>
-                  </g>
-                ))}
-              </svg>
+            <div className="mt-6 h-72 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/30 p-3 sm:p-4">
+              <ResponsiveContainer height="100%" width="100%">
+                <AreaChart data={chartData} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="admin-revenue-area" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="5%" stopColor="var(--cas-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--cas-primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    stroke="var(--cas-outline-variant)"
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+                  <XAxis
+                    axisLine={false}
+                    dataKey="label"
+                    minTickGap={22}
+                    tick={{ fill: "var(--cas-on-surface-variant)", fontSize: 11, fontWeight: 600 }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tick={{ fill: "var(--cas-on-surface-variant)", fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(value) => `${value}tr`}
+                    tickLine={false}
+                    width={42}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--cas-surface)",
+                      border: "1px solid var(--cas-outline-variant)",
+                      borderRadius: "0.75rem",
+                      boxShadow: "0 8px 20px var(--cas-shadow-color)",
+                      color: "var(--cas-on-surface)",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                    }}
+                    cursor={{ stroke: "var(--cas-primary)", strokeDasharray: "3 3" }}
+                    formatter={(value) => [
+                      `${Number(value).toLocaleString("vi-VN")} triệu VNĐ`,
+                      "Doanh thu",
+                    ]}
+                  />
+                  <Area
+                    activeDot={{
+                      fill: "var(--cas-primary)",
+                      r: 5,
+                      stroke: "var(--cas-surface)",
+                      strokeWidth: 2,
+                    }}
+                    dataKey="value"
+                    fill="url(#admin-revenue-area)"
+                    stroke="var(--cas-primary)"
+                    strokeWidth={2.5}
+                    type="monotone"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
               <div className="mt-3 flex items-center justify-between text-xs font-medium text-cas-on-surface-variant">
                 <span>Đơn vị: triệu VNĐ</span>
                 <span className="font-bold text-cas-primary">

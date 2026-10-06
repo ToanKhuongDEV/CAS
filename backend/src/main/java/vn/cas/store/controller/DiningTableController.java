@@ -68,6 +68,17 @@ public class DiningTableController {
                 request);
     }
 
+    @PostMapping("/{tableId}/qr/reissue")
+    public ResponseEntity<ApiResponse<ActiveTableQrCodeResponse>> reissueQrCode(
+            @AuthenticationPrincipal OperationalPrincipal principal,
+            @Positive @PathVariable long tableId, HttpServletRequest request) {
+        var qrCode = diningTableService.reissueQrCode(principal, tableId,
+                (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
+        return ApiResponses.success(HttpStatus.OK, ApiMessages.TABLE_QR_CODE_REISSUED,
+                new ActiveTableQrCodeResponse(qrCode.tableId(), qrCode.tableCode(), qrCode.token()),
+                request);
+    }
+
     @DeleteMapping("/{tableId}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @AuthenticationPrincipal OperationalPrincipal principal,

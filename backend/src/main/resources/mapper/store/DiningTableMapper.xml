@@ -80,6 +80,16 @@
           AND dining_tables.id = #{tableId}
     </select>
 
+    <update id="revokeActiveQrCode">
+        UPDATE table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        SET table_qr_codes.status = 'REVOKED',
+            table_qr_codes.revoked_at = #{revokedAt}
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+          AND table_qr_codes.status = 'ACTIVE'
+    </update>
+
     <delete id="deleteDiningTable">
         DELETE FROM dining_tables
         WHERE store_id = #{storeId}

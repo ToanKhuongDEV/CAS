@@ -78,6 +78,28 @@ public class DiningTableService {
     }
 
     @Transactional
+    public ActiveTableQrCode reissueQrCode(OperationalPrincipal principal, long tableId,
+            UUID requestId) {
+        LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
+        if (diningTableMapper.revokeActiveQrCode(principal.storeId(), tableId, now) == 0) {
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.DINING_TABLE_NOT_FOUND);
+        }
+
+        String qrToken = generateQrToken();
+        diningTableMapper.insertActiveQrCode(tableId, qrToken, now);
+        var qrCode = diningTableMapper.findActiveQrCodeByStoreIdAndTableId(principal.storeId(),
+                tableId);
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "QR_REVOKED",
+                "TABLE_QR_CODE", tableId, "Table " + tableId, "{}", principal.accountId(),
+                principal.displayName(), "Revoked the previous table QR code"));
+        auditLogService.record(new AuditLogCommand(principal.storeId(), requestId, "QR_CREATED",
+                "TABLE_QR_CODE", tableId, "Table " + tableId, "{\"token\":\"" + qrToken + "\"}",
+                principal.accountId(), principal.displayName(),
+                "Issued a replacement table QR code"));
+        return qrCode;
+    }
+
+    @Transactional
     public void delete(OperationalPrincipal principal, long tableId, UUID requestId) {
         try {
             diningTableMapper.deleteTableQrCodes(principal.storeId(), tableId);

@@ -189,6 +189,11 @@ Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế t�
 - [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/tables`: `ADMIN` xem danh sách bàn, QR đang hoạt động và trạng thái phiên hiện tại. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/tables/{tableId}/qr`: `ADMIN` xem QR đang hoạt động của một bàn để hiển thị hoặc tải ảnh QR. **[Đã ghép Frontend]**
+- [x] Sửa số điện thoại bị lỗi mã hóa ở danh sách khách Admin: dùng định dạng che ASCII ổn định `090***567`.
+- [x] Đổi biểu đồ doanh thu trên Admin Dashboard sang area chart responsive bằng `recharts`: đường cong, vùng gradient, lưới ngang nét đứt và tooltip hover; giữ token màu CAS.
+- [x] Loại trừ `UserDetailsServiceAutoConfiguration`: không còn tạo user/mật khẩu mặc định của Spring Security; Firebase Bearer-token authentication tiếp tục là cơ chế xác thực vận hành duy nhất.
+- [x] `POST /api/v1/admin/tables/{tableId}/qr/reissue`: `ADMIN` thu hồi QR đang hoạt động, cấp QR mới cho cùng bàn trong một transaction và ghi audit log. **[Đã ghép Frontend]**
+- [x] Trang quản lý bàn và QR hiển thị QR chung dẫn tới `/start?storeId={storeId}` ở đầu trang; URL QR chung và QR bàn lấy từ `NEXT_PUBLIC_WEB_URL`, không hard-code localhost. **[Đã ghép Frontend]**
 - [x] `DELETE /api/v1/admin/tables/{tableId}`: `ADMIN` xóa bàn chưa có phiên lịch sử; QR liên quan bị xóa theo khóa ngoại cascade. **[Đã ghép Frontend]**
 - [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
 - [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**

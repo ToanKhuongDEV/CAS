@@ -197,7 +197,7 @@ Khách hàng quét QR tại bàn để truy cập đúng bàn và dùng chung ph
 - Người đầu tiên mở session bàn phải nhập tên; số điện thoại là tùy chọn. Khi không có số điện thoại, khách được ghi nhận là khách lẻ.
 - Nếu có số điện thoại, hệ thống tìm hoặc tạo `client_accounts` theo số đó; nếu không có, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`. Bảng này tách riêng với `accounts` nhận diện nhân viên/admin bằng email.
 - Người quét QR sau chọn session để chung bàn và nhìn thấy cùng danh sách order; hoặc chọn `Không chung bàn` để tạo session độc lập tại cùng bàn.
-- QR bàn là mã cố định được in và dán tại bàn.
+- ADMIN có thể cấp lại QR cho bàn khi mã bị thất lạc hoặc lộ token: QR `ACTIVE` cũ được chuyển sang `REVOKED` và không còn xác thực được; hệ thống phát hành một QR `ACTIVE` mới cho cùng bàn. Thao tác không ảnh hưởng sales session đang có.
 - QR token chỉ xuất hiện trong route vào ban đầu `/table/{qrToken}`.
 - Sau khi QR được xác minh và sales session hợp lệ được tìm hoặc tạo, các màn
   Customer tiếp tục dùng `/menu`, `/cart` và `/orders`; không đưa QR token,
@@ -682,7 +682,7 @@ Kết thúc lượt sử dụng bàn sau khi thanh toán thành công.
 - Order và payment không bị xóa vật lý.
 - Session đã `CLOSED` không nhận thêm order.
 - Sales session không lưu `is_paid`; kết quả thanh toán được xác định từ `payments.status`, còn `unpaid_records` ghi nhận trường hợp đóng phiên khi payment vẫn `PENDING`.
-- QR bàn vẫn là QR cố định, lượt khách tiếp theo quét cùng QR sẽ tạo hoặc nhận session mới phù hợp.
+- Lượt khách tiếp theo quét QR `ACTIVE` hiện tại của bàn sẽ tạo hoặc nhận session mới phù hợp. Khi ADMIN cấp lại QR, QR cũ bị thu hồi và khách phải dùng QR mới.
 
 ## 15. Luồng Báo cáo sự cố phát sinh
 

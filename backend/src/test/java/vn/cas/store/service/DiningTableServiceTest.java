@@ -20,6 +20,7 @@ import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.dto.CreateDiningTableCommand;
 import vn.cas.store.mapper.DiningTableMapper;
+import vn.cas.store.model.ActiveTableQrCode;
 
 class DiningTableServiceTest {
 
@@ -81,6 +82,34 @@ class DiningTableServiceTest {
         assertThat(auditCaptor.getValue()).extracting(AuditLogCommand::action,
                 AuditLogCommand::entityType, AuditLogCommand::entityId)
                 .containsExactly("DELETE", "DINING_TABLE", 11L);
+    }
+
+    @Test
+    void shouldReissueTableQrCodeAndRecordQrAuditLogs() {
+        when(diningTableMapper.revokeActiveQrCode(anyLong(), anyLong(), any())).thenReturn(1);
+        when(diningTableMapper.findActiveQrCodeByStoreIdAndTableId(2L, 11L))
+                .thenReturn(new ActiveTableQrCode(11L, 5L, "Q12345678"));
+
+        var result = service.reissueQrCode(principal, 11L, UUID.randomUUID());
+
+        assertThat(result).isEqualTo(new ActiveTableQrCode(11L, 5L, "Q12345678"));
+        verify(diningTableMapper).insertActiveQrCode(anyLong(), any(), any());
+        var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
+        verify(auditLogService, org.mockito.Mockito.times(2)).record(auditCaptor.capture());
+        assertThat(auditCaptor.getAllValues()).extracting(AuditLogCommand::action)
+                .containsExactly("QR_REVOKED", "QR_CREATED");
+    }
+
+    @Test
+    void shouldRejectReissuingQrCodeForUnknownDiningTable() {
+        when(diningTableMapper.revokeActiveQrCode(anyLong(), anyLong(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> service.reissueQrCode(principal, 11L, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.NOT_FOUND,
+                        ApiMessages.DINING_TABLE_NOT_FOUND);
+        verify(diningTableMapper, never()).insertActiveQrCode(anyLong(), any(), any());
     }
 
     @Test

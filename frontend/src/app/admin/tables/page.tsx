@@ -11,7 +11,12 @@ import {
   deleteDiningTable,
   loadActiveTableQrCode,
   loadDiningTables,
+  reissueTableQrCode,
 } from "../../../lib/api/tables/tables.api";
+import { getCurrentOperationalAccount } from "../../../lib/auth/operational-auth";
+import { getFirebaseAuth } from "../../../lib/auth/firebase";
+
+const webUrl = process.env.NEXT_PUBLIC_WEB_URL?.replace(/\/+$/, "");
 
 type TableItem = {
   code: number;
@@ -36,6 +41,8 @@ export default function AdminTablesPage() {
   const [newTableCode, setNewTableCode] = useState<string>("");
   const [selectedQR, setSelectedQR] = useState<TableItem | null>(null);
   const [deletingTable, setDeletingTable] = useState<TableItem | null>(null);
+  const [reissuingTable, setReissuingTable] = useState<TableItem | null>(null);
+  const [storeId, setStoreId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED" | "PAYMENT_PENDING">(
     "ALL",
@@ -55,6 +62,14 @@ export default function AdminTablesPage() {
   useEffect(() => {
     void reloadTables();
   }, [reloadTables]);
+
+  useEffect(() => {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) return;
+    void getCurrentOperationalAccount(user)
+      .then((account) => setStoreId(account.storeId))
+      .catch(() => undefined);
+  }, []);
 
   const handleCreateTable = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,15 +116,32 @@ export default function AdminTablesPage() {
     }
   };
 
-  const downloadQRCode = (tableCode: number) => {
-    const canvas = document.getElementById(`qr-code-canvas-${tableCode}`) as HTMLCanvasElement;
+  const handleReissueQr = async (table: TableItem) => {
+    try {
+      const qrCode = await reissueTableQrCode(table.id);
+      await reloadTables();
+      setReissuingTable(null);
+      setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });
+      showToast({ message: "Đã cấp lại mã QR. Mã cũ không còn sử dụng được.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể cấp lại mã QR của bàn.",
+        type: "error",
+      });
+    }
+  };
+
+  const downloadQRCode = (canvasId: string, fileName: string) => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     if (!canvas) return;
     const image = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = image;
-    link.download = `QR-Code-Ban-${tableCode}.png`;
+    link.download = fileName;
     link.click();
   };
+
+  const storeQrUrl = storeId && webUrl ? `${webUrl}/start?storeId=${storeId}` : null;
 
   const filteredTables = tables.filter((t) => {
     const matchesSearch =
@@ -133,6 +165,49 @@ export default function AdminTablesPage() {
           Thêm Bàn mới
         </CasButton>
       </div>
+
+      <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-xs">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <h2 className="text-base font-black text-cas-on-surface">QR chung của cửa hàng</h2>
+            <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
+              Khách quét mã này để vào web, tự chọn đúng chi nhánh, rồi chọn ăn tại quán hoặc mang
+              về.
+            </p>
+            {storeQrUrl ? (
+              <p className="mt-3 break-all font-mono text-[0.7rem] text-cas-on-surface-variant">
+                {storeQrUrl}
+              </p>
+            ) : (
+              <p className="mt-3 text-xs font-bold text-cas-error">
+                Chưa có URL web. Hãy cấu hình NEXT_PUBLIC_WEB_URL trong môi trường Frontend.
+              </p>
+            )}
+          </div>
+          {storeQrUrl ? (
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-3">
+                <QRCodeCanvas
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  id="store-qr-code-canvas"
+                  includeMargin
+                  level="H"
+                  size={140}
+                  value={storeQrUrl}
+                />
+              </div>
+              <CasButton
+                onClick={() => downloadQRCode("store-qr-code-canvas", `QR-Cua-Hang-${storeId}.png`)}
+                size="sm"
+                variant="outline-primary"
+              >
+                Tải QR chung
+              </CasButton>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       {/* Thanh Tìm kiếm & Lọc Trạng thái */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-3.5 shadow-xs backdrop-blur-md">
@@ -305,6 +380,13 @@ export default function AdminTablesPage() {
                         >
                           Xem QR
                         </CasButton>
+                        <CasButton
+                          onClick={() => setReissuingTable(table)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Cấp lại QR
+                        </CasButton>
                         <button
                           className="grid size-8 place-items-center rounded-xl bg-cas-error/10 text-cas-error transition hover:bg-cas-error hover:text-white"
                           onClick={() => setDeletingTable(table)}
@@ -357,6 +439,39 @@ export default function AdminTablesPage() {
         </div>
       )}
 
+      {reissuingTable && (
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+            <div className="flex items-center gap-3 text-cas-primary">
+              <span className="grid size-10 place-items-center rounded-2xl bg-cas-primary/15">
+                <CasIcon className="size-5" name="table" />
+              </span>
+              <div>
+                <h3 className="text-base font-black text-cas-on-surface">
+                  Cấp lại QR cho BÀN {reissuingTable.code}?
+                </h3>
+                <p className="text-xs text-cas-on-surface-variant">
+                  QR hiện tại sẽ bị thu hồi ngay. Khách cần quét mã QR mới.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <CasButton onClick={() => setReissuingTable(null)} size="sm" variant="outline">
+                Hủy
+              </CasButton>
+              <CasButton
+                onClick={() => void handleReissueQr(reissuingTable)}
+                size="sm"
+                variant="primary"
+              >
+                Cấp lại QR
+              </CasButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Xem Mã QR thực tế */}
       {selectedQR && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
@@ -376,15 +491,21 @@ export default function AdminTablesPage() {
             </div>
 
             <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-inner">
-              <QRCodeCanvas
-                bgColor="#ffffff"
-                fgColor="#000000"
-                id={`qr-code-canvas-${selectedQR.code}`}
-                includeMargin
-                level="H"
-                size={180}
-                value={`${typeof window !== "undefined" ? window.location.origin : ""}/table/${selectedQR.qrToken}`}
-              />
+              {webUrl ? (
+                <QRCodeCanvas
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  id={`qr-code-canvas-${selectedQR.code}`}
+                  includeMargin
+                  level="H"
+                  size={180}
+                  value={`${webUrl}/table/${selectedQR.qrToken}`}
+                />
+              ) : (
+                <p className="text-xs font-bold text-cas-error">
+                  Chưa có URL web. Hãy cấu hình NEXT_PUBLIC_WEB_URL trong môi trường Frontend.
+                </p>
+              )}
               <span className="mt-2 font-mono text-[0.65rem] font-bold text-cas-on-surface-variant">
                 {selectedQR.qrToken}
               </span>
@@ -405,7 +526,13 @@ export default function AdminTablesPage() {
               </CasButton>
               <CasButton
                 className="w-full"
-                onClick={() => downloadQRCode(selectedQR.code)}
+                disabled={!webUrl}
+                onClick={() =>
+                  downloadQRCode(
+                    `qr-code-canvas-${selectedQR.code}`,
+                    `QR-Code-Ban-${selectedQR.code}.png`,
+                  )
+                }
                 size="sm"
                 variant="primary"
               >

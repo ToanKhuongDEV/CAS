@@ -8,7 +8,7 @@
     </sql>
     <select id="findCustomers" resultType="vn.cas.operation.model.AdminCustomerSummary">
         SELECT client_accounts.id, client_accounts.display_name AS displayName,
-               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), 'â€¢â€¢â€¢', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
+               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '***', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
                COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt
         FROM client_accounts LEFT JOIN sales_sessions ON sales_sessions.client_account_id = client_accounts.id
         WHERE client_accounts.store_id = #{storeId}<include refid="customerFilter"/>
@@ -17,7 +17,7 @@
     </select>
     <select id="findCustomer" resultType="vn.cas.operation.model.AdminCustomerSummary">
         SELECT client_accounts.id, client_accounts.display_name AS displayName,
-               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), 'â€¢â€¢â€¢', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
+               CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '***', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
                COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt
         FROM client_accounts LEFT JOIN sales_sessions ON sales_sessions.client_account_id = client_accounts.id
         WHERE client_accounts.store_id = #{storeId} AND client_accounts.id = #{customerId}
