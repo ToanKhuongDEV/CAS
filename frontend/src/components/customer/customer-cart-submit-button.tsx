@@ -2,17 +2,23 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { clearCustomerCart, readCustomerCart } from "../../lib/customer/cart";
 import { createCustomerOrder } from "../../lib/api/ordering/ordering.api";
+import {
+  customerBillQueryKey,
+  customerOrdersQueryKey,
+} from "../../lib/api/ordering/ordering.query";
 
 const tableQrTokenKey = "cas.tableQrToken";
 
 export function CustomerCartSubmitButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -49,6 +55,10 @@ export function CustomerCartSubmitButton() {
             optionValueIds,
           })),
         });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: customerOrdersQueryKey }),
+          queryClient.invalidateQueries({ queryKey: customerBillQueryKey }),
+        ]);
         clearCustomerCart();
         showToast({ type: "success", message: "Đã gửi món xuống bếp." });
         router.push("/orders");

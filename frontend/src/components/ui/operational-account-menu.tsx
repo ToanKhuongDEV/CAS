@@ -3,6 +3,7 @@
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { signOutOperationalUser } from "../../lib/auth/operational-auth";
@@ -21,6 +22,7 @@ export function OperationalAccountMenu({
   loginPath,
 }: OperationalAccountMenuProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const menuReference = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -56,6 +58,7 @@ export function OperationalAccountMenu({
       });
     }
 
+    queryClient.clear();
     router.replace(loginPath);
     router.refresh();
   }

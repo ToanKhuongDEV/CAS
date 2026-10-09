@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CustomerSettingsPage from "../app/(customer)/settings/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { cancelCustomerSalesSession } from "../lib/api/ordering/ordering.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
@@ -38,9 +39,11 @@ describe("CustomerSettingsPage", () => {
 
   it("renders appearance settings and the default customer navigation", () => {
     render(
-      <ToastProvider>
-        <CustomerSettingsPage />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <CustomerSettingsPage />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     expect(screen.getByRole("heading", { name: "Cài đặt", level: 1 })).toBeInTheDocument();
@@ -55,12 +58,15 @@ describe("CustomerSettingsPage", () => {
 
   it("confirms and cancels the current sales session", async () => {
     render(
-      <ToastProvider>
-        <CustomerSettingsPage />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <CustomerSettingsPage />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     const cancelButton = await screen.findByRole("button", { name: "Hủy phiên" });
+    await vi.waitFor(() => expect(cancelButton).toBeEnabled());
     expect(
       screen.getByRole("img", { name: "Chỉ hủy được khi chưa gửi món nào xuống bếp." }),
     ).toHaveAttribute("title", "Chỉ hủy được khi chưa gửi món nào xuống bếp.");

@@ -1,33 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cancelCustomerSalesSession } from "../../lib/api/ordering/ordering.api";
-import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
+import { useCurrentCustomerSalesSessionQuery } from "../../lib/customer/sales-session.query";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
 export function CustomerSalesSessionSettings() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [isCancellable, setIsCancellable] = useState(false);
+  const { data: session } = useCurrentCustomerSalesSessionQuery();
+  const isCancellable = session?.sessionStatus === "OPEN";
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    void getCurrentCustomerSalesSession()
-      .then((session) => {
-        if (active) setIsCancellable(session.sessionStatus === "OPEN");
-      })
-      .catch(() => {
-        if (active) setIsCancellable(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function cancelSession() {
     if (isCancelling) return;

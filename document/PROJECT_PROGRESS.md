@@ -87,6 +87,8 @@ Ngày cập nhật gần nhất: 2026-10-09
 - [x] Luồng Customer chọn loại đơn và nhập bàn/QR có nút quay lại rõ ràng, gồm quay lại trang chủ, bước chọn loại đơn và form đơn mang về.
 - [x] CustomerHeader được đưa vào layout dùng chung để giữ tên/logo cửa hàng và trạng thái header khi chuyển giữa các trang Customer, tránh mount và tải lại không cần thiết.
 
+- [x] Bắt đầu rollout React Query cho GET: chuẩn hóa query key/hook cho catalog item, order, payment và table session Customer; bill Customer dùng cache RAM kèm polling, mutation tạo order invalidates bill/order cache, logout xóa cache tài khoản.
+
 ## 7. Hạ tầng và triển khai
 
 - [x] Có Docker Compose production, Cloudinary, Firebase health indicator, cấu hình Next Image và formatter chung (`scripts/format.ps1`).
@@ -101,6 +103,10 @@ Ngày cập nhật gần nhất: 2026-10-09
 3. Hoàn thiện kiểm thử đơn vị, tích hợp, regression và luồng triển khai CI/CD.
 4. Chốt nghiệp vụ đầu/cuối ca, đối soát tiền mặt và xử lý chênh lệch trước khi xây module vận hành theo ca.
 5. Chuẩn bị cấu hình production, quan sát hệ thống, sao lưu và pilot tại cửa hàng.
+
+### React Query cache rollout
+
+- [ ] Roll out React Query for every frontend GET in phases: Customer/catalog/order/payment/table session first, then Operator and Admin. Standardize query keys, invalidate after mutations, retain polling only for live screens, and clear user-scoped cache on logout or store change.
 
 ## 9. Tài liệu liên quan
 

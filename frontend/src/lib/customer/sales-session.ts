@@ -82,6 +82,7 @@ export async function openCustomerTakeawaySalesSession(input: {
 
 export async function getCurrentCustomerSalesSession(): Promise<SalesSessionResolution> {
   const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/current`, {
+    cache: "no-store",
     credentials: "include",
   });
   const body: unknown = await response.json().catch(() => undefined);

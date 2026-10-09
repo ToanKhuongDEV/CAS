@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { useCustomerCatalog } from "../../lib/api/catalog/customer-catalog.query";
-import {
-  loadCustomerBill,
-  requestCustomerCancellation,
-  type CustomerBill,
-} from "../../lib/api/ordering/ordering.api";
+import { requestCustomerCancellation } from "../../lib/api/ordering/ordering.api";
+import { useCustomerBillQuery } from "../../lib/api/ordering/ordering.query";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
@@ -23,8 +20,7 @@ function formatOrderTime(createdAt: string) {
 }
 
 export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollIntervalMs?: number }) {
-  const [bill, setBill] = useState<CustomerBill | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: bill, error, refetch } = useCustomerBillQuery(pollIntervalMs);
   const [cancellation, setCancellation] = useState<{ itemId: string; maximum: number } | null>(
     null,
   );
@@ -32,23 +28,6 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
   const [reason, setReason] = useState("");
   const { showToast } = useToast();
   const { data: catalog } = useCustomerCatalog();
-  const refresh = useCallback(
-    () =>
-      void loadCustomerBill()
-        .then((nextBill) => {
-          setBill(nextBill);
-          setError(null);
-        })
-        .catch((cause) =>
-          setError(cause instanceof Error ? cause.message : "Không thể tải đơn hàng."),
-        ),
-    [],
-  );
-  useEffect(() => {
-    refresh();
-    const timer = window.setInterval(refresh, pollIntervalMs);
-    return () => window.clearInterval(timer);
-  }, [pollIntervalMs, refresh]);
   const itemImageUrls = useMemo(() => {
     const imageUrls: Record<string, string> = {};
     for (const item of catalog?.items ?? []) {
@@ -56,7 +35,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
     }
     return imageUrls;
   }, [catalog]);
-  if (error === customerSalesSessionRequiredMessage) {
+  if (error?.message === customerSalesSessionRequiredMessage) {
     return (
       <main className="grid min-h-96 min-w-0 flex-1 place-items-center pb-6">
         <section className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-7 text-center shadow-[0_8px_24px_var(--cas-shadow-color)]">
@@ -81,7 +60,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
       </main>
     );
   }
-  if (error) return <p className="text-cas-error">{error}</p>;
+  if (error) return <p className="text-cas-error">{error.message}</p>;
   if (!bill) return <p className="text-cas-on-surface-variant">Đang tải đơn hàng…</p>;
   const visibleOrders = bill.orders
     .map((order) => ({
@@ -101,7 +80,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
       await requestCustomerCancellation(cancellation.itemId, quantity, reason.trim() || null);
       showToast({ type: "success", message: "Yêu cầu hủy món đã được gửi cho nhân viên." });
       setCancellation(null);
-      refresh();
+      void refetch();
     } catch (cause) {
       showToast({
         type: "error",
