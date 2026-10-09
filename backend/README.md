@@ -199,7 +199,8 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/operators -H "Authorization:
 curl.exe -X DELETE http://localhost:8080/api/v1/admin/operators/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/admin/operators -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/admin/operators/1/activate -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe "http://localhost:8080/api/v1/admin/customers?query=Nguyen" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/customers?query=Nguyen&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Chi tiết bao gồm cả phiên mang về; trường tableCode sẽ là null cho phiên này.
 curl.exe http://localhost:8080/api/v1/admin/customers/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/audit-logs?query=PAYMENT&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 ```

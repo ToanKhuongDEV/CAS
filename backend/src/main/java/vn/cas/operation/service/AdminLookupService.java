@@ -1,6 +1,5 @@
 package vn.cas.operation.service;
 
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,7 +7,7 @@ import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.mapper.AdminLookupMapper;
 import vn.cas.operation.model.AdminCustomerDetail;
-import vn.cas.operation.model.AdminCustomerSummary;
+import vn.cas.operation.model.AdminCustomerPage;
 import vn.cas.operation.model.AuditLogPage;
 
 @Service
@@ -20,8 +19,12 @@ public class AdminLookupService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminCustomerSummary> customers(OperationalPrincipal principal, String query) {
-        return mapper.findCustomers(principal.storeId(), normalize(query));
+    public AdminCustomerPage customers(OperationalPrincipal principal, String query, int page,
+            int size) {
+        String normalizedQuery = normalize(query);
+        return new AdminCustomerPage(
+                mapper.findCustomers(principal.storeId(), normalizedQuery, size, page * size),
+                mapper.countCustomers(principal.storeId(), normalizedQuery), page, size);
     }
 
     @Transactional(readOnly = true)

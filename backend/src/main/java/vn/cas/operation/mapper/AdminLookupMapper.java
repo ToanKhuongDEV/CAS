@@ -10,7 +10,9 @@ import vn.cas.operation.model.AuditLogView;
 @Mapper
 public interface AdminLookupMapper {
     List<AdminCustomerSummary> findCustomers(@Param("storeId") long storeId,
-            @Param("query") String query);
+            @Param("query") String query, @Param("limit") int limit, @Param("offset") int offset);
+
+    long countCustomers(@Param("storeId") long storeId, @Param("query") String query);
 
     AdminCustomerSummary findCustomer(@Param("storeId") long storeId,
             @Param("customerId") long customerId);
