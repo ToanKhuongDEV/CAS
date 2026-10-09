@@ -166,7 +166,7 @@ export default function Home() {
                   alt="Tô mỳ cay nóng nổi bật tại CAS"
                   loading="eager"
                 />
-                <span className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
+                <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/40 to-transparent" />
               </div>
 
               <div className="animate-cas-float absolute bottom-6 left-0 z-20 aspect-square w-[58%] overflow-hidden rounded-3xl border-[0.45rem] border-cas-surface shadow-[0_22px_48px_var(--cas-shadow-color)]">
@@ -179,7 +179,7 @@ export default function Home() {
                 />
               </div>
 
-              <div className="absolute top-13 left-[7%] z-30 flex items-center gap-2 rounded-full border border-white/35 bg-cas-glass px-3 py-2 text-[0.62rem] font-semibold shadow-[0_8px_20px_var(--cas-shadow-color)] backdrop-blur-xl">
+              <div className="absolute top-13 left-[7%] z-30 flex items-center gap-2 rounded-full border border-cas-on-scrim/35 bg-cas-glass px-3 py-2 text-[0.62rem] font-semibold shadow-[0_8px_20px_var(--cas-shadow-color)] backdrop-blur-xl">
                 <span className="grid size-7 place-items-center rounded-full bg-cas-tertiary-container text-cas-on-tertiary-container">
                   <CasIcon className="size-4" name="fire" />
                 </span>
@@ -239,8 +239,8 @@ export default function Home() {
                     alt={category.imageAlt}
                     loading={index === 0 ? "eager" : "lazy"}
                   />
-                  <span className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent" />
-                  <strong className="absolute right-4 bottom-4 left-4 z-10 text-sm font-bold text-white drop-shadow-md">
+                  <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/45 to-transparent" />
+                  <strong className="absolute right-4 bottom-4 left-4 z-10 text-sm font-bold text-cas-on-scrim drop-shadow-md">
                     {category.title}
                   </strong>
                 </Link>

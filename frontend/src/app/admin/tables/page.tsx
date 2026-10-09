@@ -25,6 +25,11 @@ type TableItem = {
   sessionStatus: "OPEN" | "CLOSED" | "PAYMENT_PENDING";
 };
 
+type QrColors = {
+  background: string;
+  foreground: string;
+};
+
 function toTableItem(table: AdminDiningTable): TableItem {
   return {
     code: table.code,
@@ -47,6 +52,7 @@ export default function AdminTablesPage() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED" | "PAYMENT_PENDING">(
     "ALL",
   );
+  const [qrColors, setQrColors] = useState<QrColors | null>(null);
 
   const reloadTables = useCallback(async () => {
     try {
@@ -62,6 +68,14 @@ export default function AdminTablesPage() {
   useEffect(() => {
     void reloadTables();
   }, [reloadTables]);
+
+  useEffect(() => {
+    const styles = window.getComputedStyle(document.documentElement);
+    setQrColors({
+      background: styles.getPropertyValue("--cas-qr-background").trim(),
+      foreground: styles.getPropertyValue("--cas-qr-foreground").trim(),
+    });
+  }, []);
 
   useEffect(() => {
     const user = getFirebaseAuth().currentUser;
@@ -187,15 +201,17 @@ export default function AdminTablesPage() {
           {storeQrUrl ? (
             <div className="flex shrink-0 flex-col items-center gap-2">
               <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-3">
-                <QRCodeCanvas
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                  id="store-qr-code-canvas"
-                  includeMargin
-                  level="H"
-                  size={140}
-                  value={storeQrUrl}
-                />
+                {qrColors ? (
+                  <QRCodeCanvas
+                    bgColor={qrColors.background}
+                    fgColor={qrColors.foreground}
+                    id="store-qr-code-canvas"
+                    includeMargin
+                    level="H"
+                    size={140}
+                    value={storeQrUrl}
+                  />
+                ) : null}
               </div>
               <CasButton
                 onClick={() => downloadQRCode("store-qr-code-canvas", `QR-Cua-Hang-${storeId}.png`)}
@@ -260,7 +276,7 @@ export default function AdminTablesPage() {
       {/* Modal Tạo Bàn mới */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddForm(false);
           }}
@@ -388,7 +404,7 @@ export default function AdminTablesPage() {
                           Cấp lại QR
                         </CasButton>
                         <button
-                          className="grid size-8 place-items-center rounded-xl bg-cas-error/10 text-cas-error transition hover:bg-cas-error hover:text-white"
+                          className="grid size-8 place-items-center rounded-xl bg-cas-error/10 text-cas-error transition hover:bg-cas-error hover:text-cas-on-error"
                           onClick={() => setDeletingTable(table)}
                           title={`Xóa Bàn ${table.code}`}
                           type="button"
@@ -407,7 +423,7 @@ export default function AdminTablesPage() {
 
       {/* Modal Xác nhận Xóa Bàn */}
       {deletingTable && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center gap-3 text-cas-error">
               <span className="grid size-10 place-items-center rounded-2xl bg-cas-error/15">
@@ -440,7 +456,7 @@ export default function AdminTablesPage() {
       )}
 
       {reissuingTable && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center gap-3 text-cas-primary">
               <span className="grid size-10 place-items-center rounded-2xl bg-cas-primary/15">
@@ -474,7 +490,7 @@ export default function AdminTablesPage() {
 
       {/* Modal Xem Mã QR thực tế */}
       {selectedQR && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <h3 className="flex items-center gap-2 text-base font-black text-cas-on-surface">
@@ -491,10 +507,10 @@ export default function AdminTablesPage() {
             </div>
 
             <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-inner">
-              {webUrl ? (
+              {webUrl && qrColors ? (
                 <QRCodeCanvas
-                  bgColor="#ffffff"
-                  fgColor="#000000"
+                  bgColor={qrColors.background}
+                  fgColor={qrColors.foreground}
                   id={`qr-code-canvas-${selectedQR.code}`}
                   includeMargin
                   level="H"

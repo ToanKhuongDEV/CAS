@@ -434,6 +434,7 @@ Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết 
 
 ## 6. Frontend
 
+- [x] Chuẩn hóa các màu giao diện viết trực tiếp về token `cas-*`: trạng thái thành công dùng `secondary`, cảnh báo dùng `tertiary`, lỗi dùng `error`, nền tối trên ảnh dùng `scrim`; bổ sung token global cho scrim, màu chữ tương phản và màu QR.
 - [x] Ghép Admin quản lý nhân viên với danh sách API thực tế và thao tác kích hoạt lại tài khoản `INACTIVE`; ghép tra cứu khách hàng và Audit Log với dữ liệu theo store thay cho dữ liệu mẫu.
 - [x] Sửa trang Admin Settings: bắt và hiển thị lỗi khi tải cấu hình cửa hàng; hiển thị phản hồi thành công trong từng form sau khi lưu cấu hình cửa hàng hoặc ngưỡng cảnh báo.
 - [x] Loại bỏ khối giao diện thanh toán Customer không thể chạy sau khi đã trả về `PaymentRequestForm`, khắc phục lỗi TypeScript khi `bill` có thể là `null` và đồng bộ test theo UI hiện hành.

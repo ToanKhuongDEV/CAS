@@ -187,7 +187,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
       )}
 
       {dialogOpen ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4">
           <form
             className="w-full max-w-lg rounded-2xl bg-cas-surface p-6 shadow-2xl"
             onSubmit={submit}
@@ -375,7 +375,7 @@ function ConfirmCollectedPaymentDialog({
   onConfirm: () => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4">
       <section
         aria-describedby="confirm-collected-payment-description"
         aria-labelledby="confirm-collected-payment-title"
@@ -413,7 +413,7 @@ function BillSnapshot({ record, onClose }: { record: UnpaidRecord; onClose: () =
     // Keep the immutable legacy snapshot visible if it is not valid JSON.
   }
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4">
       <section
         aria-modal="true"
         className="max-h-[85vh] w-full max-w-2xl overflow-auto rounded-2xl bg-cas-surface p-6 shadow-2xl"

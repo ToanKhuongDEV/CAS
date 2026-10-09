@@ -423,7 +423,7 @@ export function OperatorPaymentConfirmationList({
 
       {activePayment ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/45 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               closePaymentDialog();

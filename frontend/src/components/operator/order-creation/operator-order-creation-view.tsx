@@ -703,7 +703,7 @@ export function OperatorOrderCreationView({
                             <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
                               {item.badges.map((badge, index) => (
                                 <span
-                                  className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${index === 0 ? "bg-cas-primary" : "bg-rose-600"}`}
+                                  className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold ${index === 0 ? "bg-cas-primary text-cas-on-primary" : "bg-cas-error text-cas-on-error"}`}
                                   key={badge}
                                 >
                                   {badge}
@@ -812,7 +812,7 @@ export function OperatorOrderCreationView({
           className="flex min-h-15 w-full items-center justify-between rounded-2xl bg-cas-primary px-5 text-left text-cas-on-primary shadow-[0_12px_30px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
         >
           <span className="inline-flex items-center gap-3 font-extrabold">
-            <span className="grid size-9 place-items-center rounded-full bg-white/15">
+            <span className="grid size-9 place-items-center rounded-full bg-cas-on-scrim/15">
               <CasIcon className="size-5" name="basket" />
             </span>
             Xem món đã chọn

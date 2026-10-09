@@ -307,7 +307,7 @@ export default function AdminOptionsPage() {
       {/* Modal Tạo nhóm option */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddForm(false);
           }}
@@ -426,7 +426,7 @@ export default function AdminOptionsPage() {
       {/* Modal sửa nhóm option */}
       {editingGroup && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setEditingGroup(null);
           }}
@@ -546,7 +546,7 @@ export default function AdminOptionsPage() {
       {/* Modal Xác nhận Xóa nhóm */}
       {deleteGroupTarget && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setDeleteGroupTarget(null);
           }}
@@ -604,7 +604,7 @@ export default function AdminOptionsPage() {
                     <CasIcon className="size-4" name="edit" />
                   </button>
                   <button
-                    className="cursor-pointer rounded-lg p-1.5 text-cas-on-surface-variant transition hover:bg-rose-500/10 hover:text-rose-600"
+                    className="cursor-pointer rounded-lg p-1.5 text-cas-on-surface-variant transition hover:bg-cas-error/10 hover:text-cas-error"
                     onClick={() => setDeleteGroupTarget(group)}
                     title="Xóa nhóm option"
                     type="button"
@@ -632,7 +632,7 @@ export default function AdminOptionsPage() {
                         <CasIcon className="size-3" name="edit" />
                       </button>
                       <button
-                        className="cursor-pointer rounded-full p-0.5 text-cas-secondary transition hover:bg-cas-secondary/20 hover:text-rose-600"
+                        className="cursor-pointer rounded-full p-0.5 text-cas-secondary transition hover:bg-cas-secondary/20 hover:text-cas-error"
                         disabled={isSaving}
                         onClick={() => void removeOptionValue(val.id)}
                         title={`Xóa giá trị ${val.name}`}

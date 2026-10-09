@@ -114,7 +114,7 @@ export default function AdminReportsPage() {
                   <td className="px-5 py-4 font-bold">{row.type}</td>
                   <td className="px-5 py-4 text-cas-on-surface-variant">{row.scope}</td>
                   <td className="px-5 py-4">
-                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 font-black text-emerald-600">
+                    <span className="rounded-full bg-cas-secondary/15 px-2.5 py-1 font-black text-cas-secondary">
                       {row.status}
                     </span>
                   </td>

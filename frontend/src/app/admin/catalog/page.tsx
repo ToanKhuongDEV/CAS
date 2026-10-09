@@ -474,8 +474,8 @@ export default function AdminCatalogPage() {
         <div
           className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xs ${
             bulkMessage.type === "success"
-              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-              : "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+              ? "border-cas-secondary/30 bg-cas-secondary/15 text-cas-secondary"
+              : "border-cas-tertiary/30 bg-cas-tertiary/15 text-cas-tertiary"
           }`}
         >
           <CasIcon
@@ -587,9 +587,9 @@ export default function AdminCatalogPage() {
                     <span
                       className={`rounded-full px-2.5 py-1 text-[0.68rem] font-black ${
                         item.status === "ACTIVE"
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                          ? "bg-cas-secondary/15 text-cas-secondary"
                           : item.status === "SOLD_OUT"
-                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                            ? "bg-cas-tertiary/15 text-cas-tertiary"
                             : "bg-cas-outline-variant/20 text-cas-on-surface-variant"
                       }`}
                     >
@@ -629,7 +629,7 @@ export default function AdminCatalogPage() {
 
       {modalMode ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) closeModal();
           }}

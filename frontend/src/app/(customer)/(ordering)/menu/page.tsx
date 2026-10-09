@@ -160,7 +160,7 @@ export default function MenuPage() {
               id="menu-search"
               name="search"
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm món ngon tại Cas..."
+              placeholder="Tìm món ngon ..."
               type="search"
               value={searchQuery}
             />
@@ -234,8 +234,10 @@ export default function MenuPage() {
                           <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
                             {item.badges.map((badge, index) => (
                               <span
-                                className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${
-                                  index === 0 ? "bg-cas-primary" : "bg-cas-secondary"
+                                className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold ${
+                                  index === 0
+                                    ? "bg-cas-primary text-cas-on-primary"
+                                    : "bg-cas-secondary text-cas-on-secondary"
                                 }`}
                                 key={badge}
                               >
@@ -374,7 +376,7 @@ export default function MenuPage() {
           href="/cart"
         >
           <span className="inline-flex items-center gap-3 font-extrabold">
-            <span className="grid size-9 place-items-center rounded-full bg-white/15">
+            <span className="grid size-9 place-items-center rounded-full bg-cas-on-scrim/15">
               <CasIcon className="size-5" name="basket" />
             </span>
             Xem món đã chọn

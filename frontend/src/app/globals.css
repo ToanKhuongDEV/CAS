@@ -45,6 +45,7 @@ html[data-theme="dark"] [data-drag-scroll-axis="x"] {
   --color-cas-on-secondary: var(--cas-on-secondary);
   --color-cas-tertiary: var(--cas-tertiary);
   --color-cas-tertiary-container: var(--cas-tertiary-container);
+  --color-cas-on-tertiary: var(--cas-on-tertiary);
   --color-cas-on-tertiary-container: var(--cas-on-tertiary-container);
   --color-cas-error: var(--cas-error);
   --color-cas-error-hover: var(--cas-error-hover);
@@ -60,6 +61,8 @@ html[data-theme="dark"] [data-drag-scroll-axis="x"] {
   --color-cas-navigation: var(--cas-navigation-background);
   --color-cas-glass: var(--cas-glass-background);
   --color-cas-focus-ring: var(--cas-focus-ring);
+  --color-cas-scrim: var(--cas-scrim);
+  --color-cas-on-scrim: var(--cas-on-scrim);
   --font-sans: var(--font-cas);
   --animate-cas-float: cas-float 4s ease-in-out infinite;
 
@@ -88,6 +91,7 @@ html[data-theme="light"] {
   --cas-on-secondary: #ffffff;
   --cas-tertiary: #825100;
   --cas-tertiary-container: #a36700;
+  --cas-on-tertiary: #ffffff;
   --cas-on-tertiary-container: #fffbff;
   --cas-error: #dc2626;
   --cas-error-hover: #b91c1c;
@@ -105,6 +109,10 @@ html[data-theme="light"] {
   --cas-pattern-color: rgb(182 23 34 / 3%);
   --cas-shadow-color: rgb(18 28 42 / 18%);
   --cas-focus-ring: rgb(0 106 97 / 28%);
+  --cas-scrim: #000000;
+  --cas-on-scrim: #ffffff;
+  --cas-qr-background: #ffffff;
+  --cas-qr-foreground: #000000;
   --font-cas: "Be Vietnam Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -120,6 +128,7 @@ html[data-theme="dark"] {
   --cas-on-secondary: #003733;
   --cas-tertiary: #ffb95f;
   --cas-tertiary-container: #653e00;
+  --cas-on-tertiary: #653e00;
   --cas-on-tertiary-container: #ffddb8;
   --cas-error: #ef4444;
   --cas-error-hover: #f87171;
@@ -137,4 +146,8 @@ html[data-theme="dark"] {
   --cas-pattern-color: rgb(255 179 173 / 4%);
   --cas-shadow-color: rgb(0 0 0 / 34%);
   --cas-focus-ring: rgb(107 216 203 / 38%);
+  --cas-scrim: #000000;
+  --cas-on-scrim: #ffffff;
+  --cas-qr-background: #ffffff;
+  --cas-qr-foreground: #000000;
 }

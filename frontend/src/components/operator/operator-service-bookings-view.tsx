@@ -445,7 +445,7 @@ export function OperatorServiceBookingsView({
 
       {isCreateDialogOpen ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setIsCreateDialogOpen(false);
           }}
@@ -659,7 +659,7 @@ export function OperatorServiceBookingsView({
 
       {bookingToConfirm ? (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] grid place-items-center bg-cas-scrim/55 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setBookingToConfirm(null);
           }}
@@ -734,7 +734,7 @@ export function OperatorServiceBookingsView({
 
       {bookingToCancel ? (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] grid place-items-center bg-cas-scrim/55 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setBookingToCancel(null);
           }}

@@ -55,9 +55,9 @@ export default function CustomerInformationPage() {
             priority
             sizes="(max-width: 767px) calc(100vw - 2.5rem), 32rem"
           />
-          <span className="absolute inset-0 bg-linear-to-r from-black/75 via-black/40 to-black/10" />
-          <div className="relative z-10 flex min-h-44 max-w-[19rem] flex-col justify-end p-5 text-white">
-            <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-amber-300 uppercase">
+          <span className="absolute inset-0 bg-linear-to-r from-cas-scrim/75 via-cas-scrim/40 to-cas-scrim/10" />
+          <div className="relative z-10 flex min-h-44 max-w-[19rem] flex-col justify-end p-5 text-cas-on-scrim">
+            <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-tertiary uppercase">
               Gợi ý hôm nay
             </p>
             <strong className="mt-1 text-lg leading-snug">

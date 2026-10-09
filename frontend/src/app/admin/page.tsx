@@ -400,7 +400,7 @@ export default function AdminDashboardPage() {
           <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
               <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <span className="grid size-9 place-items-center rounded-xl bg-cas-tertiary/15 text-cas-tertiary">
                   <CasIcon className="size-5" name="info" />
                 </span>
                 <div>
@@ -458,7 +458,7 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-[0.68rem] font-black ${incident.status === "Chưa duyệt" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"}`}
+                      className={`rounded-full px-2.5 py-0.5 text-[0.68rem] font-black ${incident.status === "Chưa duyệt" ? "bg-cas-tertiary/15 text-cas-tertiary" : "bg-cas-secondary/15 text-cas-secondary"}`}
                     >
                       {incident.status}
                     </span>
@@ -530,11 +530,11 @@ export default function AdminDashboardPage() {
                     <span
                       className={`grid size-7 place-items-center rounded-xl text-xs font-black ${
                         item.rank === 1
-                          ? "bg-amber-500 text-white shadow-xs"
+                          ? "bg-cas-tertiary text-cas-on-tertiary shadow-xs"
                           : item.rank === 2
-                            ? "bg-slate-300 text-slate-800"
+                            ? "bg-cas-outline-variant text-cas-on-surface"
                             : item.rank === 3
-                              ? "bg-amber-700/30 text-amber-800 dark:text-amber-200"
+                              ? "bg-cas-tertiary/30 text-cas-tertiary"
                               : "bg-cas-outline-variant/30 text-cas-on-surface-variant"
                       }`}
                     >
@@ -562,7 +562,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
               <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                <span className="grid size-9 place-items-center rounded-xl bg-cas-error/15 text-cas-error">
                   <CasIcon className="size-5" name="info" />
                 </span>
                 <div>
@@ -599,10 +599,10 @@ export default function AdminDashboardPage() {
               ].map((soldOutItem, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3"
+                  className="flex items-center justify-between rounded-2xl border border-cas-error/20 bg-cas-error/5 p-3"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="rounded-lg bg-rose-500/15 px-2 py-0.5 text-[0.65rem] font-black uppercase text-rose-600 dark:text-rose-400">
+                    <span className="rounded-lg bg-cas-error/15 px-2 py-0.5 text-[0.65rem] font-black uppercase text-cas-error">
                       SOLD OUT
                     </span>
                     <div>

@@ -58,7 +58,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
         <button
           type="button"
           onClick={togglePeriod}
-          className="shrink-0 rounded-lg bg-cas-primary/10 hover:bg-cas-primary hover:text-white px-2.5 py-1 font-black text-xs text-cas-primary transition border border-cas-primary/20 cursor-pointer"
+          className="shrink-0 rounded-lg bg-cas-primary/10 hover:bg-cas-primary hover:text-cas-on-primary px-2.5 py-1 font-black text-xs text-cas-primary transition border border-cas-primary/20 cursor-pointer"
           title="Bấm để chuyển đổi nhanh AM / PM"
         >
           {period}
@@ -95,7 +95,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
                       key={n}
                       type="button"
                       onClick={() => setHour(n)}
-                      className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-white shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
+                      className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
                     >
                       {n < 10 ? `0${n}` : n}
                     </button>
@@ -118,7 +118,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
                         key={min}
                         type="button"
                         onClick={() => setMinute(min)}
-                        className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-white shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
+                        className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
                       >
                         {min}
                       </button>
@@ -141,7 +141,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="rounded-lg bg-cas-primary px-3 py-1 text-xs font-bold text-white hover:opacity-90 transition cursor-pointer"
+              className="rounded-lg bg-cas-primary px-3 py-1 text-xs font-bold text-cas-on-primary hover:opacity-90 transition cursor-pointer"
             >
               Xác nhận
             </button>
@@ -325,10 +325,10 @@ export default function AdminSettingsPage() {
         </div>
         <div className="mt-2 sm:mt-0 flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black ${storeStatus === "ACTIVE" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black ${storeStatus === "ACTIVE" ? "bg-cas-secondary/15 text-cas-secondary border border-cas-secondary/30" : "bg-cas-error/15 text-cas-error border border-cas-error/30"}`}
           >
             <span
-              className={`h-2 w-2 rounded-full ${storeStatus === "ACTIVE" ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
+              className={`h-2 w-2 rounded-full ${storeStatus === "ACTIVE" ? "bg-cas-secondary animate-pulse" : "bg-cas-error"}`}
             />
             {storeStatus === "ACTIVE" ? "Quán đang Hoạt động" : "Quán Tạm đóng cửa"}
           </span>
@@ -403,7 +403,7 @@ export default function AdminSettingsPage() {
               {/* Tên Cửa hàng */}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-1">
-                  Tên Cửa hàng <span className="text-rose-500">*</span>
+                  Tên Cửa hàng <span className="text-cas-error">*</span>
                 </label>
                 <input
                   type="text"
@@ -419,7 +419,7 @@ export default function AdminSettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block font-extrabold text-cas-on-surface mb-1">
-                    Số điện thoại Hotline <span className="text-rose-500">*</span>
+                    Số điện thoại Hotline <span className="text-cas-error">*</span>
                   </label>
                   <input
                     type="tel"
@@ -432,7 +432,7 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="block font-extrabold text-cas-on-surface mb-1">
-                    Email liên hệ <span className="text-rose-500">*</span>
+                    Email liên hệ <span className="text-cas-error">*</span>
                   </label>
                   <input
                     type="email"
@@ -448,7 +448,7 @@ export default function AdminSettingsPage() {
               {/* Địa chỉ Cửa hàng */}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-1">
-                  Địa chỉ Cửa hàng <span className="text-rose-500">*</span>
+                  Địa chỉ Cửa hàng <span className="text-cas-error">*</span>
                 </label>
                 <input
                   type="text"
@@ -476,7 +476,7 @@ export default function AdminSettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowMapHelp(!showMapHelp)}
-                      className="inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-cas-primary/15 text-cas-primary font-black text-[0.7rem] hover:bg-cas-primary hover:text-white transition focus:outline-none cursor-pointer"
+                      className="inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-cas-primary/15 text-cas-primary font-black text-[0.7rem] hover:bg-cas-primary hover:text-cas-on-primary transition focus:outline-none cursor-pointer"
                       title="Xem hướng dẫn lấy link/tọa độ"
                       aria-label="Xem hướng dẫn lấy link hoặc tọa độ Google Maps"
                     >
@@ -617,7 +617,7 @@ export default function AdminSettingsPage() {
                   {isUploadingLogo ? "Đang tải logo..." : "Lưu Thông tin Cửa hàng"}
                 </CasButton>
                 {savedStoreMsg && (
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+                  <span className="text-xs font-bold text-cas-secondary animate-in fade-in">
                     {savedStoreMsg}
                   </span>
                 )}
@@ -630,7 +630,7 @@ export default function AdminSettingsPage() {
           {/* Form Cấu hình Ngưỡng cảnh báo Vận hành */}
           <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-tertiary/10 text-cas-tertiary">
                 <CasIcon name="clock" className="h-5 w-5" />
               </div>
               <div>
@@ -672,7 +672,7 @@ export default function AdminSettingsPage() {
                   Lưu Tham số Vận hành
                 </CasButton>
                 {savedOpsMsg && (
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+                  <span className="text-xs font-bold text-cas-secondary animate-in fade-in">
                     {savedOpsMsg}
                   </span>
                 )}
@@ -754,9 +754,7 @@ export default function AdminSettingsPage() {
                 <div className="rounded-xl bg-cas-surface-variant/40 p-2.5 text-[0.7rem] text-cas-on-surface-variant space-y-1">
                   <div className="flex justify-between font-bold">
                     <span>Ngưỡng chờ lâu:</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-extrabold">
-                      {warningMins} Phút
-                    </span>
+                    <span className="text-cas-tertiary font-extrabold">{warningMins} Phút</span>
                   </div>
                 </div>
               </div>

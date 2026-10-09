@@ -371,7 +371,7 @@ export function OperatorCancellationRequestsView() {
       {/* MODAL XÁC NHẬN ĐỒNG Ý HỦY */}
       {activeModal?.type === "APPROVE" ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4 backdrop-blur-sm"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setActiveModal(null);
           }}
@@ -490,7 +490,7 @@ export function OperatorCancellationRequestsView() {
       {/* MODAL XÁC NHẬN TỪ CHỐI */}
       {activeModal?.type === "REJECT" ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4 backdrop-blur-sm"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setActiveModal(null);
           }}

@@ -93,7 +93,7 @@ export default function ProductDetailPage() {
           priority
           sizes="(max-width: 767px) 100vw, 75rem"
         />
-        <span className="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-black/10" />
+        <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/45 via-transparent to-cas-scrim/10" />
         <Link
           className="absolute top-4 left-4 grid size-11 place-items-center rounded-full bg-cas-glass text-cas-primary shadow-lg backdrop-blur-xl focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
           href="/menu"

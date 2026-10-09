@@ -137,7 +137,7 @@ export default function AdminCategoriesPage() {
       {/* Modal Tạo danh mục mới */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddForm(false);
           }}
@@ -222,7 +222,7 @@ export default function AdminCategoriesPage() {
       {/* Modal chỉnh sửa danh mục */}
       {editingCategory && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setEditingCategory(null);
           }}
@@ -308,7 +308,7 @@ export default function AdminCategoriesPage() {
       {/* Modal Xác nhận Xóa danh mục */}
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setDeleteTarget(null);
           }}
@@ -383,7 +383,7 @@ export default function AdminCategoriesPage() {
                 <CasIcon className="size-4" name="edit" />
               </button>
               <button
-                className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-rose-500/10 hover:text-rose-600"
+                className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-cas-error/10 hover:text-cas-error"
                 onClick={() => setDeleteTarget(category)}
                 title="Xóa danh mục"
                 type="button"

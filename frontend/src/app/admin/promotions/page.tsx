@@ -670,7 +670,7 @@ export default function AdminPromotionsPage() {
       {/* Form modal */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeForm();
           }}
@@ -970,14 +970,18 @@ export default function AdminPromotionsPage() {
           return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center">
               <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-cas-scrim/40 backdrop-blur-sm"
                 onClick={() => setConfirmTarget(null)}
               />
               <div className="relative z-10 w-full max-w-sm rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-6 shadow-2xl">
                 <div className="mb-1 flex items-center gap-3">
                   <span
-                    className={`grid size-10 shrink-0 place-items-center rounded-xl text-white ${
-                      isSave ? "bg-cas-primary" : isDeactivate ? "bg-cas-error" : "bg-cas-secondary"
+                    className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+                      isSave
+                        ? "bg-cas-primary text-cas-on-primary"
+                        : isDeactivate
+                          ? "bg-cas-error text-cas-on-error"
+                          : "bg-cas-secondary text-cas-on-secondary"
                     }`}
                   >
                     <CasIcon
@@ -1037,7 +1041,7 @@ export default function AdminPromotionsPage() {
       {redemptionHistory && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+            className="absolute inset-0 bg-cas-scrim/55 backdrop-blur-sm"
             onClick={() => setRedemptionHistory(null)}
           />
           <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
