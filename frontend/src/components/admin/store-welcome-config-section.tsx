@@ -135,7 +135,7 @@ export function StoreWelcomeConfigSection() {
   };
 
   return (
-    <section className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sm:p-8">
+    <section className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sm:p-8">
       <div className="flex flex-col gap-3 border-b border-cas-outline-variant/15 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">

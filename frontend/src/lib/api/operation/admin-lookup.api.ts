@@ -9,9 +9,15 @@ export type CustomerSummary = {
   sessionCount: number;
   lastVisitedAt: string | null;
 };
+export type CustomerPage = {
+  items: CustomerSummary[];
+  total: number;
+  page: number;
+  size: number;
+};
 export type CustomerSession = {
   publicId: string;
-  tableCode: number;
+  tableCode: number | null;
   status: string;
   orderCount: number;
   paymentStatus: string | null;
@@ -38,10 +44,18 @@ export type AuditLog = {
   createdAt: string;
 };
 export type AuditLogPage = { items: AuditLog[]; total: number; page: number; size: number };
-export function loadCustomers(query = "") {
-  return request<CustomerSummary[]>(
-    `/api/v1/admin/customers${query.trim() ? `?query=${encodeURIComponent(query.trim())}` : ""}`,
-  );
+export function loadCustomers({
+  page = 0,
+  query = "",
+  size = 10,
+}: {
+  page?: number;
+  query?: string;
+  size?: number;
+}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (query.trim()) params.set("query", query.trim());
+  return request<CustomerPage>(`/api/v1/admin/customers?${params}`);
 }
 export function loadCustomer(id: number) {
   return request<CustomerDetail>(`/api/v1/admin/customers/${id}`);

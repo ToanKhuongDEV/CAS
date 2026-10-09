@@ -14,6 +14,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn(),
   loadPublicStores: vi.fn(),
+  rememberPublicStoreId: vi.fn(),
 }));
 vi.mock("../lib/customer/sales-session", () => ({
   openCustomerTakeawaySalesSession: vi.fn(),
@@ -59,6 +60,7 @@ describe("StartOrderPage", () => {
   it("opens the QR screen directly for dine-in", async () => {
     render(<StartOrderPage />);
 
+    expect(screen.getByRole("link", { name: "Quay lại" })).toHaveAttribute("href", "/");
     expect(await screen.findByText("CAS Mỳ Cay")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Logo CAS Mỳ Cay" })).toHaveAttribute(
       "src",

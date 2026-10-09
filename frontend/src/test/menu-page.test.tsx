@@ -111,7 +111,7 @@ describe("MenuPage", () => {
 
     expect(screen.getByRole("searchbox", { name: "Tìm kiếm món ăn" })).toHaveAttribute(
       "placeholder",
-      "Tìm món ngon tại Cas...",
+      "Tìm món ngon ...",
     );
     expect((await screen.findAllByRole("heading", { name: "Mỳ cay API" })).length).toBeGreaterThan(
       0,

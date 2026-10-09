@@ -75,9 +75,6 @@ export default function AdminTagsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black text-cas-on-surface">Nhãn món</h1>
-        <p className="text-xs text-cas-on-surface-variant">
-          Tạo nhãn để gắn cho món; việc gán nhãn thực hiện trong phần món ăn.
-        </p>
       </div>
       {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
       <form

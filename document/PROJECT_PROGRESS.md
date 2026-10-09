@@ -1,733 +1,106 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-05
+Ngày cập nhật gần nhất: 2026-10-09
 
 ## Quy ước
 
-- `[x]`: Đã hoàn thành và đã được xác nhận.
-- `[ ]`: Chưa hoàn thành.
-- Mỗi khi phạm vi hoặc thiết kế thay đổi, cập nhật checklist này trong cùng pull request hoặc commit.
-- Commit sử dụng định dạng `<prefix>(<scope>): <description>`; chỉ dùng prefix
-  `add`, `update`, `chore`, hoặc `delete`, và scope là `be`, `fe`, hoặc `docs`.
+- `[x]`: Đã hoàn thành.
+- `[ ]`: Chưa hoàn thành hoặc chưa chốt phạm vi.
+- Tài liệu chi tiết là nguồn tham chiếu chính: `OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md` và `EDGE_CASES.md`.
 
 ## 1. Phân tích và tài liệu
 
-- [x] Xác định mục tiêu và phạm vi chức năng của CAS.
-- [x] Mô tả luồng gọi món bằng QR tại bàn.
-- [x] Mô tả luồng gọi thêm món.
-- [x] Mô tả luồng yêu cầu hủy món.
-- [x] Mô tả luồng yêu cầu thanh toán.
-- [x] Mô tả luồng tạo payment và xác nhận trạng thái thanh toán thủ công.
-- [x] Mô tả luồng ghi nhận khách rời đi chưa thanh toán.
-- [x] Mô tả luồng xác nhận payment sau khi đã ghi nhận chưa thanh toán.
-- [x] Tổng hợp các trường hợp biên nghiệp vụ.
-- [x] Chuẩn hóa cách diễn đạt phạm vi trong tài liệu chính thức.
-- [x] Rà soát lại toàn bộ tài liệu nguồn của dự án ngày 2026-08-05.
-- [x] Rà soát lại toàn bộ tài liệu nguồn và đối chiếu nền mã backend ngày 2026-08-13.
-- [x] Rà soát tài liệu nguồn và nền mã backend để chuẩn bị kế hoạch triển khai ngày 2026-08-14.
-- [x] Bổ sung mô tả ngắn cấu trúc thư mục backend và vai trò các nhóm file trong tài liệu tổng quan.
-- [x] Chốt phạm vi module Admin tra cứu khách hàng: chỉ đọc `client_accounts` và lịch sử sử dụng bàn, không mở rộng thành CRM hoặc thay đổi schema.
-- [x] Bổ sung yêu cầu in hóa đơn thanh toán và phiếu bếp qua máy in kết nối nội bộ (LAN/USB) vào `OVERALL.md` và `EDGE_CASES.md`.
-- [x] Bổ sung yêu cầu chế độ offline-first cho giao diện vận hành (Operation) với hàng đợi đồng bộ cục bộ vào `OVERALL.md` và `EDGE_CASES.md`. Các thao tác tài chính (PAID, đóng bill, voucher quota, hoàn tiền) vẫn bắt buộc online.
+- [x] Hoàn thiện phạm vi sản phẩm, luồng QR tại bàn, gọi món, hủy món, thanh toán, khoản chưa thanh toán và các trường hợp biên.
+- [x] Chốt phạm vi tra cứu khách hàng Admin, in hóa đơn/phiếu bếp nội bộ và định hướng offline-first cho Operation; thao tác tài chính vẫn yêu cầu online.
+- [x] Chuẩn hóa tài liệu kiến trúc, quy tắc nghiệp vụ, thiết kế dữ liệu và cấu trúc dự án.
 
-## 2. Các quyết định nghiệp vụ đã chốt
+## 2. Quyết định nghiệp vụ đã chốt
 
-- [x] Mỗi lần gửi món tạo một `orders` riêng trong cùng `sales_sessions`.
-- [x] `OPERATOR` được dùng luồng chọn món của Customer để tạo order hộ khách vào
-      sales session `OPEN`; order dùng cùng validation, giá, idempotency, FIFO và
-      phải ghi audit log theo tài khoản nhân viên.
-- [x] Danh sách đơn gọi món ưu tiên theo FIFO: order có `created_at` sớm hơn được xếp lên món trước; order gọi thêm xếp sau các order đã tạo trước. Các order trùng `created_at` không cần bảo đảm thứ tự và không cần khóa sắp xếp phụ.
-- [x] Tiến độ làm món được quản lý bằng `order_items.prepared_quantity`; không lưu `orders.is_completed`. Nhân viên hoàn thành số lượng theo mẻ, backend phân bổ về các dòng món theo FIFO và trạng thái hoàn thành order được suy ra.
-- [x] Chống gửi order trùng bằng `idempotency_key` và `request_fingerprint`.
-- [x] Order chỉ có ghi chú chung tại `orders.note`, không ghi chú theo từng món.
-- [x] Giá món chính và giá option được lưu riêng tại thời điểm đặt.
-- [x] Option (size, topping, đường/đá...) được quản lý độc lập trong bảng `option_values`, thuộc nhóm `option_groups`, không nằm trong `menu_items`.
-- [x] Quản lý nhãn món bằng `tags` và bảng trung gian nhiều-nhiều `menu_item_tags`.
-- [x] `dining_tables` dùng `code` kiểu `INT UNSIGNED`, duy nhất toàn hệ thống và không còn lưu `name`.
-- [x] Dùng `option_groups`, `option_values`, `menu_item_option_groups` và `order_item_options` để quản lý nhóm lựa chọn và liên kết size/topping với món.
-- [x] Hai món có cấu hình option khác nhau được lưu thành hai `order_items` khác nhau.
-- [x] Yêu cầu hủy món không sửa hoặc xóa dữ liệu order gốc.
-- [x] Bàn đang có khách được suy ra từ `sales_sessions` trạng thái `OPEN` hoặc `PAYMENT_PENDING`.
-- [x] `dining_tables` không lưu cột trạng thái; bàn không có trạng thái `ACTIVE` hoặc `INACTIVE`.
-- [x] Khoản chưa thanh toán được quản lý trong bảng riêng `unpaid_records`.
-- [x] `unpaid_records` và `payments` đều lưu `bill_snapshot`.
-- [x] Mỗi sales session có tối đa một payment với trạng thái `PENDING` hoặc `PAID`.
-- [x] Payment được tạo khi khách yêu cầu; số tiền do backend lấy từ tổng `orders.payable_amount`.
-- [x] CAS không tạo QR thanh toán, không lưu thông tin ngân hàng và không tự theo dõi luồng tiền thực tế.
-- [x] Sau khi gửi yêu cầu, khách bắt buộc gặp nhân viên; nhân viên xác minh chuyển khoản qua loa “ting ting” rồi mới xác nhận payment `PAID`.
-- [x] Thời gian nghiệp vụ dùng `Asia/Ho_Chi_Minh` (`UTC+07:00`).
-- [x] Thời gian chờ của bàn trên dashboard Operation được tính từ `orders.created_at` của order cũ nhất còn ít nhất một phần chưa làm xong trong sales session; bàn được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình. UI tạm dùng `25` phút.
-- [x] Hệ thống **không có chức năng đổi bàn, chuyển bàn hoặc gộp bàn** trong phạm vi hiện tại; mỗi sales session gắn cố định với một bàn từ khi `OPEN` đến khi `CLOSED`.
-- [x] Chốt việc tách bàn, gộp bàn hay chuyển bàn được giải quyết toàn bộ qua thẻ QR di động (khách cầm đi bàn khác) nên hệ thống không cần phát triển tính năng này.
-- [x] Chốt nhân viên có giao diện Hủy món (như khách), cờ `is_remade` được lưu khi món bị hỏng/khách chê; Backend sinh đơn mới kèm nhãn `[LÀM LẠI]` để bù trừ tiền chính xác.
-- [x] Chốt tất cả khách hàng và nhân viên đều được phép Hủy phiên bàn (đóng session ngay) miễn là chưa có order nào được gửi xuống bếp.
-- [x] Mọi record khuyến mãi, redemption và discount snapshot có `store_id`; promotion chỉ áp dụng cho bill cùng store.
-- [x] Promotion thuộc một store, có `DRAFT`/`ACTIVE`/`INACTIVE`, hiệu lực qua `start_at`/`end_at` có thể `NULL`; `promotion_targets` giới hạn phạm vi theo `MENU_ITEM` hoặc `CATEGORY` khi cần.
-- [x] Promotion không tự áp dụng; backend trả các lựa chọn hợp lệ và số tiền dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của sales session.
-- [x] Discount được tính lại khi bill thay đổi, được khóa khi session chuyển `PAYMENT_PENDING`, và redemption chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
-- [x] Discount làm tròn tới đơn vị đồng bằng `RoundingMode.HALF_UP`.
-- [x] Mô hình promotion giai đoạn hiện tại chỉ dùng `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`; điều kiện cơ bản nằm trực tiếp tại `promotions`.
-- [x] Discount cấp bill được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món.
-- [x] Quota hỗ trợ đồng thời theo promotion, code và khách hàng; mỗi khách dùng tối đa một voucher/promotion cho một bill.
-- [x] `sales_sessions` lưu promotion và code được chọn tạm thời trước payment; snapshot giảm giá bất biến vẫn nằm ở `bill_discounts` và `payments.bill_snapshot`.
-- [x] `ADMIN` được tra cứu khách đã mở bàn theo cửa hàng, xem lịch sử session/order/payment/khoản chưa thanh toán; `OPERATOR` không được truy cập và module không cho sửa hoặc xóa dữ liệu.
+- [x] Mỗi lần gửi món tạo một `order` trong `sales_session`; giá món và option được snapshot tại thời điểm đặt, chống trùng bằng idempotency key.
+- [x] Chế biến theo FIFO; tiến độ nằm ở `order_items.prepared_quantity`, hoàn thành theo mẻ và suy ra trạng thái order.
+- [x] Một bàn có khách được suy ra từ sales session `OPEN`/`PAYMENT_PENDING`; không hỗ trợ đổi, gộp hoặc tách bàn.
+- [x] Hủy món không sửa dữ liệu order gốc; nhân viên có thể ghi nhận món làm lại qua `is_remade`.
+- [x] Thanh toán do nhân viên xác nhận thủ công; CAS không tạo QR thanh toán, không lưu thông tin ngân hàng và không theo dõi dòng tiền thực tế.
+- [x] Khoản chưa thanh toán có bản ghi và bill snapshot riêng; payment cũng có bill snapshot.
+- [x] Khuyến mãi thuộc store, được chọn tối đa một cho bill, tính lại theo bill hiện hành và khóa khi chuyển `PAYMENT_PENDING`; redemption chỉ phát sinh khi payment `PAID`.
+- [x] Customer và Operator chỉ hủy session chưa có order; Admin có thể tra cứu khách hàng theo store ở chế độ chỉ đọc.
 
-## 3. Các quyết định kỹ thuật đã chốt
+## 3. Quyết định kỹ thuật đã chốt
 
-- [x] Backend sử dụng Java 21, Spring Boot, Maven, MyBatis, MySQL, Redis và Flyway.
-- [x] Frontend sử dụng Next.js, React, TypeScript và Tailwind CSS.
-- [x] Hình ảnh menu được lưu trên Cloudinary.
-- [x] CI/CD sử dụng GitHub Actions.
-- [x] Môi trường production được triển khai trên một VPS.
-- [x] Chốt frontend và backend chạy trong cùng Docker Compose network trên VPS.
-- [x] Chốt môi trường phát triển chạy backend, frontend và MySQL local; Redis dùng Redis Cloud. Docker Compose chỉ dùng khi triển khai production.
-- [x] Chốt authentication sử dụng Firebase Authentication.
-- [x] Bổ sung role `SUPER_ADMIN`; role này có quyền tạo account `ADMIN` qua API.
-- [x] Chốt Firebase Authentication là cơ chế xác thực chính cho tài khoản vận hành (ADMIN và OPERATOR); Client gửi Firebase ID Token và Backend verify token để phân quyền.
-- [x] Chốt một Next.js app cho ba khu vực Customer, Operation và Admin.
-- [x] Tổ chức App Router theo ba route group `(customer)`, `(operator)` và `(admin)` với layout riêng.
-- [x] Bổ sung nested route group `(ordering)` dùng chung Header và Bottom Navigation cho Menu/Cart; tách bộ điều khiển số lượng món dùng chung.
-- [x] Chốt QR token chỉ dùng tại `/table/{qrToken}`; sau khi có session hợp lệ, Customer tiếp tục tại `/menu`, `/cart` và `/orders`.
-- [x] Chốt Customer theo hướng mobile-first; Operation và Admin ưu tiên web desktop, đồng thời responsive cho mobile.
-- [x] Chốt client không đăng nhập; account role chỉ gồm `ADMIN` và `OPERATOR`.
-- [x] Chốt mọi chức năng quản trị chỉ dành cho `ADMIN`; `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
-- [x] Chốt REST + polling để đồng bộ order và payment; chưa dùng SSE/WebSocket.
-- [x] Bật CORS trong Spring Security, áp dụng whitelist `FRONTEND_ORIGIN` cho frontend gọi CAS Backend trực tiếp.
-- [x] Chốt luồng upload ảnh món có chữ ký: CAS Backend cấp chữ ký ngắn hạn, Frontend upload trực tiếp ảnh lên Cloudinary, rồi gửi URL hiển thị và public ID về Backend khi lưu món.
-- [x] Chốt CAS Backend chỉ quản lý yêu cầu và trạng thái thanh toán, không tích hợp VietQR/ngân hàng.
+- [x] Backend: Java 21, Spring Boot, Maven, MyBatis, MySQL, Redis và Flyway; tiền tệ dùng `DECIMAL`/`BigDecimal`.
+- [x] Frontend: Next.js, React, TypeScript và Tailwind CSS, tổ chức theo ba khu vực Customer, Operator và Admin.
+- [x] Xác thực tài khoản vận hành dùng Firebase ID Token; backend phân quyền `SUPER_ADMIN`, `ADMIN` và `OPERATOR`.
+- [x] Đồng bộ dùng REST và polling; CORS chỉ cho frontend origin cấu hình.
+- [x] Ảnh upload trực tiếp Cloudinary bằng chữ ký ngắn hạn do backend cấp; production dùng Docker Compose trên VPS.
 
 ## 4. Thiết kế database
 
-- [x] Seed demo tạo 15 món thuộc sáu category cùng tag và option; ảnh món, logo và Welcome dùng URL/public ID Cloudinary.
-- [x] Chốt aggregate mục tiêu `sales_sessions` cho đơn `DINE_IN` và `TAKEAWAY`;
-      gộp schema Flyway về baseline duy nhất và chuyển các query dine-in hiện có
-      sang aggregate mới trước khi tạo lại database local.
-
-- [x] Xác định danh sách bảng nghiệp vụ.
-- [x] Mô tả quan hệ giữa các bảng.
-- [x] Xác định các trạng thái nghiệp vụ chính.
-- [x] Bổ sung kiểu dữ liệu MySQL cho các cột của mô hình dữ liệu nền tảng.
-- [x] Xác định `NULL`, `NOT NULL`, `DEFAULT` và `AUTO_INCREMENT` ở mức thiết kế.
-- [x] Xác định các unique constraint và index nghiệp vụ cơ bản.
-- [x] Hoàn thiện mô hình dữ liệu nền tảng và quan hệ tổng quan.
-- [x] Chốt đầy đủ foreign key với `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
-- [x] Chốt không dùng `CHECK` constraint nghiệp vụ, chốt default và các index menu triển khai trước.
-- [x] Chốt generated column kết hợp unique index cho các unique constraint có điều kiện cần thiết.
-- [x] Bổ sung trường người thao tác (`created_by_account_id` trong `orders` & `order_item_cancellation_requests`, `created_by`/`updated_by` trong Master Data Menu & Bàn) vào tài liệu thiết kế cơ sở dữ liệu.
-- [x] Tạo Flyway migration khởi tạo schema nền tảng.
-- [x] Cập nhật trực tiếp V1 DDL khi schema chưa được áp dụng ở bất kỳ môi trường nào: cập nhật bảng `promotions` (`code VARCHAR(50)`, `uk_promotions_store_code`, loại bỏ `min_quantity`, `priority` và `is_stackable`), bổ sung bảng `system_notifications` cùng foreign keys & unique constraints; không tạo migration V2.
-- [x] Rà soát và cập nhật trực tiếp V1 DDL khi chưa áp dụng: bổ sung `categories.category_type`; chuyển `accounts` sang định danh `firebase_uid` và loại bỏ dữ liệu mật khẩu nội bộ; chuẩn hóa `dining_tables` unique theo `store_id + code`; đồng bộ notification broadcast theo `OPERATOR`, `CUSTOMER`, `BOTH` và bỏ cờ `is_read` toàn cục.
-- [x] Bổ sung trực tiếp V1 DDL khi chưa áp dụng: `preparation_batch_completions` cho idempotency bền vững của hoàn thành theo mẻ, và `system_notification_recipients` để lưu trạng thái `UNREAD`/`READ` theo từng Operator hoặc sales session đang nhận notification.
-- [x] Bổ sung `CHECK` constraint cho `system_notification_recipients`, bảo đảm mỗi recipient tham chiếu đúng một `account` hoặc `sales_session`.
-- [x] Bổ sung `store_id` và composite foreign key trong Catalog (`menu_items`, `menu_item_tags`, `menu_item_option_groups`) để database chặn liên kết món, tag hoặc option group chéo cửa hàng.
-- [x] Loại bỏ `promotions.code` và unique constraint liên quan khỏi V1; `promotion_codes` là nguồn duy nhất của mã khuyến mãi, cho phép promotion không cần mã hoặc có nhiều mã.
-- [x] Đồng bộ `DATABASE_DESIGN.md` theo V1 DDL: bổ sung các cột audit/status/public ID còn thiếu, mô tả đầy đủ bảng notification và recipient, cùng unique constraint, trạng thái và quan hệ liên quan.
-- [x] Loại bỏ các index đơn dư thừa đã được composite unique index bao phủ: `dining_tables(store_id)`, `tags(store_id)` và `client_accounts(store_id)`; index theo `created_at` sẽ được quyết định bằng `EXPLAIN ANALYZE` khi có query thực tế.
-- [x] Làm rõ quy tắc `promotion_targets`: backend phân luồng `target_type` và kiểm tra `target_id` tồn tại trong `menu_items` hoặc `categories`, đồng thời thuộc cùng store với promotion, trước khi ghi dữ liệu.
-- [x] Thay index đơn bằng composite index theo thời gian cho audit log, lịch sử sales session của khách hàng và notification recipient để hỗ trợ truy vấn mới nhất trước.
-- [x] Bổ sung `order_items.prepared_quantity` trực tiếp vào migration khởi tạo do schema chưa được áp dụng ở môi trường nào.
-- [x] Cập nhật tài liệu sang mô hình khuyến mãi 5 bảng `promotions`,
-      `promotion_codes`, `promotion_targets`, `promotion_redemptions` và
-      `bill_discounts`; không sửa giá niêm yết `menu_items.price` khi áp dụng
-      khuyến mãi.
-- [x] Chốt mô hình logic của 5 bảng promotion/bill và quota theo
-      promotion/code/khách hàng.
-- [x] Thiết kế migration V1 chi tiết, unique constraint và index cho các bảng
-      promotion, redemption và discount snapshot.
-- [x] Rà soát `DATABASE_DESIGN.md` và `V1__create_base_20260701.sql` ngày
-      2026-08-12; ghi nhận các điểm lệch cần chốt trước khi áp dụng migration.
-- [x] Cho phép Customer và OPERATOR mở phiên bàn với số điện thoại tùy chọn;
-      khách không có số điện thoại được lưu là khách lẻ (`client_accounts.phone`
-      và `sales_sessions.opened_by_customer_phone` bằng `NULL`).
-- [x] Đồng bộ V1 với thiết kế database đã chốt trước khi migration được áp dụng:
-      Firebase `accounts`, `categories.category_type`, `service_bookings` và
-      `system_notification_recipients`.
-- [x] Đồng bộ cấu hình `stores` vào V1: thông tin liên hệ/vị trí, giờ hoạt động,
-      slogan và `long_wait_warning_minutes`.
-- [x] Chốt API contract, giới hạn validation và fallback backend cho cấu hình
-      ngưỡng cảnh báo chờ lâu: `GET`/`PUT
-      /api/v1/admin/store/settings/long-wait-warning`, chỉ
-      `ADMIN`, `0` tắt cảnh báo, giá trị bật trong khoảng `1`–`1440` phút và
-      fallback backend là `25` phút khi không đọc được cấu hình hợp lệ; response
-      success dùng `ApiResponse` với `data.longWaitWarningMinutes`.
-- [x] Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.
+- [x] Hoàn thiện baseline Flyway, foreign key, unique/composite index, audit fields và seed demo.
+- [x] Hoàn thiện mô hình store, bàn, catalog/options/tags, sales session, order, chế biến, payment, unpaid record, promotion, notification và audit log.
+- [x] Chuẩn hóa ràng buộc theo store để ngăn tham chiếu catalog/promotion chéo cửa hàng.
+- [x] Đồng bộ `DATABASE_DESIGN.md` với schema và các trạng thái nghiệp vụ đang áp dụng.
 
 ## 5. Backend
 
-- [x] Sửa luồng quét QR Customer khi bàn chưa có session: cho phép ánh xạ `session_id` SQL `NULL`, tránh lỗi `500` với QR đang `ACTIVE`.
+### Nền tảng và bảo mật
 
-- [x] Loại bỏ migration V3 lỗi; giữ FK QR-bàn là `RESTRICT` do giới hạn MySQL với generated column, và xóa QR trong transaction của use case xóa bàn.
-- [x] Bổ sung file seed thủ công `backend/src/main/resources/db/seed/demo-data.sql`: cửa hàng demo, 8 bàn kèm QR token, danh mục, món, tag và option; ảnh món demo dùng URL và storage key Cloudinary, còn ảnh Welcome tiếp tục dùng asset local.
-- [x] Bổ sung script thủ công `backend/src/main/resources/db/seed/clone_demo_store_2.sql`: cập nhật store `2`, clone dữ liệu Customer-facing từ store demo `1` và sinh QR mới cho các bàn.
-- [x] Bổ sung bốn account demo `SUPER_ADMIN`, `ADMIN` và hai `OPERATOR` vào seed; cần tạo Firebase user có UID tương ứng trước khi đăng nhập.
+- [x] Chuẩn hóa response/error, request ID, validation, logging an toàn, audit log và kiểm thử thủ công cURL/Postman.
+- [x] Xác thực Firebase, quản lý tài khoản vận hành và phân quyền theo store/role.
 
-- [x] Refactor cấu trúc nội bộ các module backend đang triển khai (`store`,
-      `operation`) theo các package `controller`, `service`, `mapper`, `model`,
-      `dto` và `exception`; cập nhật tài liệu kiến trúc; giữ nguyên API contract,
-      schema và hành vi nghiệp vụ.
-### Các API đã làm
+### API và nghiệp vụ đã hoàn thành
 
-- [x] Payment request with a selected promotion now reserves one quota atomically; confirmation
-      completes it, while recording a session unpaid removes the discount and forfeits the same
-      quota without returning it.
-- [x] Recording an unpaid session that has no payment now creates a base-bill payment with no
-      promotion discount or redemption; an existing discounted pending payment is still normalized
-      and its reserved quota is forfeited.
+- [x] Store, bàn, QR, cài đặt cửa hàng và ngưỡng cảnh báo bàn chờ lâu.
+- [x] Catalog: category, menu item, tag, option group/value, ảnh Cloudinary và trạng thái bán.
+- [x] Sales session, order Customer/Operator, bill, hủy session chưa có món và yêu cầu hủy món.
+- [x] Chế biến: bàn chờ lâu, danh sách món cần làm và hoàn thành theo mẻ có idempotency.
+- [x] Payment, khoản chưa thanh toán, bill snapshot và xác nhận thanh toán thủ công.
+- [x] Promotion: quản trị chương trình/code/target/quota, chọn promotion cho bill, discount snapshot và redemption.
+- [x] Vận hành: dashboard Operator, service booking, sự cố vận hành, thông báo, audit log và tra cứu khách hàng Admin.
 
-Chú thích ghép Frontend: **Đã ghép** = có lời gọi API thực tế từ Frontend; **Ghép một phần** = chỉ một phần API trong nhóm đã được gọi; **Chưa ghép** = giao diện hiện vẫn dùng dữ liệu/trạng thái cục bộ hoặc chưa có giao diện gọi API.
+### Chưa hoàn thành
 
-- [x] `GET /api/v1/status`: trả trạng thái hoạt động và thời điểm hiện tại của CAS. **[Chưa ghép Frontend]**
-- [x] `GET /api/v1/auth/me`: trả danh tính và role tài khoản vận hành đã xác thực để frontend điều hướng theo quyền. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/admin/admins`: tạo tài khoản `ADMIN` từ Firebase UID và tên hiển thị. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/admin/operators`: `ADMIN` tạo tài khoản `OPERATOR` qua Firebase Authentication, lưu email và số điện thoại. **[Đã ghép Frontend]**
-- [x] `DELETE /api/v1/admin/operators/{operatorId}`: `ADMIN` vô hiệu hóa tài khoản `OPERATOR` và ghi audit log. **[Đã ghép Frontend]**
-- [x] `GET/POST/DELETE /api/v1/admin/notifications`: `ADMIN` tra cứu, phát hành hoặc xóa thông báo của store; xóa notification tự cascade recipient. **[Đã ghép Frontend]**
-- [x] `GET/PATCH /api/v1/operator/notifications` và `GET/PATCH /api/v1/customer/notifications`: recipient xem danh sách kèm `unreadCount`, đánh dấu một hoặc tất cả thông báo là đã đọc. **[Đã ghép Frontend]**
-- [x] Customer gọi notification API ngay một lần sau khi QR tạo hoặc xác thực sales session thành công, trước khi điều hướng vào luồng gọi món hoặc thanh toán.
-- [x] Customer bị điều hướng về `/payment` khi session hiện tại là `PAYMENT_PENDING`, kể cả khi đã rời khỏi và truy cập lại một route Customer khác.
-- [x] Bỏ công tắc sáng/tối khỏi Customer Header; khách thay đổi giao diện tại trang Cài đặt Customer.
-- [x] `POST /api/v1/admin/tables`: `ADMIN` tạo bàn ăn, đồng thời nhận QR token đang hoạt động của bàn. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/admin/tables`: `ADMIN` xem danh sách bàn, QR đang hoạt động và trạng thái phiên hiện tại. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/admin/tables/{tableId}/qr`: `ADMIN` xem QR đang hoạt động của một bàn để hiển thị hoặc tải ảnh QR. **[Đã ghép Frontend]**
-- [x] Sửa số điện thoại bị lỗi mã hóa ở danh sách khách Admin: dùng định dạng che ASCII ổn định `090***567`.
-- [x] Đổi biểu đồ doanh thu trên Admin Dashboard sang area chart responsive bằng `recharts`: đường cong, vùng gradient, lưới ngang nét đứt và tooltip hover; giữ token màu CAS.
-- [x] Loại trừ `UserDetailsServiceAutoConfiguration`: không còn tạo user/mật khẩu mặc định của Spring Security; Firebase Bearer-token authentication tiếp tục là cơ chế xác thực vận hành duy nhất.
-- [x] `POST /api/v1/admin/tables/{tableId}/qr/reissue`: `ADMIN` thu hồi QR đang hoạt động, cấp QR mới cho cùng bàn trong một transaction và ghi audit log. **[Đã ghép Frontend]**
-- [x] Trang quản lý bàn và QR hiển thị QR chung dẫn tới `/start?storeId={storeId}` ở đầu trang; URL QR chung và QR bàn lấy từ `NEXT_PUBLIC_WEB_URL`, không hard-code localhost. **[Đã ghép Frontend]**
-- [x] `DELETE /api/v1/admin/tables/{tableId}`: `ADMIN` xóa bàn chưa có phiên lịch sử; QR liên quan bị xóa theo khóa ngoại cascade. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` xem ngưỡng cảnh báo bàn chờ lâu. **[Đã ghép Frontend]**
-- [x] `PUT /api/v1/admin/store/settings/long-wait-warning`: `ADMIN` cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/customer/sales-sessions/resolve-qr`: trả danh sách session `DINE_IN` đang hoạt động để Customer chọn chung bàn hoặc tạo session mới; Customer có thể tạo `TAKEAWAY` từ QR với tên/SĐT bắt buộc. **[Chờ ghép Frontend]**
-- [x] `POST /api/v1/customer/sales-sessions/resolve-table`: Customer chọn cơ sở và nhập số bàn để mở hoặc dùng chung session `DINE_IN`; số bàn được xác thực trong phạm vi cơ sở. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/public/stores`: Customer lấy danh sách chi nhánh `ACTIVE` để bắt đầu gọi món. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/customer/sales-sessions/takeaway`: Customer mở session mang về theo chi nhánh đã chọn, với tên và SĐT bắt buộc; session cookie `HttpOnly` được cấp để gọi món. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/customer/sales-sessions/current`: lấy session Customer hiện tại từ cookie `HttpOnly` để API gọi món và các thao tác Customer xác thực đúng session. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/customer/orders`: Customer tạo order trong session `OPEN` từ cookie `HttpOnly`; backend xác thực món/option, chụp giá, kiểm tra `min_select`/`max_select` và xử lý retry bằng `idempotency_key` cùng `request_fingerprint`. **[Đã ghép Frontend]**
-- [x] `DELETE /api/v1/customer/sales-sessions/current`: Customer đóng session `OPEN` từ cookie `HttpOnly` khi session chưa có order. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/operator/sales-sessions`: `OPERATOR` mở hoặc dùng lại sales session `DINE_IN` tại bàn, hoặc mở sales session `TAKEAWAY` không gắn bàn; đơn mang về bắt buộc tên và SĐT để tìm hoặc tạo `client_account_id`. **[Đã ghép Frontend API]**
-- [x] `POST /api/v1/operator/sales-sessions/{sessionPublicId}/orders`: `OPERATOR` tạo order hộ bằng validation, snapshot giá và idempotency của Customer; backend lưu tài khoản tạo order và audit log. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/sales-sessions/tables`: `OPERATOR` xem các bàn trong store và các sales session `DINE_IN` đang hoạt động theo từng bàn để tạo order hộ. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/orders/{orderId}`: `OPERATOR` xem chi tiết order theo public ID trong phạm vi store, gồm thông tin khách mở phiên (tên và SĐT nếu có), món, option, số lượng đã làm/hủy và tổng tiền snapshot. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{orderId}` và `GET /api/v1/customer/orders/bill`: Customer xem order/bill hiện tại từ cookie; số tiền, số lượng hủy đã duyệt và số lượng yêu cầu hủy đang chờ xác nhận đều do backend trả từ dữ liệu snapshot. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/admin/images/upload-signature`: API chung cấp chữ ký Cloudinary theo `purpose` `MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`; Backend chọn folder theo loại ảnh và store, Frontend upload trực tiếp rồi lưu `secure_url`/`public_id`. **[Đã ghép Frontend]**
-- [x] `PUT /api/v1/admin/catalog/option-values/{id}`: `ADMIN` cập nhật tên, giá cộng thêm, lựa chọn mặc định, thứ tự hiển thị và trạng thái của một option value. **[Đã ghép Frontend]**
-- [x] Postman `Images/Get common Cloudinary upload signature`: dùng biến `imageUploadPurpose` (mặc định `WELCOME`) để xin chữ ký upload ảnh dùng chung.
-- [x] Postman `Images/Upload image to Cloudinary`: gửi file multipart trực tiếp đến Cloudinary bằng chữ ký được request trước đó lưu vào environment.
-- [x] Khi thay hoặc bỏ ảnh món/logo, Backend cập nhật MySQL trước rồi xóa asset Cloudinary cũ sau commit; asset không thuộc store không được xóa.
-- [x] `GET/PUT/DELETE /api/v1/admin/store/welcome`: `ADMIN` xem, lưu hoặc xóa một cấu hình Welcome/store; thay hoặc bỏ ảnh sẽ xóa asset Cloudinary không còn tham chiếu sau commit. **[Đã ghép Frontend trang Admin Settings]**
-- [x] `GET /api/v1/public/stores/{storeId}/welcome`: Customer lấy cấu hình Welcome `ACTIVE`, chỉ gồm URL ảnh. **[Đã ghép Frontend trang Welcome]**
-- [x] `GET /api/v1/operator/catalog/option-groups`: `OPERATOR` lấy nhóm option và giá cộng thêm đang hoạt động theo store của tài khoản để tạo order hộ. **[Đã ghép Frontend]**
-- [x] Customer Header lấy `tableCode` từ session QR hiện tại qua `GET /api/v1/customer/sales-sessions/current`; không còn mặc định `Bàn 05` trên Welcome và các trang Customer.
-- [x] Mã QR bàn mới dùng định dạng dễ nhập `Q` + 8 chữ số; màn quét Customer chấp nhận trực tiếp mã này hoặc URL QR. Mã QR cũ vẫn được backend hỗ trợ.
-- [x] Luồng Customer quét QR hiển thị lỗi và cho phép thử lại khi API resolve thất bại; session `PAYMENT_PENDING` được chuyển thẳng tới trang thanh toán thay vì menu.
-- [x] Trang quét QR Customer kiểm tra cả mã nhập tay với API trước khi điều hướng; mã sai giữ nguyên giá trị nhập, báo lỗi và cho phép thử lại tại chỗ.
-- [x] Nhãn `Chưa chọn bàn` trên Customer Header là liên kết đến trang quét QR để khách chọn bàn trước khi gọi món.
-- [x] Customer có thể xem menu và thêm món vào giỏ trước khi có QR; chỉ khi gửi món xuống bếp hệ thống mới bắt buộc session QR và thông tin người mở phiên bàn.
-- [x] Badge giỏ hàng Customer đồng bộ số lượng thực từ `sessionStorage` và tự cập nhật sau thao tác thêm/xóa món.
-- [x] Backend Payment: Customer tạo/xem payment; Operator xem payment `PENDING` và xác nhận `PAID`, session chuyển `PAYMENT_PENDING` rồi `CLOSED`. Tạo payment chỉ chấp nhận session `OPEN`, chặn khi còn yêu cầu hủy món `PENDING`; xác nhận giải quyết `unpaid_records` đang `OPEN` và ghi audit log. Payment đã ghi nhận không thanh toán bỏ khuyến mãi, dùng tổng bill gốc và không tạo promotion redemption khi thu lại; các khoản unpaid cũ có discount cũng được chuẩn hóa trong transaction thu tiền.
-- [x] Customer chỉ đọc session `OPEN` hoặc `PAYMENT_PENDING`; session `CLOSED` sau khi Operator xác nhận payment không còn trả lại order/bill/payment cũ qua cookie session.
-- [x] Thêm index `payments(status, created_at, sales_session_id)` bằng Flyway để phục vụ danh sách và số lượng payment `PENDING` theo thời điểm tạo, không thay đổi schema nghiệp vụ.
-- [x] `POST /api/v1/customer/payments`, `GET /api/v1/customer/payments`, `GET /api/v1/operator/payments`, `GET /api/v1/operator/payments/paid-today`, `GET /api/v1/operator/payments/pending-count`, `POST /api/v1/operator/payments/{paymentId}/confirm`: Customer tạo/theo dõi thanh toán toàn bộ bàn; Operator xem payment `PENDING`, tra cứu payment `PAID` đã xác nhận trong ngày hiện tại theo store đang đăng nhập, và xác nhận thủ công idempotent kèm đóng phiên và audit log. API đếm chỉ trả số lượng `PENDING` để badge polling không tải `bill_snapshot`. **[Đã ghép Frontend]**
-- [x] Bill xem/in của Operator ẩn dòng bàn khi payment thuộc phiên `TAKEAWAY` có `tableCode` là `null`.
-- [x] Xác nhận payment parse JSON của bill snapshot để chỉ hoàn tất redemption khi `discount` thực sự có dữ liệu; snapshot `discount: null` với bất kỳ khoảng trắng nào không còn bị nhận nhầm là promotion.
-- [x] Popup xác nhận payment của Operator xóa lỗi xác nhận cũ khi mở, đóng hoặc chuyển sang payment khác.
-- [x] Xác nhận payment thành công của Operator hiển thị bằng toast dùng chung thay vì banner trong trang.
-- [x] Catalog: `ADMIN` quản lý category, tag, option group/value và menu item; Customer xem menu/giỏ hàng công khai. Catalog Customer dùng store mặc định `1` khi chưa có hoặc không còn session QR, và ưu tiên store của sales session cookie sau khi quét hoặc nhập tay QR; `OPERATOR` đọc catalog theo store của tài khoản. Menu Customer chỉ dựng option group/value được API publish, dùng `extraPrice` của API và hiển thị banner giới thiệu từ Welcome API. **[Đã ghép Frontend]**
-- [x] Customer chỉ bắt buộc quét hoặc nhập QR trước khi thêm món vào giỏ. Nếu bàn chưa có phiên `OPEN`, Customer nhập tên bắt buộc và SĐT tùy chọn để mở phiên; menu sau đó tải theo đúng store của QR trước khi giỏ nhận món.
-- [x] Customer Payment: trang thanh toán tải bill thực tế; màn chờ và hoàn tất dùng payment API, gồm danh sách món, tổng tiền, mã bàn và thời điểm xác nhận. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/sales-sessions/tables` trả danh sách sales session `DINE_IN` đang `OPEN`/`PAYMENT_PENDING` theo từng bàn, gồm session ID, tên khách và trạng thái. Operator chọn đúng khách trước khi gọi món, hoặc chọn **Không chung bàn** để mở session mới tại cùng bàn. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/preparation/long-wait-tables`, `GET /api/v1/operator/preparation/groups` và `POST /api/v1/operator/preparation/groups/{groupKey}/completions`: `OPERATOR` xem bàn chờ lâu, tổng hợp món cần chế biến theo món/cấu hình option và ghi nhận hoàn thành theo mẻ theo FIFO, có idempotency bền vững. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/cancellation-requests`, `GET /api/v1/operator/cancellation-requests/pending-count`, `GET /api/v1/operator/cancellation-requests/{cancellationRequestId}` và `POST /api/v1/operator/cancellation-requests/{cancellationRequestId}/resolution`: `OPERATOR` xem và xử lý yêu cầu hủy; API count chỉ trả số lượng `PENDING` theo store để badge polling không tải danh sách, API detail trả snapshot giá món/option để form xác nhận hiển thị đúng dữ liệu; khi duyệt có thể điều chuyển phần đã làm sang một dòng món có cấu hình option trùng khớp ở bàn khác; cả duyệt và từ chối đều ghi audit log. **[Đã ghép Frontend]**
-- [x] `POST /api/v1/operator/cancellation-requests/incidents`: `OPERATOR` hủy món do sự cố trực tiếp ở trạng thái `APPROVED`; màn hủy sự cố tải món theo bàn từ API chế biến và cập nhật tiền/tiến độ ngay. **[Đã ghép Frontend]**
-
-- [x] `GET /api/v1/operator/unpaid-records`, `GET /api/v1/operator/unpaid-records/eligible-sessions` và `POST /api/v1/operator/unpaid-records`: Operator/Admin xem và ghi nhận khoản chưa thanh toán theo store; server tạo payment/bill snapshot khi cần, đóng phiên và ghi audit log. UI Operator/Admin đã ghép API; xác nhận payment tự chuyển record `OPEN` sang `RESOLVED`.
-- [x] `GET /api/v1/operator/catalog/items` và `PATCH /api/v1/operator/catalog/items/{id}/availability-status`: Operator chỉ xem món đang hiển thị và chuyển `ACTIVE`/`SOLD_OUT`; không thể tạo, xóa, sửa món hoặc mở lại món `INACTIVE`. Đã thêm tab `Món hàng` tại giao diện Operator.
-- [x] Đồng bộ bố cục tab `Món hàng` của Operator với danh sách Catalog Admin: thanh tìm kiếm/lọc trạng thái, bảng tên món, thứ tự hiển thị, giá, trạng thái và đúng một thao tác đổi Đang bán/Hết hàng.
-- [x] Hiển thị thumbnail ảnh món tại bảng Menu Operator, dùng icon dự phòng khi món chưa có ảnh.
-- [x] Gộp điều hướng thanh toán của Operator tại `/operator/payments`: đổi toggle thành `Chờ xác nhận`, thêm nút `Phiên bàn chưa thanh toán` mở phần theo dõi unpaid ngay trong màn, đồng thời bỏ tab unpaid riêng; danh sách và badge payment không còn tính các session đã có unpaid record.
-
-#### Danh sách API theo luồng nghiệp vụ
-
-- [x] Hoàn thiện `is_remade`: API hủy sự cố tạo order bù cùng snapshot món/option, ghi chú `[LÀM LẠI]` và giữ nguyên tổng bill của bàn.
-
-Danh sách này được đối chiếu từ tài liệu nghiệp vụ, thiết kế dữ liệu và các màn hình frontend đang dùng dữ liệu mẫu. `[x]` là API đã làm; `[ ]` là API chưa làm và chưa tự gán method/path, trừ các route đã được chốt ở trên. Mỗi dòng tương ứng một chức năng API.
-
-- [x] **Store:** xem thông tin cửa hàng.
-- [x] **Store:** cập nhật toàn bộ thông tin cửa hàng (tên, liên hệ, vị trí, giờ hoạt động, slogan và trạng thái) từ một form.
-- [x] **Store:** lưu logo cửa hàng qua Cloudinary và trả URL logo trong dữ liệu cấu hình cửa hàng.
-- [x] **Store:** xem ngưỡng cảnh báo bàn chờ lâu.
-- [x] **Store:** cập nhật ngưỡng cảnh báo từ `0` đến `1440` phút và ghi audit log.
-- [x] **Bàn và QR:** xem danh sách bàn.
-- [x] **Bàn và QR:** xem QR đang hoạt động của bàn.
-- [x] **Bàn và QR:** tải QR của bàn để in hoặc lưu từ QR token đang hoạt động.
-- [x] **Bàn và QR:** xóa bàn; mã QR liên quan bị xóa cascade, còn bàn có phiên lịch sử bị từ chối.
-- [x] **Category:** xem danh sách category.
-- [x] **Category:** thêm category.
-- [x] **Category:** sửa category.
-- [x] **Category:** xóa category.
-- [x] **Tag:** xem danh sách tag.
-- [x] **Tag:** thêm tag.
-- [x] **Tag:** sửa tag.
-- [x] **Tag:** xóa tag.
-- [x] **Món:** xem danh sách món.
-- [x] **Món:** xem chi tiết món.
-- [x] **Món:** thêm món.
-- [x] **Món:** sửa món, gồm category, tag, nhóm option, giá, trạng thái, thứ tự hiển thị và ảnh Cloudinary, từ một form.
-- [x] **Món:** cập nhật hàng loạt trạng thái `ACTIVE`, `INACTIVE` hoặc `SOLD_OUT`.
-- [x] **Nhóm option:** xem danh sách nhóm option.
-- [x] **Nhóm option:** xem chi tiết nhóm option.
-- [x] **Nhóm option:** thêm nhóm option.
-- [x] **Nhóm option:** sửa nhóm option.
-- [x] **Nhóm option:** xóa nhóm option.
-- [x] **Option value:** thêm option value.
-- [x] **Option value:** sửa tên, giá cộng thêm, lựa chọn mặc định và trạng thái option value.
-- [x] **Option value:** xóa option value.
-- [x] **Catalog gọi món:** xem category hiển thị cho Customer/`OPERATOR`.
-- [x] **Catalog gọi món:** xem tag hiển thị cho Customer/`OPERATOR`.
-- [x] **Catalog gọi món:** xem danh sách món còn bán cho Customer/`OPERATOR`.
-- [x] **Catalog gọi món:** xem chi tiết món và option hợp lệ cho Customer/`OPERATOR`.
-- [x] **Sales session:** xác thực QR và mở session mới hoặc dùng chung session `OPEN` hiện có.
-- [x] **Sales session:** lấy ngữ cảnh và trạng thái session hiện tại của Customer.
-- [x] **Sales session:** hủy session chưa có order.
-- [x] **Order:** tạo order bởi Customer.
-- [x] **Yêu cầu hủy món:** Customer tạo yêu cầu hủy món theo từng dòng order, có idempotency trong phạm vi dòng món.
-- [x] **Order:** tạo order hộ bởi `OPERATOR`.
-- [x] **Order:** xem danh sách order của session.
-- [x] **Order:** xem chi tiết order.
-- [x] **Bill:** xem bill hiện tại của session.
-- [x] **Chế biến:** xem danh sách bàn chờ lâu.
-- [x] **Chế biến:** xem danh sách món còn phải làm đã tổng hợp theo món và option.
-- [x] **Chế biến:** ghi nhận số lượng hoàn thành theo mẻ.
-- [x] **Yêu cầu hủy món:** tạo yêu cầu hủy món.
-- [x] **Yêu cầu hủy món:** Operator xem danh sách và chi tiết yêu cầu hủy món.
-- [x] **Yêu cầu hủy món:** Operator duyệt/từ chối; khi duyệt có thể điều chuyển phần đã làm sang dòng món tương thích ở bàn khác, lưu lịch sử điều chuyển và tính lại tiền order nguồn. **[Đã ghép Frontend]**
-- [x] **Payment:** tạo payment `PENDING` từ bill do server tính.
-- [x] **Payment:** xem trạng thái payment của session.
-- [x] **Payment:** xem danh sách payment chờ xác nhận.
-- [x] **Payment:** xem chi tiết payment và bill snapshot.
-- [x] **Payment:** xác nhận payment thành `PAID`.
-- [x] **Khoản chưa thanh toán:** ghi nhận khoản chưa thanh toán và đóng session.
-- [x] **Khoản chưa thanh toán:** xem danh sách khoản chưa thanh toán.
-- [x] **Khoản chưa thanh toán:** xem chi tiết khoản chưa thanh toán.
-- [x] **Khoản chưa thanh toán:** chuyển khoản chưa thanh toán sang `RESOLVED` khi payment được xác nhận.
-- [x] **Promotion:** xem danh sách promotion.
-- [x] `GET/POST/PUT /api/v1/admin/promotions`, `GET /api/v1/admin/promotions/{promotionId}` và `PATCH /api/v1/admin/promotions/{promotionId}/status`: `ADMIN` quản lý chương trình, code, target và trạng thái promotion.
-- [x] `POST/PUT /api/v1/admin/promotions`: chỉ nhận target cho promotion `ITEM_*`, kiểm tra quota promotion/code/khách hàng khi trả hoặc chọn promotion hợp lệ, và xác thực số tiền không âm cùng quota dương tại API boundary.
-- [x] `GET /api/v1/admin/promotions/{promotionId}/redemptions?page=0&size=10`: `ADMIN` xem lịch sử redemption phân trang; dữ liệu danh sách promotion trả thêm số lượt đã dùng gồm `COMPLETED` và `FORFEITED` để UI hiển thị quota.
-- [x] `max_discount_amount` áp dụng cho `PERCENT_OFF` và `ITEM_PERCENT_OFF`; UI xoá giá trị khi đổi sang loại giảm tiền và backend từ chối payload có trường này ngoài hai loại giảm %.
-- [x] Payment có thể có số tiền `0` sau khi áp dụng promotion; hệ thống vẫn tạo payment `PENDING` và nhân viên xác nhận `PAID` theo luồng thủ công hiện có.
-- [x] `GET/PUT/DELETE /api/v1/customer/promotions/eligible|selection` và các route tương ứng theo sales session cho `OPERATOR`: xem, chọn hoặc bỏ promotion trước payment; backend tính discount từ bill server-side.
-- [x] **Promotion:** xem chi tiết promotion, gồm code và target áp dụng.
-- [x] **Promotion:** thêm promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
-- [x] **Promotion:** Admin nhập nhiều code và quota riêng từng code theo dạng `CODE:quota`, hoặc bỏ quota để không giới hạn.
-- [x] **Promotion:** sửa promotion, gồm điều kiện, code và phạm vi áp dụng theo món/category, từ một form.
-- [x] **Promotion:** đổi trạng thái `DRAFT`, `ACTIVE` hoặc `INACTIVE`.
-- [x] **Promotion áp dụng bill:** xem promotion hợp lệ và discount dự kiến.
-- [x] **Promotion áp dụng bill:** chọn promotion cho bill.
-- [x] **Promotion áp dụng bill:** Customer nhập mã giảm giá, backend kiểm tra theo bill hiện tại rồi chọn promotion phù hợp.
-- [x] Customer chọn promotion tại màn thanh toán theo bill đã lưu; cart không hiển thị hoặc áp dụng khuyến mãi.
-- [x] API promotion hợp lệ trả thêm giá trị giảm gốc, bill tối thiểu (nếu có) và phạm vi áp dụng để Customer hiển thị thông tin voucher.
-- [x] `GET /api/v1/customer/promotions` trả các promotion đang hoạt động, không yêu cầu nhập mã, gồm trạng thái đủ/chưa đủ điều kiện và lý do để Customer hiển thị voucher bị khóa ở cuối danh sách.
-- [x] Popup voucher Customer hiển thị giá trị giảm thực tế một lần trên mỗi thẻ, đưa phạm vi/điều kiện xuống mô tả, cho phép thay đổi mã đã chọn và nhận thêm mức giảm tối đa từ API để mô tả đúng promotion giảm phần trăm.
-- [x] Thẻ voucher Customer dùng ba dòng nội dung cố định: mức ưu đãi, phạm vi áp dụng và điều kiện; tên chương trình là nhãn phụ và phía phải chỉ hiển thị trạng thái chọn.
-- [x] Voucher chưa đủ điều kiện chỉ hiển thị điều kiện áp dụng trên thẻ; không hiển thị lý do nội bộ như giá trị đơn hàng hiện tại chưa đạt.
-- [x] Popup voucher Customer cuộn dọc toàn bộ nội dung khi danh sách voucher dài, tránh tràn khỏi viewport và không tạo thanh cuộn riêng cho từng danh sách.
-- [x] Toast dùng chung tự hiển thị `message` của mọi HTTP response lỗi từ CAS Backend, gồm trường hợp promotion bị ngừng sau khi Customer đã tải danh sách voucher.
-- [x] API promotion trả phạm vi bằng tên đầy đủ của tất cả món và danh mục target, để Customer hiển thị trực tiếp “Áp dụng cho …” thay cho nhãn chung.
-- [x] Form Admin promotion hiển thị target món/danh mục từ catalog API thay vì dữ liệu mẫu cũ.
-- [x] Màn Đơn hàng Customer chỉ hiển thị một dòng `Tổng tiền`, không tách giá gốc và giảm giá.
-- [x] Sửa polling Payment Customer để effect bị dọn trong React Strict Mode không chặn lần tải bill/payment đầu tiên của effect hiện hành.
-- [x] **Promotion áp dụng bill:** bỏ promotion khỏi bill.
-- [x] **Dịch vụ đặt trước:** `GET /api/v1/operator/service-bookings` xem danh sách booking theo store. **[Đã ghép Frontend Operator/Admin]**
-- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings` tạo booking với trạng thái ban đầu `PAY_LATER` hoặc `PENDING`, nhận diện khách theo số điện thoại. **[Đã ghép Frontend Operator/Admin]**
-- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/request-payment` chuyển `PAY_LATER` sang `PENDING`; giao diện tự gọi khi nhân viên bắt đầu xác nhận thanh toán, không cần thao tác riêng. **[Đã ghép Frontend Operator]**
-- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/confirm` xác nhận booking `PENDING` thành `PAID`; thao tác lặp lại với booking đã thanh toán an toàn. **[Đã ghép Frontend Operator/Admin]**
-- [x] **Dịch vụ đặt trước:** `PUT /api/v1/operator/service-bookings/{serviceBookingId}` cập nhật tên khách, tên dịch vụ, ghi chú và giá thỏa thuận khi booking còn `PAY_LATER` hoặc `PENDING`; mọi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
-- [x] **Dịch vụ đặt trước:** `POST /api/v1/operator/service-bookings/{serviceBookingId}/cancel` hủy booking `PAY_LATER` hoặc `PENDING` thành `CANCELLED`. Mỗi thao tác thay đổi đều ghi audit log. **[Đã ghép Frontend Operator/Admin]**
-- [x] **Tài khoản `OPERATOR`:** xem danh sách tài khoản.
-- [x] **Sự cố vận hành:** `OPERATOR` tạo báo cáo sự cố.
-- [x] **Sự cố vận hành:** `ADMIN` xem danh sách báo cáo sự cố.
-- [x] **Thông báo hệ thống:** `ADMIN` tạo thông báo.
-- [x] **Thông báo hệ thống:** `ADMIN` xóa thông báo.
-- [x] **Thông báo hệ thống:** Customer/Operator xem danh sách notification của mình, gồm số chưa đọc.
-- [x] **Thông báo hệ thống:** Customer/Operator đánh dấu một notification là đã đọc.
-- [x] **Thông báo hệ thống:** Customer/Operator đánh dấu tất cả notification là đã đọc.
-- [x] **Audit log:** `ADMIN` xem danh sách audit log.
-- [x] **Tra cứu khách hàng:** `ADMIN` tìm kiếm và xem danh sách khách trong store.
-- [x] **Tra cứu khách hàng:** `ADMIN` xem chi tiết khách, gồm lịch sử session, order, payment và khoản chưa thanh toán.
-- [ ] **Ngoài danh sách:** API danh sách `report` chưa được liệt kê vì loại report, dữ liệu, bộ lọc và API contract đều đang `Cần chốt`.
-
-### Kế hoạch triển khai
-
-#### Giai đoạn 0 — Nền tảng đã có
-
-- [x] Khởi tạo dự án Java 21, Spring Boot và Maven.
-- [x] Thêm Maven Wrapper cho backend.
-- [x] Cấu hình MySQL, Redis, MyBatis và Flyway.
-
-#### Giai đoạn 1 — Thành phần dùng chung và bảo mật
-
-- [x] Chuẩn hóa API error, request ID và Jakarta Bean Validation tại API boundary.
-- [x] Chuẩn hóa wrapper response: success gồm `status`, `message`, `data`, `requestId`; error dùng cùng metadata nhưng không có `data`.
-- [x] Chuẩn hóa thành phần dùng chung theo `common.config`, `common.exception`,
-      `common.response`, `common.constants`, `common.persistence`,
-      `common.security` và `common.web`.
-- [x] Xây dựng authentication Firebase ID Token, nạp `accounts` và phân quyền `ADMIN`/`OPERATOR`.
-- [x] Bổ sung application logging tiếng Anh cho mọi API failure, lỗi xác thực/từ chối quyền/tạo tài khoản `OPERATOR`/Firebase/exception chưa xử lý, cùng HTTP access log và thời gian xử lý; log chỉ chứa request ID và định danh an toàn.
-- [x] Xây dựng audit log dùng chung cho các thao tác vận hành quan trọng.
-- [x] Đăng ký MyBatis UUID type handler cho các cột `CHAR(36)` như `audit_logs.request_id`.
-- [x] Tự nạp cấu hình local từ `backend/.env` khi chạy Spring Boot trong thư mục backend.
-- [x] Tạo thư mục dự phòng `backend/worker/` cho worker tác vụ nền trong tương lai; chưa tạo Maven module hoặc cấu hình runtime.
-- [x] Chuẩn hóa cURL/Postman cho kiểm thử thủ công API; Firebase ID Token chỉ dùng trong môi trường local và không lưu repository.
-- [x] Loại bỏ Bruno collection theo quyết định dùng Postman/cURL.
-- [x] Bổ sung Postman Native Git collection và local environment template để kiểm thử API thủ công.
-- [x] Sắp xếp Postman Native Git collection theo resource (`Auth`, `Accounts`, `Store`, `System`) thay vì theo role.
-- [x] Chuẩn hóa `backend/Agents.md` dùng Postman Native Git thay cho Bruno trong quy ước API checks và kiểm thử thủ công.
-- [x] Bổ sung quy ước application logging trong `backend/Agents.md`: SLF4J/Logback, level log, structured fields an toàn, HTTP access/timing và giới hạn AOP.
-- [x] Quy định Postman request có body JSON phải dùng body type `JSON`, không dùng `Text`.
-- [x] Việt hóa toàn bộ message phản hồi API và message validation mặc định của backend để frontend hiển thị trực tiếp qua toast.
-- [x] Bổ sung Postman Native Git requests cho Customer resolve QR, mở/dùng chung sales session và xem session hiện tại.
-- [x] Cập nhật API tạo `OPERATOR`: backend tự gán mật khẩu mặc định, không nhận `initialPassword` từ client; cập nhật test, cURL/Postman và luồng nghiệp vụ liên quan.
-- [x] Tích hợp `accounts.email` và `accounts.phone` (`NOT NULL`, unique) vào Flyway V1 baseline; database mới không cần backfill account cũ.
-- [x] Bổ sung `backend/Agents.md` với quy ước triển khai, bảo mật, MyBatis,
-      Flyway, audit log, Bruno và kiểm thử dành riêng cho backend.
-
-#### Giai đoạn 2 — Dữ liệu cửa hàng và thực đơn
-
-- [ ] Xây dựng module Store & Table.
-- [x] Xây dựng API `GET`/`PUT /api/v1/admin/store/settings/long-wait-warning`: chỉ
-      `ADMIN`, validation `0`–`1440`, fallback đọc `25`, ghi audit log và test
-      service/controller.
-- [x] Xây dựng module Catalog.
-
-#### Giai đoạn 3 — Phiên bàn, gọi món và chế biến
-
-- [ ] Hoàn thiện luồng QR, mở/dùng chung/hủy sales session khi chưa có order (đã có resolve QR, mở/dùng chung session).
-- [ ] Xây dựng module Ordering.
-- [ ] Sau khi hoàn tất cấu hình và kiểm thử Cloudinary: hoàn thiện Ordering cho Customer (tạo order idempotent, xem order/bill và hủy session chưa có order) trước các use case chế biến và thanh toán.
-- [ ] Xây dựng use case `OPERATOR` chọn bàn và tạo order hộ khách, tái sử dụng
-      quy tắc tạo order hiện có và ghi audit log.
-- [x] Xây dựng truy vấn tổng hợp món còn cần làm và use case hoàn thành theo mẻ trong transaction, có idempotency bền vững và phân bổ FIFO.
-
-#### Giai đoạn 4 — Thanh toán và khuyến mãi
-
-- [ ] Xây dựng module Payment.
-- [ ] Xây dựng áp dụng khuyến mãi, snapshot `bill_discounts` và redemption khi payment `PAID`.
-
-#### Giai đoạn 5 — Vận hành và tra cứu
-
-- [x] Xây dựng API `POST /api/v1/admin/operators` và `DELETE /api/v1/admin/operators/{operatorId}` cho `ADMIN`; tạo Operator qua Firebase Admin SDK bằng email và mật khẩu ban đầu, xóa chuyển account `OPERATOR` sang `INACTIVE` và ghi audit log.
-- [x] Cập nhật schema notification: xóa `system_notifications` tự cascade xóa các recipient liên quan, không cần thao tác xóa recipient riêng.
-- [ ] Xây dựng báo cáo sự cố vận hành cho `OPERATOR` và danh sách xem cho `ADMIN`.
-- [ ] Xây dựng thông báo hệ thống và trạng thái đọc theo từng recipient.
-- [ ] Viết unit test và integration test.
-- [x] Xây dựng module Admin tra cứu khách hàng, dùng lại `client_accounts` và lịch sử nghiệp vụ hiện có.
-- [ ] Xây dựng module danh sách `report` cho `ADMIN` sau cùng, sau khi phạm vi và API contract được chốt.
-
-#### Ngoài kế hoạch cho đến khi chốt yêu cầu
-
-- [ ] Module danh sách `report` được thực hiện sau cùng, sau khi phạm vi và API contract được chốt.
-
-- [x] `POST /api/v1/operator/operational-incidents`: Operator gửi báo cáo sự cố với người báo cáo và mô tả, lưu bền vững kèm audit log. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/admin/operational-incidents`: Admin tra cứu danh sách báo cáo sự cố trong store. **[Đã ghép Frontend]**
-- [x] `GET /api/v1/operator/dashboard/summary`: trả số order tạo trong ngày theo giờ Việt Nam, số bàn `OPEN`/tổng số bàn và số payment chờ xác nhận; dashboard Operator tự làm mới mỗi 10 giây. **[Đã ghép Frontend]**
+- [ ] Chốt contract và xây dựng API báo cáo Admin; UI dashboard hiện vẫn dùng dữ liệu cục bộ.
+- [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
 
-- [x] Chuẩn hóa các màu giao diện viết trực tiếp về token `cas-*`: trạng thái thành công dùng `secondary`, cảnh báo dùng `tertiary`, lỗi dùng `error`, nền tối trên ảnh dùng `scrim`; bổ sung token global cho scrim, màu chữ tương phản và màu QR.
-- [x] Ghép Admin quản lý nhân viên với danh sách API thực tế và thao tác kích hoạt lại tài khoản `INACTIVE`; ghép tra cứu khách hàng và Audit Log với dữ liệu theo store thay cho dữ liệu mẫu.
-- [x] Sửa trang Admin Settings: bắt và hiển thị lỗi khi tải cấu hình cửa hàng; hiển thị phản hồi thành công trong từng form sau khi lưu cấu hình cửa hàng hoặc ngưỡng cảnh báo.
-- [x] Loại bỏ khối giao diện thanh toán Customer không thể chạy sau khi đã trả về `PaymentRequestForm`, khắc phục lỗi TypeScript khi `bill` có thể là `null` và đồng bộ test theo UI hiện hành.
-- [x] Màn Operator hủy món do sự cố không còn fallback món mẫu; chỉ hiển thị dữ liệu từ API chế biến và có trạng thái tải, rỗng hoặc lỗi để không thể gửi `orderItemId` giả.
-- [x] Gỡ khối Khiếu nại dùng dữ liệu mẫu khỏi dashboard Operator vì Customer chưa có nghiệp vụ và API gửi phản ánh được chốt.
-
-- [x] Thiết kế lại giỏ hàng Customer theo card “Món đang chọn”: ảnh thumbnail, giá món/topping đã chọn, tăng giảm/xóa món, xóa tất cả có popup xác nhận, ghi chú chung và thanh gửi món cố định có tạm tính; ảnh, giá và option được lưu cùng dòng giỏ, còn giỏ cũ tự bù dữ liệu từ catalog hiện hành; hiển thị toast thành công khi thêm món từ menu hoặc trang chi tiết; số lượng ×N nằm cùng hàng tên món; thanh tạm tính/gửi món chừa khoảng cho navigation trên mobile.
-- [x] Chuẩn hóa toast dùng chung: hiển thị cố định ở góc dưới bên phải, nền trắng; chữ/icon xanh cho thành công, thông tin và lưu ý, chữ/icon đỏ cho lỗi.
-- [x] Thiết kế lại trang Đơn hàng Customer theo card mobile-first: chi tiết món, số lượng cùng hàng tên món, giá/tùy chọn, yêu cầu hủy, ghi chú và tổng tiền; tra catalog hiện hành để hiển thị ảnh món, dùng placeholder khi món không còn ảnh; không hiển thị mã order nội bộ cho Customer.
-- [x] Trang Đơn hàng Customer hiển thị empty state có nút quét QR khi chưa có session bàn hoạt động, thay cho lỗi kỹ thuật màu đỏ.
-- [x] Luồng bắt đầu order Customer chọn loại `DINE_IN`/`TAKEAWAY` trước: QR tại bàn giữ lại bàn đã quét cho `DINE_IN`; các lối vào chưa có phiên (Header, Đơn hàng, Menu và Giỏ) đi tới màn chọn loại order; trang này tải tên và logo của chi nhánh từ Public Store API; vào web hoặc QR quầy chỉ yêu cầu quét/nhập QR khi chọn `DINE_IN`; `TAKEAWAY` yêu cầu tên và SĐT rồi vào menu.
-- [x] Bổ sung `stores.latitude` và `stores.longitude`; Public Store API trả tọa độ để trang Start dùng Haversine chọn chi nhánh gần nhất theo vị trí trình duyệt, còn QR quầy dùng `storeId` để chọn sẵn chi nhánh.
-- [x] Loại bỏ fallback ngầm `storeId = 1` khỏi Public Store API frontend; trang public chọn tường minh store `1` khi chưa có ngữ cảnh, còn sau khi khách chọn chi nhánh thì Home/Menu tải đúng thương hiệu hoặc Welcome của chi nhánh đó.
-- [x] Form Customer mở phiên bàn kiểm tra số điện thoại Việt Nam tùy chọn; cho phép khoảng trắng khi nhập và gửi số 10 chữ số bắt đầu bằng `0` đã chuẩn hóa.
-- [x] Thêm React Query cho catalog Customer: Menu, Cart và Đơn hàng dùng chung cache 5 phút; ảnh tiếp tục do browser/CDN cache qua URL ảnh.
-- [x] Hoàn thiện trang Đơn hàng Customer bằng dữ liệu bill thật: khôi phục header/điều hướng, thêm gọi thêm món và chỉ cho yêu cầu thanh toán khi sales session `OPEN`.
-- [x] Sửa các điểm nhỏ trong luồng menu: lỗi tạo/tải order Customer không còn tự chuyển về QR khi lỗi kỹ thuật, hotline dịch vụ thêm lấy từ API cửa hàng, bỏ badge điều hướng số cứng và dùng token màu cho nhãn món; tab Thanh toán Operator hiển thị badge số payment `PENDING` thực từ API, cập nhật ngay sau khi xác nhận và polling mỗi 10 giây; khi mở tab Payment, danh sách tải ngay cả trong React Strict Mode thay vì chờ lượt polling.
-- [x] Bổ sung trang Admin `/admin/services` quản lý Dịch vụ thêm, dùng chung UI và quyền thao tác tương ứng với Operator.
-- [x] Đặt Dịch vụ thêm trong dropdown Menu & Promotion của Admin.
-- [x] Bổ sung nút In bill cạnh “Xem hóa đơn” trong danh sách payment Operator; nút mở hộp in của trình duyệt với bill lấy từ snapshot API, không dùng dữ liệu tĩnh.
-- [x] Thiết kế bản in bill nhiệt 80 mm cho popup xác nhận thanh toán: khổ nội dung 72 mm, thông tin cửa hàng/bàn (không hiển thị mã payment hoặc mã order), món, topping, đơn giá, số lượng, thành tiền và tổng thanh toán.
-- [x] Bổ sung khoảng đệm cuối danh sách Menu Customer để nút “Xem món đã chọn” cố định không che món cuối.
-- [x] Bổ sung card và tab “Dịch vụ thêm” cố định cuối Menu Customer; card tương tự luôn hiển thị ở Operator. Nội dung có giá thỏa thuận và nhãn hotline liên hệ, không phụ thuộc catalog API, không đi vào giỏ hàng; Customer mở Zalo theo hotline tải từ store.
-- [x] Bổ sung category “Khác” cuối thanh điều hướng Menu Customer, cuộn tới section Dịch vụ thêm.
-- [x] Đổi thumbnail cố định của card Dịch vụ thêm trên Menu Customer sang biểu tượng ngôi sao.
-- [x] Tăng vùng cuộn cuối Menu Customer để scroll-spy lần lượt kích hoạt đúng tab Ăn vặt và Khác.
-- [x] Sửa scroll-spy Menu Customer không ép active sang category cuối khi chạm đáy, giữ đúng category section đang xem.
-- [x] Đồng bộ vùng cuộn cuối Menu Customer trên desktop để các category cuối vẫn có thể đi qua vị trí kích hoạt scroll-spy.
-- [x] Đặt card Dịch vụ thêm trong cùng lưới 2/3 cột với card món ở desktop, giữ icon ngôi sao kích thước tiêu chuẩn.
-
-- [x] Khởi tạo Next.js, React và TypeScript.
-- [x] Tích hợp Tailwind CSS với PostCSS.
-- [x] Xây dựng trang chào mừng CAS cho quán ăn vặt/mỳ cay bằng Tailwind CSS theo thiết kế Stitch, có giao diện sáng/tối.
-- [x] Xây dựng UI màn thực đơn Customer mobile-first theo thiết kế Stitch, hiển thị 15 món trong danh sách dài theo từng nhóm, có divider và thanh category sticky hỗ trợ vuốt cảm ứng hoặc nhấn-giữ-kéo bằng chuột, liên kết đến từng nhóm; ảnh category tại Khám phá thực đơn truyền tên danh mục và Menu ánh xạ theo dữ liệu API để cuộn đến đúng nhóm tương ứng.
-- [x] Xây dựng UI chi tiết sản phẩm động tại `/menu/[slug]` theo thiết kế Stitch; mỳ cay chọn cấp độ 0–7, đồ uống chọn size và nhiều topping; nhấn tên món trong Menu Customer chuyển tới trang chi tiết tương ứng.
-- [x] Điều chỉnh vị trí badge sản phẩm trong màn chi tiết để không bị khối nội dung chồng lấp.
-- [x] Xây dựng UI giỏ hàng Customer mobile-first theo thiết kế Stitch, gồm món đang chọn, option, số lượng, ghi chú chung và tổng tiền.
-- [x] Xây dựng UI màn gửi món thành công tại `/orders` theo thiết kế Stitch, gồm xác nhận quán đã nhận món, thông tin bàn, thời gian gửi, chi tiết lần gọi, thao tác gọi thêm món và liên kết tới bước yêu cầu thanh toán.
-- [x] Xây dựng UI nhập tên và số điện thoại tùy chọn tại route QR động `/table/[token]` cho khách đầu tiên mở bàn.
-- [x] Hoàn thiện form mở phiên bàn với validation bắt buộc cho tên, số điện thoại tùy chọn, thông báo lỗi accessible và điều hướng UI sang thực đơn.
-- [x] Bổ sung thao tác nhấn-giữ-kéo dọc bằng chuột và ẩn scrollbar ở cấp root cho toàn bộ các màn hình mobile-first.
-- [x] Đồng bộ cursor kéo dạng bàn tay: màu xám ở theme sáng và màu trắng ở theme tối.
-- [x] Kiểm tra regression đổi theme: xác nhận click, reload và chuyển route hoạt động trên `localhost`/production; ghi nhận dev server qua `127.0.0.1` không hydrate do WebSocket HMR bị từ chối.
-- [x] Dọn các file log tạm sinh ra khi kiểm tra dev server và production test server của frontend.
-- [x] Dọn các file cấu hình và lock pnpm phát sinh ngoài package manager chính thức của frontend.
-- [x] Bổ sung scroll-spy cho category bar của trang Menu: tự làm nổi bật category theo section đang đọc, tự đưa tab active vào vùng nhìn thấy và xử lý category cuối ngắn khi đã cuộn tới đáy trang.
-- [x] Tối ưu tải sớm toàn bộ ảnh có khả năng nằm trong viewport đầu ở Welcome, Menu, Cart và màn nhập thông tin; khai báo smooth-scroll route transition cho Next.js.
-- [x] Xây dựng giao diện khách quét QR và mở phiên bàn.
-- [x] Xây dựng giao diện menu và chọn option.
-- [x] Xây dựng giao diện gửi order và gọi thêm món.
-- [x] Xây dựng giao diện yêu cầu hủy món.
-- [x] Bổ sung UI Customer gửi yêu cầu hủy món tại trang đơn hàng: chọn số lượng, lý do tùy chọn, trạng thái chờ xác nhận, khả năng chỉnh sửa yêu cầu và liên kết món về thực đơn.
-- [x] Bổ sung popup chọn option khi thêm món từ danh sách thực đơn, gồm dropdown cấp độ cay, kích thước, độ ngọt và topping tùy theo món.
-- [x] Điều chỉnh tag món trên Menu xếp hàng ngang và tự xuống dòng khi không đủ chỗ.
-- [x] Xây dựng giao diện yêu cầu thanh toán Customer theo thiết kế Stitch đã điều chỉnh đúng phạm vi CAS, gồm bill, trạng thái `PENDING`, hướng dẫn đến quầy thu ngân và lớp thông báo chặn thao tác khác.
-- [x] Bổ sung màn Customer “Thanh toán thành công” khi trạng thái payment chuyển
-      từ `PENDING` sang `PAID`, hiển thị bàn, tổng tiền, thời gian hoàn tất, lời cảm
-      ơn và nút tiếp tục tạo đơn mới bằng QR token của chính bàn để trở về màn nhập
-      thông tin khách mới; không hiển thị nhãn hoặc thông báo bàn đã đóng.
-- [x] Điều chỉnh thanh tab Customer mặc định theo thứ tự Trang chủ, Thực đơn,
-      Đơn hàng, Cài đặt; bỏ tab Thanh toán thường trực và chỉ hiển thị tab này khi
-      Customer đi từ thao tác yêu cầu thanh toán trong Đơn hàng; bổ sung trang Cài
-      đặt giao diện tại `/settings`; hiển thị dạng thanh dưới trên mobile và các khối
-      tab chữ nhật có border, tách rời bên trái trên web.
-- [x] Hiển thị bảng giá theo từng món tại màn đơn hàng và thanh toán: giá món gốc, topping tính thêm và tổng món.
-- [x] Xây dựng UI dashboard nhân viên tại `/operator/dashboard` theo màn Stitch
-      “Bảng điều khiển nhân viên - Tổng quan”, ưu tiên web desktop và responsive
-      mobile; `/operator` chuyển hướng tương thích sang dashboard; ba thống kê lượt
-      gọi món, bàn đang phục vụ và payment chờ xác nhận dùng dạng nhãn-số nhỏ gọn;
-      bổ sung cảnh báo bàn chờ lâu với ngưỡng UI `25` phút, danh sách khiếu nại rút
-      gọn có hộp thoại xem đầy đủ và sơ đồ bàn mini chỉ hiển thị bàn `Đang hoạt
-động` hoặc `Trống`; bàn đang hoạt động cho phép mở đơn tương ứng.
-- [x] Tách khu vực Operator thành năm tab route độc lập: `/operator/dashboard`, `/operator/orders`, `/operator/cancellations`, `/operator/payments` và `/operator/unpaid`; không hiển thị toàn bộ nghiệp vụ thành một trang cuộn dài.
-- [x] Ghép sơ đồ bàn mini tại `/operator/dashboard` với `GET /api/v1/operator/sales-sessions/tables`; hiển thị trạng thái thật, tự làm mới mỗi 10 giây. Bấm bàn có session mở popup các món/option và tổng bill thật; `OPEN` có thao tác gọi thêm món hoặc kiểm soát thanh toán, còn `PAYMENT_PENDING` chỉ có xác nhận thanh toán.
-- [x] Xây dựng UI tab `/operator/orders` tổng hợp số phần còn cần làm theo món
-      và cấu hình option, cho phép nhân viên ghi nhận số phần hoàn thành và cập nhật
-      phân bổ theo bàn ngay trên giao diện; các nhóm món hiển thị dạng cây gọn, có
-      thể xổ/đóng danh sách bàn và không dùng icon trang trí trong từng nhánh.
-- [x] Chia màn `/operator/orders` thành hai cột: tổng hợp số lượng theo món ở
-      bên trái và cây món còn cần làm theo từng bàn ở bên phải; hai cột cập nhật
-      đồng thời khi nhân viên ghi nhận số phần hoàn thành.
-- [x] Làm mới khu vực “Món theo bàn” tại `/operator/orders`: mỗi bàn là một thẻ
-      riêng, có tổng phần chờ, danh sách món/option, số lượng và giờ gửi để nhân
-      viên quét nhanh trên desktop hoặc tablet.
-- [x] Chuyển khu vực “Món theo bàn” tại `/operator/orders` sang masonry grid hai cột
-      trên màn hình phù hợp, để thẻ bàn có chiều cao khác nhau xếp sát nhau.
-- [x] Trang `/operator/orders` polling API chế biến mỗi 10 giây để nhận order mới và
-      số lượng món còn chờ từ các thiết bị khác.
-- [x] Các kết quả tải, kiểm tra số lượng và ghi nhận hoàn thành tại `/operator/orders`
-      hiển thị bằng toast; không chèn thêm khối thông báo vào nội dung trang.
-- [x] `POST /api/v1/operator/preparation/tables/{tableCode}/completions`: hoàn thành toàn bộ món còn chờ của một bàn trong transaction, có idempotency bền vững và audit log; đã ghép nút tại thẻ bàn.
-- [x] Header `/operator/orders` canh giữa dọc title với nút tạo order hộ; thống kê tổng món cần làm hiển thị trên cùng một dòng và cùng chiều cao với nút tạo order hộ.
-- [x] `GET /api/v1/operator/preparation/pending-table-count`: trả số bàn còn món
-      chờ theo store để badge “Đơn gọi món” polling mỗi 10 giây không tải toàn bộ nhóm món.
-- [x] Bỏ viền ngoài của các card bàn trong khu “Món theo bàn” tại `/operator/orders`.
-- [x] Bỏ bo góc của các card bàn trong khu “Món theo bàn” tại `/operator/orders`.
-- [x] Món cùng một mốc gửi trong thẻ bàn được gom dưới một nhãn thời gian; mốc
-      mới có dải ngăn cách, và món không có option không hiển thị dòng option.
-- [x] Các thẻ “Món theo bàn” ưu tiên bàn có món gửi lâu nhất; trong từng bàn,
-      các mốc gửi và món cũng hiển thị theo FIFO từ cũ đến mới.
-- [x] Xây dựng trang động `/operator/orders/[orderNumber]` để nhân viên xem
-      thông tin bàn, thời gian gửi, ghi chú chung, từng món và option, tiến độ số
-      lượng đã làm/còn lại cùng tổng tiền của một order.
-- [x] Xây dựng giao diện vận hành cho menu, bàn và order.
-- [x] Xây dựng giao diện `OPERATOR` chọn bàn, xem menu, chọn option, quản lý giỏ
-      món và tạo/gọi thêm order hộ khách tại `/operator/orders/new` và `/operator/orders/create`; tối ưu cho cả desktop dạng POS 2 cột và mobile có floating cart drawer.
-- [x] Ghép màn tạo order của `OPERATOR` với catalog, danh sách/mở phiên bàn và API tạo order; loại bỏ dữ liệu menu, bàn và voucher mẫu khỏi luồng vận hành. Card Dịch vụ thêm vẫn luôn hiển thị theo UI, không thuộc API catalog/order. Admin tiếp tục quản lý catalog bằng các API quản trị hiện có.
-- [x] Xây dựng giao diện đăng nhập nhân viên tại `/operator/login` bằng email và mật khẩu, có validation bắt buộc ở frontend và chuyển UI sang `/operator/dashboard` khi nhập hợp lệ.
-- [x] Đồng bộ đăng nhập `OPERATOR` và bổ sung `/admin/login` toàn màn hình qua Firebase Authentication; frontend xác nhận role qua `GET /api/v1/auth/me` trước khi điều hướng vào khu vực tương ứng.
-- [x] Xây dựng giao diện danh sách payment chờ xác nhận tại
-      `/operator/payments`; nhân viên dùng hành động “Xác nhận đã thanh toán” và
-      phải xác nhận lại trong popup có bàn, số tiền cùng nhắc nhở kiểm tra loa báo
-      giao dịch thành công.
-- [x] Operator có thể mở “Xem hóa đơn” từ từng payment chờ xác nhận, xem bill snapshot và in bill mà chưa kích hoạt thao tác xác nhận thanh toán.
-- [x] Trang `/operator/payments` có toggle mặc định “Chưa thanh toán” và chế độ “Đã thanh toán hôm nay”, không lặp tiêu đề dưới toggle; chế độ sau tải `GET /api/v1/operator/payments/paid-today`, chỉ cho xem hoặc in bill đã `PAID` và có empty state riêng.
-- [x] Màn “Xem hóa đơn” của Operator đọc đầy đủ `billSnapshot` từ `GET /api/v1/operator/payments`: từng order, thời điểm, ghi chú, món, option, khuyến mãi và các tổng tiền.
-- [x] Popup xem/xác nhận bill Operator là một hóa đơn cuộn tự nhiên trong khung giới hạn viewport; thanh cuộn được ẩn trên mobile và desktop.
-- [x] Xây dựng giao diện xem và xử lý các Yêu cầu hủy món tại `/operator/cancellations` với Form Modal xác nhận Đồng ý / Từ chối hủy món, hiển thị đầy đủ món gốc, option, đơn giá, số lượng và thành tiền cần đối chiếu.
-- [x] Xây dựng trang Hủy món do sự cố tại `/operator/cancellations/new` hiển thị danh sách món đã gọi theo bàn, bóc tách giá gốc, topping, tổng tiền và bộ nút trừ/cộng chọn số lượng hủy bên phải cùng ô nhập nguyên nhân dạng text và cờ `is_remade`.
-- [x] Xây dựng chức năng Báo cáo sự cố phát sinh trên trang Tổng quan (`/operator/dashboard`) qua nút cạnh “Hủy món do sự cố”, cho phép nhân viên `OPERATOR` tạo và ghi nhận sự cố trong ca (lưu tên người tạo, thời gian tạo và nội dung sự cố) để gửi lên cho `ADMIN`; không hiển thị danh sách tạm trên màn Operator.
-- [x] Cập nhật hệ thống tài liệu thiết kế (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`, `PROJECT_PROGRESS.md`) phân định rõ: `OPERATOR` tạo báo cáo sự cố phát sinh, `ADMIN` có quyền xem và tra cứu danh sách báo cáo sự cố.
-- [x] Bổ sung badge số nhỏ (counter badge) hiển thị số lượng yêu cầu/thông tin chờ xử lý trên thanh điều hướng `OperatorTabNavigation` cho các tab Đơn gọi món (8), Hủy món (3), Thanh toán (3), Chưa thanh toán (1) và Dịch vụ thêm (1).
-- [x] Xây dựng UI bộ giao diện Admin hoàn chỉnh tại `/admin` theo đúng thiết kế Stitch và tài liệu dự án, bao gồm Admin Header & AdminTabNavigation (`/admin/layout.tsx`), Dashboard Tổng quan (`/admin/page.tsx`), Quản lý Thực đơn & Catalog (`/admin/catalog/page.tsx`), Quản lý Bàn & Mã QR (`/admin/tables/page.tsx`), Quản lý Nhân viên OPERATOR (`/admin/operators/page.tsx`), Báo cáo Sự cố ca trực (`/admin/incidents/page.tsx`), Cấu hình & Nhật ký Audit Logs (`/admin/settings/page.tsx`).
-- [x] Sửa menu Admin hai cấp: popup submenu không còn bị cắt bởi vùng cuộn ngang; thanh điều hướng tự xuống hàng trên màn hình hẹp và bổ sung trạng thái truy cập cho dropdown.
-- [x] Tổ chức lại UI Admin: tách Catalog thành các trang danh mục, món ăn, option và nhãn món; tách Audit Logs thành trang tra cứu riêng; báo cáo sự cố chỉ còn chức năng xem/tra cứu theo phạm vi đã chốt.
-- [x] Bổ sung UI `/admin/reports` với bộ lọc ngày/loại báo cáo và thao tác xuất Excel tạm thời; bổ sung điều hướng đến Reports và Audit Logs.
-- [x] Tăng kích thước font chữ cấp 1 của thanh điều hướng AdminTabNavigation lên text-base (tăng 2 cấp font), giữ nguyên kích thước text-xs cho menu cấp 2 trong popup dropdown; đổi nhãn menu nhóm từ "Vận hành & Nhân sự" thành "Sự cố và Nhân sự"; bảo đảm duy nhất tab "Sự cố và Nhân sự" hiển thị badge đếm số thông báo.
-- [x] Cập nhật bộ tài liệu dự án (`OVERALL.md`, `BUSINESS_FLOWS.md`, `DATABASE_DESIGN.md`) bổ sung phạm vi chức năng, luồng nghiệp vụ và quy tắc dữ liệu cho khuyến mãi và Thông báo hệ thống (Notifications).
-- [x] Xây dựng UI Quản lý Mã giảm giá (`/admin/vouchers`) theo mô hình cũ.
-- [x] Rà soát và hoàn thiện UI `/admin/promotions` đúng và đủ các field theo tài liệu & DB design: nhập số tiền tự động có dấu phân cách hàng nghìn (`1,000,000`), thời gian chuẩn `datetime-local` (`start_at`/`end_at`), cảnh báo loại giảm `ITEM_...` chưa chọn target, và tích hợp Modal xem lịch sử lượt sử dụng (`PromotionRedemption`).
-- [x] Bổ sung tooltip dấu chấm than tại “Phạm vi áp dụng” của form promotion, giải thích khác biệt giữa giảm theo món/danh mục và giảm toàn bill.
-- [x] Bổ sung tooltip tại trường “Bill tối thiểu” của form promotion, giải thích điều kiện giá trị bill để promotion được áp dụng.
-- [x] Bổ sung tooltip tại trường “Giá trị giảm” của form promotion, giải thích mức giảm tiền được giới hạn theo giá trị bill hoặc món áp dụng.
-- [x] Sửa badge trạng thái trên danh sách promotion không co hoặc xuống dòng khi tên/phạm vi chương trình dài.
-- [x] Xây dựng UI Quản lý Thông báo hệ thống (`/admin/notifications`) hỗ trợ Admin cấu hình chọn đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả 2 (`BOTH`), đi kèm bộ lọc theo đối tượng linh hoạt.
-- [x] Tinh chỉnh UI `/admin/notifications`: bỏ mô tả phụ dưới tiêu đề và dùng các cặp màu design token có độ tương phản rõ cho badge loại thông báo và đối tượng nhận.
-- [x] Cập nhật tất cả các form tạo mới trong giao diện Admin (Thông báo, Vouchers, Tài khoản Nhân viên, Bàn ăn & QR Code, Danh mục món, Nhóm Option) sang dạng Modal Popup đè lên toàn bộ màn hình (`fixed inset-0 z-50 backdrop-blur-sm bg-black/55`), loại bỏ việc chèn form làm xô lệch bố cục trang.
-- [x] Cập nhật hiệu ứng hover chữ trên các menu cha của giao diện Admin (`AdminTabNavigation` gồm "Tổng quan", "Báo cáo", "Quản lý Quán", "Sự cố và Nhân sự", "Hệ thống & Cấu hình") sang màu xanh lá thương hiệu (`hover:text-cas-secondary`), giữ nguyên thiết kế font và kích thước ban đầu.
-- [x] Loại bỏ bảng trùng lặp "2. Nhật ký Thao tác (Audit Logs)" trên trang Cấu hình (`/admin/settings`), chỉ giữ lại phần Cấu hình Tham số Vận hành Cửa hàng (Audit Logs đã có route chuyên biệt tại `/admin/audit-logs`).
-- [x] Loại Banner khuyến mãi, Header Ticker và gợi ý mã khuyến mãi khỏi phạm vi CAS; không dùng `promotion_configs`.
-- [x] Tích hợp `store_banners` vào Flyway V1 baseline cho Phase 1 production: một record/store chứa URL và storage key của 2 ảnh Hero, 5 ảnh Menu, 1 ảnh Banner và trạng thái; không có thời gian hiệu lực.
-- [x] Tích hợp `stores.logo_storage_key` vào Flyway V1 baseline; mọi URL ảnh trong schema hiện có khóa Cloudinary tương ứng để hỗ trợ thay thế hoặc xóa asset.
-- [x] Hợp nhất schema Flyway V1–V4 vào `V1__create_base_20260701.sql` để khởi tạo database mới bằng một baseline migration duy nhất.
-- [x] Bổ sung seed `store_banners` cho store demo, dùng ảnh mock trong `frontend/public/images/welcome` và storage key `NULL`.
-- [ ] Phase 1 production: Customer hiển thị record Welcome `ACTIVE`; API/UI quản lý cấu hình Welcome cho `ADMIN` đã hoàn thành.
-- [x] Tích hợp nút chuông thông báo (bell icon) ở góc trên bên phải cho giao diện Khách hàng (`CustomerHeader`) và Nhân viên (`OperatorWorkspaceLayout`) kèm popup xem nhanh thông báo & ưu đãi.
-- [x] Tinh chỉnh Admin Dashboard (Tổng quan): bổ sung bộ lọc thời gian chuyên sâu ở đầu trang hỗ trợ ô chọn Ngày (`input type="date"`), ô chọn Tháng (`input type="month"`), chọn Năm (`select year`) và chọn Khoảng ngày (Từ ngày - Đến ngày); loại bỏ chữ "cụ thể" trong menu, chuẩn hóa nhãn "Lọc theo:" thường và hiển thị 7 chỉ số dạng bảng 2 cột gọn nhẹ với màu đen đồng nhất.
-- [x] Thay biểu đồ chính Admin Dashboard bằng line chart doanh thu theo thời gian, có bộ chọn Hôm nay/7 ngày/30 ngày/Tháng này và dữ liệu theo giờ từ 09h đến 22h cho chế độ Hôm nay.
-- [x] Tinh chỉnh thanh điều hướng Admin (`AdminTabNavigation`): hỗ trợ trượt ngang mượt mà (`overflow-x-auto`, `whitespace-nowrap`, `shrink-0`) trên mobile; đồng thời xử lý hiển thị popup menu con bằng `fixed` positioning giúp menu xổ ra tự do bên ngoài box, không bị cắt mép hay bắt người dùng kéo cuộn bên trong.
-- [x] Xây dựng giao diện quản lý khoản chưa thanh toán tại `/operator/unpaid`, bao gồm danh sách các bản ghi `unpaid_records`, bộ lọc trạng thái (`ALL`, `OPEN`, `RESOLVED`), Modal xem `bill_snapshot` chi tiết, thao tác kết thúc phiên bàn và ghi nhận chưa thanh toán với lý do bắt buộc, cùng nút chuyển đổi trạng thái đã thu tiền.
-- [x] Lược bỏ mô tả kỹ thuật về tạo payment và snapshot khỏi form ghi nhận chưa thanh toán.
-- [x] Bổ sung popup xác nhận trước khi đánh dấu khoản chưa thanh toán là đã thu tiền.
-- [x] Xây dựng UI `OPERATOR` quản lý dịch vụ đặt trước tại `/operator/services` (tab “Dịch vụ thêm”): nhập tên/SĐT sau khi chốt qua Zalo, tìm hoặc tạo `client_account` theo SĐT, nhập giá đã thỏa thuận và cập nhật trạng thái thanh toán.
-- [x] Bổ sung popup xác nhận trước khi chuyển dịch vụ thêm sang trạng thái đã thanh toán.
-- [x] Bổ sung thao tác hủy dịch vụ thêm khi khách không tiếp tục đặt, kèm popup xác nhận.
-- [x] Bổ sung validation hiển thị tại form tạo dịch vụ thêm: dữ liệu bắt buộc, giới hạn độ dài, SĐT và giá đã thỏa thuận hợp lệ (cho phép giá `0` với dịch vụ miễn phí).
-- [x] Bổ sung trường ghi chú tùy chọn khi tạo dịch vụ thêm, hiển thị trên card dịch vụ và dùng chung cho giao diện `ADMIN` và `OPERATOR`; cập nhật thiết kế `service_bookings`.
-- [x] Đồng bộ giao diện chi tiết món trong Giỏ hàng Customer với Đơn hàng, giữ thao tác điều chỉnh số lượng và xóa món.
-- [x] Đồng bộ giỏ món trong luồng `OPERATOR` tạo order hộ với giao diện chi tiết món Customer, bao gồm giá món gốc và từng option đã chọn.
-- [x] Hiển thị ghi chú chung của order trên trang Đơn hàng Customer.
-- [x] Giữ luồng Customer chuyển tới `/payment` để kiểm tra và gửi yêu cầu thanh toán; không hiển thị Thanh toán như một tab điều hướng riêng. Nút từ `/orders` được đặt nhãn “Xem hóa đơn”.
-- [x] Customer mở popup để nhập mã hoặc chọn voucher/promotion từ danh sách thẻ “Khuyến mãi dành cho bạn”; mỗi voucher hiển thị loại ưu đãi, số tiền giảm dự kiến và số tiền cần thanh toán.
-- [x] Bổ sung tab Admin `/admin/unpaid` trong nhóm “Sự cố và Nhân sự” để theo dõi số lượng, tổng tiền và chi tiết các khoản chưa thanh toán; cả `ADMIN` và `OPERATOR` có thể kết thúc phiên bàn, nhập lý do và ghi nhận khoản chưa thanh toán.
-- [x] Xây dựng UI tạm thời Admin xem danh sách `report` tại `/admin/reports`, có bộ lọc ngày/loại báo cáo và thao tác xuất Excel chưa kết nối API.
-- [x] Xây dựng chức năng Admin cấu hình ngưỡng cảnh báo bàn chờ lâu theo contract đã chốt.
-- [ ] Viết component test và end-to-end test.
-- [x] Xây dựng giao diện Admin tra cứu khách hàng tại `/admin/customers`, gồm tìm kiếm theo tên/SĐT, che số điện thoại ở danh sách và xem lịch sử phiên bàn dạng chỉ đọc bằng dữ liệu mẫu.
-- [x] Bổ sung section định hướng phát triển cuối trang `/admin/audit-logs`: chăm sóc khách hàng qua Zalo, trò chơi và tính năng AI.
-
-- [x] Căn chỉnh popup submenu của `AdminTabNavigation` bám ngay dưới thanh điều hướng, loại bỏ khoảng hở do `fixed` positioning bị ảnh hưởng bởi backdrop blur.
-- [x] Xây dựng UI Cấu hình Thông tin Cửa hàng tại `/admin/settings` (mô tả phụ: "Quản lý thông tin cửa hàng và tham số vận hành") hỗ trợ Admin thiết lập Tên quán, Số điện thoại Hotline, Email liên hệ, Địa chỉ, Link/Tọa độ vị trí quán trên Google Maps (tích hợp nút **`?`** Popover Tooltip hướng dẫn 3 bước trực quan), Giờ mở/đóng cửa (sử dụng bộ chọn `TimePicker12H` Popover hiện đại hỗ trợ chuyển AM/PM nhanh), Slogan chào mừng, Trạng thái hoạt động (`ACTIVE`/`INACTIVE`), xem trước logo cục bộ cùng nút chuyển đổi giao diện **Sáng / Tối** (`ThemeToggle`) đồng bộ trên Admin & Operator Header.
-- [x] Cập nhật form tạo `OPERATOR` tại `/admin/operators`: bắt buộc họ tên, email đăng nhập và số điện thoại liên hệ; validation khớp các cột `NOT NULL` của `accounts` và giới hạn độ dài DDL.
-- [x] Sửa lỗi active route trùng lặp ở `AdminTabNavigation`: áp dụng thuật toán so khớp tiền tố chính xác nhất (`isRouteActive`), khắc phục triệt để tình trạng mục "Món ăn" (`/admin/catalog`) luôn bị tô xanh đồng thời khi chọn các submenu như "Danh mục", "Nhóm & giá trị Option", "Nhãn món".
-- [x] Gỡ bỏ hoàn toàn phần Cấu hình Banner & Thông báo Khuyến mãi (Popup Banner, Header Ticker, Gợi ý giỏ hàng) khỏi trang `/admin/vouchers`, tối ưu hóa trang thành giao diện chuyên biệt cho **Quản lý Mã giảm giá (Voucher)**.
-- [x] Chuyển đổi giao diện Quản lý Bàn ăn & Thẻ Mã QR tại `/admin/tables` sang dạng **Danh sách (Table View)** hiện đại, hỗ trợ các chức năng: Thêm bàn mới, Xóa bàn (kèm Modal xác nhận), Xem Mã QR Token trực quan và Quản lý Trạng thái bàn (Bàn trống, Đang có khách, Chờ thanh toán) kèm bộ lọc và tìm kiếm nhanh.
-- [x] Sửa tương tác click trên `AdminTabNavigation`: Đảm bảo khi người dùng click vào mục menu chính có submenu thì menu con sẽ mở ra và giữ hiển thị ổn định, không bị ẩn đi do xung đột trạng thái rê chuột (hover).
-- [x] Cấu trúc lại danh mục điều hướng `AdminTabNavigation`: Đưa các mục "Món ăn", "Danh mục", "Option", "Nhãn món" thuộc nhóm **Menu & Voucher** vào nhóm con cấp 2 **Catalog** trực quan.
-- [x] Điều chỉnh menu Admin ba cấp: giữ "Món ăn", "Danh mục" và "Option" ở cấp 3 dưới "Catalog"; đưa "Nhãn món" lên cấp 2 trong nhóm **Menu & Voucher**.
-- [x] Hoàn thiện tương tác menu Admin ba cấp: rê chuột hoặc nhấn "Catalog" ở cấp 2 sẽ mở submenu cấp 3 ở bên phải.
-- [x] Đồng bộ trạng thái hiển thị "Catalog" với các mục cấp 2 khác: chỉ đổi màu khi mở submenu, không tự tô nền theo route con đang chọn.
-- [x] Đóng submenu cấp 3 của "Catalog" khi rê chuột sang một mục cấp 2 khác, đồng thời giữ menu mở khi đi qua khoảng hở để chọn submenu bên phải.
-- [x] Đồng bộ hiệu ứng hover của tab cấp 1 Admin với thanh điều hướng Operator: nền bo tròn nhẹ và màu chữ tương ứng.
-- [x] Đồng nhất hiệu ứng hover cho tab Admin có submenu: mở dropdown không tự kích hoạt kiểu tab đang chọn.
-- [x] Đồng bộ hiệu ứng hover cho các submenu Admin với thanh Operator: nền xanh nhạt và chữ tối, không dùng nền xanh đậm/chữ trắng khi rê chuột.
-
-- [x] Hoàn thiện UI quản lý món tại `/admin/catalog`: popup thêm/sửa món, thiết lập danh mục, giá, nhãn, nhóm option và trạng thái; xác nhận ẩn món bằng `INACTIVE` để giữ lịch sử order.
-- [x] Rút gọn bộ lọc món tại `/admin/catalog` thành Tất cả, Đồ ăn và Đồ uống.
-- [x] Cập nhật dữ liệu mẫu Catalog theo thực đơn quán: bỏ món ốc, thêm Gà rán và Đồ ăn vặt; bộ lọc dùng dropdown loại món/trạng thái cùng nút xóa lọc.
-- [x] Lược bỏ nút chuyển nhanh trạng thái bán trong bảng Catalog; trạng thái được chỉnh trong popup sửa món.
-- [x] Đổi trường Nhãn món trong popup Catalog sang dropdown thực sự, hỗ trợ tick chọn nhiều nhãn có sẵn.
-- [x] Bổ sung đóng dropdown Nhãn món khi click bên ngoài và dùng `CasIcon` cho mũi tên xổ xuống.
-- [x] Loại bỏ ghi chú kỹ thuật về API Catalog khỏi popup quản lý món.
-- [x] Bổ sung UI chọn ảnh món và thiết lập thứ tự hiển thị trong popup Catalog, sẵn sàng để ghép API sau.
-- [x] Chuẩn hóa các ô nhập giá trong Catalog và Dịch vụ thêm theo định dạng dấu phẩy hàng nghìn (ví dụ `1,200,000`).
-- [x] Đổi Nhóm option áp dụng sang dropdown tick chọn nhiều, đồng bộ với Nhãn món.
-- [x] Chuyển lệnh phát triển Frontend sang Webpack để tránh lỗi cache/compaction của Turbopack khi format ghi nhiều file.
-- [x] Bổ sung cột Thứ tự hiển thị trong bảng danh sách Thực đơn tại `/admin/catalog`.
-- [x] Hoàn thiện form quản lý Catalog Admin: danh mục có mô tả/thứ tự/trạng thái; nhóm option có kiểu chọn, giới hạn chọn, thứ tự/trạng thái; giá trị option có thứ tự hiển thị.
-- [x] Tối ưu hóa tải ảnh LCP: bổ sung thuộc tính `loading="eager"` và `priority` cho ảnh `/images/welcome/street-snacks.jpg` tại trang Welcome Khách hàng (`/`).
-- [x] Sửa responsive mục xem trước thực đơn tại trang Welcome: ảnh danh mục luôn phủ đầy thẻ trên mọi kích thước màn hình.
-- [x] Bổ sung tính năng xem trước ảnh món (Image Preview) khi chọn file mới hoặc sửa món ăn tại `/admin/catalog`, kèm thumbnail trực quan trong bảng danh sách.
-- [x] Bổ sung tính năng Cập nhật trạng thái hàng loạt (Bulk Status Update) cho nhiều món ăn tại `/admin/catalog` kèm thanh thao tác nhanh và thông báo tức thì.
-- [x] Bổ sung bộ lọc Sắp xếp (Sorting dropdown) theo Thứ tự hiển thị, Giá niêm yết và Ngày tạo tại `/admin/catalog`.
-- [x] Hoàn thiện tính năng Sửa tên và Xóa nhóm option, xóa thẻ giá trị option tại `/admin/catalog/options` và Sửa/Xửa danh mục món tại `/admin/catalog/categories`.
-- [x] Tích hợp thư viện `qrcode.react` để hiển thị ảnh mã QR thực tế và hỗ trợ tải ảnh QR (PNG) cho từng bàn ăn tại `/admin/tables`.
-- [x] Cập nhật regression test Frontend theo UI hiện tại: luồng xác nhận khoản chưa thanh toán, bill thanh toán và sáu tab điều hướng Operator; toàn bộ `npm run test` đạt 20 file / 38 test.
-- [x] Bổ sung manifest PWA `frontend/public/site.webmanifest`, bộ favicon/logo và khai báo metadata gốc để trình duyệt nhận diện ứng dụng CAS.
-- [x] Dùng chung logo CAS tại header Customer, Admin, Operator và hai màn đăng nhập vận hành.
+- [x] Hoàn thiện ba khu vực Customer, Operator và Admin với Firebase route guard cho khu vực vận hành.
+- [x] Customer: vào quán bằng QR/chọn chi nhánh, mở session, menu, giỏ hàng, order, hủy món, voucher, bill, thanh toán và thông báo.
+- [x] Operator: dashboard, tạo order hộ, chế biến, xử lý yêu cầu hủy, thanh toán, khoản chưa thanh toán, service booking và catalog availability.
+- [x] Admin: quản lý cửa hàng/bàn/QR, catalog, nhân sự, promotion, notification, audit log, khách hàng, sự cố và service booking.
+- [x] Chi tiết khách hàng Admin hiển thị cả phiên mang về (`tableCode = null`), ghi nhãn “Mang về” và có empty state khi khách chưa có lịch sử phiên bàn.
+- [x] Lịch sử khách hàng Admin ẩn UUID kỹ thuật, chỉ hiển thị trạng thái phiên tiếng Việt trong bảng.
+- [x] Lịch sử khách hàng Admin nhóm theo từng phiên, hiển thị rõ số “Lần gửi order” cùng payment và khoản chưa thanh toán.
+- [x] Lịch sử phiên khách hàng Admin dùng một header bảng nổi bật và các row dữ liệu hoàn chỉnh theo từng phiên.
+- [x] Phiên chưa có order trong lịch sử khách hàng Admin hiển thị “Chưa gọi món” thay cho `0 lần`.
+- [x] Danh sách khách hàng Admin dùng API tìm kiếm/phân trang theo server (`query`, `page`, `size`) và component `Pagination` dùng chung.
+- [x] Dashboard `/admin`: UI bốn nhóm Doanh thu, Khách hàng, Menu & Order, Khuyến mãi; dùng dữ liệu minh họa cục bộ và có ghi chú về giới hạn `served_at`.
+- [x] Chuẩn hóa thiết kế dùng token màu global, font `Inter` qua `next/font/google`, toast dùng chung và panel Admin `rounded-sm`.
+- [x] Đồng nhất font weight cho tab điều hướng dạng link và button bằng cách chỉ kế thừa `font-family` cho form control, không ghi đè utility `font-bold`.
+- [x] Bỏ các dòng mô tả phụ ngay dưới tiêu đề trên toàn bộ page Admin; giữ nguyên hướng dẫn trong form, modal và section chức năng.
+- [x] Hoàn thiện responsive, polling cần thiết, form validation, empty/loading/error state chính cho các luồng đã ghép API.
+- [x] Giảm độ dày viền trạng thái bàn được chọn trong popup chọn bàn Operator: bỏ `ring-2`, giữ viền màu và nền nhạt.
+- [x] Bỏ focus ring dư thừa ở hai ô đăng nhập Operator, giữ một viền primary khi focus.
+- [x] Hiển thị tên cửa hàng cạnh logo ở form đăng nhập Operator và Admin; không hiển thị subtitle.
+- [x] Chuyển lỗi tạo order, mở/hủy phiên của Operator và lỗi hủy phiên Customer sang toast dùng chung; không giữ thông báo lỗi inline sau thao tác thất bại.
+- [x] Gửi món Customer khóa đồng bộ ngay từ lần bấm đầu để bỏ qua các lần nhấp liên tiếp; idempotency key được giữ lại khi gửi lỗi để lần thử lại an toàn.
+- [x] Luồng Customer chọn loại đơn và nhập bàn/QR có nút quay lại rõ ràng, gồm quay lại trang chủ, bước chọn loại đơn và form đơn mang về.
+- [x] CustomerHeader được đưa vào layout dùng chung để giữ tên/logo cửa hàng và trạng thái header khi chuyển giữa các trang Customer, tránh mount và tải lại không cần thiết.
 
 ## 7. Hạ tầng và triển khai
 
-- [x] Tạo cấu hình Docker Compose phục vụ triển khai production.
-- [x] Chốt Cloudinary làm dịch vụ lưu trữ hình ảnh.
-- [x] Chốt GitHub Actions làm nền tảng CI/CD.
-- [x] Chốt triển khai production trên một VPS.
-- [x] Bổ sung health indicator Firebase Authentication cho Actuator; endpoint `/actuator/health/firebase` kiểm tra service account và khả năng gọi Firebase Auth.
-- [x] Hoàn thiện nền tảng upload ảnh món Cloudinary: CAS Backend ký request, Frontend upload trực tiếp khi Admin lưu món và giữ `secure_url`/`public_id`; Backend chỉ chấp nhận asset đúng Cloudinary và public ID được ký cho store.
-- [x] Kết nối trang Admin Catalog với API Catalog: tải danh mục/tag/option/món, lưu `imageUrl`/`imageStorageKey` đã upload khi tạo hoặc sửa món và cập nhật trạng thái hàng loạt qua Backend.
-- [x] Cấu hình Next Image cho phép tải ảnh Cloudinary của CAS từ `res.cloudinary.com/dh6qzqf73/image/upload`.
-- [x] Thiết lập formatter chung: Spotless với profile Eclipse JDT (4-space, continuation indent 8-space) cho Backend, Prettier cho Frontend và lệnh `scripts/format.ps1` để format hoặc kiểm tra toàn bộ dự án.
-- [ ] Tạo pipeline CI kiểm tra build, test và migration.
-- [ ] Chốt chi tiết và cấu hình môi trường triển khai VPS.
-- [ ] Cấu hình logging, theo dõi lỗi và health check.
-- [ ] Thiết lập sao lưu và khôi phục MySQL.
-- [ ] Kiểm thử triển khai thử nghiệm tại cửa hàng.
+- [x] Có Docker Compose production, Cloudinary, Firebase health indicator, cấu hình Next Image và formatter chung (`scripts/format.ps1`).
+- [x] Chốt GitHub Actions làm nền tảng CI/CD và VPS là mục tiêu triển khai production.
+- [ ] Tạo pipeline CI chạy build, test và migration.
+- [ ] Chốt cấu hình VPS, logging/monitoring, backup/restore MySQL và thử nghiệm triển khai tại cửa hàng.
 
 ## 8. Việc tiếp theo
 
-- [x] Chuẩn hóa phạm vi audit log: bổ sung entity type, action và các thao tác Admin/Operator bắt buộc phải ghi nhận.
-- [x] Đồng bộ thiết kế `stores` với UI Admin Settings: thông tin liên hệ, vị trí Google Maps, giờ hoạt động, slogan và ngưỡng cảnh báo bàn chờ lâu.
-- [x] Bổ sung footer trang Welcome Customer hiển thị các thông tin công khai của cửa hàng theo dữ liệu `stores`: tên, địa chỉ/vị trí, hotline, email và giờ hoạt động, kèm icon ngữ cảnh và dòng bản quyền.
-- [x] Điều chỉnh khoảng đệm cuối trang giỏ hàng Customer để thanh gửi món cố định không che khu vực ghi chú chung.
-- [x] Rà soát lại tài liệu nguồn: tổng quan, luồng nghiệp vụ, thiết kế database và các trường hợp biên.
-- [x] Bổ sung nhãn phân biệt dưới logo CAS trên header khu vực Admin và Vận hành.
-- [x] Cố định toàn bộ panel giỏ món bên phải trong màn Operator tạo order hộ và cho phép panel tự cuộn độc lập với menu.
-- [x] Đồng bộ UI xác nhận gửi món của Operator với trang Đơn hàng Customer: hiển thị bàn, thời gian và danh sách món vừa gửi, gồm option, số lượng và thành tiền.
-- [x] Bổ sung toast dùng chung toàn ứng dụng cho thông báo thành công, lỗi, cảnh báo và thông tin; áp dụng thay `alert` tại màn quản lý bàn Admin.
-- [x] Giảm bo góc dùng chung của `CasButton` từ 0.75rem (`rounded-xl`) xuống 0.5rem (`rounded-lg`).
-- [x] Cho phép `OPERATOR` hủy phiên bàn chưa có món ngay tại màn tạo order hộ; backend xác thực store, trạng thái `OPEN` và điều kiện chưa có order trước khi đóng phiên.
-- [x] Chốt yêu cầu: `OPERATOR` có thể tạo yêu cầu thanh toán hộ khách cho toàn bộ order của phiên bàn, theo cùng điều kiện và phép tính server-side như luồng Customer.
-- [x] Tối giản màn Operator Payment: bỏ nút xem bill trùng lặp; nút xác nhận thanh toán vẫn mở modal hiển thị đầy đủ bill trước khi gửi xác nhận.
-- [x] Hiển thị lỗi đăng nhập qua toast: lỗi Firebase sai thông tin đăng nhập được chuyển sang tiếng Việt, lỗi Firebase kỹ thuật khác giữ nguyên để debug, còn lỗi CAS Backend lấy trực tiếp `message` do backend cấu hình.
-- [x] Bổ sung nút mắt bật/tắt hiển thị mật khẩu tại form đăng nhập dùng chung cho Admin và Operator.
-- [x] Loại bỏ UI chọn voucher khỏi luồng Operator tạo order hộ; `OPERATOR` sẽ chọn khuyến mãi khi tạo yêu cầu thanh toán hộ khách.
-- [x] Đặt thao tác hủy phiên cạnh nút chọn bàn khác trong header panel giỏ món bên phải của màn tạo order hộ, với cùng kích thước và bố cục nút.
-- [x] Bỏ bo góc panel giỏ món cố định bên phải trên desktop, vẫn giữ bo góc cho drawer giỏ món trên mobile.
-- [x] Cố định panel giỏ món desktop sát dưới thanh điều hướng Operator, kéo dài đến đáy viewport và tự cuộn độc lập với thực đơn.
-- [x] Cho phép Operator chọn bàn trống tại màn tạo order hộ và xác nhận tạo phiên bàn mới trước khi chọn món.
-- [x] Tái sử dụng form thông tin khách (tên và SĐT) từ luồng quét QR khi Operator tạo phiên bàn mới trước khi tạo order hộ.
-- [x] Bảo vệ toàn bộ trang Admin và Operator bằng Firebase session cùng kiểm tra danh tính/role qua CAS Backend; phiên đăng nhập chỉ duy trì trong phiên trình duyệt.
-- [x] Yêu cầu Customer hoàn tất nhập thông tin mở phiên bàn trước khi gửi món từ Giỏ hàng; sau khi hợp lệ, quay lại Giỏ hàng để tiếp tục gửi order.
-- [x] Đổi card dịch vụ trong menu Customer thành “Đặt dịch vụ theo yêu cầu” và tách ghi chú chốt giá qua Zalo khỏi nút liên hệ.
-- [x] Bổ sung mục “Khác” và card “Đặt dịch vụ theo yêu cầu” vào menu tạo order hộ của Operator, tách biệt khỏi giỏ món tại bàn.
-- [x] Giữ thanh category cố định khi cuộn cho menu Customer và menu tạo order hộ của Operator, với offset phù hợp từng header và cập nhật đúng danh mục cuối trang.
-- [x] Bổ sung menu tài khoản trên header Admin và Operator: hiển thị email, số điện thoại từ Firebase profile (hoặc trạng thái chưa cập nhật) và đăng xuất về đúng trang đăng nhập.
-- [x] Bổ sung bộ lọc thời gian mở bàn trên màn khoản chưa thanh toán dùng chung cho Admin và Operator; mặc định chỉ hiển thị các phiên đã mở từ 120 phút để nhân viên theo dõi trước khi ghi nhận khoản chưa thanh toán, chuẩn hóa số 0 đầu, giới hạn 10.000 phút, debounce 300 ms và lưu giá trị theo phiên trình duyệt khi chuyển trang.
-- [x] Sửa lỗi kiểm tra kiểu dữ liệu bàn tại màn Operator tạo order hộ; đồng bộ fixture bàn trống và cập nhật test API tạo tài khoản nhân viên. `npm run typecheck` và `npm run test` đạt 20 file / 38 test.
-- [x] Customer có thể đánh dấu từng thông báo chưa đọc trong popup chuông thông báo; mở popup không còn tự đánh dấu toàn bộ là đã đọc, và vẫn giữ thao tác đánh dấu tất cả.
-- [x] Bổ sung mục Hủy phiên bàn tại Cài đặt Customer, kèm tooltip và xác nhận thao tác; chỉ bật khi session đang `OPEN`, backend vẫn là nguồn xác thực điều kiện chưa gửi món.
-- [x] Operator polling API count riêng cho yêu cầu hủy món đang chờ xử lý để hiển thị badge số lượng tại thanh điều hướng Hủy món.
-- [x] Bổ sung validation phía client cho form tạo/cập nhật promotion: tên, giá trị giảm, quota, thời gian hiệu lực, format mã và phạm vi bắt buộc của promotion theo món/danh mục.
-- [x] Bổ sung tooltip trường Mã khuyến mãi, làm rõ chương trình có mã chỉ áp dụng khi khách nhập đúng mã và không xuất hiện trong danh sách công khai.
-- [x] Ghép form xác nhận duyệt/từ chối yêu cầu hủy món của Operator với API thực: bỏ fallback request giả, tải chi tiết giá/option từ API và chỉ gửi các trường được backend hỗ trợ.
-- [x] Rà soát Customer: đồng bộ trạng thái ghép API create order, bill và hủy phiên bàn trong tài liệu; card dịch vụ thêm mở Zalo bằng hotline của store; xóa component yêu cầu hủy món cũ chỉ đổi state cục bộ và không còn được render.
-- [x] Trang Đơn hàng Customer polling bill mỗi 10 giây để nhận order mới, kết quả xử lý yêu cầu hủy món và thay đổi tiền từ thiết bị hoặc nhân viên khác.
-- [x] Đơn hàng Customer ẩn dòng món đã được duyệt hủy và hiển thị “Chờ xác nhận” cho yêu cầu hủy đang `PENDING`.
-- [x] Form yêu cầu hủy món Customer dùng nút trừ/cộng để tăng/giảm, chỉ nhận số lượng từ `1` đến số phần đã gọi của dòng món.
-- [x] Hiển thị toast thành công sau khi gửi món xuống bếp từ Giỏ hàng Customer hoặc màn tạo order hộ của Operator.
-- [x] Khi món trong giỏ vừa bị Operator chuyển sang `SOLD_OUT`, Backend trả lỗi
-      `409` nêu rõ tên món và hướng dẫn bỏ món khỏi giỏ; Giỏ hàng Customer hiển
-      thị lỗi này bằng toast, không mất các món đang chọn.
-- [x] Ổn định nhãn “Hết hàng” trong card món dùng chung: không xuống dòng khi không đủ chỗ, giữ thẳng hàng với giá và nút thao tác ở màn tạo order của Operator.
-- [x] Card món tại màn tạo order hộ của Operator giữ ảnh phủ hết chiều cao card trên desktop, tránh khoảng trống thừa khi phần mô tả dài; bố cục ảnh mobile không đổi.
-- [x] Operator bấm tên món tại màn tạo order hộ để mở chi tiết ảnh, mô tả, giá, trạng thái và chọn đầy đủ tùy chọn trước khi thêm vào giỏ, tương đương luồng xem món của Customer mà không làm mất giỏ đang tạo.
-- [x] `GET /api/v1/operator/sales-sessions/{sessionId}/bill` và `POST /api/v1/operator/sales-sessions/{sessionId}/payments`: Operator xem bill, chọn promotion đã đủ điều kiện và tạo yêu cầu thanh toán hộ trong phạm vi store; thao tác tạo ghi audit log và dùng lại payment `PENDING` hiện có để xác nhận thanh toán.
-- [x] Đổi nút “Không thanh toán” tại tab Thanh toán thành “Kiểm soát thanh toán”: liệt kê các bàn `OPEN`, cho tạo yêu cầu thanh toán hộ hoặc đánh dấu chưa thanh toán ngay trên từng bàn.
-- [x] Tối ưu đọc/validate khi tạo order: Backend batch tải món, nhóm option và
-      option được chọn theo toàn bộ giỏ, sau đó vẫn kiểm tra từng dòng đã chuẩn
-      hóa theo cùng quy tắc trạng thái, option và giá server-side.
-- [x] Chuyển thông báo ghi nhận không thanh toán và xác nhận đã thu trên màn Operator sang toast thành công.
-- [x] Trang quét mã QR Customer hiển thị lỗi xác thực từ `message` của API bằng toast, giữ ô nhập để khách sửa hoặc quét lại mã.
-
-1. ~~Tạo dữ liệu mẫu phục vụ phát triển và kiểm thử.~~ (Đã hoàn thiện qua `backend/src/main/resources/db/seed/demo-data.sql`.)
-2. Xây dựng API contract và ma trận phân quyền chi tiết theo từng API.
-3. ~~Xây dựng các API chế biến: xem danh sách bàn chờ lâu, xem danh sách món còn phải làm đã tổng hợp theo món và option, và ghi nhận số lượng hoàn thành theo mẻ.~~ (Đã hoàn thiện, chưa ghép Frontend.)
-4. ~~Hoàn thiện cách xử lý các edge case còn lại.~~ (Đã hoàn thiện)
-5. Chốt định nghĩa và phạm vi dữ liệu cho chức năng Admin xem danh sách `report` (lưu ý bóc tách khối lượng hao hụt dựa trên cờ `is_remade`).
-6. Xây dựng các module backend và frontend theo luồng nghiệp vụ đã chốt.
-7. Chốt phạm vi khai báo tiền mặt đầu ca/cuối ca, dữ liệu đối soát và quy trình xử lý chênh lệch trước khi bổ sung module vận hành theo ca.
-8. Hoàn thiện các phần còn dùng mock/dữ liệu tĩnh trong Phase 1 bằng API, dữ liệu production và kiểm thử tích hợp trước khi triển khai cửa hàng.
-
-- [x] Customer public mode suppresses background toast errors from sales-session, notification, and bill polling when no table QR session exists.
-- [x] Unified Customer entry flow: browser users choose an active branch before starting dine-in or takeaway; table QR preselects the branch and table while retaining the takeaway choice.
+1. Chốt định nghĩa báo cáo Admin, dữ liệu nguồn, bộ lọc và API contract; phân tách hao hụt dựa trên `is_remade`.
+2. Ghép dashboard Admin và các phần còn dùng mock với API/dữ liệu production.
+3. Hoàn thiện kiểm thử đơn vị, tích hợp, regression và luồng triển khai CI/CD.
+4. Chốt nghiệp vụ đầu/cuối ca, đối soát tiền mặt và xử lý chênh lệch trước khi xây module vận hành theo ca.
+5. Chuẩn bị cấu hình production, quan sát hệ thống, sao lưu và pilot tại cửa hàng.
 
 ## 9. Tài liệu liên quan
 

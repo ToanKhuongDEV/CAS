@@ -20,7 +20,10 @@ vi.mock("../lib/customer/sales-session", () => ({
   resolveCustomerSalesSession: vi.fn(),
   resolveCustomerSalesSessionByTable: vi.fn(),
 }));
-vi.mock("../lib/api/store/public-store.api", () => ({ loadPublicStores: vi.fn() }));
+vi.mock("../lib/api/store/public-store.api", () => ({
+  loadPublicStores: vi.fn(),
+  rememberPublicStoreId: vi.fn(),
+}));
 
 describe("ScanTableQrPage", () => {
   beforeEach(() => {
@@ -44,6 +47,11 @@ describe("ScanTableQrPage", () => {
       <ToastProvider>
         <ScanTableQrPage />
       </ToastProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Quay lại chọn loại đơn" })).toHaveAttribute(
+      "href",
+      "/start?returnTo=%2Fmenu",
     );
 
     const input = screen.getByRole("textbox", { name: "Nhập mã QR của bàn" });

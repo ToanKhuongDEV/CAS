@@ -155,10 +155,6 @@ export default function AdminOperatorsPage() {
           <h1 className="text-2xl font-black text-cas-on-surface">
             Quản lý Tài khoản Nhân viên (OPERATOR)
           </h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Tạo, kích hoạt hoặc khóa tài khoản nhân viên phục vụ/thu ngân qua Firebase
-            Authentication.
-          </p>
         </div>
         <CasButton onClick={() => setShowAddForm(true)} icon="plus" variant="primary" size="md">
           Tạo tài khoản Nhân viên
@@ -182,7 +178,7 @@ export default function AdminOperatorsPage() {
           <form
             onSubmit={handleAddOperator}
             noValidate
-            className="my-auto w-full max-w-lg space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-lg space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <h3 className="text-base font-black text-cas-on-surface">
@@ -293,7 +289,7 @@ export default function AdminOperatorsPage() {
       )}
 
       {/* Table Nhân viên */}
-      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
+      <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 text-cas-on-surface-variant font-extrabold uppercase">
             <tr>

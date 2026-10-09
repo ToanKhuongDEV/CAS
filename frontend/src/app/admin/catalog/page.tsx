@@ -342,9 +342,6 @@ export default function AdminCatalogPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Quản lý Thực đơn & Catalog</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Thêm, chỉnh sửa món ăn, cài đặt giá, nhóm option và trạng thái SOLD_OUT.
-          </p>
         </div>
         <CasButton icon="plus" onClick={openCreateModal} variant="primary" size="md">
           Thêm món mới
@@ -487,7 +484,7 @@ export default function AdminCatalogPage() {
       ) : null}
 
       {/* Table Danh sách Món */}
-      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
+      <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 font-extrabold uppercase text-cas-on-surface-variant">
             <tr>
@@ -637,7 +634,7 @@ export default function AdminCatalogPage() {
           {modalMode === "deactivate" && selectedItem ? (
             <section
               aria-labelledby="deactivate-item-title"
-              className="w-full max-w-md rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
             >
               <h2 className="text-lg font-black" id="deactivate-item-title">
                 Ẩn món khỏi thực đơn?
@@ -658,7 +655,7 @@ export default function AdminCatalogPage() {
           ) : (
             <form
               aria-labelledby="catalog-item-form-title"
-              className="w-full max-w-2xl space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+              className="w-full max-w-2xl space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
               onSubmit={saveItem}
             >
               <div className="flex items-start justify-between border-b border-cas-outline-variant/20 pb-4">

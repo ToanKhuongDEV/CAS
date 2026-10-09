@@ -321,7 +321,6 @@ export function OperatorOrderCreationView({
   const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
   const [catalogItems, setCatalogItems] = useState<MenuItemData[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [operationError, setOperationError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
   const [operatorTables, setOperatorTables] = useState<TableOption[]>([]);
 
@@ -498,11 +497,13 @@ export function OperatorOrderCreationView({
   const handleSubmitOrder = async () => {
     if (cartItems.length === 0 || isSubmitting) return;
     if (!selectedTable.sessionPublicId) {
-      setOperationError("Vui lòng chọn bàn đang có phiên phục vụ trước khi gửi món.");
+      showToast({
+        type: "error",
+        message: "Vui lòng chọn bàn đang có phiên phục vụ trước khi gửi món.",
+      });
       return;
     }
     setIsSubmitting(true);
-    setOperationError(null);
     try {
       const created = await createOperatorOrder(selectedTable.sessionPublicId, {
         note: orderNote.trim() || null,
@@ -529,7 +530,10 @@ export function OperatorOrderCreationView({
       setIsMobileDrawerOpen(false);
       showToast({ type: "success", message: "Đã gửi món xuống bếp." });
     } catch (cause) {
-      setOperationError(cause instanceof Error ? cause.message : "Không thể tạo order.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo order.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -538,7 +542,6 @@ export function OperatorOrderCreationView({
   const handleCancelSalesSession = async () => {
     if (!selectedTable.sessionPublicId || isCancellingSession) return;
     setIsCancellingSession(true);
-    setOperationError(null);
     try {
       await cancelOperatorSalesSession(selectedTable.sessionPublicId);
       setOperatorTables((current) =>
@@ -566,7 +569,10 @@ export function OperatorOrderCreationView({
       setIsCancelSessionDialogOpen(false);
       showToast({ type: "success", message: "Đã hủy phiên bàn." });
     } catch (cause) {
-      setOperationError(cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.",
+      });
     } finally {
       setIsCancellingSession(false);
     }
@@ -579,8 +585,6 @@ export function OperatorOrderCreationView({
           Tạo order hộ tại bàn
         </h1>
       </header>
-      {operationError ? <p className="mb-4 text-sm text-cas-error">{operationError}</p> : null}
-
       {isCancelSessionDialogOpen ? (
         <div
           className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
@@ -1032,9 +1036,10 @@ export function OperatorOrderCreationView({
                       setPendingSessionTable(null);
                     })
                     .catch((cause) =>
-                      setOperationError(
-                        cause instanceof Error ? cause.message : "Không thể mở phiên bàn.",
-                      ),
+                      showToast({
+                        type: "error",
+                        message: cause instanceof Error ? cause.message : "Không thể mở phiên bàn.",
+                      }),
                     );
                 }}
               />

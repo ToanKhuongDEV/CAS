@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CustomerInformationFormFields } from "../../../components/customer/customer-information-form-fields";
+import { CasIcon } from "../../../components/ui/cas-icon";
 import {
   loadPublicStore,
   loadPublicStores,
@@ -138,6 +140,13 @@ export default function StartOrderPage() {
   if (error && stores.length === 0) return <main className="p-6 text-cas-error">{error}</main>;
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
+      <Link
+        className="mb-6 inline-flex w-fit items-center gap-2 text-sm font-bold text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+        href="/"
+      >
+        <CasIcon className="size-4 -scale-x-100" name="arrow" />
+        Quay lại
+      </Link>
       <div className="flex items-center gap-4">
         <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-lg font-extrabold text-cas-primary">
           {store?.logoUrl ? (
@@ -236,6 +245,19 @@ export default function StartOrderPage() {
             submitLabel="Tạo đơn mang về"
           />
         </div>
+      ) : null}
+      {orderType === "TAKEAWAY" ? (
+        <button
+          className="mt-5 inline-flex w-fit items-center gap-2 text-sm font-bold text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+          onClick={() => {
+            setOrderType(null);
+            setError(null);
+          }}
+          type="button"
+        >
+          <CasIcon className="size-4 -scale-x-100" name="arrow" />
+          Quay lại chọn loại đơn
+        </button>
       ) : null}
       {error ? <p className="mt-3 text-sm text-cas-error">{error}</p> : null}
     </main>

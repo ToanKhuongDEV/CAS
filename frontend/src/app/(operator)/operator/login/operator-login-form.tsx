@@ -86,7 +86,7 @@ export function OperatorLoginForm({ expectedRole }: OperationalLoginFormProps) {
             name="mail"
           />
           <input
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary"
             id="operator-email"
             name="email"
             placeholder="Nhập email"
@@ -114,7 +114,7 @@ export function OperatorLoginForm({ expectedRole }: OperationalLoginFormProps) {
         <span className="text-sm font-bold">Mật khẩu</span>
         <span className="relative mt-2 block">
           <input
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container px-4 pr-12 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container px-4 pr-12 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary"
             id="operator-password"
             name="password"
             placeholder="Nhập mật khẩu"

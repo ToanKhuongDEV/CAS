@@ -6,13 +6,14 @@ import { useEffect, useState } from "react";
 import { cancelCustomerSalesSession } from "../../lib/api/ordering/ordering.api";
 import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 
 export function CustomerSalesSessionSettings() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isCancellable, setIsCancellable] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,14 +32,16 @@ export function CustomerSalesSessionSettings() {
   async function cancelSession() {
     if (isCancelling) return;
 
-    setError(null);
     setIsCancelling(true);
     try {
       await cancelCustomerSalesSession();
       setIsConfirmOpen(false);
       router.replace("/");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.",
+      });
     } finally {
       setIsCancelling(false);
     }
@@ -102,7 +105,6 @@ export function CustomerSalesSessionSettings() {
             <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
               Chỉ hủy được nếu chưa gửi món nào xuống bếp. Thao tác này không thể hoàn tác.
             </p>
-            {error ? <p className="mt-3 text-sm font-semibold text-cas-error">{error}</p> : null}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"

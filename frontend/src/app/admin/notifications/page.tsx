@@ -100,7 +100,7 @@ export default function AdminNotificationsPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-2xl space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-2xl space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={handleCreateNotification}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">

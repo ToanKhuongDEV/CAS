@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { createCustomerOrder } from "../../lib/api/ordering/ordering.api";
 import { useCustomerCatalog } from "../../lib/api/catalog/customer-catalog.query";
@@ -36,6 +36,8 @@ export function CustomerCartView() {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const { data: catalog } = useCustomerCatalog();
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function CustomerCartView() {
   }, [catalog]);
 
   const update = (next: CustomerCartLine[]) => {
+    idempotencyKeyRef.current = null;
     setCart(next);
     saveCustomerCart(next);
   };
@@ -83,10 +86,12 @@ export function CustomerCartView() {
   }
 
   async function submit() {
-    if (cart.length === 0 || submitting) return;
+    if (cart.length === 0 || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
     try {
       await createCustomerOrder({
+        idempotencyKey: (idempotencyKeyRef.current ??= crypto.randomUUID()),
         note: note.trim() || null,
         items: cart.map(({ menuItemId, quantity, optionValueIds }) => ({
           menuItemId,
@@ -102,6 +107,7 @@ export function CustomerCartView() {
         type: "error",
         message: cause instanceof Error ? cause.message : "Không thể gửi món xuống bếp.",
       });
+      isSubmittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -275,7 +281,10 @@ export function CustomerCartView() {
               <textarea
                 className="mt-3 min-h-28 w-full resize-none rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container p-4 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
                 id="order-note"
-                onChange={(event) => setNote(event.target.value)}
+                onChange={(event) => {
+                  idempotencyKeyRef.current = null;
+                  setNote(event.target.value);
+                }}
                 placeholder="Ví dụ: vui lòng phục vụ món cay sau..."
                 value={note}
               />

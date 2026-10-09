@@ -124,9 +124,6 @@ export default function AdminCategoriesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Danh mục món</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Tạo, chỉnh sửa, ẩn hoặc hiển thị danh mục trên thực đơn khách.
-          </p>
         </div>
         <CasButton icon="plus" onClick={() => setShowAddForm(true)} size="md" variant="primary">
           Thêm danh mục mới
@@ -143,7 +140,7 @@ export default function AdminCategoriesPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={addCategory}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -228,7 +225,7 @@ export default function AdminCategoriesPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={updateCategoryName}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -313,7 +310,7 @@ export default function AdminCategoriesPage() {
             if (e.target === e.currentTarget) setDeleteTarget(null);
           }}
         >
-          <div className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+          <div className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <h3 className="text-base font-black text-cas-on-surface">
               Xóa Danh Mục &quot;{deleteTarget.name}&quot;?
             </h3>

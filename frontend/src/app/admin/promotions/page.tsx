@@ -550,7 +550,7 @@ export default function AdminPromotionsPage() {
           return (
             <article
               key={promotion.id}
-              className={`rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs ${promotion.status !== "ACTIVE" || quotaReached ? "opacity-85" : ""}`}
+              className={`rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs ${promotion.status !== "ACTIVE" || quotaReached ? "opacity-85" : ""}`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -662,7 +662,7 @@ export default function AdminPromotionsPage() {
       </div>
 
       {filteredPromotions.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-cas-outline-variant/45 bg-cas-glass px-6 py-12 text-center text-sm font-bold text-cas-on-surface-variant">
+        <div className="rounded-sm border border-dashed border-cas-outline-variant/45 bg-cas-glass px-6 py-12 text-center text-sm font-bold text-cas-on-surface-variant">
           Không tìm thấy promotion phù hợp.
         </div>
       )}
@@ -677,7 +677,7 @@ export default function AdminPromotionsPage() {
         >
           <form
             onSubmit={handleSubmit}
-            className="my-auto w-full max-w-5xl space-y-5 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
+            className="my-auto w-full max-w-5xl space-y-5 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
           >
             {/* Form header */}
             <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
@@ -1044,7 +1044,7 @@ export default function AdminPromotionsPage() {
             className="absolute inset-0 bg-cas-scrim/55 backdrop-blur-sm"
             onClick={() => setRedemptionHistory(null)}
           />
-          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
+          <div className="relative z-10 w-full max-w-2xl rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <div>
                 <h3 className="text-base font-black text-cas-on-surface">

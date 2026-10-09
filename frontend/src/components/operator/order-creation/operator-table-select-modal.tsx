@@ -197,7 +197,7 @@ export function OperatorTableSelectModal({
                   }}
                   className={`flex flex-col items-start justify-between rounded-xl border p-3.5 text-left transition ${
                     isSelected
-                      ? "border-cas-secondary bg-cas-secondary-container/20 ring-2 ring-cas-secondary"
+                      ? "border-cas-secondary bg-cas-secondary-container/20"
                       : isOpenSession
                         ? "border-cas-outline-variant/30 bg-cas-glass hover:border-cas-secondary hover:bg-cas-secondary-container/10"
                         : isPendingPayment

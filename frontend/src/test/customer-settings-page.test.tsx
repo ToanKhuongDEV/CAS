@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CustomerSettingsPage from "../app/(customer)/settings/page";
+import { ToastProvider } from "../components/ui/toast-provider";
 import { cancelCustomerSalesSession } from "../lib/api/ordering/ordering.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
@@ -36,7 +37,11 @@ describe("CustomerSettingsPage", () => {
   });
 
   it("renders appearance settings and the default customer navigation", () => {
-    render(<CustomerSettingsPage />);
+    render(
+      <ToastProvider>
+        <CustomerSettingsPage />
+      </ToastProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: "Cài đặt", level: 1 })).toBeInTheDocument();
     expect(screen.getByText("Chuyển đổi giữa chế độ sáng và tối.")).toBeInTheDocument();
@@ -49,7 +54,11 @@ describe("CustomerSettingsPage", () => {
   });
 
   it("confirms and cancels the current sales session", async () => {
-    render(<CustomerSettingsPage />);
+    render(
+      <ToastProvider>
+        <CustomerSettingsPage />
+      </ToastProvider>,
+    );
 
     const cancelButton = await screen.findByRole("button", { name: "Hủy phiên" });
     expect(

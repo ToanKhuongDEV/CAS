@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import "./globals.css";
+
+const inter = Inter({
+  display: "swap",
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "CAS | Chào mừng bạn",
@@ -26,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className="scroll-smooth motion-reduce:scroll-auto"
+      className={`${inter.variable} scroll-smooth motion-reduce:scroll-auto`}
       data-scroll-behavior="smooth"
       lang="vi"
       suppressHydrationWarning

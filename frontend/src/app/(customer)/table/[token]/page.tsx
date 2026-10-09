@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-import { CustomerHeader } from "../../../../components/customer/customer-header";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import { CustomerInformationForm } from "./customer-information-form";
 
@@ -13,8 +12,6 @@ export const metadata: Metadata = {
 export default function CustomerInformationPage() {
   return (
     <div className="min-h-screen bg-cas-surface text-cas-on-surface transition-colors duration-200">
-      <CustomerHeader />
-
       <main className="mx-auto flex w-full max-w-[75rem] flex-col px-5 pt-24 pb-12 md:px-10 md:pt-28">
         <header className="mx-auto max-w-[30rem] text-center">
           <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">

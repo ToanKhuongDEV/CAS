@@ -35,9 +35,6 @@ export default function AdminIncidentsPage() {
         <h1 className="text-2xl font-black text-cas-on-surface">
           Báo cáo Sự cố ca trực (Operational Incidents)
         </h1>
-        <p className="text-xs text-cas-on-surface-variant">
-          Tiếp nhận và tra cứu các báo cáo sự cố do nhân viên OPERATOR gửi về trong ca làm việc.
-        </p>
       </header>
 
       {isLoading ? (
@@ -52,7 +49,7 @@ export default function AdminIncidentsPage() {
         {incidents.map((incident) => (
           <article
             key={incident.publicId}
-            className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs transition hover:shadow-md"
+            className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs transition hover:shadow-md"
           >
             <div className="flex flex-col gap-3 border-b border-cas-outline-variant/15 pb-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs font-extrabold text-cas-on-surface">

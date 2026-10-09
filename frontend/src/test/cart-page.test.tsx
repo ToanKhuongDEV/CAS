@@ -31,6 +31,7 @@ vi.mock("../lib/api/catalog/published-catalog.api", () => ({
 describe("CartPage", () => {
   beforeEach(() => {
     push.mockClear();
+    vi.mocked(createCustomerOrder).mockReset();
     window.sessionStorage.clear();
     window.sessionStorage.setItem(
       "cas.customerCart",
@@ -164,8 +165,38 @@ describe("CartPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
 
     await vi.waitFor(() => expect(createCustomerOrder).toHaveBeenCalledTimes(1));
+    expect(createCustomerOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    );
     expect(await screen.findByText("Đã gửi món xuống bếp.")).toBeInTheDocument();
     expect(push).toHaveBeenCalledWith("/orders");
+  });
+
+  it("submits only once when the customer clicks send repeatedly", async () => {
+    let resolveOrder: (value: { orderId: string; payableAmount: number }) => void;
+    vi.mocked(createCustomerOrder).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOrder = resolve;
+        }),
+    );
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    expect(createCustomerOrder).toHaveBeenCalledTimes(1);
+    resolveOrder!({ orderId: "order-1", payableAmount: 100_000 });
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/orders"));
   });
 
   it("submits the order when this device has an active sales session", async () => {

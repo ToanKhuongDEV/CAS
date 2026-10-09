@@ -30,9 +30,6 @@ export default function AdminAuditLogsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-black">Nhật ký Audit Logs</h1>
-        <p className="text-xs text-cas-on-surface-variant">
-          Tra cứu toàn bộ thao tác quan trọng trong cửa hàng.
-        </p>
       </header>
       <div className="grid gap-3 md:grid-cols-3">
         <input
@@ -64,7 +61,7 @@ export default function AdminAuditLogsPage() {
         />
       </div>
       {error ? <p className="text-cas-error">{error}</p> : null}
-      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30">
+      <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
         <table className="w-full text-left text-xs">
           <thead>
             <tr>

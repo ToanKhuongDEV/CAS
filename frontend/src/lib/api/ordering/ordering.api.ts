@@ -59,13 +59,14 @@ export async function loadCustomerOrders() {
 }
 
 export function createCustomerOrder(input: {
+  idempotencyKey: string;
   note: string | null;
   items: { menuItemId: number; quantity: number; optionValueIds: number[] }[];
 }) {
   return customerRequest<{ orderId: string; payableAmount: number }>("/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), ...input }),
+    body: JSON.stringify(input),
   });
 }
 

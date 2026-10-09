@@ -319,9 +319,6 @@ export default function AdminSettingsPage() {
           <h1 className="text-2xl font-black text-cas-on-surface">
             Cấu hình Cửa hàng & Tham số Vận hành
           </h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Quản lý thông tin cửa hàng và tham số vận hành
-          </p>
         </div>
         <div className="mt-2 sm:mt-0 flex items-center gap-2">
           <span
@@ -338,7 +335,7 @@ export default function AdminSettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Column 1 & 2: Form Cấu hình Thông tin Cửa hàng */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
+          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">
                 <CasIcon name="restaurant" className="h-5 w-5" />
@@ -628,7 +625,7 @@ export default function AdminSettingsPage() {
           <StoreWelcomeConfigSection />
 
           {/* Form Cấu hình Ngưỡng cảnh báo Vận hành */}
-          <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
+          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-tertiary/10 text-cas-tertiary">
                 <CasIcon name="clock" className="h-5 w-5" />
@@ -684,7 +681,7 @@ export default function AdminSettingsPage() {
 
         {/* Column 3: Live Preview & Summary Widget */}
         <div className="space-y-6">
-          <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sticky top-6">
+          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sticky top-6">
             <h3 className="text-sm font-black text-cas-on-surface border-b border-cas-outline-variant/15 pb-3 flex items-center gap-2">
               <CasIcon name="info" className="h-4 w-4 text-cas-primary" />
               <span>Xem trước Thông tin Cửa hàng</span>

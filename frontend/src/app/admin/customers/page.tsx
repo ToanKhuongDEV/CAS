@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
+import { Pagination } from "../../../components/ui/pagination";
 import {
   loadCustomer,
   loadCustomers,
   type CustomerDetail,
+  type CustomerPage,
   type CustomerSummary,
 } from "../../../lib/api/operation/admin-lookup.api";
+
+const customerPageSize = 10;
+const sessionStatusLabels: Record<string, string> = {
+  CLOSED: "Đã đóng",
+  OPEN: "Đang mở",
+  PAYMENT_PENDING: "Chờ thanh toán",
+};
 
 const money = (value: number | null) =>
   value === null
@@ -26,14 +35,22 @@ const date = (value: string | null) =>
 
 export default function AdminCustomersPage() {
   const [query, setQuery] = useState("");
-  const [items, setItems] = useState<CustomerSummary[]>([]);
+  const [customerPage, setCustomerPage] = useState<CustomerPage>({
+    items: [],
+    page: 0,
+    size: customerPageSize,
+    total: 0,
+  });
+  const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  async function refresh(nextQuery = query) {
+  async function refresh(nextQuery = query, nextPage = page) {
     setLoading(true);
     try {
-      setItems(await loadCustomers(nextQuery));
+      setCustomerPage(
+        await loadCustomers({ page: nextPage, query: nextQuery, size: customerPageSize }),
+      );
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không thể tải khách hàng.");
@@ -44,7 +61,7 @@ export default function AdminCustomersPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => void refresh(query), 250);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [page, query]);
   async function open(id: number) {
     try {
       setDetail(await loadCustomer(id));
@@ -57,19 +74,19 @@ export default function AdminCustomersPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-black text-cas-on-surface">Khách hàng</h1>
-        <p className="text-xs text-cas-on-surface-variant">
-          Tra cứu lịch sử sử dụng bàn trong phạm vi cửa hàng.
-        </p>
       </header>
       <input
         className="w-full max-w-xl rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setPage(0);
+        }}
         placeholder="Tìm theo tên hoặc số điện thoại"
         type="search"
       />
       {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
-      <div className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30">
+      <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="text-cas-on-surface-variant">
@@ -81,7 +98,7 @@ export default function AdminCustomersPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {customerPage.items.map((item) => (
               <tr key={item.id} className="border-t border-cas-outline-variant/20">
                 <td className="p-4 font-bold">{item.displayName}</td>
                 <td className="p-4">{item.maskedPhone ?? "Khách lẻ"}</td>
@@ -98,13 +115,19 @@ export default function AdminCustomersPage() {
         </table>
         {loading ? (
           <p className="p-5 text-sm text-cas-on-surface-variant">Đang tải...</p>
-        ) : items.length === 0 ? (
+        ) : customerPage.items.length === 0 ? (
           <p className="p-5 text-sm text-cas-on-surface-variant">Không có khách hàng phù hợp.</p>
         ) : null}
       </div>
+      <Pagination
+        onPageChange={setPage}
+        page={customerPage.page}
+        size={customerPage.size}
+        total={customerPage.total}
+      />
       {detail ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-cas-on-surface/60 p-4">
-          <section className="mx-auto my-8 max-w-3xl rounded-3xl bg-cas-surface p-6">
+          <section className="mx-auto my-8 max-w-3xl rounded-sm bg-cas-surface p-6">
             <div className="flex justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black">{detail.displayName}</h2>
@@ -114,33 +137,50 @@ export default function AdminCustomersPage() {
                 Đóng
               </CasButton>
             </div>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
+            <div className="mt-5 overflow-x-auto rounded-sm border border-cas-outline-variant/50">
+              <table className="w-full min-w-[44rem] text-left text-xs">
+                <thead className="bg-cas-surface-container text-cas-on-surface">
                   <tr>
-                    <th className="p-2">Phiên bàn</th>
-                    <th className="p-2">Bàn</th>
-                    <th className="p-2">Order</th>
-                    <th className="p-2">Payment</th>
-                    <th className="p-2">Chưa thanh toán</th>
-                    <th className="p-2">Mở bàn</th>
+                    <th className="px-3 py-3 font-black">Phiên</th>
+                    <th className="px-3 py-3 font-black">Trạng thái</th>
+                    <th className="px-3 py-3 font-black">Mở phiên</th>
+                    <th className="px-3 py-3 font-black">Lần gửi order</th>
+                    <th className="px-3 py-3 font-black">Payment</th>
+                    <th className="px-3 py-3 font-black">Chưa thanh toán</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-cas-outline-variant/30">
                   {detail.sessions.map((session) => (
-                    <tr key={session.publicId} className="border-t border-cas-outline-variant/20">
-                      <td className="p-2">{session.publicId}</td>
-                      <td className="p-2">{session.tableCode}</td>
-                      <td className="p-2">{session.orderCount}</td>
-                      <td className="p-2">
+                    <tr className="text-cas-on-surface" key={session.publicId}>
+                      <td className="px-3 py-3 font-bold">
+                        {session.tableCode === null ? "Mang về" : `Bàn ${session.tableCode}`}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="rounded-sm bg-cas-primary-container px-2 py-1 font-bold text-cas-on-primary-container">
+                          {sessionStatusLabels[session.status] ?? session.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-cas-on-surface-variant">
+                        {date(session.openedAt)}
+                      </td>
+                      <td className="px-3 py-3 font-bold">
+                        {session.orderCount === 0 ? "Chưa gọi món" : `${session.orderCount} lần`}
+                      </td>
+                      <td className="px-3 py-3">
                         {session.paymentStatus ?? "—"} · {money(session.paymentAmount)}
                       </td>
-                      <td className="p-2">
+                      <td className="px-3 py-3">
                         {session.unpaidStatus ?? "—"} · {money(session.unpaidAmount)}
                       </td>
-                      <td className="p-2">{date(session.openedAt)}</td>
                     </tr>
                   ))}
+                  {detail.sessions.length === 0 ? (
+                    <tr>
+                      <td className="px-3 py-5 text-center text-cas-on-surface-variant" colSpan={6}>
+                        Chưa có lịch sử phiên bàn.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>

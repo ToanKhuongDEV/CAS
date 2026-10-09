@@ -34,12 +34,9 @@ export default function AdminAccountsPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-black text-cas-on-surface">Tạo tài khoản ADMIN</h1>
-        <p className="mt-1 text-xs text-cas-on-surface-variant">
-          Firebase UID phải thuộc tài khoản Firebase đã được cấp cho quản trị viên.
-        </p>
       </div>
       <form
-        className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs"
+        className="space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs"
         onSubmit={submit}
       >
         <label className="block text-xs font-bold text-cas-on-surface-variant">

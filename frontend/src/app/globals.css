@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+/* =========================================
+   CAS - GREEN CONTRAST THEME
+   Tailwind CSS v4
+   ========================================= */
+
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* =========================================
+   GLOBAL STYLES
+   ========================================= */
 
 html {
   scroll-behavior: smooth;
@@ -11,6 +20,23 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
 }
+
+body {
+  min-height: 100vh;
+  background-color: var(--cas-surface);
+  color: var(--cas-on-surface);
+  font-family: var(--font-cas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+/* =========================================
+   CUSTOM DRAG CURSOR
+   ========================================= */
 
 [data-drag-scroll-root],
 [data-drag-scroll-axis="x"] {
@@ -23,47 +49,95 @@ body::-webkit-scrollbar {
 html[data-theme="dark"] [data-drag-scroll-root],
 html[data-theme="dark"] [data-drag-scroll-axis="x"] {
   cursor:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V7a2 2 0 0 0-4 0v4V5a2 2 0 0 0-4 0v6V7a2 2 0 0 0-4 0v7l-1-1a2 2 0 0 0-3 2l2 3c1.5 2.5 4 4 7 4h1c5 0 8-3 8-8V9a2 2 0 0 0-2-2'%3E%3C/path%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V7a2 2 0 0 0-4 0v4V5a2 2 0 0 0-4 0v6V7l-1-1a2 2 0 0 0-3 2l2 3c1.5 2.5 4 4 7 4h1c5 0 8-3 8-8V9a2 2 0 0 0-2-2'%3E%3C/path%3E%3C/svg%3E")
       12 12,
     grab;
 }
+
+/* =========================================
+   ACCESSIBILITY
+   ========================================= */
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
+/* =========================================
+   TAILWIND THEME TOKENS
+   ========================================= */
+
 @theme inline {
+  /* Primary */
   --color-cas-primary: var(--cas-primary);
   --color-cas-primary-hover: var(--cas-primary-hover);
   --color-cas-primary-container: var(--cas-primary-container);
   --color-cas-on-primary: var(--cas-on-primary);
   --color-cas-on-primary-container: var(--cas-on-primary-container);
+
+  /* Secondary */
   --color-cas-secondary: var(--cas-secondary);
   --color-cas-secondary-container: var(--cas-secondary-container);
   --color-cas-on-secondary: var(--cas-on-secondary);
+
+  /* Tertiary */
   --color-cas-tertiary: var(--cas-tertiary);
   --color-cas-tertiary-container: var(--cas-tertiary-container);
   --color-cas-on-tertiary: var(--cas-on-tertiary);
   --color-cas-on-tertiary-container: var(--cas-on-tertiary-container);
+
+  /* Additional Accents */
+  --color-cas-accent-coral: var(--cas-accent-coral);
+  --color-cas-accent-blue: var(--cas-accent-blue);
+  --color-cas-accent-amber: var(--cas-accent-amber);
+  --color-cas-accent-violet: var(--cas-accent-violet);
+
+  /* Error */
   --color-cas-error: var(--cas-error);
   --color-cas-error-hover: var(--cas-error-hover);
   --color-cas-error-container: var(--cas-error-container);
   --color-cas-on-error: var(--cas-on-error);
   --color-cas-on-error-container: var(--cas-on-error-container);
+
+  /* Surface */
   --color-cas-surface: var(--cas-surface);
   --color-cas-surface-container: var(--cas-surface-container);
   --color-cas-on-surface: var(--cas-on-surface);
   --color-cas-on-surface-variant: var(--cas-on-surface-variant);
   --color-cas-outline-variant: var(--cas-outline-variant);
+
+  /* Layout */
   --color-cas-header: var(--cas-header-background);
   --color-cas-navigation: var(--cas-navigation-background);
   --color-cas-glass: var(--cas-glass-background);
+
+  /* Effects */
   --color-cas-focus-ring: var(--cas-focus-ring);
+  --color-cas-pattern: var(--cas-pattern-color);
+  --color-cas-shadow: var(--cas-shadow-color);
+
+  /* Overlay */
   --color-cas-scrim: var(--cas-scrim);
   --color-cas-on-scrim: var(--cas-on-scrim);
+
+  /* QR */
+  --color-cas-qr-background: var(--cas-qr-background);
+  --color-cas-qr-foreground: var(--cas-qr-foreground);
+
+  /* Font */
   --font-sans: var(--font-cas);
+
+  /* Animation */
   --animate-cas-float: cas-float 4s ease-in-out infinite;
 
   @keyframes cas-float {
@@ -78,76 +152,199 @@ html[data-theme="dark"] [data-drag-scroll-axis="x"] {
   }
 }
 
+/* =========================================
+   LIGHT THEME
+   ========================================= */
+
 :root,
 html[data-theme="light"] {
   color-scheme: light;
-  --cas-primary: #b61722;
-  --cas-primary-hover: #98121b;
-  --cas-primary-container: #da3437;
+
+  /* Primary - Green */
+  --cas-primary: #167d54;
+  --cas-primary-hover: #106541;
+  --cas-primary-container: #d9f2e4;
   --cas-on-primary: #ffffff;
-  --cas-on-primary-container: #fffbff;
-  --cas-secondary: #006a61;
-  --cas-secondary-container: #86f2e4;
+  --cas-on-primary-container: #124c32;
+
+  /* Secondary - Blue */
+  --cas-secondary: #d95d39;
+  --cas-secondary-container: #e8f0ff;
   --cas-on-secondary: #ffffff;
-  --cas-tertiary: #825100;
-  --cas-tertiary-container: #a36700;
+
+  /* Tertiary - Amber */
+  --cas-tertiary: #a97516;
+  --cas-tertiary-container: #fff1d8;
   --cas-on-tertiary: #ffffff;
-  --cas-on-tertiary-container: #fffbff;
-  --cas-error: #dc2626;
-  --cas-error-hover: #b91c1c;
-  --cas-error-container: #fee2e2;
+  --cas-on-tertiary-container: #68440a;
+
+  /* Error */
+  --cas-error: #c73535;
+  --cas-error-hover: #a92727;
+  --cas-error-container: #fde8e8;
   --cas-on-error: #ffffff;
-  --cas-on-error-container: #7f1d1d;
-  --cas-surface: #f8f9ff;
-  --cas-surface-container: #e6eeff;
-  --cas-on-surface: #121c2a;
-  --cas-on-surface-variant: #5b403e;
-  --cas-outline-variant: #e4beba;
-  --cas-header-background: rgb(248 249 255 / 82%);
-  --cas-navigation-background: rgb(248 249 255 / 92%);
-  --cas-glass-background: rgb(255 255 255 / 75%);
-  --cas-pattern-color: rgb(182 23 34 / 3%);
-  --cas-shadow-color: rgb(18 28 42 / 18%);
-  --cas-focus-ring: rgb(0 106 97 / 28%);
-  --cas-scrim: #000000;
+  --cas-on-error-container: #8b2424;
+
+  /* Surface */
+  --cas-surface: #f5f7f5;
+  --cas-surface-container: #ffffff;
+  --cas-on-surface: #1d2939;
+  --cas-on-surface-variant: #64746b;
+  --cas-outline-variant: #dfe7e1;
+
+  /* Header / Navigation */
+  --cas-header-background: rgb(245 247 245 / 88%);
+  --cas-navigation-background: rgb(255 255 255 / 94%);
+  --cas-glass-background: rgb(255 255 255 / 80%);
+
+  /* Effects */
+  --cas-focus-ring: rgb(22 125 84 / 30%);
+  --cas-pattern-color: rgb(22 125 84 / 4%);
+  --cas-shadow-color: rgb(29 41 57 / 12%);
+
+  /* Scrim */
+  --cas-scrim: rgb(0 0 0 / 55%);
   --cas-on-scrim: #ffffff;
+
+  /* Accent Colors */
+  --cas-accent-coral: #d95d39;
+  --cas-accent-blue: #3b6fd8;
+  --cas-accent-amber: #a97516;
+  --cas-accent-violet: #8056c8;
+
+  /* QR */
   --cas-qr-background: #ffffff;
   --cas-qr-foreground: #000000;
-  --font-cas: "Be Vietnam Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Font */
+  --font-cas: var(--font-inter, "Inter Variable"), "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
 }
+
+/* =========================================
+   DARK THEME
+   ========================================= */
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --cas-primary: #ffb3ad;
-  --cas-primary-hover: #ffcbc7;
-  --cas-primary-container: #930013;
-  --cas-on-primary: #410004;
-  --cas-on-primary-container: #ffdad7;
-  --cas-secondary: #6bd8cb;
-  --cas-secondary-container: #005049;
-  --cas-on-secondary: #003733;
-  --cas-tertiary: #ffb95f;
-  --cas-tertiary-container: #653e00;
-  --cas-on-tertiary: #653e00;
-  --cas-on-tertiary-container: #ffddb8;
-  --cas-error: #ef4444;
-  --cas-error-hover: #f87171;
-  --cas-error-container: #7f1d1d;
-  --cas-on-error: #ffffff;
-  --cas-on-error-container: #fee2e2;
-  --cas-surface: #121c2a;
-  --cas-surface-container: #27313f;
-  --cas-on-surface: #eaf1ff;
-  --cas-on-surface-variant: #e4beba;
-  --cas-outline-variant: #5b403e;
-  --cas-header-background: rgb(18 28 42 / 84%);
-  --cas-navigation-background: rgb(18 28 42 / 94%);
-  --cas-glass-background: rgb(39 49 63 / 82%);
-  --cas-pattern-color: rgb(255 179 173 / 4%);
-  --cas-shadow-color: rgb(0 0 0 / 34%);
-  --cas-focus-ring: rgb(107 216 203 / 38%);
-  --cas-scrim: #000000;
+
+  /* Primary - Mint Green */
+  --cas-primary: #55c58b;
+  --cas-primary-hover: #75dba5;
+  --cas-primary-container: #204c35;
+  --cas-on-primary: #0c2618;
+  --cas-on-primary-container: #b7f2cf;
+
+  /* Secondary - Blue */
+  --cas-secondary: #8daeff;
+  --cas-secondary-container: #263c69;
+  --cas-on-secondary: #14244c;
+
+  /* Tertiary - Amber */
+  --cas-tertiary: #f3c46f;
+  --cas-tertiary-container: #533d20;
+  --cas-on-tertiary: #382509;
+  --cas-on-tertiary-container: #ffe4b5;
+
+  /* Accent Colors */
+  --cas-accent-coral: #ff9b7b;
+  --cas-accent-blue: #8daeff;
+  --cas-accent-amber: #f3c46f;
+  --cas-accent-violet: #b9a0ff;
+
+  /* Error */
+  --cas-error: #ff8989;
+  --cas-error-hover: #ffaaaa;
+  --cas-error-container: #592626;
+  --cas-on-error: #460c0c;
+  --cas-on-error-container: #ffdada;
+
+  /* Surface */
+  --cas-surface: #111714;
+  --cas-surface-container: #1c2420;
+  --cas-on-surface: #e7f0ea;
+  --cas-on-surface-variant: #a9bfb0;
+  --cas-outline-variant: #344239;
+
+  /* Header / Navigation */
+  --cas-header-background: rgb(17 23 20 / 86%);
+  --cas-navigation-background: rgb(28 36 32 / 94%);
+  --cas-glass-background: rgb(28 36 32 / 82%);
+
+  /* Effects */
+  --cas-focus-ring: rgb(85 197 139 / 38%);
+  --cas-pattern-color: rgb(85 197 139 / 4%);
+  --cas-shadow-color: rgb(0 0 0 / 36%);
+
+  /* Scrim */
+  --cas-scrim: rgb(0 0 0 / 72%);
   --cas-on-scrim: #ffffff;
+
+  /* QR */
   --cas-qr-background: #ffffff;
   --cas-qr-foreground: #000000;
 }
+
+/* =========================================
+   GLOBAL UTILITIES
+   ========================================= */
+
+/* Text selection */
+::selection {
+  background-color: var(--cas-primary-container);
+  color: var(--cas-on-primary-container);
+}
+
+/* Keyboard focus */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--cas-primary);
+  outline-offset: 2px;
+}
+
+/* Disabled controls */
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
+/* Form typography */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* Form accent */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+progress {
+  accent-color: var(--cas-primary);
+}
+
+/* Glass effect */
+.cas-glass {
+  background: var(--cas-glass-background);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Shadow */
+.cas-shadow {
+  box-shadow: 0 4px 12px var(--cas-shadow-color);
+}
+
+/* Focus ring */
+.cas-focus-ring:focus-visible {
+  outline: 2px solid var(--cas-primary);
+  box-shadow: 0 0 0 4px var(--cas-focus-ring);
+}
+
+/* QR */
+.cas-qr {
+  background: var(--cas-qr-background);
+  color: var(--cas-qr-foreground);
+}
+
+/* =========================================
+   END OF GLOBAL CSS
+   ========================================= */

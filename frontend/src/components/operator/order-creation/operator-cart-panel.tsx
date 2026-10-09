@@ -90,7 +90,7 @@ export function OperatorCartPanel({
                 onClick={onCancelSalesSession}
                 className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-2.5 py-1 text-xs font-extrabold text-cas-on-error-container transition hover:bg-cas-error-container/55 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
               >
-                Hủy phiên bàn
+                Hủy phiên
               </button>
             ) : null}
             <button
@@ -98,7 +98,7 @@ export function OperatorCartPanel({
               onClick={onChangeTableClick}
               className="rounded-xl border border-cas-secondary/40 bg-cas-glass px-2.5 py-1 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
             >
-              Chọn bàn khác
+              Bàn khác
             </button>
             {onCloseMobileDrawer && (
               <button

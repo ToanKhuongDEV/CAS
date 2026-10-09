@@ -194,9 +194,6 @@ export default function AdminOptionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Nhóm và giá trị option</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Quản lý riêng các lựa chọn để liên kết với món ăn.
-          </p>
         </div>
         <CasButton icon="plus" onClick={() => setShowAddForm(true)} size="md" variant="primary">
           Tạo nhóm option
@@ -212,7 +209,7 @@ export default function AdminOptionsPage() {
           }}
         >
           <form
-            className="w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            className="w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
             onSubmit={updateOptionValue}
           >
             <h2 className="text-lg font-black text-cas-on-surface">Sửa giá trị option</h2>
@@ -313,7 +310,7 @@ export default function AdminOptionsPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={addGroup}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -432,7 +429,7 @@ export default function AdminOptionsPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={updateGroupName}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -551,7 +548,7 @@ export default function AdminOptionsPage() {
             if (e.target === e.currentTarget) setDeleteGroupTarget(null);
           }}
         >
-          <div className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+          <div className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <h3 className="text-base font-black text-cas-on-surface">
               Xóa Nhóm Option &quot;{deleteGroupTarget.name}&quot;?
             </h3>
@@ -580,7 +577,7 @@ export default function AdminOptionsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         {groups.map((group) => (
           <section
-            className="flex flex-col justify-between rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs"
+            className="flex flex-col justify-between rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs"
             key={group.id}
           >
             <div>

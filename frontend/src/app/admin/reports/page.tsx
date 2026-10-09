@@ -38,11 +38,8 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black text-cas-on-surface">Báo cáo</h1>
-        <p className="text-xs text-cas-on-surface-variant">
-          Lọc và xuất dữ liệu quản trị. Xuất Excel đang là thao tác UI tạm thời, chưa kết nối API.
-        </p>
       </div>
-      <section className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-5">
+      <section className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-5">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <label className="text-xs font-bold text-cas-on-surface">
             Từ ngày
@@ -87,7 +84,7 @@ export default function AdminReportsPage() {
           </p>
         )}
       </section>
-      <section className="overflow-x-auto rounded-3xl border border-cas-outline-variant/30 bg-cas-glass">
+      <section className="overflow-x-auto rounded-sm border border-cas-outline-variant/30 bg-cas-glass">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-cas-outline-variant/25 bg-cas-surface-container/60 font-extrabold uppercase text-cas-on-surface-variant">
             <tr>

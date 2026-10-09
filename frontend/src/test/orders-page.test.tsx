@@ -119,7 +119,6 @@ describe("OrdersPage", () => {
     expect(
       await screen.findByText("Yêu cầu hủy món đã được gửi cho nhân viên."),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("customer-header")).toBeInTheDocument();
     expect(screen.getByTestId("customer-bottom-navigation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Gọi thêm món" })).toHaveAttribute("href", "/menu");
     expect(screen.getByRole("link", { name: "Xem hóa đơn" })).toHaveAttribute("href", "/payment");

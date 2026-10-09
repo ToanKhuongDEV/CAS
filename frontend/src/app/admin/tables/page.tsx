@@ -171,9 +171,6 @@ export default function AdminTablesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Quản lý Bàn ăn & Thẻ Mã QR</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Danh sách mã bàn, mã QR token và trạng thái hoạt động trong nhà hàng.
-          </p>
         </div>
         <CasButton icon="plus" onClick={() => setShowAddForm(true)} size="md" variant="primary">
           Thêm Bàn mới
@@ -282,7 +279,7 @@ export default function AdminTablesPage() {
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={handleCreateTable}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -334,7 +331,7 @@ export default function AdminTablesPage() {
       )}
 
       {/* Bảng Danh Sách Bàn Ăn (Table View) */}
-      <div className="overflow-hidden rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs backdrop-blur-md">
+      <div className="overflow-hidden rounded-sm border border-cas-outline-variant/30 bg-cas-glass shadow-xs backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-cas-outline-variant/20 bg-cas-surface-container/60 text-cas-on-surface uppercase font-black tracking-wider">
@@ -424,7 +421,7 @@ export default function AdminTablesPage() {
       {/* Modal Xác nhận Xóa Bàn */}
       {deletingTable && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center gap-3 text-cas-error">
               <span className="grid size-10 place-items-center rounded-2xl bg-cas-error/15">
                 <CasIcon className="size-5" name="trash" />
@@ -457,7 +454,7 @@ export default function AdminTablesPage() {
 
       {reissuingTable && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center gap-3 text-cas-primary">
               <span className="grid size-10 place-items-center rounded-2xl bg-cas-primary/15">
                 <CasIcon className="size-5" name="table" />
@@ -491,7 +488,7 @@ export default function AdminTablesPage() {
       {/* Modal Xem Mã QR thực tế */}
       {selectedQR && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <h3 className="flex items-center gap-2 text-base font-black text-cas-on-surface">
                 <CasIcon className="size-5 text-cas-primary" name="table" />

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
+import CustomerLayout from "../app/(customer)/layout";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
@@ -14,6 +15,7 @@ vi.mock("../lib/api/store/public-store.api", () => ({
   getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
   loadPublicStore: vi.fn(),
   loadPublicStoreWelcomeConfig: vi.fn(),
+  rememberPublicStoreId: vi.fn(),
 }));
 vi.mock("../lib/customer/sales-session", () => ({
   getCurrentCustomerSalesSession: vi.fn(),
@@ -54,7 +56,11 @@ describe("Home", () => {
   });
 
   it("renders the CAS welcome experience from public store APIs", async () => {
-    render(<Home />);
+    render(
+      <CustomerLayout>
+        <Home />
+      </CustomerLayout>,
+    );
 
     expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
     expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
@@ -89,8 +95,5 @@ describe("Home", () => {
     expect(
       screen.getByRole("img", { name: "Tô mỳ cay nóng với rau nấm và nhiều topping" }),
     ).toHaveAttribute("src", "https://example.test/menu-1.jpg");
-
-    fireEvent.click(screen.getByRole("button", { name: "Chuyển đổi giao diện sáng hoặc tối" }));
-    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   });
 });

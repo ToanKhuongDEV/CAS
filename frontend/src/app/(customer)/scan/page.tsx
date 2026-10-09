@@ -206,6 +206,13 @@ export default function ScanTableQrPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 text-center">
+      <Link
+        className="mb-6 inline-flex w-fit items-center gap-2 text-sm font-bold text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+        href={`/start?returnTo=${encodeURIComponent(params.get("returnTo") ?? "/menu")}`}
+      >
+        <CasIcon className="size-4 -scale-x-100" name="arrow" />
+        Quay lại chọn loại đơn
+      </Link>
       <span className="mx-auto grid size-16 place-items-center rounded-3xl bg-cas-primary/10 text-cas-primary">
         <CasIcon className="size-8" name="table" />
       </span>
