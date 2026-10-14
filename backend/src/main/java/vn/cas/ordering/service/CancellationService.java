@@ -102,7 +102,9 @@ public class CancellationService {
                         request.reason())
                 : null;
         if (target != null) {
-            mapper.addPreparedQuantity(target.orderItemId(), transferQuantity);
+            mapper.addPreparedQuantity(target.orderItemId(), transferQuantity,
+                    target.preparedQuantity() + transferQuantity >= target.quantity()
+                            - target.cancelledQuantity());
             mapper.insertPreparedItemTransfer(UUID.randomUUID().toString(),
                     new PreparedItemTransfer(request.id(), source.orderItemId(),
                             target.orderItemId(), transferQuantity, principal.accountId()));

@@ -85,8 +85,8 @@ public class PreparationService {
             return existingCompletion(existing.menuItemId(), existing.optionConfigurationHash(),
                     existing.requestFingerprint(), fingerprint, existing.allocationSnapshot());
 
-        var groups = groupItems(
-                mapper.findPreparationItemsForUpdate(principal.storeId(), key.menuItemId()));
+        var items = mapper.findPreparationItemsForUpdate(principal.storeId(), key.menuItemId());
+        var groups = groupItems(items);
         var group = groups.get(groupKey);
         if (group == null || group.remainingQuantity() < requestedQuantity)
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
@@ -107,8 +107,13 @@ public class PreparationService {
                         fingerprint, duplicate.allocationSnapshot());
             throw exception;
         }
-        for (var allocation : allocations)
-            mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity());
+        for (var allocation : allocations) {
+            var item = items.stream()
+                    .filter(candidate -> candidate.orderItemId() == allocation.orderItemId())
+                    .findFirst().orElseThrow();
+            mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity(),
+                    isFullyPrepared(item, allocation.quantity()));
+        }
         auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
                 "PREPARATION_BATCH_COMPLETED", "PREPARATION_BATCH_COMPLETION",
                 mapper.lastInsertId(), groupKey, allocationSnapshot, principal.accountId(),
@@ -145,7 +150,7 @@ public class PreparationService {
             throw exception;
         }
         for (var allocation : allocations)
-            mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity());
+            mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity(), true);
         auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
                 "PREPARATION_TABLE_COMPLETED", "PREPARATION_TABLE_COMPLETION",
                 mapper.lastInsertId(), "Bàn " + tableCode, snapshot, principal.accountId(),
@@ -226,6 +231,11 @@ public class PreparationService {
 
     private static int remainingQuantity(PreparationItemRow item) {
         return Math.max(0, item.quantity() - item.cancelledQuantity() - item.preparedQuantity());
+    }
+
+    private static boolean isFullyPrepared(PreparationItemRow item, int preparedQuantity) {
+        return item.preparedQuantity() + preparedQuantity >= item.quantity()
+                - item.cancelledQuantity();
     }
 
     private static String sha256(String value) {

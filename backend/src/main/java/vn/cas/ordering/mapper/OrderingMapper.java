@@ -105,8 +105,8 @@ public interface OrderingMapper {
             @Param("allocationSnapshot") String allocationSnapshot,
             @Param("completedByAccountId") long completedByAccountId);
 
-    int addPreparedQuantity(@Param("orderItemId") long orderItemId,
-            @Param("quantity") int quantity);
+    int addPreparedQuantity(@Param("orderItemId") long orderItemId, @Param("quantity") int quantity,
+            @Param("markServed") boolean markServed);
     StoredPreparationTableCompletion findPreparationTableCompletion(@Param("storeId") long storeId,
             @Param("idempotencyKey") String idempotencyKey);
     int insertPreparationTableCompletion(@Param("publicId") String publicId,

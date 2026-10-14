@@ -44,8 +44,8 @@ class PreparationServiceTest {
         assertThat(result.remainingQuantity()).isEqualTo(1);
         assertThat(result.allocations()).extracting(PreparationService.Allocation::quantity)
                 .containsExactly(2, 2);
-        verify(mapper).addPreparedQuantity(11L, 2);
-        verify(mapper).addPreparedQuantity(12L, 2);
+        verify(mapper).addPreparedQuantity(11L, 2, true);
+        verify(mapper).addPreparedQuantity(12L, 2, false);
         verify(mapper).insertPreparationBatchCompletion(any(), eq(2L), eq(9L),
                 eq(EMPTY_OPTIONS_HASH), eq("batch-key"), any(), eq(4), any(), eq(3L));
     }

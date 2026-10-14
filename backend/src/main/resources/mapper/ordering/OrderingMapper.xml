@@ -317,7 +317,9 @@
     </insert>
     <update id="addPreparedQuantity">
         UPDATE order_items
-        SET prepared_quantity = prepared_quantity + #{quantity}
+        SET prepared_quantity = prepared_quantity + #{quantity},
+            served_at = CASE WHEN #{markServed} THEN COALESCE(served_at, CURRENT_TIMESTAMP(3))
+                             ELSE served_at END
         WHERE id = #{orderItemId}
     </update>
     <sql id="operatorCancellationRequestColumns">
