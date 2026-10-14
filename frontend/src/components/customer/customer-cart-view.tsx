@@ -14,6 +14,7 @@ import {
   type CustomerCartLine,
 } from "../../lib/customer/cart";
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
 
 const money = new Intl.NumberFormat("vi-VN");
@@ -312,15 +313,15 @@ export function CustomerCartView() {
                 Chọn thêm món
               </Link>
             </div>
-            <button
-              className="mt-3 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring disabled:opacity-60"
+            <CasButton
+              className="mt-3 min-h-13 w-full rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]"
               disabled={submitting}
               onClick={submit}
               type="button"
             >
               <CasIcon className="size-5" name="restaurant" />
               {submitting ? "Đang gửi..." : "Gửi món xuống bếp"}
-            </button>
+            </CasButton>
           </div>
         </div>
       ) : null}
@@ -352,15 +353,16 @@ export function CustomerCartView() {
               </div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              <CasButton
+                className="min-h-11 rounded-xl"
                 onClick={() => setIsClearConfirmationOpen(false)}
                 type="button"
+                variant="outline"
               >
                 Quay lại
-              </button>
-              <button
-                className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              </CasButton>
+              <CasButton
+                className="min-h-11 rounded-xl"
                 onClick={() => {
                   update([]);
                   setIsClearConfirmationOpen(false);
@@ -368,7 +370,7 @@ export function CustomerCartView() {
                 type="button"
               >
                 Xóa tất cả
-              </button>
+              </CasButton>
             </div>
           </section>
         </div>

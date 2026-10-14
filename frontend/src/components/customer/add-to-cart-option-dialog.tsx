@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ItemQuantityControl } from "./item-quantity-control";
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 
 type MenuOption = {
   id: string;
@@ -247,15 +248,16 @@ export function AddToCartOptionDialog({
             )}
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                className="min-h-12 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              <CasButton
+                className="min-h-12 rounded-xl"
                 type="button"
+                variant="outline"
                 onClick={() => setIsOpen(false)}
               >
                 Quay lại
-              </button>
-              <button
-                className="min-h-12 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              </CasButton>
+              <CasButton
+                className="min-h-12 rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]"
                 type="button"
                 disabled={optionGroups.some(
                   (group) => (selectedOptions[group.id]?.length ?? 0) < (group.minSelect ?? 0),
@@ -263,7 +265,7 @@ export function AddToCartOptionDialog({
                 onClick={handleConfirm}
               >
                 Thêm vào giỏ · {formatPrice(basePrice + selectedOptionPrice)}
-              </button>
+              </CasButton>
             </div>
           </section>
         </div>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { CasButton } from "../../../components/ui/cas-button";
 import { CustomerInformationFormFields } from "../../../components/customer/customer-information-form-fields";
 import { useToast } from "../../../components/ui/toast-provider";
 import { loadCustomerNotifications } from "../../../lib/api/notification/notification.api";
@@ -247,13 +248,13 @@ export default function ScanTableQrPage() {
         <p className="mt-2 text-left text-xs text-cas-on-surface-variant" id="manual-qr-help">
           Mã sẽ được kiểm tra trước khi chuyển sang bước tiếp theo.
         </p>
-        <button
-          className="mt-3 min-h-12 w-full rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary disabled:opacity-60"
+        <CasButton
+          className="mt-3 min-h-12 w-full rounded-xl"
           disabled={!manualQrValue.trim() || submitting}
           type="submit"
         >
           {submitting ? "Đang kiểm tra mã..." : "Tiếp tục"}
-        </button>
+        </CasButton>
       </form>
       <section className="mt-8 border-t border-cas-outline-variant pt-6 text-left">
         <h2 className="text-lg font-extrabold">Hoặc chọn số bàn</h2>
@@ -317,13 +318,13 @@ export default function ScanTableQrPage() {
               type="text"
               value={tableCode}
             />
-            <button
-              className="mt-3 min-h-12 w-full rounded-xl bg-cas-primary px-4 font-extrabold text-cas-on-primary"
+            <CasButton
+              className="mt-3 min-h-12 w-full rounded-xl"
               onClick={() => void resolveManualTable()}
               type="button"
             >
               Tiếp tục với số bàn
-            </button>
+            </CasButton>
           </>
         ) : null}
         {tableResolution?.customerInformationRequired ? (

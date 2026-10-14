@@ -20,7 +20,8 @@ export type CasButtonProps = BaseProps &
   );
 
 const variantClasses: Record<CasButtonVariant, string> = {
-  primary: "bg-cas-primary text-cas-on-primary shadow-md hover:brightness-110",
+  primary:
+    "bg-linear-to-r from-cas-primary to-cas-primary-gradient-end text-cas-on-primary shadow-md hover:brightness-110",
   outline:
     "bg-cas-surface text-cas-on-surface shadow-sm ring-1 ring-inset ring-cas-outline-variant/60 hover:bg-cas-on-surface/5",
   "outline-primary":

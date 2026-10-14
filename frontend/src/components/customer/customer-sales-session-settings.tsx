@@ -6,6 +6,7 @@ import { useState } from "react";
 import { cancelCustomerSalesSession } from "../../lib/api/ordering/ordering.api";
 import { useCurrentCustomerSalesSessionQuery } from "../../lib/customer/sales-session.query";
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
 
 export function CustomerSalesSessionSettings() {
@@ -93,22 +94,24 @@ export function CustomerSalesSessionSettings() {
               Chỉ hủy được nếu chưa gửi món nào xuống bếp. Thao tác này không thể hoàn tác.
             </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              <CasButton
+                className="min-h-11 rounded-xl"
                 disabled={isCancelling}
                 onClick={() => setIsConfirmOpen(false)}
                 type="button"
+                variant="outline"
               >
                 Quay lại
-              </button>
-              <button
-                className="min-h-11 rounded-xl bg-cas-error px-4 text-sm font-extrabold text-cas-on-error focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring disabled:opacity-60"
+              </CasButton>
+              <CasButton
+                className="min-h-11 rounded-xl"
                 disabled={isCancelling}
                 onClick={() => void cancelSession()}
                 type="button"
+                variant="danger"
               >
                 {isCancelling ? "Đang hủy..." : "Xác nhận hủy"}
-              </button>
+              </CasButton>
             </div>
           </section>
         </div>

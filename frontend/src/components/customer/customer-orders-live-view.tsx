@@ -8,6 +8,7 @@ import { useCustomerCatalog } from "../../lib/api/catalog/customer-catalog.query
 import { requestCustomerCancellation } from "../../lib/api/ordering/ordering.api";
 import { useCustomerBillQuery } from "../../lib/api/ordering/ordering.query";
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
@@ -303,20 +304,21 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
               value={reason}
             />
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                className="min-h-11 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              <CasButton
+                className="min-h-11 rounded-xl"
                 onClick={() => setCancellation(null)}
                 type="button"
+                variant="outline"
               >
                 Đóng
-              </button>
-              <button
-                className="min-h-11 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              </CasButton>
+              <CasButton
+                className="min-h-11 rounded-xl"
                 onClick={() => void cancel()}
                 type="button"
               >
                 Gửi yêu cầu
-              </button>
+              </CasButton>
             </div>
           </div>
         </div>

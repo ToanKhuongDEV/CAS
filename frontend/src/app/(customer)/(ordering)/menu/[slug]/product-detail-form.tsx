@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { MenuOptionGroup } from "../../../../../components/customer/add-to-cart-option-dialog";
+import { CasButton } from "../../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { useToast } from "../../../../../components/ui/toast-provider";
 import { addCustomerCartLine } from "../../../../../lib/customer/cart";
@@ -156,8 +157,8 @@ export function ProductDetailForm({
               <CasIcon className="size-5" name="plus" />
             </button>
           </div>
-          <button
-            className="flex min-h-13 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary"
+          <CasButton
+            className="min-h-13 min-w-0 flex-1 rounded-xl"
             onClick={() => void addToCart()}
             type="button"
           >
@@ -165,7 +166,7 @@ export function ProductDetailForm({
             <span className="truncate">
               Thêm vào giỏ · {formatPrice((basePrice + extraPrice) * quantity)}
             </span>
-          </button>
+          </CasButton>
         </div>
       </div>
     </>

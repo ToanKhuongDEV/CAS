@@ -3,6 +3,7 @@
 import { FormEvent, useRef, useState } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 
 type CustomerInformationErrors = {
   customerName?: string;
@@ -141,13 +142,13 @@ export function CustomerInformationFormFields({
           {errors.customerPhone}
         </p>
       ) : null}
-      <button
-        className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+      <CasButton
+        className="mt-6 min-h-13 w-full rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]"
         type="submit"
       >
         {submitLabel}
         <CasIcon className="size-5" name="arrow" />
-      </button>
+      </CasButton>
     </form>
   );
 }
