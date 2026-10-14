@@ -604,6 +604,7 @@ Lưu các món thuộc order.
 | `options_amount` | `DECIMAL(15,2) NOT NULL DEFAULT 0` | Tổng giá option cho một đơn vị món tại thời điểm đặt |
 | `quantity` | `INT UNSIGNED NOT NULL` | Số lượng món có cùng cấu hình option |
 | `prepared_quantity` | `INT UNSIGNED NOT NULL DEFAULT 0` | Số phần đã được nhân viên ghi nhận làm xong |
+| `served_at` | `DATETIME(3) NULL` | Thời điểm dòng món lần đầu được ghi nhận làm xong toàn bộ số lượng hiệu lực |
 | `total_amount` | `DECIMAL(15,2) NOT NULL` | Thành tiền ban đầu: `(unit_price + options_amount) × quantity` |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
@@ -658,6 +659,10 @@ Màn tổng hợp chế biến gộp các dòng theo `menu_item_id` và tập c�
 thực tế trong `order_item_options`. Chỉ các tập option giống hoàn toàn mới được
 gộp chung. Khi nhân viên hoàn thành một mẻ, backend phân bổ số lượng về các
 `order_items` theo `orders.created_at ASC` trong một transaction.
+
+`served_at` chỉ được gán một lần khi `prepared_quantity` đạt số lượng hiệu lực;
+thời điểm này là lúc món được xem là đã phục vụ theo nghiệp vụ CAS và dùng để
+thống kê thời gian chờ ra món.
 
 #### `preparation_batch_completions`
 

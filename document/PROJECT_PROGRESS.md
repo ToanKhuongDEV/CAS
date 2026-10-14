@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-09
+Ngày cập nhật gần nhất: 2026-10-14
 
 ## Quy ước
 
@@ -53,13 +53,15 @@ Ngày cập nhật gần nhất: 2026-10-09
 - [x] Catalog: category, menu item, tag, option group/value, ảnh Cloudinary và trạng thái bán.
 - [x] Sales session, order Customer/Operator, bill, hủy session chưa có món và yêu cầu hủy món.
 - [x] Chế biến: bàn chờ lâu, danh sách món cần làm và hoàn thành theo mẻ có idempotency.
+- [x] Lưu `order_items.served_at` khi món được ghi nhận làm xong toàn bộ số lượng hiệu lực để phục vụ thống kê thời gian chờ ra món.
 - [x] Payment, khoản chưa thanh toán, bill snapshot và xác nhận thanh toán thủ công.
 - [x] Promotion: quản trị chương trình/code/target/quota, chọn promotion cho bill, discount snapshot và redemption.
 - [x] Vận hành: dashboard Operator, service booking, sự cố vận hành, thông báo, audit log và tra cứu khách hàng Admin.
+- [x] `GET /api/v1/admin/dashboard?from&to`: báo cáo doanh thu, session đã thanh toán, thời gian chờ ra món, sản lượng món bán và hao hụt làm lại theo store Admin.
 
 ### Chưa hoàn thành
 
-- [ ] Chốt contract và xây dựng API báo cáo Admin; UI dashboard hiện vẫn dùng dữ liệu cục bộ.
+- [x] Dashboard Admin dùng một API báo cáo theo khoảng ngày cho doanh thu, khách hàng, menu/order và khuyến mãi; discount lấy từ snapshot `bill_discounts` của payment `PAID`.
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
@@ -75,7 +77,10 @@ Ngày cập nhật gần nhất: 2026-10-09
 - [x] Phiên chưa có order trong lịch sử khách hàng Admin hiển thị “Chưa gọi món” thay cho `0 lần`.
 - [x] Danh sách khách hàng Admin dùng API tìm kiếm/phân trang theo server (`query`, `page`, `size`) và component `Pagination` dùng chung.
 - [x] Dashboard `/admin`: UI bốn nhóm Doanh thu, Khách hàng, Menu & Order, Khuyến mãi; dùng dữ liệu minh họa cục bộ và có ghi chú về giới hạn `served_at`.
+- [x] Tab Khách hàng của dashboard Admin dùng biểu đồ đường hai chuỗi cho thời gian chờ và sử dụng dịch vụ theo giờ.
 - [x] Chuẩn hóa thiết kế dùng token màu global, font `Inter` qua `next/font/google`, toast dùng chung và panel Admin `rounded-sm`.
+- [x] Nút `CasButton` primary dùng gradient theo theme: primary đến đen ở giao diện sáng và primary đến mint sáng hơn ở giao diện tối.
+- [x] CTA chuẩn trong các luồng Customer dùng `CasButton`; control số lượng, lựa chọn và action gắn với input vẫn giữ giao diện chuyên biệt.
 - [x] Đồng nhất font weight cho tab điều hướng dạng link và button bằng cách chỉ kế thừa `font-family` cho form control, không ghi đè utility `font-bold`.
 - [x] Bỏ các dòng mô tả phụ ngay dưới tiêu đề trên toàn bộ page Admin; giữ nguyên hướng dẫn trong form, modal và section chức năng.
 - [x] Hoàn thiện responsive, polling cần thiết, form validation, empty/loading/error state chính cho các luồng đã ghép API.
