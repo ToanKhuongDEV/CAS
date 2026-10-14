@@ -178,6 +178,13 @@ public final class ApiPaths {
         }
     }
 
+    public static final class AdminDashboard {
+        public static final String SUMMARY = API_ADMIN_PREFIX + "/dashboard";
+
+        private AdminDashboard() {
+        }
+    }
+
     public static final class Notification {
         public static final String ADMIN = API_ADMIN_PREFIX + "/notifications";
         public static final String ADMIN_ID = ADMIN + "/{notificationId}";
