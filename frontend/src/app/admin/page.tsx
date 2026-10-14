@@ -1,21 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
+import {
+  loadAdminDashboard,
+  type AdminDashboard,
+} from "../../lib/api/operation/admin-dashboard.api";
 
 type Period = "threeDays" | "oneWeek" | "oneMonth" | "custom";
 type ReportTab = "revenue" | "customers" | "menu" | "promotions";
@@ -26,7 +27,6 @@ const periodLabels: Record<Exclude<Period, "custom">, string> = {
   oneWeek: "1 tuần",
   oneMonth: "1 tháng",
 };
-
 const reportTabs: { id: ReportTab; label: string }[] = [
   { id: "revenue", label: "Doanh thu" },
   { id: "customers", label: "Khách hàng" },
@@ -34,54 +34,52 @@ const reportTabs: { id: ReportTab; label: string }[] = [
   { id: "promotions", label: "Khuyến mãi" },
 ];
 
-const revenueTrend = [
-  { label: "01/10", value: 13.8 },
-  { label: "02/10", value: 14.5 },
-  { label: "03/10", value: 15.3 },
-  { label: "04/10", value: 16.1 },
-  { label: "05/10", value: 16.9 },
-  { label: "06/10", value: 17.8 },
-  { label: "07/10", value: 18.6 },
-  { label: "08/10", value: 19.3 },
-  { label: "09/10", value: 16.2 },
-  { label: "10/10", value: 18.1 },
-];
-
-const categoryRevenue = [
-  { color: "var(--cas-primary)", name: "Mỳ cay", value: 43 },
-  { color: "var(--cas-secondary)", name: "Nước uống", value: 31 },
-  { color: "var(--cas-tertiary)", name: "Topping", value: 16 },
-  { color: "var(--cas-outline-variant)", name: "Khác", value: 10 },
-];
-
-const customerTimeByHour = [
-  { hour: "10h", service: 29, wait: 9 },
-  { hour: "12h", service: 42, wait: 17 },
-  { hour: "14h", service: 35, wait: 12 },
-  { hour: "16h", service: 31, wait: 10 },
-  { hour: "18h", service: 48, wait: 19 },
-  { hour: "20h", service: 40, wait: 14 },
-];
-
-const menuRanking = [
-  { name: "Mỳ cay hải sản", parts: "86 phần", revenue: "4,3 triệu" },
-  { name: "Cà phê sữa đá", parts: "72 phần", revenue: "2,5 triệu" },
-  { name: "Trà đào cam sả", parts: "58 phần", revenue: "2,6 triệu" },
-  { name: "Topping bò Mỹ", parts: "51 phần", revenue: "1,5 triệu" },
-];
-
-const promotionStatuses = [
-  { label: "Đang hoạt động", value: "6", valueClassName: "text-cas-primary" },
-  { label: "Sắp diễn ra", value: "2", valueClassName: "text-cas-secondary" },
-  { label: "Hết hạn", value: "3", valueClassName: "text-cas-on-surface-variant" },
-  { label: "Tạm dừng", value: "1", valueClassName: "text-cas-tertiary" },
-];
-
 export default function AdminDashboardPage() {
   const [period, setPeriod] = useState<Period>("oneWeek");
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
-  const [startDate, setStartDate] = useState("2026-10-01");
-  const [endDate, setEndDate] = useState("2026-10-10");
+  const [startDate, setStartDate] = useState(() => rangeFor(7).from);
+  const [endDate, setEndDate] = useState(() => rangeFor(7).to);
+  const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (startDate > endDate) {
+      setDashboard(null);
+      setError("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.");
+      setIsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    void loadAdminDashboard(startDate, endDate)
+      .then((value) => {
+        if (!cancelled) {
+          setDashboard(value);
+          setError(null);
+        }
+      })
+      .catch((cause) => {
+        if (!cancelled) {
+          setDashboard(null);
+          setError(cause instanceof Error ? cause.message : "Không thể tải báo cáo hoạt động.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [startDate, endDate]);
+
+  function selectPeriod(next: Period) {
+    setPeriod(next);
+    if (next === "custom") return;
+    const range = rangeFor(next === "threeDays" ? 3 : next === "oneWeek" ? 7 : 30);
+    setStartDate(range.from);
+    setEndDate(range.to);
+  }
 
   return (
     <div className="space-y-7">
@@ -89,59 +87,57 @@ export default function AdminDashboardPage() {
         <span className="grid size-7 place-items-center text-cas-primary">
           <CasIcon className="size-5" name="sparkle" />
         </span>
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-cas-on-surface sm:text-2xl">
-            Báo cáo hoạt động
-          </h1>
-        </div>
+        <h1 className="text-xl font-black tracking-tight text-cas-on-surface sm:text-2xl">
+          Báo cáo hoạt động
+        </h1>
       </header>
-
       <section className="border-b border-cas-outline-variant/70 pb-5">
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex overflow-hidden rounded-sm border border-cas-outline-variant/60 bg-cas-surface">
             {(Object.keys(periodLabels) as Exclude<Period, "custom">[]).map((item) => (
               <button
-                className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${
-                  period === item
-                    ? "bg-cas-primary/10 text-cas-primary"
-                    : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"
-                }`}
+                className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${period === item ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
                 key={item}
-                onClick={() => setPeriod(item)}
+                onClick={() => selectPeriod(item)}
                 type="button"
               >
                 {periodLabels[item]}
               </button>
             ))}
             <button
-              className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${
-                period === "custom"
-                  ? "bg-cas-primary/10 text-cas-primary"
-                  : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"
-              }`}
-              onClick={() => setPeriod("custom")}
+              className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${period === "custom" ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
+              onClick={() => selectPeriod("custom")}
               type="button"
             >
               Tùy chỉnh
             </button>
           </div>
-          <DateInput label="Ngày bắt đầu" onChange={setStartDate} value={startDate} />
+          <DateInput
+            label="Ngày bắt đầu"
+            onChange={(value) => {
+              setPeriod("custom");
+              setStartDate(value);
+            }}
+            value={startDate}
+          />
           <span className="text-xs font-bold text-cas-on-surface-variant">đến</span>
-          <DateInput label="Ngày kết thúc" onChange={setEndDate} value={endDate} />
+          <DateInput
+            label="Ngày kết thúc"
+            onChange={(value) => {
+              setPeriod("custom");
+              setEndDate(value);
+            }}
+            value={endDate}
+          />
         </div>
       </section>
-
       <nav
         aria-label="Nhóm báo cáo"
         className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
       >
         {reportTabs.map((tab) => (
           <button
-            className={`cursor-pointer border-b-2 px-3 py-3 text-center text-sm font-bold transition ${
-              activeTab === tab.id
-                ? "border-cas-primary text-cas-primary"
-                : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"
-            }`}
+            className={`cursor-pointer border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             type="button"
@@ -150,202 +146,185 @@ export default function AdminDashboardPage() {
           </button>
         ))}
       </nav>
-
-      {activeTab === "revenue" && <RevenueReport />}
-      {activeTab === "customers" && <CustomerReport />}
-      {activeTab === "menu" && <MenuOrderReport />}
-      {activeTab === "promotions" && <PromotionReport />}
+      {isLoading ? (
+        <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
+      ) : null}
+      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+      {dashboard && activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
+      {dashboard && activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
+      {dashboard && activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
+      {dashboard && activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
     </div>
   );
 }
 
-function RevenueReport() {
+function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const average = dashboard.revenue.paidSessionCount
+    ? dashboard.revenue.total / dashboard.revenue.paidSessionCount
+    : 0;
+  const trend = dashboard.revenue.series.map((item) => ({
+    label: shortDate(item.date),
+    value: item.revenue,
+  }));
   return (
     <div className="space-y-6">
       <MetricGrid
         metrics={[
-          ["payment", "Doanh thu thuần", "28,1 triệu", "Sau giảm giá, hoàn tiền và giảm trừ"],
-          ["bill", "Doanh thu theo món", "24 món", "Xem xếp hạng theo doanh thu"],
-          ["cart", "Doanh thu theo danh mục", "4 nhóm", "Mỳ cay, nước uống, topping và khác"],
-          ["bill", "Tổng giá trị hóa đơn", "31,6 triệu", "Trước giảm giá; không tính hóa đơn hủy"],
-          [
-            "payment",
-            "Giá trị hóa đơn trung bình",
-            "186.000 đ",
-            "Doanh thu thuần / hóa đơn đã thanh toán",
-          ],
+          ["payment", "Doanh thu", money(dashboard.revenue.total), "Chỉ gồm phiên đã thanh toán"],
           [
             "users",
-            "Chi tiêu trung bình/người",
-            "139.000 đ",
-            "Doanh thu thuần / lượt khách phục vụ",
+            "Số session đã thanh toán",
+            `${dashboard.revenue.paidSessionCount} phiên`,
+            "Bao gồm đơn mang về",
+          ],
+          [
+            "bill",
+            "Giá trị session trung bình",
+            money(average),
+            "Doanh thu / session đã thanh toán",
           ],
         ]}
       />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <ChartPanel title="Xu hướng doanh thu" subtitle="Đơn vị: triệu đồng">
-          <ResponsiveContainer height="100%" width="100%">
-            <AreaChart data={revenueTrend} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
-              <defs>
-                <linearGradient id="admin-revenue-area" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity={0.28} />
-                  <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                stroke="var(--cas-outline-variant)"
-                strokeDasharray="3 3"
-                vertical={false}
-              />
-              <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
-              <YAxis
-                axisLine={false}
-                tick={axisTick}
-                tickFormatter={(value) => `${value}tr`}
-                tickLine={false}
-                width={42}
-              />
-              <Tooltip
-                {...tooltipProps}
-                formatter={(value) => [`${value} triệu đồng`, "Doanh thu"]}
-              />
-              <Area
-                dataKey="value"
-                fill="url(#admin-revenue-area)"
-                stroke="var(--cas-primary)"
-                strokeWidth={2}
-                type="monotone"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-        <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
-          <SectionHeading icon="cart" title="Tỷ trọng theo danh mục" />
-          <div className="mt-3 h-48">
-            <ResponsiveContainer height="100%" width="100%">
-              <PieChart>
-                <Pie
-                  data={categoryRevenue}
-                  dataKey="value"
-                  innerRadius={45}
-                  outerRadius={74}
-                  paddingAngle={3}
-                >
-                  {categoryRevenue.map((item) => (
-                    <Cell fill={item.color} key={item.name} />
-                  ))}
-                </Pie>
-                <Tooltip {...tooltipProps} formatter={(value) => [`${value}%`, "Tỷ trọng"]} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2">
-            {categoryRevenue.map((item) => (
-              <div className="flex items-center justify-between text-xs" key={item.name}>
-                <span className="flex items-center gap-2 text-cas-on-surface-variant">
-                  <i className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  {item.name}
-                </span>
-                <strong className="text-cas-on-surface">{item.value}%</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-      <RankingPanel title="Xếp hạng doanh thu món" />
-    </div>
-  );
-}
-
-function CustomerReport() {
-  return (
-    <div className="space-y-6">
-      <MetricGrid
-        metrics={[
-          ["users", "Tổng số lượt khách", "202 lượt", "Người được ghi nhận trong các phiên bàn"],
-          ["clock", "Thời gian chờ đợi trung bình", "13 phút", "Từ gọi món đến phục vụ"],
-          [
-            "users",
-            "Tỷ lệ khách hàng quay lại",
-            "32,4%",
-            "Khách định danh đã từng mua / tổng khách định danh",
-          ],
-          ["clock", "Thời gian sử dụng dịch vụ", "58 phút", "Từ mở phiên bàn đến đóng phiên"],
-        ]}
-      />
-      <ChartPanel title="Thời gian chờ và sử dụng dịch vụ theo giờ" subtitle="Đơn vị: phút">
+      <ChartPanel title="Xu hướng doanh thu" subtitle="Đơn vị: đồng">
         <ResponsiveContainer height="100%" width="100%">
-          <BarChart data={customerTimeByHour} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+          <AreaChart data={trend} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+            <defs>
+              <linearGradient id="admin-revenue-area" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
             <CartesianGrid
               stroke="var(--cas-outline-variant)"
               strokeDasharray="3 3"
               vertical={false}
             />
-            <XAxis axisLine={false} dataKey="hour" tick={axisTick} tickLine={false} />
-            <YAxis axisLine={false} tick={axisTick} tickLine={false} width={35} />
-            <Tooltip {...tooltipProps} />
-            <Bar dataKey="wait" fill="var(--cas-tertiary)" name="Chờ món" radius={2} />
-            <Bar dataKey="service" fill="var(--cas-primary)" name="Sử dụng dịch vụ" radius={2} />
-          </BarChart>
+            <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
+            <YAxis
+              axisLine={false}
+              tick={axisTick}
+              tickFormatter={compactMoney}
+              tickLine={false}
+              width={42}
+            />
+            <Tooltip {...tooltipProps} formatter={(value) => [money(Number(value)), "Doanh thu"]} />
+            <Area
+              dataKey="value"
+              fill="url(#admin-revenue-area)"
+              stroke="var(--cas-primary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </ChartPanel>
-      <p className="rounded-sm border border-cas-tertiary/30 bg-cas-tertiary/10 p-4 text-xs leading-5 text-cas-on-surface-variant">
-        <strong className="text-cas-tertiary">Lưu ý dữ liệu:</strong> Chỉ thống kê được thời gian
-        khách nhận món khi có sự kiện <code>served_at</code>. Nếu hệ thống chỉ lưu bếp hoàn thành,
-        báo cáo thể hiện thời gian ra món.
-      </p>
     </div>
   );
 }
 
-function MenuOrderReport() {
+function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const series = dashboard.customers.series.map((item) => ({
+    label: shortDate(item.date),
+    sessions: item.paidSessionCount,
+    wait: item.averageWaitMinutes,
+  }));
   return (
     <div className="space-y-6">
       <MetricGrid
         metrics={[
-          ["cart", "Tổng số món trong menu", "48 món", "36 đang bán · 12 ngừng bán"],
-          ["fire", "Món chạy nhất", "Mỳ cay hải sản", "86 phần · 4,3 triệu doanh thu"],
-          ["close", "Tỷ lệ hủy món", "3,8%", "Phần bị hủy / tổng phần từng được đặt"],
-          ["bill", "Tổng số phần đã bán", "612 phần", "Sản lượng, khác với tổng số món trong menu"],
+          [
+            "users",
+            "Tổng số session",
+            `${dashboard.customers.paidSessionCount} phiên`,
+            "Chỉ tính session đã thanh toán",
+          ],
+          [
+            "clock",
+            "Thời gian chờ trung bình",
+            minutes(dashboard.customers.averageWaitMinutes),
+            "Từ gọi món đến phục vụ",
+          ],
+        ]}
+      />
+      <ChartPanel title="Thời gian chờ và session theo ngày" subtitle="Phút / session">
+        <ResponsiveContainer height="100%" width="100%">
+          <LineChart data={series} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid
+              stroke="var(--cas-outline-variant)"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+            <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
+            <YAxis axisLine={false} tick={axisTick} tickLine={false} width={35} />
+            <Tooltip {...tooltipProps} />
+            <Line
+              dataKey="wait"
+              name="Chờ món (phút)"
+              stroke="var(--cas-tertiary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+            <Line
+              dataKey="sessions"
+              name="Session đã thanh toán"
+              stroke="var(--cas-primary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartPanel>
+    </div>
+  );
+}
+
+function MenuReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const topItem = dashboard.menu.topItems[0];
+  return (
+    <div className="space-y-6">
+      <MetricGrid
+        metrics={[
+          [
+            "cart",
+            "Tổng số phần đã bán",
+            `${dashboard.menu.soldQuantity} phần`,
+            "Không tính món làm lại",
+          ],
+          [
+            "fire",
+            "Món bán nhiều nhất",
+            topItem?.name ?? "Chưa có dữ liệu",
+            topItem ? `${topItem.soldQuantity} phần` : "",
+          ],
+          [
+            "close",
+            "Hao hụt làm lại",
+            `${dashboard.menu.remadeQuantity} phần`,
+            "Món có cờ làm lại",
+          ],
         ]}
       />
       <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionHeading icon="cart" title="Chi tiết Menu & Order" />
-          <div className="flex gap-2">
-            <select className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-3 py-2 text-xs font-semibold text-cas-on-surface">
-              <option>Tất cả danh mục</option>
-              <option>Mỳ cay</option>
-              <option>Nước uống</option>
-            </select>
-            <select className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-3 py-2 text-xs font-semibold text-cas-on-surface">
-              <option>Tất cả trạng thái</option>
-              <option>Đang bán</option>
-              <option>Ngừng bán</option>
-            </select>
-          </div>
-        </div>
+        <SectionHeading icon="cart" title="Chi tiết Menu & Order" />
         <div className="mt-4 overflow-x-auto border-t border-cas-outline-variant/50">
           <table className="w-full min-w-150 text-left text-xs">
             <thead className="border-b border-cas-outline-variant/50 text-cas-on-surface-variant">
               <tr>
                 <th className="px-3 py-3">Món</th>
-                <th className="px-3 py-3">Danh mục</th>
                 <th className="px-3 py-3">Số phần bán</th>
                 <th className="px-3 py-3">Doanh thu</th>
-                <th className="px-3 py-3">Tỷ lệ hủy</th>
+                <th className="px-3 py-3">Làm lại</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cas-outline-variant/40 text-cas-on-surface">
-              {menuRanking.map((item, index) => (
-                <tr key={item.name}>
+              {dashboard.menu.topItems.map((item, index) => (
+                <tr key={item.menuItemId}>
                   <td className="px-3 py-3 font-black">
                     {index + 1}. {item.name}
                   </td>
-                  <td className="px-3 py-3 text-cas-on-surface-variant">Món bán chạy</td>
-                  <td className="px-3 py-3">{item.parts}</td>
-                  <td className="px-3 py-3 font-bold text-cas-primary">{item.revenue}</td>
-                  <td className="px-3 py-3">{index === 0 ? "2,1%" : "3,4%"}</td>
+                  <td className="px-3 py-3">{item.soldQuantity}</td>
+                  <td className="px-3 py-3 font-bold text-cas-primary">{money(item.revenue)}</td>
+                  <td className="px-3 py-3">{item.remadeQuantity}</td>
                 </tr>
               ))}
             </tbody>
@@ -356,7 +335,13 @@ function MenuOrderReport() {
   );
 }
 
-function PromotionReport() {
+function PromotionReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const statuses = [
+    ["Đang hoạt động", dashboard.promotions.statusCounts.active, "text-cas-primary"],
+    ["Sắp diễn ra", dashboard.promotions.statusCounts.upcoming, "text-cas-secondary"],
+    ["Hết hạn", dashboard.promotions.statusCounts.expired, "text-cas-on-surface-variant"],
+    ["Tạm dừng", dashboard.promotions.statusCounts.inactive, "text-cas-tertiary"],
+  ] as const;
   return (
     <div className="space-y-6">
       <MetricGrid
@@ -364,31 +349,25 @@ function PromotionReport() {
           [
             "payment",
             "Tổng giá trị khuyến mãi",
-            "2,4 triệu",
-            "Tổng tiền giảm của khuyến mãi áp dụng thành công",
+            money(dashboard.promotions.totalDiscountAmount),
+            "Chỉ tính session đã thanh toán",
           ],
           [
             "bill",
             "Tỷ lệ sử dụng khuyến mãi",
-            "18,6%",
-            "Hóa đơn có khuyến mãi / hóa đơn thanh toán",
-          ],
-          [
-            "sparkle",
-            "Tổng số khuyến mãi",
-            "12 chương trình",
-            "6 hoạt động · 2 sắp diễn ra · 3 hết hạn · 1 tạm dừng",
+            `${dashboard.promotions.usageRate}%`,
+            `${dashboard.promotions.discountedSessionCount} session có khuyến mãi`,
           ],
         ]}
       />
       <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
         <SectionHeading icon="sparkle" title="Tình trạng chương trình khuyến mãi" />
         <div className="mt-5 grid gap-3 sm:grid-cols-4">
-          {promotionStatuses.map((status) => (
-            <div className="rounded-sm border border-cas-outline-variant/60 p-4" key={status.label}>
-              <p className="text-xs text-cas-on-surface-variant">{status.label}</p>
-              <strong className={`mt-2 block text-2xl font-black ${status.valueClassName}`}>
-                {status.value}
+          {statuses.map(([label, value, valueClassName]) => (
+            <div className="rounded-sm border border-cas-outline-variant/60 p-4" key={label}>
+              <p className="text-xs text-cas-on-surface-variant">{label}</p>
+              <strong className={`mt-2 block text-2xl font-black ${valueClassName}`}>
+                {value}
               </strong>
             </div>
           ))}
@@ -397,7 +376,6 @@ function PromotionReport() {
     </div>
   );
 }
-
 function MetricGrid({ metrics }: { metrics: [IconName, string, string, string][] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -417,7 +395,6 @@ function MetricGrid({ metrics }: { metrics: [IconName, string, string, string][]
     </div>
   );
 }
-
 function ChartPanel({
   children,
   subtitle,
@@ -437,7 +414,6 @@ function ChartPanel({
     </section>
   );
 }
-
 function SectionHeading({ icon, title }: { icon: IconName; title: string }) {
   return (
     <div className="flex items-center gap-2 text-cas-on-surface">
@@ -446,7 +422,6 @@ function SectionHeading({ icon, title }: { icon: IconName; title: string }) {
     </div>
   );
 }
-
 function DateInput({
   label,
   onChange,
@@ -468,31 +443,34 @@ function DateInput({
     </label>
   );
 }
-
-function RankingPanel({ title }: { title: string }) {
-  return (
-    <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
-      <SectionHeading icon="fire" title={title} />
-      <div className="mt-4 divide-y divide-cas-outline-variant/40 border-t border-cas-outline-variant/40">
-        {menuRanking.map((item, index) => (
-          <div className="flex items-center justify-between gap-4 py-3" key={item.name}>
-            <div className="flex items-center gap-3">
-              <span className="w-4 text-center text-xs font-black text-cas-primary">
-                {index + 1}
-              </span>
-              <div>
-                <p className="text-xs font-black text-cas-on-surface">{item.name}</p>
-                <p className="mt-0.5 text-[0.68rem] text-cas-on-surface-variant">{item.parts}</p>
-              </div>
-            </div>
-            <strong className="text-xs text-cas-primary">{item.revenue}</strong>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+function rangeFor(days: number) {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - days + 1);
+  return { from: dateInputValue(from), to: dateInputValue(to) };
 }
-
+function dateInputValue(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+function shortDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year.slice(2)}`;
+}
+function money(value: number) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+function minutes(value: number | null) {
+  return value == null
+    ? "Chưa có dữ liệu"
+    : `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value)} phút`;
+}
+function compactMoney(value: number) {
+  return value >= 1_000_000 ? `${value / 1_000_000}tr` : `${value / 1_000}k`;
+}
 const axisTick = { fill: "var(--cas-on-surface-variant)", fontSize: 11 };
 const tooltipProps = {
   contentStyle: {
