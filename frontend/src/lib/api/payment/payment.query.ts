@@ -27,18 +27,20 @@ export function useCustomerPaymentQuery(pollIntervalMs?: number) {
   });
 }
 
-export function useOperatorPaymentsQuery(pollIntervalMs?: number) {
+export function useOperatorPaymentsQuery(pollIntervalMs?: number, enabled = true) {
   return useQuery({
     queryKey: operatorPaymentsQueryKey,
     queryFn: loadOperatorPayments,
+    enabled,
     refetchInterval: pollIntervalMs,
   });
 }
 
-export function useOperatorPaidTodayPaymentsQuery() {
+export function useOperatorPaidTodayPaymentsQuery(enabled = true) {
   return useQuery({
     queryKey: operatorPaidTodayPaymentsQueryKey,
     queryFn: loadOperatorPaidTodayPayments,
+    enabled,
   });
 }
 

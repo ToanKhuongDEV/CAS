@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import {
@@ -8,15 +9,20 @@ import {
   createCatalogOptionValue,
   deleteCatalogOptionGroup,
   deleteCatalogOptionValue,
-  loadAdminCatalog,
   updateCatalogOptionGroup,
   updateCatalogOptionValue,
   type CatalogOptionGroup,
   type CatalogOptionValue,
 } from "../../../../lib/api/catalog/catalog.api";
+import {
+  adminCatalogQueryKey,
+  useAdminCatalogQuery,
+} from "../../../../lib/api/catalog/catalog.query";
 
 export default function AdminOptionsPage() {
-  const [groups, setGroups] = useState<CatalogOptionGroup[]>([]);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: queryError } = useAdminCatalogQuery();
+  const groups = catalog?.optionGroups ?? [];
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGroup, setEditingGroup] = useState<CatalogOptionGroup | null>(null);
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<CatalogOptionGroup | null>(null);
@@ -39,19 +45,7 @@ export default function AdminOptionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const refreshGroups = useCallback(async () => {
-    try {
-      const data = await loadAdminCatalog();
-      setGroups(data.optionGroups);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load option groups.");
-    }
-  }, []);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => void refreshGroups(), 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [refreshGroups]);
+  const displayedError = error ?? queryError?.message ?? null;
 
   const addGroup = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,7 +67,7 @@ export default function AdminOptionsPage() {
         selectionType,
         status,
       });
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setName("");
       setSelectionType("SINGLE");
       setMinSelect(0);
@@ -109,7 +103,7 @@ export default function AdminOptionsPage() {
         selectionType: editSelectionType,
         status: editStatus,
       });
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setEditingGroup(null);
       setEditName("");
     } catch (cause) {
@@ -124,7 +118,7 @@ export default function AdminOptionsPage() {
     setIsSaving(true);
     try {
       await deleteCatalogOptionGroup(deleteGroupTarget.id);
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setDeleteGroupTarget(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to delete option group.");
@@ -146,7 +140,7 @@ export default function AdminOptionsPage() {
         name: nextVal,
         status: "ACTIVE",
       });
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setValueInput((current) => ({ ...current, [groupId]: "" }));
       setValuePriceInput((current) => ({ ...current, [groupId]: "" }));
     } catch (cause) {
@@ -168,7 +162,7 @@ export default function AdminOptionsPage() {
         name: editingValue.name.trim(),
         status: editingValue.status,
       });
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setEditingValue(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to update option value.");
@@ -181,7 +175,7 @@ export default function AdminOptionsPage() {
     setIsSaving(true);
     try {
       await deleteCatalogOptionValue(valueId);
-      await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to delete option value.");
     } finally {
@@ -199,7 +193,9 @@ export default function AdminOptionsPage() {
           Tạo nhóm option
         </CasButton>
       </div>
-      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
+      {displayedError ? (
+        <p className="text-sm font-semibold text-cas-error">{displayedError}</p>
+      ) : null}
 
       {editingValue ? (
         <div

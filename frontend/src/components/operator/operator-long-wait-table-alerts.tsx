@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { loadLongWaitTables, type LongWaitTable } from "../../lib/api/ordering/preparation.api";
+import { useOperatorLongWaitTablesQuery } from "../../lib/api/ordering/preparation.query";
 import { CasIcon } from "../ui/cas-icon";
 
 function formatTime(value: string) {
@@ -12,33 +10,7 @@ function formatTime(value: string) {
 }
 
 export function OperatorLongWaitTableAlerts() {
-  const [tables, setTables] = useState<LongWaitTable[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const response = await loadLongWaitTables();
-        if (active) {
-          setTables(response);
-          setError(null);
-        }
-      } catch (cause) {
-        if (active)
-          setError(cause instanceof Error ? cause.message : "Không thể tải cảnh báo bàn chờ lâu.");
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    }
-    void load();
-    const timer = window.setInterval(() => void load(), 30_000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, []);
+  const { data: tables = [], error, isLoading } = useOperatorLongWaitTablesQuery();
 
   const threshold = tables[0]?.thresholdMinutes;
   return (
@@ -69,7 +41,7 @@ export function OperatorLongWaitTableAlerts() {
         <p className="mt-4 text-sm text-cas-on-surface-variant">Đang tải cảnh báo…</p>
       ) : error ? (
         <p className="mt-4 text-sm text-cas-error" role="alert">
-          {error}
+          {error.message}
         </p>
       ) : tables.length === 0 ? (
         <p className="mt-4 rounded-xl border border-cas-outline-variant/25 bg-cas-glass p-4 text-sm text-cas-on-surface-variant">

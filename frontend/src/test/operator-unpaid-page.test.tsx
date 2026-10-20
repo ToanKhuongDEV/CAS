@@ -8,6 +8,7 @@ import {
   recordOperatorUnpaid,
 } from "../lib/api/payment/payment.api";
 import { OperatorUnpaidView } from "../components/operator/operator-unpaid-view";
+import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 
 vi.mock("../lib/api/payment/payment.api", () => ({
@@ -51,9 +52,11 @@ describe("OperatorUnpaidView", () => {
 
   const renderUnpaidView = () =>
     render(
-      <ToastProvider>
-        <OperatorUnpaidView />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorUnpaidView />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
   it("loads unpaid records from the API and opens the immutable bill snapshot", async () => {

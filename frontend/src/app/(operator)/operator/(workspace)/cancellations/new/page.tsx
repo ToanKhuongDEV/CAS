@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CasIcon } from "../../../../../../components/ui/cas-icon";
 import { CasButton } from "../../../../../../components/ui/cas-button";
 import { createOperatorIncidentCancellation } from "../../../../../../lib/api/ordering/cancellation.api";
-import { loadPreparationGroups } from "../../../../../../lib/api/ordering/preparation.api";
+import { useOperatorPreparationGroupsQuery } from "../../../../../../lib/api/ordering/preparation.query";
 
 type TableOrderItem = {
   id: string;
@@ -26,39 +26,32 @@ export default function IncidentCancellationPage() {
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [reason, setReason] = useState("Đổ/bể trong lúc phục vụ");
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [tableOrders, setTableOrders] = useState<Record<string, TableOrderItem[]>>({});
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void loadPreparationGroups()
-      .then((groups) => {
-        const next: Record<string, TableOrderItem[]> = {};
-        for (const group of groups) {
-          for (const allocation of group.allocations) {
-            const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
-            next[table] ??= [];
-            next[table].push({
-              id: allocation.orderItemId,
-              name: group.itemName,
-              unitPrice: 0,
-              quantity: allocation.remainingQuantity,
-              options: group.options.map((option) => ({
-                name: `${option.groupName}: ${option.optionName}`,
-                price: 0,
-              })),
-            });
-          }
-        }
-        setTableOrders(next);
-        setLoadError(null);
-      })
-      .catch((cause) => {
-        setTableOrders({});
-        setLoadError(cause instanceof Error ? cause.message : "Không thể tải các món cần xử lý.");
-      })
-      .finally(() => setIsLoadingOrders(false));
-  }, []);
+  const {
+    data: groups = [],
+    error: preparationError,
+    isLoading: isLoadingOrders,
+  } = useOperatorPreparationGroupsQuery();
+  const tableOrders = useMemo(() => {
+    const next: Record<string, TableOrderItem[]> = {};
+    for (const group of groups) {
+      for (const allocation of group.allocations) {
+        const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
+        next[table] ??= [];
+        next[table].push({
+          id: allocation.orderItemId,
+          name: group.itemName,
+          unitPrice: 0,
+          quantity: allocation.remainingQuantity,
+          options: group.options.map((option) => ({
+            name: `${option.groupName}: ${option.optionName}`,
+            price: 0,
+          })),
+        });
+      }
+    }
+    return next;
+  }, [groups]);
+  const loadError = preparationError?.message ?? null;
 
   const handleTableChange = (tableName: string) => {
     setSelectedTable(tableName);

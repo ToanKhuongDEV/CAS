@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AdminDashboardPage from "../app/admin/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { loadAdminDashboard } from "../lib/api/operation/admin-dashboard.api";
 
 vi.mock("../lib/api/operation/admin-dashboard.api", () => ({ loadAdminDashboard: vi.fn() }));
@@ -21,7 +22,11 @@ describe("AdminDashboardPage", () => {
       },
     });
 
-    render(<AdminDashboardPage />);
+    render(
+      <QueryProvider>
+        <AdminDashboardPage />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByText("120.000 ₫")).toBeInTheDocument();
     expect(loadAdminDashboard).toHaveBeenCalled();

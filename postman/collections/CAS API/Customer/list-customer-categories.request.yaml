@@ -1,5 +1,0 @@
-$kind: http-request
-name: Customer list categories
-url: "{{baseUrl}}/api/v1/customer/catalog/categories"
-method: GET
-order: 25000

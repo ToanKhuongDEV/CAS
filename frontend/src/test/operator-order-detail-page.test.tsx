@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { OperatorOrderDetailView } from "../components/operator/operator-order-detail-view";
+import { QueryProvider } from "../components/providers/query-provider";
 import { loadOperatorOrderDetail } from "../lib/api/ordering/ordering.api";
 
 vi.mock("../lib/api/ordering/ordering.api", () => ({ loadOperatorOrderDetail: vi.fn() }));
@@ -44,7 +45,11 @@ describe("OperatorOrderDetailView", () => {
       },
     });
 
-    render(<OperatorOrderDetailView orderId="order-1" />);
+    render(
+      <QueryProvider>
+        <OperatorOrderDetailView orderId="order-1" />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByRole("heading", { name: "Đơn của Bàn 03" })).toBeInTheDocument();
     expect(loadOperatorOrderDetail).toHaveBeenCalledWith("order-1");

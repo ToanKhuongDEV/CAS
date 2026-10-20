@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AdminIncidentsPage from "../app/admin/incidents/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { loadAdminOperationalIncidents } from "../lib/api/operation/operational-incidents.api";
 
 vi.mock("../lib/api/operation/operational-incidents.api", () => ({
@@ -19,7 +20,11 @@ describe("AdminIncidentsPage", () => {
       },
     ]);
 
-    render(<AdminIncidentsPage />);
+    render(
+      <QueryProvider>
+        <AdminIncidentsPage />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByText("Máy in bếp bị kẹt giấy.")).toBeInTheDocument();
     expect(screen.getByText("Người báo cáo: Nguyễn Văn A")).toBeInTheDocument();

@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   cancelOperatorServiceBooking,
   confirmOperatorServiceBooking,
   createOperatorServiceBooking,
-  loadOperatorServiceBookings,
   requestOperatorServiceBookingPayment,
   type ServiceBooking as ApiServiceBooking,
   updateOperatorServiceBooking,
 } from "../../lib/api/operation/service-bookings.api";
+import {
+  operatorServiceBookingsQueryKey,
+  useOperatorServiceBookingsQuery,
+} from "../../lib/api/operation/service-bookings.query";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
@@ -89,8 +93,10 @@ export function OperatorServiceBookingsView({
   mode?: "admin" | "operator";
 }) {
   const { showToast } = useToast();
-  const [bookings, setBookings] = useState<ServiceBooking[]>([]);
-  const [clients, setClients] = useState<ClientAccount[]>([]);
+  const queryClient = useQueryClient();
+  const { data: apiBookings = [], error } = useOperatorServiceBookingsQuery();
+  const bookings = apiBookings.map(bookingFromApi);
+  const clients = apiBookings.map(clientFromApi);
   const [filter, setFilter] = useState<"ALL" | PaymentStatus>("ALL");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<ServiceBooking | null>(null);
@@ -108,18 +114,13 @@ export function OperatorServiceBookingsView({
   >({});
 
   useEffect(() => {
-    loadOperatorServiceBookings()
-      .then((items) => {
-        setBookings(items.map(bookingFromApi));
-        setClients(items.map(clientFromApi));
-      })
-      .catch((error: unknown) => {
-        showToast({
-          message: error instanceof Error ? error.message : "Không thể tải dịch vụ đặt trước.",
-          type: "error",
-        });
-      });
-  }, [showToast]);
+    if (!error) return;
+
+    showToast({
+      message: error instanceof Error ? error.message : "Không thể tải dịch vụ đặt trước.",
+      type: "error",
+    });
+  }, [error, showToast]);
 
   const visibleBookings = bookings.filter(
     (booking) => filter === "ALL" || booking.paymentStatus === filter,
@@ -175,31 +176,24 @@ export function OperatorServiceBookingsView({
 
     setIsSaving(true);
     try {
-      const saved = bookingToEdit
-        ? await updateOperatorServiceBooking(bookingToEdit.id, {
-            clientName: clientName.trim(),
-            serviceName: serviceName.trim(),
-            note: note.trim() || null,
-            agreedPrice: price,
-          })
-        : await createOperatorServiceBooking({
-            clientName: clientName.trim(),
-            clientPhone: normalizedPhone,
-            serviceName: serviceName.trim(),
-            note: note.trim() || null,
-            agreedPrice: price,
-            paymentStatus,
-          });
-      const booking = bookingFromApi(saved);
-      setBookings((previous) =>
-        bookingToEdit
-          ? previous.map((item) => (item.id === booking.id ? booking : item))
-          : [booking, ...previous],
-      );
-      setClients((previous) => [
-        clientFromApi(saved),
-        ...previous.filter((item) => item.id !== booking.id),
-      ]);
+      if (bookingToEdit) {
+        await updateOperatorServiceBooking(bookingToEdit.id, {
+          clientName: clientName.trim(),
+          serviceName: serviceName.trim(),
+          note: note.trim() || null,
+          agreedPrice: price,
+        });
+      } else {
+        await createOperatorServiceBooking({
+          clientName: clientName.trim(),
+          clientPhone: normalizedPhone,
+          serviceName: serviceName.trim(),
+          note: note.trim() || null,
+          agreedPrice: price,
+          paymentStatus,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
       setFilter("ALL");
       setClientName("");
       setClientPhone("");
@@ -255,13 +249,8 @@ export function OperatorServiceBookingsView({
 
     setIsSaving(true);
     try {
-      const saved = await confirmOperatorServiceBooking(bookingId);
-      const updated = bookingFromApi(saved);
-      setBookings((previous) => previous.map((item) => (item.id === bookingId ? updated : item)));
-      setClients((previous) => [
-        clientFromApi(saved),
-        ...previous.filter((item) => item.id !== bookingId),
-      ]);
+      await confirmOperatorServiceBooking(bookingId);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
       setBookingToConfirm(null);
       showToast({ message: "Đã xác nhận thanh toán dịch vụ.", type: "success" });
     } catch (error) {
@@ -283,14 +272,9 @@ export function OperatorServiceBookingsView({
 
     setIsSaving(true);
     try {
-      const saved = await requestOperatorServiceBookingPayment(booking.id);
-      const updated = bookingFromApi(saved);
-      setBookings((previous) => previous.map((item) => (item.id === booking.id ? updated : item)));
-      setClients((previous) => [
-        clientFromApi(saved),
-        ...previous.filter((item) => item.id !== booking.id),
-      ]);
-      setBookingToConfirm(updated);
+      await requestOperatorServiceBookingPayment(booking.id);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
+      setBookingToConfirm({ ...booking, paymentStatus: "PENDING" });
     } catch (error) {
       showToast({
         message: error instanceof Error ? error.message : "Không thể bắt đầu xác nhận thanh toán.",
@@ -307,13 +291,8 @@ export function OperatorServiceBookingsView({
 
     setIsSaving(true);
     try {
-      const saved = await cancelOperatorServiceBooking(bookingId);
-      const updated = bookingFromApi(saved);
-      setBookings((previous) => previous.map((item) => (item.id === bookingId ? updated : item)));
-      setClients((previous) => [
-        clientFromApi(saved),
-        ...previous.filter((item) => item.id !== bookingId),
-      ]);
+      await cancelOperatorServiceBooking(bookingId);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
       setBookingToCancel(null);
       showToast({ message: "Đã hủy dịch vụ đặt trước.", type: "success" });
     } catch (error) {

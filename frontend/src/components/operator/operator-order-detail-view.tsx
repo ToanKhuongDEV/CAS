@@ -1,42 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-import {
-  loadOperatorOrderDetail,
-  type OperatorOrderDetail,
-} from "../../lib/api/ordering/ordering.api";
+import { useOperatorOrderDetailQuery } from "../../lib/api/ordering/ordering.query";
 import { CasIcon } from "../ui/cas-icon";
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 
 export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
-  const [detail, setDetail] = useState<OperatorOrderDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void loadOperatorOrderDetail(orderId)
-      .then((value) => {
-        if (!active) return;
-        setDetail(value);
-        setError(null);
-      })
-      .catch((cause) => {
-        if (active)
-          setError(cause instanceof Error ? cause.message : "Không thể tải chi tiết order.");
-      });
-    return () => {
-      active = false;
-    };
-  }, [orderId]);
+  const { data: detail, error } = useOperatorOrderDetailQuery(orderId);
 
   if (error) {
     return (
       <section className="rounded-2xl border border-cas-error/25 bg-cas-error-container/20 p-5">
         <p className="font-extrabold text-cas-error">Không thể mở chi tiết order</p>
-        <p className="mt-1 text-sm text-cas-on-surface-variant">{error}</p>
+        <p className="mt-1 text-sm text-cas-on-surface-variant">{error.message}</p>
         <Link
           className="mt-4 inline-flex text-sm font-extrabold text-cas-primary"
           href="/operator/orders"

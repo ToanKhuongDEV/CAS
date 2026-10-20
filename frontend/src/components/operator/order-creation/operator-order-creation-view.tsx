@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
 import {
@@ -16,13 +17,16 @@ import {
 import { CasIcon } from "../../ui/cas-icon";
 import { CasButton } from "../../ui/cas-button";
 import { useToast } from "../../ui/toast-provider";
-import { loadOperatorCatalog } from "../../../lib/api/catalog/published-catalog.api";
+import { useOperatorCatalogQuery } from "../../../lib/api/catalog/catalog.query";
 import {
   cancelOperatorSalesSession,
   createOperatorOrder,
-  loadOperatorTables,
   openOperatorSalesSession,
 } from "../../../lib/api/ordering/ordering.api";
+import {
+  operatorTablesQueryKey,
+  useOperatorTablesQuery,
+} from "../../../lib/api/ordering/ordering.query";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -318,11 +322,68 @@ export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
   const { showToast } = useToast();
-  const [catalogCategories, setCatalogCategories] = useState<typeof categories>([]);
-  const [catalogItems, setCatalogItems] = useState<MenuItemData[]>([]);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: catalogQueryError } = useOperatorCatalogQuery();
+  const { data: tables = [] } = useOperatorTablesQuery();
+  const catalogError = catalogQueryError?.message ?? null;
+  const catalogCategories = useMemo(
+    () =>
+      (catalog?.categories ?? []).map((category) => ({
+        id: String(category.id),
+        label: category.name,
+      })),
+    [catalog],
+  );
+  const catalogItems = useMemo(() => {
+    const optionGroupsById = new Map(
+      (catalog?.optionGroups ?? []).map((group) => [group.id, group]),
+    );
+    return (catalog?.items ?? []).map((item) => ({
+      availabilityStatus: item.availabilityStatus,
+      badges: (item.tags ?? []).map((tag) => tag.name),
+      basePrice: item.price,
+      categoryId: String(item.categoryId),
+      description: item.description ?? "",
+      id: item.id,
+      imageAlt: item.name,
+      imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+      name: item.name,
+      optionGroups: (item.optionGroups ?? []).map((group) => {
+        const optionGroup = optionGroupsById.get(group.id);
+        return {
+          id: String(group.id),
+          label: group.name,
+          maxSelect: optionGroup?.maxSelect,
+          minSelect: optionGroup?.minSelect,
+          options: (optionGroup?.values ?? []).map((value) => ({
+            id: String(value.id),
+            isDefault: value.isDefault,
+            label: value.name,
+            priceDelta: value.extraPrice,
+          })),
+          selectionType: optionGroup?.selectionType ?? "SINGLE",
+        };
+      }),
+      price: formatPrice(item.price),
+    }));
+  }, [catalog]);
+  const operatorTables = useMemo<TableOption[]>(
+    () =>
+      tables.map((table) => ({
+        activeOrdersCount: 0,
+        code: String(table.tableCode).padStart(2, "0"),
+        id: String(table.tableId),
+        label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
+        sessions: table.sessions,
+        status: table.sessions.some((session) => session.status === "OPEN")
+          ? "OPEN"
+          : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
+            ? "PAYMENT_PENDING"
+            : "EMPTY",
+      })),
+    [tables],
+  );
   const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
-  const [operatorTables, setOperatorTables] = useState<TableOption[]>([]);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [sessionSelectionTable, setSessionSelectionTable] = useState<TableOption | null>(null);
@@ -340,87 +401,21 @@ export function OperatorOrderCreationView({
   const [isCancellingSession, setIsCancellingSession] = useState(false);
 
   useEffect(() => {
-    void loadOperatorCatalog()
-      .then((catalog) => {
-        const optionGroupsById = new Map(catalog.optionGroups.map((group) => [group.id, group]));
-        setCatalogError(null);
-        setCatalogCategories(
-          catalog.categories.map((category) => ({
-            id: String(category.id),
-            label: category.name,
-          })),
-        );
-        setCatalogItems(
-          catalog.items.map((item) => ({
-            availabilityStatus: item.availabilityStatus,
-            badges: (item.tags ?? []).map((tag) => tag.name),
-            basePrice: item.price,
-            categoryId: String(item.categoryId),
-            description: item.description ?? "",
-            id: item.id,
-            imageAlt: item.name,
-            imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
-            name: item.name,
-            optionGroups: (item.optionGroups ?? []).map((group) => {
-              const optionGroup = optionGroupsById.get(group.id);
-              return {
-                id: String(group.id),
-                label: group.name,
-                maxSelect: optionGroup?.maxSelect,
-                minSelect: optionGroup?.minSelect,
-                options: (optionGroup?.values ?? []).map((value) => ({
-                  id: String(value.id),
-                  isDefault: value.isDefault,
-                  label: value.name,
-                  priceDelta: value.extraPrice,
-                })),
-                selectionType: optionGroup?.selectionType ?? "SINGLE",
-              };
-            }),
-            price: formatPrice(item.price),
-          })),
-        );
-      })
-      .catch((cause) =>
-        setCatalogError(
-          cause instanceof Error ? cause.message : "Không thể tải thực đơn cho nhân viên.",
-        ),
-      );
-  }, []);
-
-  useEffect(() => {
-    void loadOperatorTables()
-      .then((tables) => {
-        const mapped: TableOption[] = tables.map((table) => ({
-          activeOrdersCount: 0,
-          code: String(table.tableCode).padStart(2, "0"),
-          id: String(table.tableId),
-          label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
-          sessions: table.sessions,
-          status: table.sessions.some((session) => session.status === "OPEN")
-            ? "OPEN"
-            : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
-              ? "PAYMENT_PENDING"
-              : "EMPTY",
-        }));
-        setOperatorTables(mapped);
-        const selected =
-          mapped.find((table) => table.id === defaultTableId) ??
-          mapped.find((table) => table.status === "OPEN") ??
-          mapped[0];
-        const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
-        if (selected && selectedSession) {
-          setSelectedTable({
-            ...selected,
-            customerName: selectedSession.customerName,
-            label: `${selected.label} · ${selectedSession.customerName}`,
-            sessionPublicId: selectedSession.sessionId,
-            status: selectedSession.status,
-          });
-        } else if (selected) setSelectedTable(selected);
-      })
-      .catch(() => undefined);
-  }, []);
+    const selected =
+      operatorTables.find((table) => table.id === defaultTableId) ??
+      operatorTables.find((table) => table.status === "OPEN") ??
+      operatorTables[0];
+    const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
+    if (selected && selectedSession) {
+      setSelectedTable({
+        ...selected,
+        customerName: selectedSession.customerName,
+        label: `${selected.label} · ${selectedSession.customerName}`,
+        sessionPublicId: selectedSession.sessionId,
+        status: selectedSession.status,
+      });
+    } else if (selected) setSelectedTable(selected);
+  }, [defaultTableId, operatorTables]);
 
   const filteredMenuItems = useMemo(() => {
     if (!searchQuery.trim()) return catalogItems;
@@ -528,6 +523,7 @@ export function OperatorOrderCreationView({
       setCartItems([]);
       setOrderNote("");
       setIsMobileDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
       showToast({ type: "success", message: "Đã gửi món xuống bếp." });
     } catch (cause) {
       showToast({
@@ -544,25 +540,7 @@ export function OperatorOrderCreationView({
     setIsCancellingSession(true);
     try {
       await cancelOperatorSalesSession(selectedTable.sessionPublicId);
-      setOperatorTables((current) =>
-        current.map((table) =>
-          table.id === selectedTable.id
-            ? {
-                ...table,
-                sessions: (table.sessions ?? []).filter(
-                  (session) => session.sessionId !== selectedTable.sessionPublicId,
-                ),
-                status: (table.sessions ?? []).some(
-                  (session) =>
-                    session.sessionId !== selectedTable.sessionPublicId &&
-                    session.status === "OPEN",
-                )
-                  ? "OPEN"
-                  : "EMPTY",
-              }
-            : table,
-        ),
-      );
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
       setSelectedTable(unselectedTable);
       setCartItems([]);
       setOrderNote("");
@@ -1020,17 +998,7 @@ export function OperatorOrderCreationView({
                         status: "OPEN" as const,
                       };
                       setSelectedTable(openedTable);
-                      setOperatorTables((current) =>
-                        current.map((table) =>
-                          table.id === openedTable.id
-                            ? {
-                                ...table,
-                                sessions: openedTable.sessions,
-                                status: "OPEN" as const,
-                              }
-                            : table,
-                        ),
-                      );
+                      void queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
                       setNewlyOpenedTableIds((current) => [...current, openedTable.id]);
                       setIsCustomerInformationFormOpen(false);
                       setPendingSessionTable(null);

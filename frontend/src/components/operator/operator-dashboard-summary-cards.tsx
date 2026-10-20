@@ -1,37 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import {
-  loadOperatorDashboardSummary,
-  type OperatorDashboardSummary,
-} from "../../lib/api/operation/operator-dashboard.api";
-
-const refreshIntervalMs = 10_000;
+import { useOperatorDashboardSummaryQuery } from "../../lib/api/operation/operation.query";
 
 export function OperatorDashboardSummaryCards() {
-  const [summary, setSummary] = useState<OperatorDashboardSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const value = await loadOperatorDashboardSummary();
-        if (!active) return;
-        setSummary(value);
-        setError(null);
-      } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : "Không thể tải tổng quan.");
-      }
-    }
-    void load();
-    const timer = window.setInterval(() => void load(), refreshIntervalMs);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, []);
+  const { data: summary, error } = useOperatorDashboardSummaryQuery();
 
   const cards = [
     { label: "Lượt gọi món hôm nay", value: summary?.ordersToday ?? "—" },
@@ -61,7 +33,9 @@ export function OperatorDashboardSummaryCards() {
           </p>
         </article>
       ))}
-      {error ? <p className="text-sm font-bold text-cas-error md:col-span-3">{error}</p> : null}
+      {error ? (
+        <p className="text-sm font-bold text-cas-error md:col-span-3">{error.message}</p>
+      ) : null}
     </section>
   );
 }

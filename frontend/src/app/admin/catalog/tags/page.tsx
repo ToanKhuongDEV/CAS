@@ -1,33 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../../components/ui/cas-button";
 import {
   createCatalogTag,
   deleteCatalogTag,
-  loadAdminCatalog,
   updateCatalogTag,
   type CatalogTag,
 } from "../../../../lib/api/catalog/catalog.api";
+import {
+  adminCatalogQueryKey,
+  useAdminCatalogQuery,
+} from "../../../../lib/api/catalog/catalog.query";
 
 export default function AdminTagsPage() {
-  const [tags, setTags] = useState<CatalogTag[]>([]);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: queryError } = useAdminCatalogQuery();
+  const tags = catalog?.tags ?? [];
   const [newTag, setNewTag] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const refreshTags = useCallback(async () => {
-    try {
-      const data = await loadAdminCatalog();
-      setTags(data.tags);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load tags.");
-    }
-  }, []);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => void refreshTags(), 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [refreshTags]);
+  const displayedError = error ?? queryError?.message ?? null;
 
   const addTag = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -35,7 +29,7 @@ export default function AdminTagsPage() {
       setIsSaving(true);
       try {
         await createCatalogTag({ name: newTag.trim(), status: "ACTIVE" });
-        await refreshTags();
+        await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
         setNewTag("");
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Unable to create tag.");
@@ -52,7 +46,7 @@ export default function AdminTagsPage() {
         name: tag.name,
         status: tag.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
       });
-      await refreshTags();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to update tag.");
     } finally {
@@ -64,7 +58,7 @@ export default function AdminTagsPage() {
     setIsSaving(true);
     try {
       await deleteCatalogTag(tag.id);
-      await refreshTags();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to delete tag.");
     } finally {
@@ -76,7 +70,9 @@ export default function AdminTagsPage() {
       <div>
         <h1 className="text-2xl font-black text-cas-on-surface">Nhãn món</h1>
       </div>
-      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
+      {displayedError ? (
+        <p className="text-sm font-semibold text-cas-error">{displayedError}</p>
+      ) : null}
       <form
         onSubmit={addTag}
         className="flex flex-wrap gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4"

@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { Pagination } from "../../../components/ui/pagination";
+import { type CustomerPage } from "../../../lib/api/operation/admin-lookup.api";
 import {
-  loadCustomer,
-  loadCustomers,
-  type CustomerDetail,
-  type CustomerPage,
-  type CustomerSummary,
-} from "../../../lib/api/operation/admin-lookup.api";
+  useAdminCustomerQuery,
+  useAdminCustomersQuery,
+} from "../../../lib/api/operation/operation.query";
 
 const customerPageSize = 10;
 const sessionStatusLabels: Record<string, string> = {
@@ -35,41 +33,27 @@ const date = (value: string | null) =>
 
 export default function AdminCustomersPage() {
   const [query, setQuery] = useState("");
-  const [customerPage, setCustomerPage] = useState<CustomerPage>({
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const emptyCustomerPage: CustomerPage = {
     items: [],
     page: 0,
     size: customerPageSize,
     total: 0,
-  });
-  const [page, setPage] = useState(0);
-  const [detail, setDetail] = useState<CustomerDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  async function refresh(nextQuery = query, nextPage = page) {
-    setLoading(true);
-    try {
-      setCustomerPage(
-        await loadCustomers({ page: nextPage, query: nextQuery, size: customerPageSize }),
-      );
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể tải khách hàng.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  };
+  const {
+    data: customerPage = emptyCustomerPage,
+    error: customersError,
+    isLoading,
+  } = useAdminCustomersQuery(page, debouncedQuery, customerPageSize);
+  const { data: detail, error: detailError } = useAdminCustomerQuery(selectedCustomerId);
   useEffect(() => {
-    const timer = window.setTimeout(() => void refresh(query), 250);
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
     return () => window.clearTimeout(timer);
-  }, [page, query]);
-  async function open(id: number) {
-    try {
-      setDetail(await loadCustomer(id));
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể tải chi tiết khách hàng.");
-    }
-  }
+  }, [query]);
+  const error = customersError ?? detailError;
+  const errorMessage = error instanceof Error ? error.message : null;
   return (
     <div className="space-y-6">
       <header>
@@ -85,7 +69,7 @@ export default function AdminCustomersPage() {
         placeholder="Tìm theo tên hoặc số điện thoại"
         type="search"
       />
-      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+      {errorMessage ? <p className="text-sm font-bold text-cas-error">{errorMessage}</p> : null}
       <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
         <table className="w-full text-left text-sm">
           <thead>
@@ -105,7 +89,11 @@ export default function AdminCustomersPage() {
                 <td className="p-4">{item.sessionCount}</td>
                 <td className="p-4">{date(item.lastVisitedAt)}</td>
                 <td className="p-4">
-                  <CasButton size="sm" variant="outline" onClick={() => void open(item.id)}>
+                  <CasButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedCustomerId(item.id)}
+                  >
                     Xem chi tiết
                   </CasButton>
                 </td>
@@ -113,7 +101,7 @@ export default function AdminCustomersPage() {
             ))}
           </tbody>
         </table>
-        {loading ? (
+        {isLoading ? (
           <p className="p-5 text-sm text-cas-on-surface-variant">Đang tải...</p>
         ) : customerPage.items.length === 0 ? (
           <p className="p-5 text-sm text-cas-on-surface-variant">Không có khách hàng phù hợp.</p>
@@ -133,7 +121,7 @@ export default function AdminCustomersPage() {
                 <h2 className="text-xl font-black">{detail.displayName}</h2>
                 <p className="text-sm text-cas-on-surface-variant">{detail.phone ?? "Khách lẻ"}</p>
               </div>
-              <CasButton size="sm" variant="outline" onClick={() => setDetail(null)}>
+              <CasButton size="sm" variant="outline" onClick={() => setSelectedCustomerId(null)}>
                 Đóng
               </CasButton>
             </div>

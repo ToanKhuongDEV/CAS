@@ -1,18 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
 import {
   createCatalogCategory,
   deleteCatalogCategory,
-  loadAdminCatalog,
   updateCatalogCategory,
   type CatalogCategory,
 } from "../../../../lib/api/catalog/catalog.api";
+import {
+  adminCatalogQueryKey,
+  useAdminCatalogQuery,
+} from "../../../../lib/api/catalog/catalog.query";
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: queryError } = useAdminCatalogQuery();
+  const categories = (catalog?.categories ?? []).filter(
+    (category) => category.categoryType === "REGULAR",
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CatalogCategory | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogCategory | null>(null);
@@ -27,19 +35,7 @@ export default function AdminCategoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const refreshCategories = useCallback(async () => {
-    try {
-      const data = await loadAdminCatalog();
-      setCategories(data.categories.filter((category) => category.categoryType === "REGULAR"));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load categories.");
-    }
-  }, []);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => void refreshCategories(), 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [refreshCategories]);
+  const displayedError = error ?? queryError?.message ?? null;
 
   const addCategory = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -53,7 +49,7 @@ export default function AdminCategoriesPage() {
         name: name.trim(),
         status,
       });
-      await refreshCategories();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setName("");
       setDescription("");
       setDisplayOrder(categories.length + 1);
@@ -78,7 +74,7 @@ export default function AdminCategoriesPage() {
         name: editName.trim(),
         status: editStatus,
       });
-      await refreshCategories();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setEditingCategory(null);
       setEditName("");
       setEditDescription("");
@@ -94,7 +90,7 @@ export default function AdminCategoriesPage() {
     setIsSaving(true);
     try {
       await deleteCatalogCategory(deleteTarget.id);
-      await refreshCategories();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setDeleteTarget(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to delete category.");
@@ -111,7 +107,7 @@ export default function AdminCategoriesPage() {
         description: category.description ?? "",
         status: category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
       });
-      await refreshCategories();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to update category.");
     } finally {
@@ -129,7 +125,9 @@ export default function AdminCategoriesPage() {
           Thêm danh mục mới
         </CasButton>
       </div>
-      {error ? <p className="text-sm font-semibold text-cas-error">{error}</p> : null}
+      {displayedError ? (
+        <p className="text-sm font-semibold text-cas-error">{displayedError}</p>
+      ) : null}
 
       {/* Modal Tạo danh mục mới */}
       {showAddForm && (

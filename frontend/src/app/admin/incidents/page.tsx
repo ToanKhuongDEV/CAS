@@ -1,11 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import {
-  loadAdminOperationalIncidents,
-  type OperationalIncident,
-} from "../../../lib/api/operation/operational-incidents.api";
+import { useAdminOperationalIncidentsQuery } from "../../../lib/api/operation/operation.query";
 
 const displayTime = (value: string) =>
   new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(
@@ -13,21 +8,7 @@ const displayTime = (value: string) =>
   );
 
 export default function AdminIncidentsPage() {
-  const [incidents, setIncidents] = useState<OperationalIncident[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    void loadAdminOperationalIncidents()
-      .then((value) => {
-        setIncidents(value);
-        setError(null);
-      })
-      .catch((cause) => {
-        setError(cause instanceof Error ? cause.message : "Không thể tải báo cáo sự cố.");
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+  const { data: incidents = [], error, isLoading } = useAdminOperationalIncidentsQuery();
 
   return (
     <div className="space-y-6">
@@ -40,7 +21,7 @@ export default function AdminIncidentsPage() {
       {isLoading ? (
         <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo sự cố...</p>
       ) : null}
-      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+      {error ? <p className="text-sm font-bold text-cas-error">{error.message}</p> : null}
       {!isLoading && !error && incidents.length === 0 ? (
         <p className="text-sm text-cas-on-surface-variant">Chưa có báo cáo sự cố nào.</p>
       ) : null}

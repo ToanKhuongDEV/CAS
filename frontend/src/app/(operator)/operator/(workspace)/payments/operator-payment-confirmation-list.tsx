@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
@@ -10,11 +10,15 @@ import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
-  loadOperatorPaidTodayPayments,
-  loadOperatorPayments,
   operatorPendingPaymentCountQueryKey,
   type Payment,
 } from "../../../../../lib/api/payment/payment.api";
+import {
+  operatorPaidTodayPaymentsQueryKey,
+  operatorPaymentsQueryKey,
+  useOperatorPaidTodayPaymentsQuery,
+  useOperatorPaymentsQuery,
+} from "../../../../../lib/api/payment/payment.query";
 import { loadPublicStore } from "../../../../../lib/api/store/public-store.api";
 import type { StoreSettings } from "../../../../../lib/api/store/store-settings.api";
 
@@ -138,57 +142,18 @@ export function OperatorPaymentConfirmationList({
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<PaymentListMode>("PENDING");
-  const [payments, setPayments] = useState<OperatorPayment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [showPaymentControl, setShowPaymentControl] = useState(false);
-  const [paymentRefreshKey, setPaymentRefreshKey] = useState(0);
-  const paymentLoads = useRef<Partial<Record<PaymentListMode, Promise<Payment[]>>>>({});
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
-
-    async function load() {
-      const request =
-        paymentLoads.current[mode] ??
-        (mode === "PENDING" ? loadOperatorPayments() : loadOperatorPaidTodayPayments());
-      paymentLoads.current[mode] = request;
-      try {
-        const items = await request;
-        if (!isActive) return;
-        setPayments(items.map(toOperatorPayment));
-        setLoadError(null);
-      } catch (error) {
-        if (!isActive) return;
-        setLoadError(
-          error instanceof Error ? error.message : "Không thể tải payment chờ xác nhận.",
-        );
-      } finally {
-        if (isActive) setIsLoading(false);
-        if (paymentLoads.current[mode] === request) delete paymentLoads.current[mode];
-      }
-    }
-
-    function refreshWhenVisible() {
-      if (!document.hidden) void load();
-    }
-
-    void load();
-    const timer =
-      mode === "PENDING" ? window.setInterval(() => void load(), pollIntervalMs) : undefined;
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-    return () => {
-      isActive = false;
-      if (timer !== undefined) window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-    };
-  }, [mode, paymentRefreshKey, pollIntervalMs]);
+  const pendingPayments = useOperatorPaymentsQuery(pollIntervalMs, mode === "PENDING");
+  const paidPayments = useOperatorPaidTodayPaymentsQuery(mode === "PAID");
+  const activePaymentQuery = mode === "PENDING" ? pendingPayments : paidPayments;
+  const payments = (activePaymentQuery.data ?? []).map(toOperatorPayment);
+  const isLoading = activePaymentQuery.isLoading;
+  const loadError = activePaymentQuery.error?.message ?? null;
 
   useEffect(() => {
     let isActive = true;
@@ -241,9 +206,10 @@ export function OperatorPaymentConfirmationList({
     setIsConfirming(true);
     try {
       await confirmOperatorPayment(selectedPayment.id);
-      setPayments((currentPayments) =>
-        currentPayments.filter((payment) => payment.id !== selectedPayment.id),
-      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: operatorPaidTodayPaymentsQueryKey }),
+      ]);
       queryClient.setQueryData<number>(operatorPendingPaymentCountQueryKey, (currentCount) =>
         Math.max(0, (currentCount ?? 1) - 1),
       );
@@ -299,7 +265,7 @@ export function OperatorPaymentConfirmationList({
             onPaymentRequested={() => {
               setShowPaymentControl(false);
               setMode("PENDING");
-              setPaymentRefreshKey((current) => current + 1);
+              void queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey });
             }}
           />
         </div>

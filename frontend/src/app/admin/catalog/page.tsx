@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import {
   createCatalogMenuItem,
-  loadAdminCatalog,
   updateCatalogMenuItem,
   updateCatalogMenuItemStatuses,
   type CatalogCategory,
@@ -13,6 +13,7 @@ import {
   type CatalogTag,
   type SaveCatalogMenuItem,
 } from "../../../lib/api/catalog/catalog.api";
+import { adminCatalogQueryKey, useAdminCatalogQuery } from "../../../lib/api/catalog/catalog.query";
 import { uploadImage } from "../../../lib/api/catalog/cloudinary-upload";
 
 type MenuItem = {
@@ -63,12 +64,35 @@ function formatMoneyInput(value: string) {
 }
 
 export default function AdminCatalogPage() {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [optionGroups, setOptionGroups] = useState<CatalogOptionGroup[]>([]);
-  const [tags, setTags] = useState<CatalogTag[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: queryError, isLoading } = useAdminCatalogQuery();
+  const categories = (catalog?.categories ?? []).filter(
+    (category) => category.categoryType === "REGULAR",
+  );
+  const tags = catalog?.tags ?? [];
+  const optionGroups = catalog?.optionGroups ?? [];
+  const items = useMemo(
+    () =>
+      (catalog?.items ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        categoryId: item.categoryId,
+        category:
+          catalog?.categories.find((category) => category.id === item.categoryId)?.name ??
+          "Danh mục không xác định",
+        price: item.price,
+        status: item.availabilityStatus,
+        tags: item.tags?.map((tag) => tag.name) ?? [],
+        description: item.description ?? "",
+        createdAt: item.createdAt,
+        displayOrder: item.displayOrder,
+        optionGroups: item.optionGroups?.map((group) => group.name) ?? [],
+        imageSrc: item.imageUrl ?? "",
+        imageStorageKey: item.imageStorageKey ?? "",
+      })),
+    [catalog],
+  );
+  const loadError = queryError?.message ?? null;
   const [filterCat, setFilterCat] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
@@ -97,40 +121,6 @@ export default function AdminCatalogPage() {
   const tagDropdownRef = useRef<HTMLDivElement>(null);
   const optionGroupDropdownRef = useRef<HTMLDivElement>(null);
 
-  const refreshCatalog = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = await loadAdminCatalog();
-      setCategories(data.categories.filter((category) => category.categoryType === "REGULAR"));
-      setTags(data.tags);
-      setOptionGroups(data.optionGroups);
-      setItems(
-        data.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          categoryId: item.categoryId,
-          category:
-            data.categories.find((category) => category.id === item.categoryId)?.name ??
-            "Danh mục không xác định",
-          price: item.price,
-          status: item.availabilityStatus,
-          tags: item.tags?.map((tag) => tag.name) ?? [],
-          description: item.description ?? "",
-          createdAt: item.createdAt,
-          displayOrder: item.displayOrder,
-          optionGroups: item.optionGroups?.map((group) => group.name) ?? [],
-          imageSrc: item.imageUrl ?? "",
-          imageStorageKey: item.imageStorageKey ?? "",
-        })),
-      );
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Không thể tải dữ liệu thực đơn.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!tagDropdownRef.current?.contains(event.target as Node)) setIsTagDropdownOpen(false);
@@ -141,10 +131,6 @@ export default function AdminCatalogPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    void refreshCatalog();
-  }, [refreshCatalog]);
 
   const handleSelectItem = (id: number, checked: boolean) => {
     setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((itemId) => itemId !== id)));
@@ -170,7 +156,7 @@ export default function AdminCatalogPage() {
     setIsBulkUpdating(true);
     try {
       await updateCatalogMenuItemStatuses(selectedIds, bulkTargetStatus);
-      await refreshCatalog();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setBulkMessage({
         text: `Đã cập nhật trạng thái "${statusLabels[bulkTargetStatus]}" cho ${selectedIds.length} món`,
         type: "success",
@@ -287,7 +273,7 @@ export default function AdminCatalogPage() {
       if (modalMode === "edit" && selectedItem) {
         await updateCatalogMenuItem(selectedItem.id, payload);
       }
-      await refreshCatalog();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       closeModal();
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Không thể lưu món ăn.");
@@ -302,7 +288,7 @@ export default function AdminCatalogPage() {
     setIsSaving(true);
     try {
       await updateCatalogMenuItemStatuses([selectedItem.id], "INACTIVE");
-      await refreshCatalog();
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       closeModal();
     } catch (error) {
       setBulkMessage({
@@ -511,7 +497,9 @@ export default function AdminCatalogPage() {
                   <p className="text-cas-error">{loadError}</p>
                   <CasButton
                     className="mt-3"
-                    onClick={() => void refreshCatalog()}
+                    onClick={() =>
+                      void queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey })
+                    }
                     size="sm"
                     variant="outline-primary"
                   >

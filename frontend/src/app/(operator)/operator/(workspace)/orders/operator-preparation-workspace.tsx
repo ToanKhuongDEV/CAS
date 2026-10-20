@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import {
   completePreparationBatch,
   completePreparationTable,
-  loadPreparationGroups,
   type PreparationGroup,
 } from "../../../../../lib/api/ordering/preparation.api";
+import { useOperatorPreparationGroupsQuery } from "../../../../../lib/api/ordering/preparation.query";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { useToast } from "../../../../../components/ui/toast-provider";
 
@@ -101,33 +101,10 @@ function groupTableItemsByRequestedAt(items: TablePreparationItem[]) {
 
 export function OperatorPreparationWorkspace() {
   const { showToast } = useToast();
-  const [groups, setGroups] = useState<PreparationGroup[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
   const [submittingGroupKey, setSubmittingGroupKey] = useState<string | null>(null);
   const [submittingTableCode, setSubmittingTableCode] = useState<number | null>(null);
-
-  async function refreshGroups(showError = true) {
-    setIsLoading(true);
-    try {
-      setGroups(await loadPreparationGroups());
-    } catch (error) {
-      if (!showError) return;
-      showToast({
-        message:
-          error instanceof Error ? error.message : "Không thể tải danh sách món cần chế biến.",
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void refreshGroups();
-    const timer = window.setInterval(() => void refreshGroups(false), 10_000);
-    return () => window.clearInterval(timer);
-  }, [showToast]);
+  const { data: groups = [], isLoading, refetch } = useOperatorPreparationGroupsQuery(10_000);
 
   const totalRemainingQuantity = groups.reduce(
     (total, group) => total + group.remainingQuantity,
@@ -163,7 +140,7 @@ export function OperatorPreparationWorkspace() {
         message: `Đã ghi nhận ${completion.requestedQuantity} phần ${group.itemName} hoàn thành.`,
         type: "success",
       });
-      await refreshGroups();
+      await refetch();
     } catch (error) {
       showToast({
         message: error instanceof Error ? error.message : "Không thể ghi nhận hoàn thành món.",
@@ -182,7 +159,7 @@ export function OperatorPreparationWorkspace() {
         message: `Đã hoàn thành ${completion.completedQuantity} phần của ${table.table}.`,
         type: "success",
       });
-      await refreshGroups();
+      await refetch();
     } catch (error) {
       showToast({
         message: error instanceof Error ? error.message : "Không thể hoàn thành món của bàn.",

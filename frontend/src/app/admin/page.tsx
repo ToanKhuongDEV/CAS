@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,10 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
-import {
-  loadAdminDashboard,
-  type AdminDashboard,
-} from "../../lib/api/operation/admin-dashboard.api";
+import type { AdminDashboard } from "../../lib/api/operation/admin-dashboard.api";
+import { useAdminDashboardQuery } from "../../lib/api/operation/operation.query";
 
 type Period = "threeDays" | "oneWeek" | "oneMonth" | "custom";
 type ReportTab = "revenue" | "customers" | "menu" | "promotions";
@@ -39,39 +37,15 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
   const [startDate, setStartDate] = useState(() => rangeFor(7).from);
   const [endDate, setEndDate] = useState(() => rangeFor(7).to);
-  const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (startDate > endDate) {
-      setDashboard(null);
-      setError("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.");
-      setIsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setIsLoading(true);
-    void loadAdminDashboard(startDate, endDate)
-      .then((value) => {
-        if (!cancelled) {
-          setDashboard(value);
-          setError(null);
-        }
-      })
-      .catch((cause) => {
-        if (!cancelled) {
-          setDashboard(null);
-          setError(cause instanceof Error ? cause.message : "Không thể tải báo cáo hoạt động.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [startDate, endDate]);
+  const invalidRange = startDate > endDate;
+  const {
+    data: dashboard,
+    error: queryError,
+    isLoading,
+  } = useAdminDashboardQuery(startDate, endDate, !invalidRange);
+  const error = invalidRange
+    ? "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc."
+    : (queryError?.message ?? null);
 
   function selectPeriod(next: Period) {
     setPeriod(next);

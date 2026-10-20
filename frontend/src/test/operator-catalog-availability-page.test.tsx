@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OperatorCatalogAvailabilityView } from "../components/operator/operator-catalog-availability-view";
+import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import {
   loadOperatorCatalog,
@@ -15,11 +16,31 @@ vi.mock("../lib/api/catalog/published-catalog.api", () => ({
 
 describe("OperatorCatalogAvailabilityView", () => {
   beforeEach(() => {
-    vi.mocked(loadOperatorCatalog).mockResolvedValue({
+    vi.mocked(loadOperatorCatalog).mockResolvedValueOnce({
       categories: [],
       items: [
         {
           availabilityStatus: "ACTIVE",
+          categoryId: 1,
+          description: null,
+          displayOrder: 1,
+          id: 10,
+          imageStorageKey: null,
+          imageUrl: "/images/welcome/spicy-noodles.jpg",
+          name: "Mì cay",
+          optionGroups: [],
+          price: 45_000,
+          tags: [],
+        },
+      ],
+      optionGroups: [],
+      tags: [],
+    });
+    vi.mocked(loadOperatorCatalog).mockResolvedValue({
+      categories: [],
+      items: [
+        {
+          availabilityStatus: "SOLD_OUT",
           categoryId: 1,
           description: null,
           displayOrder: 1,
@@ -40,9 +61,11 @@ describe("OperatorCatalogAvailabilityView", () => {
 
   it("only lets the operator change an item's selling availability", async () => {
     render(
-      <ToastProvider>
-        <OperatorCatalogAvailabilityView />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorCatalogAvailabilityView />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     expect(await screen.findByText("Mì cay")).toBeInTheDocument();

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorDashboardPage from "../app/(operator)/operator/(workspace)/dashboard/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { loadOperatorDashboardSummary } from "../lib/api/operation/operator-dashboard.api";
 import { createOperationalIncident } from "../lib/api/operation/operational-incidents.api";
 import { loadLongWaitTables } from "../lib/api/ordering/preparation.api";
@@ -84,18 +85,24 @@ describe("OperatorDashboardPage", () => {
   });
 
   it("renders the operator work queues", async () => {
-    render(<OperatorDashboardPage />);
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
     expect(await screen.findByText("Lượt gọi món hôm nay")).toBeInTheDocument();
-    expect(screen.getByText("Bàn đang phục vụ").parentElement).toHaveTextContent("12/20");
+    await waitFor(() =>
+      expect(screen.getByText("Bàn đang phục vụ").parentElement).toHaveTextContent("12/20"),
+    );
     expect(screen.getByRole("heading", { name: "Cảnh báo bàn chờ lâu" })).toBeInTheDocument();
     expect(screen.getByText(/Thời gian được tính từ order cũ nhất/i)).toBeInTheDocument();
     expect(await screen.findByText("Đã chờ 37 phút")).toBeInTheDocument();
     expect(screen.getByText(/Ngưỡng cảnh báo hiện tại:/)).toHaveTextContent("25 phút");
     fireEvent.click(await screen.findByRole("button", { name: "Mở thao tác cho bàn 5" }));
     const dialog = await screen.findByRole("dialog", { name: "Món đã gọi" });
-    expect(within(dialog).getByText("2× Cà phê sữa")).toBeInTheDocument();
+    expect(await within(dialog).findByText("2× Cà phê sữa")).toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: /Gọi thêm món hộ/i })).toHaveAttribute(
       "href",
       "/operator/orders/new?table=5",
@@ -107,7 +114,11 @@ describe("OperatorDashboardPage", () => {
   });
 
   it("sends operational incidents to the API from the dashboard", async () => {
-    render(<OperatorDashboardPage />);
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Báo cáo sự cố" }));
     const dialog = screen.getByRole("dialog", { name: "Báo cáo sự cố phát sinh" });
     fireEvent.change(screen.getByPlaceholderText("Nhập nội dung sự cố phát sinh trong ca..."), {
@@ -131,7 +142,11 @@ describe("OperatorDashboardPage", () => {
         ],
       },
     ]);
-    render(<OperatorDashboardPage />);
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Mở thao tác cho bàn 5" }));
 

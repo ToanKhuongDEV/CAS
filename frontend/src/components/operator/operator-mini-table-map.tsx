@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { type OperatorTableSession } from "../../lib/api/ordering/ordering.api";
 import {
-  loadOperatorBill,
-  loadOperatorTables,
-  type CustomerBill,
-  type OperatorTable,
-  type OperatorTableSession,
-} from "../../lib/api/ordering/ordering.api";
+  useOperatorBillQuery,
+  useOperatorTablesQuery,
+} from "../../lib/api/ordering/ordering.query";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 
@@ -26,49 +24,22 @@ function tone(status: TableStatus) {
 }
 
 export function OperatorMiniTableMap() {
-  const [tables, setTables] = useState<OperatorTable[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<
     (OperatorTableSession & { tableCode: number }) | null
   >(null);
-  const [bill, setBill] = useState<CustomerBill | null>(null);
-  const [billError, setBillError] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const value = await loadOperatorTables();
-        if (active) {
-          setTables(value);
-          setError(null);
-        }
-      } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : "Không thể tải sơ đồ bàn.");
-      }
-    };
-    void load();
-    const timer = window.setInterval(() => void load(), 10_000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, []);
+  const { data: tables = [], error: tablesError } = useOperatorTablesQuery(10_000);
+  const { data: bill, error: billQueryError } = useOperatorBillQuery(
+    selectedTable?.sessionId ?? null,
+  );
+  const error = tablesError?.message ?? null;
+  const billError = billQueryError?.message ?? null;
 
-  async function openTable(table: OperatorTable, session: OperatorTableSession) {
+  function openTable(table: (typeof tables)[number], session: OperatorTableSession) {
     setSelectedTable({ ...session, tableCode: table.tableCode });
-    setBill(null);
-    setBillError(null);
-    try {
-      setBill(await loadOperatorBill(session.sessionId));
-    } catch (cause) {
-      setBillError(cause instanceof Error ? cause.message : "Không thể tải các món đã gọi.");
-    }
   }
 
   function closeTableDialog() {
     setSelectedTable(null);
-    setBill(null);
-    setBillError(null);
   }
   const inUse = tables.filter((table) => table.sessions.length > 0).length;
   return (

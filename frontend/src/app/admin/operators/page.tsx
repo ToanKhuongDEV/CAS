@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../components/ui/cas-button";
 import {
   createOperator,
   deactivateOperator,
   activateOperator,
-  loadOperators,
 } from "../../../lib/api/operation/operational-management.api";
+import {
+  adminOperatorsQueryKey,
+  useAdminOperatorsQuery,
+} from "../../../lib/api/operation/operation.query";
 
 type OperatorAccount = {
   email: string;
@@ -26,7 +30,13 @@ type CreateOperatorErrors = {
 };
 
 export default function AdminOperatorsPage() {
-  const [operators, setOperators] = useState<OperatorAccount[]>([]);
+  const queryClient = useQueryClient();
+  const { data: accounts = [], error: loadError } = useAdminOperatorsQuery();
+  const operators: OperatorAccount[] = accounts.map((account) => ({
+    ...account,
+    fullName: account.displayName,
+    role: "OPERATOR",
+  }));
   const [showAddForm, setShowAddForm] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,35 +44,10 @@ export default function AdminOperatorsPage() {
   const [createErrors, setCreateErrors] = useState<CreateOperatorErrors>({});
   const [requestError, setRequestError] = useState("");
 
-  const refreshOperators = async () => {
-    try {
-      const accounts = await loadOperators();
-      setOperators(
-        accounts.map((account) => ({
-          ...account,
-          fullName: account.displayName,
-          role: "OPERATOR",
-        })),
-      );
-      setRequestError("");
-    } catch (error) {
-      setRequestError(
-        error instanceof Error ? error.message : "Không thể tải tài khoản nhân viên.",
-      );
-    }
-  };
-  useEffect(() => {
-    void refreshOperators();
-  }, []);
-
   const deactivate = async (id: number) => {
     try {
       await deactivateOperator(id);
-      setOperators((prev) =>
-        prev.map((operator) =>
-          operator.id === id ? { ...operator, status: "INACTIVE" } : operator,
-        ),
-      );
+      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
       setRequestError("");
     } catch (error) {
       setRequestError(
@@ -74,9 +59,7 @@ export default function AdminOperatorsPage() {
   const activate = async (id: number) => {
     try {
       await activateOperator(id);
-      setOperators((prev) =>
-        prev.map((operator) => (operator.id === id ? { ...operator, status: "ACTIVE" } : operator)),
-      );
+      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
       setRequestError("");
     } catch (error) {
       setRequestError(
@@ -117,23 +100,12 @@ export default function AdminOperatorsPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      const created = await createOperator({
+      await createOperator({
         displayName: normalizedDisplayName,
         email: normalizedEmail,
         phone: normalizedPhone,
       });
-      setOperators((current) => [
-        ...current,
-        {
-          createdAt: new Date().toISOString(),
-          email: normalizedEmail,
-          fullName: created.displayName,
-          id: created.id,
-          phone: normalizedPhone,
-          role: "OPERATOR",
-          status: "ACTIVE",
-        },
-      ]);
+      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
       setDisplayName("");
       setEmail("");
       setPhone("");
@@ -161,9 +133,10 @@ export default function AdminOperatorsPage() {
         </CasButton>
       </div>
 
-      {requestError ? (
+      {requestError || loadError ? (
         <p className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-4 py-3 text-xs font-bold text-cas-error">
-          {requestError}
+          {requestError ||
+            (loadError instanceof Error ? loadError.message : "Không thể tải tài khoản nhân viên.")}
         </p>
       ) : null}
 

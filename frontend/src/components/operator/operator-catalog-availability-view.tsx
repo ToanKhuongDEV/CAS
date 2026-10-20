@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import {
-  loadOperatorCatalog,
-  updateOperatorItemAvailability,
-} from "../../lib/api/catalog/published-catalog.api";
+import { updateOperatorItemAvailability } from "../../lib/api/catalog/published-catalog.api";
 import type { CatalogMenuItem } from "../../lib/api/catalog/catalog.api";
+import {
+  operatorCatalogQueryKey,
+  useOperatorCatalogQuery,
+} from "../../lib/api/catalog/catalog.query";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
@@ -15,24 +17,13 @@ const money = new Intl.NumberFormat("vi-VN");
 
 export function OperatorCatalogAvailabilityView() {
   const { showToast } = useToast();
-  const [items, setItems] = useState<CatalogMenuItem[]>([]);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: catalogError, isLoading: loading } = useOperatorCatalogQuery();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SOLD_OUT">("ALL");
-  const [loading, setLoading] = useState(true);
   const [savingItemId, setSavingItemId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void loadOperatorCatalog()
-      .then(({ items: catalogItems }) => {
-        setItems(catalogItems);
-        setError(null);
-      })
-      .catch((cause) => {
-        setError(cause instanceof Error ? cause.message : "Không thể tải danh sách món.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const items = catalog?.items ?? [];
+  const error = catalogError?.message ?? null;
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("vi-VN");
@@ -48,13 +39,7 @@ export function OperatorCatalogAvailabilityView() {
     setSavingItemId(item.id);
     try {
       await updateOperatorItemAvailability(item.id, nextStatus);
-      setItems((currentItems) =>
-        currentItems.map((currentItem) =>
-          currentItem.id === item.id
-            ? { ...currentItem, availabilityStatus: nextStatus }
-            : currentItem,
-        ),
-      );
+      await queryClient.invalidateQueries({ queryKey: operatorCatalogQueryKey });
       showToast({
         type: "success",
         message:

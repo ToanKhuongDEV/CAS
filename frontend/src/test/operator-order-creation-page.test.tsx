@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OperatorOrderCreationView } from "../components/operator/order-creation/operator-order-creation-view";
+import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadOperatorCatalog } from "../lib/api/catalog/published-catalog.api";
 import {
@@ -118,9 +119,11 @@ describe("OperatorOrderCreationView", () => {
 
   const renderOrderCreationView = () =>
     render(
-      <ToastProvider>
-        <OperatorOrderCreationView defaultTableId="table-05" />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrderCreationView defaultTableId="table-05" />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
   it("renders table context, allows selecting items and adding options to cart", async () => {
@@ -239,7 +242,7 @@ describe("OperatorOrderCreationView", () => {
     renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
-    fireEvent.click(screen.getByRole("button", { name: "Hủy phiên bàn" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hủy phiên" }));
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy phiên" }));
 
     await vi.waitFor(() => expect(cancelOperatorSalesSession).toHaveBeenCalledWith("session-5"));

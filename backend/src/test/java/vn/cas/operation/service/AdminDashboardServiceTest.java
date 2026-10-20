@@ -58,4 +58,26 @@ class AdminDashboardServiceTest {
                 () -> service.summary(admin, LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 1)))
                 .isInstanceOf(ApiException.class);
     }
+
+    @Test
+    void shouldReturnDashboardWhenNoServedItemsMatchTheDateRange() {
+        LocalDate from = LocalDate.of(2026, 10, 13);
+        LocalDate to = LocalDate.of(2026, 10, 19);
+        when(dashboard.findRevenueSummary(eq(3L), any(), any()))
+                .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.ZERO, 0));
+        when(dashboard.findRevenueSeries(eq(3L), any(), any())).thenReturn(List.of());
+        when(dashboard.findCustomerSummary(eq(3L), any(), any())).thenReturn(null);
+        when(dashboard.findCustomerSeries(eq(3L), any(), any())).thenReturn(List.of());
+        when(dashboard.findMenuItems(eq(3L), any(), any())).thenReturn(List.of());
+        when(dashboard.findPromotionSummary(eq(3L), any(), any()))
+                .thenReturn(new AdminDashboard.PromotionSummary(BigDecimal.ZERO, 0));
+        when(dashboard.findPromotionStatusCounts(3L))
+                .thenReturn(new AdminDashboard.PromotionStatusCounts(0, 0, 0, 0));
+
+        var result = service.summary(admin, from, to);
+
+        assertThat(result.range()).isEqualTo(new AdminDashboard.DateRange(from, to));
+        assertThat(result.customers().averageWaitMinutes()).isNull();
+        assertThat(result.revenue().paidSessionCount()).isZero();
+    }
 }

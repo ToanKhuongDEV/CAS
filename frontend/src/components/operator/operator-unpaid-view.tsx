@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   confirmOperatorPayment,
-  loadEligibleUnpaidSessions,
-  loadOperatorUnpaidRecords,
   recordOperatorUnpaid,
   type EligibleUnpaidSession,
   type UnpaidRecord,
 } from "../../lib/api/payment/payment.api";
+import {
+  eligibleUnpaidSessionsQueryKey,
+  operatorPaidTodayPaymentsQueryKey,
+  operatorPaymentsQueryKey,
+  operatorUnpaidRecordsQueryKey,
+  useEligibleUnpaidSessionsQuery,
+  useOperatorUnpaidRecordsQuery,
+} from "../../lib/api/payment/payment.query";
+import { operatorTablesQueryKey } from "../../lib/api/ordering/ordering.query";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
@@ -31,36 +39,30 @@ function date(value: string | null) {
 
 export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMode }) {
   const { showToast } = useToast();
-  const [records, setRecords] = useState<UnpaidRecord[]>([]);
-  const [sessions, setSessions] = useState<EligibleUnpaidSession[]>([]);
   const [status, setStatus] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
   const [minimumMinutes, setMinimumMinutes] = useState(120);
   const [sessionId, setSessionId] = useState("");
   const [reason, setReason] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<UnpaidRecord | null>(null);
   const [recordToConfirm, setRecordToConfirm] = useState<UnpaidRecord | null>(null);
 
-  async function refresh(nextStatus = status, nextMinutes = minimumMinutes) {
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextRecords, nextSessions] = await Promise.all([
-        loadOperatorUnpaidRecords(nextStatus === "ALL" ? undefined : nextStatus),
-        loadEligibleUnpaidSessions(nextMinutes),
-      ]);
-      setRecords(nextRecords);
-      setSessions(nextSessions);
-      setSessionId((current) => current || nextSessions[0]?.sessionId || "");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể tải khoản chưa thanh toán.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const queryClient = useQueryClient();
+  const recordStatus = status === "ALL" ? undefined : status;
+  const {
+    data: records = [],
+    error: recordsError,
+    isLoading: recordsLoading,
+  } = useOperatorUnpaidRecordsQuery(recordStatus);
+  const {
+    data: sessions = [],
+    error: sessionsError,
+    isLoading: sessionsLoading,
+  } = useEligibleUnpaidSessionsQuery(minimumMinutes);
+  const loading = recordsLoading || sessionsLoading;
+  const displayedError = error ?? recordsError?.message ?? sessionsError?.message ?? null;
 
   useEffect(() => {
     const storedValue = window.sessionStorage.getItem(storageKey);
@@ -70,12 +72,12 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      window.sessionStorage.setItem(storageKey, String(minimumMinutes));
-      void refresh(status, minimumMinutes);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [minimumMinutes, status]);
+    window.sessionStorage.setItem(storageKey, String(minimumMinutes));
+  }, [minimumMinutes]);
+
+  useEffect(() => {
+    setSessionId((current) => current || sessions[0]?.sessionId || "");
+  }, [sessions]);
 
   const openAmount = records
     .filter((record) => record.status === "OPEN")
@@ -93,7 +95,11 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
       });
       setReason("");
       setDialogOpen(false);
-      await refresh();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: operatorUnpaidRecordsQueryKey(recordStatus) }),
+        queryClient.invalidateQueries({ queryKey: eligibleUnpaidSessionsQueryKey(minimumMinutes) }),
+        queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey }),
+      ]);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Không thể ghi nhận khoản chưa thanh toán.",
@@ -111,7 +117,11 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
         type: "success",
         message: `Đã xác nhận thanh toán cho Bàn ${record.tableCode}.`,
       });
-      await refresh();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: operatorUnpaidRecordsQueryKey(recordStatus) }),
+        queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: operatorPaidTodayPaymentsQueryKey }),
+      ]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không thể xác nhận thanh toán.");
     } finally {
@@ -174,7 +184,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
           </button>
         ))}
       </div>
-      {error ? <Feedback tone="error">{error}</Feedback> : null}
+      {displayedError ? <Feedback tone="error">{displayedError}</Feedback> : null}
       {loading ? (
         <p className="text-sm text-cas-on-surface-variant">Đang tải dữ liệu…</p>
       ) : (
