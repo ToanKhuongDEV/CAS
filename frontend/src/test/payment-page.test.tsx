@@ -122,7 +122,13 @@ describe("PaymentRequestPanel", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Gửi yêu cầu thanh toán" }));
     await waitFor(() => expect(createCustomerPayment).toHaveBeenCalledOnce());
-    expect(screen.getByRole("button", { name: "Đang gửi yêu cầu..." })).toBeDisabled();
+    expect(
+      await screen.findByRole("heading", { name: "Chờ nhân viên xác nhận" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Vui lòng gặp nhân viên để hoàn tất thanh toán/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Gửi yêu cầu thanh toán" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows unavailable active vouchers as disabled", async () => {

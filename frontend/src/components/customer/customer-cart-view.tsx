@@ -52,23 +52,33 @@ export function CustomerCartView() {
       catalog.optionGroups.flatMap((group) => group.values).map((option) => [option.id, option]),
     );
 
-    const hydratedCart = readCustomerCart().map((line) => {
+    const storedCart = readCustomerCart();
+    const hydratedCart = storedCart.flatMap((line) => {
       const item = itemsById.get(line.menuItemId);
-      return {
-        ...line,
-        basePrice: line.basePrice ?? item?.price,
-        imageUrl: line.imageUrl ?? item?.imageUrl,
-        selectedOptions:
-          line.selectedOptions ??
-          line.optionValueIds.flatMap((id) => {
-            const option = optionsById.get(id);
-            return option ? [{ name: option.name, price: option.extraPrice }] : [];
-          }),
-      };
+      if (!item || !line.optionValueIds.every((id) => optionsById.has(id))) return [];
+      return [
+        {
+          ...line,
+          basePrice: line.basePrice ?? item?.price,
+          imageUrl: line.imageUrl ?? item?.imageUrl,
+          selectedOptions:
+            line.selectedOptions ??
+            line.optionValueIds.flatMap((id) => {
+              const option = optionsById.get(id);
+              return option ? [{ name: option.name, price: option.extraPrice }] : [];
+            }),
+        },
+      ];
     });
     setCart(hydratedCart);
     saveCustomerCart(hydratedCart);
-  }, [catalog]);
+    if (hydratedCart.length !== storedCart.length) {
+      showToast({
+        type: "error",
+        message: "Giỏ hàng đã bỏ các món không còn thuộc thực đơn của cơ sở này.",
+      });
+    }
+  }, [catalog, showToast]);
 
   const update = (next: CustomerCartLine[]) => {
     idempotencyKeyRef.current = null;

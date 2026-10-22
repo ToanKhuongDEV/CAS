@@ -42,8 +42,8 @@ class CloudinarySignatureServiceTest {
 
     @Test
     void choosesFolderFromUploadPurpose() {
-        assertThat(service.sign(8L, CloudinarySignatureService.UploadPurpose.STORE_LOGO).folder())
-                .isEqualTo("cas/stores/8");
+        assertThat(service.sign(8L, CloudinarySignatureService.UploadPurpose.BRAND_LOGO).folder())
+                .isEqualTo("cas/brand");
         assertThat(service.sign(8L, CloudinarySignatureService.UploadPurpose.WELCOME).folder())
                 .isEqualTo("cas/welcome/8");
     }

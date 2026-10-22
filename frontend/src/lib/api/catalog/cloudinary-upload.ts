@@ -22,7 +22,7 @@ export type UploadedCatalogImage = {
   imageUrl: string;
 };
 
-export type ImageUploadPurpose = "MENU_ITEM" | "STORE_LOGO" | "WELCOME";
+export type ImageUploadPurpose = "MENU_ITEM" | "WELCOME" | "BRAND_LOGO";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 

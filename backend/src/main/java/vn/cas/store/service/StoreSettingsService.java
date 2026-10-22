@@ -4,7 +4,6 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.cas.catalog.service.CloudinarySignatureService;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
@@ -16,13 +15,10 @@ import vn.cas.store.model.StoreSettings;
 public class StoreSettingsService {
     private final StoreSettingsMapper mapper;
     private final AuditLogService auditLogs;
-    private final CloudinarySignatureService cloudinary;
 
-    public StoreSettingsService(StoreSettingsMapper mapper, AuditLogService auditLogs,
-            CloudinarySignatureService cloudinary) {
+    public StoreSettingsService(StoreSettingsMapper mapper, AuditLogService auditLogs) {
         this.mapper = mapper;
         this.auditLogs = auditLogs;
-        this.cloudinary = cloudinary;
     }
 
     @Transactional(readOnly = true)
@@ -46,20 +42,22 @@ public class StoreSettingsService {
         return mapper.findAllActive();
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<StoreSettings> listForSuperAdmin(OperationalPrincipal principal) {
+        if (!"SUPER_ADMIN".equals(principal.role()))
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Chỉ SUPER_ADMIN có quyền xem toàn bộ cơ sở.");
+        return mapper.findAll();
+    }
+
     @Transactional
     public StoreSettings update(OperationalPrincipal principal, StoreSettings settings,
             UUID requestId) {
-        var current = get(principal.storeId());
-        cloudinary.validateAsset(principal.storeId(), settings.logoUrl(),
-                settings.logoStorageKey());
-        mapper.updateStoreSettings(principal.storeId(), settings.name(), settings.address(),
-                settings.phone(), settings.email(), settings.logoUrl(), settings.logoStorageKey(),
-                settings.googleMapsLocation(), settings.openTime(), settings.closeTime(),
-                settings.welcomeSlogan(), settings.status());
-        cloudinary.deleteAfterCommit(principal.storeId(), current.logoStorageKey(),
-                settings.logoStorageKey());
+        mapper.updateStoreSettings(principal.storeId(), settings.branchName(), settings.address(),
+                settings.phone(), settings.email(), settings.googleMapsLocation(),
+                settings.openTime(), settings.closeTime(), settings.status());
         auditLogs.record(new AuditLogCommand(principal.storeId(), requestId, "UPDATE", "STORE",
-                principal.storeId(), settings.name(), "{}", principal.accountId(),
+                principal.storeId(), settings.branchName(), "{}", principal.accountId(),
                 principal.displayName(), "Updated store settings"));
         return get(principal.storeId());
     }

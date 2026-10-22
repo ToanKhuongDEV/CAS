@@ -17,38 +17,48 @@
     </update>
 
     <select id="findByStoreId" resultType="vn.cas.store.model.StoreSettings">
-        SELECT id, name, address, phone, email, logo_url AS logoUrl,
-               logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
-               close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
-        FROM stores WHERE id = #{storeId}
+        SELECT s.id, s.branch_name AS branchName, s.address, s.phone, s.email, b.logo_url AS logoUrl,
+               b.logo_storage_key AS logoStorageKey, s.google_maps_location AS googleMapsLocation,
+               s.latitude, s.longitude, s.open_time AS openTime, s.close_time AS closeTime,
+               b.welcome_slogan AS welcomeSlogan, s.status, b.name AS brandName
+        FROM stores s CROSS JOIN brand_settings b
+        WHERE s.id = #{storeId} AND b.id = 1
     </select>
 
     <select id="findActiveByStoreId" resultType="vn.cas.store.model.StoreSettings">
-        SELECT id, name, address, phone, email, logo_url AS logoUrl,
-               logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
-               close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
-        FROM stores WHERE id = #{storeId} AND status = 'ACTIVE'
+        SELECT s.id, s.branch_name AS branchName, s.address, s.phone, s.email, b.logo_url AS logoUrl,
+               b.logo_storage_key AS logoStorageKey, s.google_maps_location AS googleMapsLocation,
+               s.latitude, s.longitude, s.open_time AS openTime, s.close_time AS closeTime,
+               b.welcome_slogan AS welcomeSlogan, s.status, b.name AS brandName
+        FROM stores s CROSS JOIN brand_settings b
+        WHERE s.id = #{storeId} AND s.status = 'ACTIVE' AND b.id = 1
     </select>
 
     <select id="findAllActive" resultType="vn.cas.store.model.StoreSettings">
-        SELECT id, name, address, phone, email, logo_url AS logoUrl,
-               logo_storage_key AS logoStorageKey,
-               google_maps_location AS googleMapsLocation, latitude, longitude, open_time AS openTime,
-               close_time AS closeTime, welcome_slogan AS welcomeSlogan, status
-        FROM stores
-        WHERE status = 'ACTIVE'
-        ORDER BY name ASC, id ASC
+        SELECT s.id, s.branch_name AS branchName, s.address, s.phone, s.email, b.logo_url AS logoUrl,
+               b.logo_storage_key AS logoStorageKey, s.google_maps_location AS googleMapsLocation,
+               s.latitude, s.longitude, s.open_time AS openTime, s.close_time AS closeTime,
+               b.welcome_slogan AS welcomeSlogan, s.status, b.name AS brandName
+        FROM stores s CROSS JOIN brand_settings b
+        WHERE s.status = 'ACTIVE' AND b.id = 1
+        ORDER BY s.branch_name ASC, s.id ASC
+    </select>
+
+    <select id="findAll" resultType="vn.cas.store.model.StoreSettings">
+        SELECT s.id, s.branch_name AS branchName, s.address, s.phone, s.email, b.logo_url AS logoUrl,
+               b.logo_storage_key AS logoStorageKey, s.google_maps_location AS googleMapsLocation,
+               s.latitude, s.longitude, s.open_time AS openTime, s.close_time AS closeTime,
+               b.welcome_slogan AS welcomeSlogan, s.status, b.name AS brandName
+        FROM stores s CROSS JOIN brand_settings b
+        WHERE b.id = 1
+        ORDER BY s.branch_name ASC, s.id ASC
     </select>
 
     <update id="updateStoreSettings">
         UPDATE stores
-        SET name = #{name}, address = #{address}, phone = #{phone}, email = #{email},
-            logo_url = #{logoUrl}, logo_storage_key = #{logoStorageKey},
-            google_maps_location = #{googleMapsLocation},
-            open_time = #{openTime}, close_time = #{closeTime},
-            welcome_slogan = #{welcomeSlogan}, status = #{status}
+        SET branch_name = #{branchName}, address = #{address}, phone = #{phone}, email = #{email},
+            google_maps_location = #{googleMapsLocation}, open_time = #{openTime},
+            close_time = #{closeTime}, status = #{status}
         WHERE id = #{storeId}
     </update>
 </mapper>

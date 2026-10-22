@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import vn.cas.catalog.service.CloudinarySignatureService;
 import vn.cas.catalog.service.CloudinarySignatureService.UploadPurpose;
+import vn.cas.common.exception.ApiException;
 import vn.cas.common.constants.ApiPaths;
 import vn.cas.common.response.ApiResponse;
 import vn.cas.common.response.ApiResponses;
@@ -28,6 +29,10 @@ public class ImageUploadController {
     public ResponseEntity<ApiResponse<CloudinarySignatureService.UploadSignature>> sign(
             @AuthenticationPrincipal OperationalPrincipal principal,
             @Valid @RequestBody UploadSignatureRequest request, HttpServletRequest servletRequest) {
+        if (request.purpose() == UploadPurpose.BRAND_LOGO
+                && !"SUPER_ADMIN".equals(principal.role()))
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Chỉ SUPER_ADMIN có quyền tải logo thương hiệu chung.");
         return ApiResponses.success(HttpStatus.OK, "Đã cấp chữ ký tải ảnh.",
                 cloudinary.sign(principal.storeId(), request.purpose()), servletRequest);
     }

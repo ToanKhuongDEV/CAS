@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AdminTabNavigation } from "../../components/admin/admin-tab-navigation";
+import { AdminStoreSelector } from "../../components/admin/admin-store-selector";
 import { OperationalRouteGuard } from "../../components/auth/operational-route-guard";
 import { StoreIdentity } from "../../components/ui/store-identity";
 import { OperationalAccountMenu } from "../../components/ui/operational-account-menu";
@@ -20,6 +21,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <StoreIdentity subtitle="Admin" />
 
               <div className="flex items-center gap-3">
+                <AdminStoreSelector />
                 <ThemeToggle />
 
                 <OperationalAccountMenu

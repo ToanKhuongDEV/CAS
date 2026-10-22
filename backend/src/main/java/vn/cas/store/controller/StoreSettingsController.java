@@ -47,6 +47,13 @@ public class StoreSettingsController {
                 service.listPublic(), r);
     }
 
+    @GetMapping(ApiPaths.Store.LIST)
+    public ResponseEntity<ApiResponse<List<StoreSettings>>> listForSuperAdmin(
+            @AuthenticationPrincipal OperationalPrincipal p, HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách cơ sở.",
+                service.listForSuperAdmin(p), r);
+    }
+
     @PutMapping(ApiPaths.Store.SETTINGS)
     public ResponseEntity<ApiResponse<StoreSettings>> update(
             @AuthenticationPrincipal OperationalPrincipal p,
@@ -56,15 +63,14 @@ public class StoreSettingsController {
         return ApiResponses.success(HttpStatus.OK, "Đã cập nhật thông tin cửa hàng.", data, r);
     }
 
-    public record UpdateStoreSettingsRequest(@NotBlank @Size(max = 150) String name,
+    public record UpdateStoreSettingsRequest(@NotBlank @Size(max = 150) String branchName,
             @NotBlank @Size(max = 500) String address, @NotBlank @Size(max = 20) String phone,
-            @NotBlank @Size(max = 254) String email, @Size(max = 2048) String logoUrl,
-            @Size(max = 512) String logoStorageKey, @Size(max = 2048) String googleMapsLocation,
-            LocalTime openTime, LocalTime closeTime, @Size(max = 500) String welcomeSlogan,
+            @NotBlank @Size(max = 254) String email, @Size(max = 2048) String googleMapsLocation,
+            LocalTime openTime, LocalTime closeTime,
             @Pattern(regexp = "ACTIVE|INACTIVE") String status) {
         StoreSettings toModel(long id) {
-            return new StoreSettings(id, name, address, phone, email, logoUrl, logoStorageKey,
-                    googleMapsLocation, null, null, openTime, closeTime, welcomeSlogan, status);
+            return new StoreSettings(id, branchName, address, phone, email, null, null,
+                    googleMapsLocation, null, null, openTime, closeTime, null, status, null);
         }
     }
 }

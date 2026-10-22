@@ -36,7 +36,7 @@ export function useAdminOperationalIncidentsQuery() {
 export function useAdminDashboardQuery(from: string, to: string, enabled = true) {
   return useQuery({
     queryKey: adminDashboardQueryKey(from, to),
-    queryFn: () => loadAdminDashboard(from, to),
+    queryFn: ({ signal }) => loadAdminDashboard(from, to, signal),
     enabled,
   });
 }

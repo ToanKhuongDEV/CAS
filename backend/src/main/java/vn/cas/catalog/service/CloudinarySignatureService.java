@@ -45,11 +45,26 @@ public class CloudinarySignatureService {
     }
 
     public UploadSignature sign(long storeId, UploadPurpose purpose) {
+        if (purpose == UploadPurpose.BRAND_LOGO)
+            return signBrand();
         return sign(storeId, switch (purpose) {
             case MENU_ITEM -> rootFolder;
-            case STORE_LOGO -> "cas/stores";
             case WELCOME -> "cas/welcome";
+            case BRAND_LOGO -> throw new IllegalStateException("Brand logo is handled above");
         });
+    }
+
+    private UploadSignature signBrand() {
+        if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank() || preset.isBlank())
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    ApiMessages.CLOUDINARY_NOT_CONFIGURED);
+        long timestamp = Instant.now().getEpochSecond();
+        String folder = "cas/brand";
+        String publicId = "brand_" + UUID.randomUUID();
+        String value = "folder=" + folder + "&public_id=" + publicId + "&timestamp=" + timestamp
+                + "&upload_preset=" + preset + apiSecret;
+        return new UploadSignature(cloudName, apiKey, timestamp, folder, publicId, sha1(value),
+                preset);
     }
 
     private UploadSignature sign(long storeId, String folderRoot) {
@@ -89,6 +104,23 @@ public class CloudinarySignatureService {
         }
     }
 
+    public void validateBrandAsset(String imageUrl, String storageKey) {
+        if (imageUrl == null && storageKey == null)
+            return;
+        if (imageUrl == null || storageKey == null || cloudName.isBlank())
+            throw invalidImage();
+        try {
+            URI uri = URI.create(imageUrl);
+            if (!"https".equals(uri.getScheme()) || !"res.cloudinary.com".equals(uri.getHost())
+                    || !uri.getPath().contains("/" + cloudName + "/image/upload/")
+                    || !storageKey.startsWith("cas/brand/")
+                    || !storageKey.equals(publicIdFromUrl(uri.getPath())))
+                throw invalidImage();
+        } catch (IllegalArgumentException e) {
+            throw invalidImage();
+        }
+    }
+
     public void deleteAfterCommit(long storeId, String oldStorageKey, String newStorageKey) {
         if (oldStorageKey == null || oldStorageKey.equals(newStorageKey))
             return;
@@ -96,6 +128,17 @@ public class CloudinarySignatureService {
             @Override
             public void afterCommit() {
                 delete(storeId, oldStorageKey);
+            }
+        });
+    }
+
+    public void deleteBrandAfterCommit(String oldStorageKey, String newStorageKey) {
+        if (oldStorageKey == null || oldStorageKey.equals(newStorageKey))
+            return;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                deleteBrand(oldStorageKey);
             }
         });
     }
@@ -133,6 +176,31 @@ public class CloudinarySignatureService {
         } catch (Exception e) {
             log.warn("Cloudinary asset deletion failed: storeId={}, storageKey={}", storeId,
                     storageKey, e);
+        }
+    }
+
+    private void deleteBrand(String storageKey) {
+        if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()) {
+            log.warn("Skipping Cloudinary brand asset deletion for storageKey={}", storageKey);
+            return;
+        }
+        long timestamp = Instant.now().getEpochSecond();
+        String signature = sha1(
+                "invalidate=true&public_id=" + storageKey + "&timestamp=" + timestamp + apiSecret);
+        String form = "api_key=" + encode(apiKey) + "&public_id=" + encode(storageKey)
+                + "&timestamp=" + timestamp + "&invalidate=true&signature=" + signature;
+        try {
+            var request = HttpRequest
+                    .newBuilder(URI.create(
+                            "https://api.cloudinary.com/v1_1/" + cloudName + "/image/destroy"))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+            var response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() < 200 || response.statusCode() >= 300)
+                log.warn("Cloudinary brand asset deletion failed: storageKey={}, status={}",
+                        storageKey, response.statusCode());
+        } catch (Exception e) {
+            log.warn("Cloudinary brand asset deletion failed: storageKey={}", storageKey, e);
         }
     }
 
@@ -177,6 +245,6 @@ public class CloudinarySignatureService {
     }
 
     public enum UploadPurpose {
-        MENU_ITEM, STORE_LOGO, WELCOME
+        MENU_ITEM, WELCOME, BRAND_LOGO
     }
 }

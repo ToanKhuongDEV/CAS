@@ -10,7 +10,7 @@ export function StoreBrand({ storeId }: { storeId?: number }) {
     const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
     void loadPublicStore(effectiveStoreId)
       .then((store) => {
-        setName(store.name);
+        setName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);

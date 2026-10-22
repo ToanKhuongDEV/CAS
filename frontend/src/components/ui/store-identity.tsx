@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 
-type StoreIdentityProps = {
+export type StoreIdentityProps = {
   storeId?: number;
+  fallbackToPublicStore?: boolean;
   subtitle?: string;
   logoClassName?: string;
   nameClassName?: string;
@@ -13,6 +14,7 @@ type StoreIdentityProps = {
 
 export function StoreIdentity({
   storeId,
+  fallbackToPublicStore = true,
   subtitle,
   logoClassName = "rounded-xl",
   nameClassName = "text-xl font-black tracking-tight text-cas-primary",
@@ -21,14 +23,16 @@ export function StoreIdentity({
   const [name, setName] = useState("CAS");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   useEffect(() => {
-    const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
+    const effectiveStoreId =
+      storeId ?? (fallbackToPublicStore ? (getRememberedPublicStoreId() ?? 1) : null);
+    if (!effectiveStoreId) return;
     void loadPublicStore(effectiveStoreId)
       .then((store) => {
-        setName(store.name);
+        setName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
-  }, [storeId]);
+  }, [fallbackToPublicStore, storeId]);
   const logo = (
     <span
       className={`grid size-10 place-items-center overflow-hidden shadow-[0_8px_20px_var(--cas-shadow-color)] ${logoClassName}`}

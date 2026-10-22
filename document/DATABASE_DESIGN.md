@@ -142,25 +142,26 @@ Lưu thông tin cửa hàng.
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh cửa hàng |
-| `name` | `VARCHAR(150) NOT NULL` | Tên cửa hàng |
+| `name` | `VARCHAR(150) NOT NULL` | Tên cơ sở/chi nhánh |
 | `address` | `VARCHAR(500) NOT NULL` | Địa chỉ cửa hàng |
 | `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại hotline |
 | `email` | `VARCHAR(254) NOT NULL` | Email liên hệ |
-| `logo_url` | `VARCHAR(2048) NULL` | URL logo cửa hàng đã upload lên Cloudinary |
-| `logo_storage_key` | `VARCHAR(512) NULL` | Khóa asset Cloudinary của logo để thay thế hoặc xóa ảnh |
 | `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
 | `latitude` | `DECIMAL(10,8) NULL` | Vĩ độ cửa hàng, dùng để chọn chi nhánh gần nhất |
 | `longitude` | `DECIMAL(11,8) NULL` | Kinh độ cửa hàng, dùng để chọn chi nhánh gần nhất |
 | `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
 | `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |
-| `welcome_slogan` | `VARCHAR(500) NULL` | Thông điệp/slogan chào mừng hiển thị cho khách |
 | `long_wait_warning_minutes` | `SMALLINT UNSIGNED NOT NULL DEFAULT 25` | Ngưỡng cảnh báo bàn chờ lâu, tính theo phút |
 | `timezone` | `VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh'` | Múi giờ vận hành, dùng cố định `Asia/Ho_Chi_Minh` (`UTC+07:00`) |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hoạt động |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Các trường liên hệ, vị trí, giờ hoạt động và slogan được `ADMIN` cấu hình từ màn hình Settings; Customer có thể dùng dữ liệu công khai này để xem thông tin cửa hàng. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
+`stores` chỉ quản lý thông tin cơ sở: tên chi nhánh, liên hệ, vị trí và giờ hoạt động. Logo và slogan không nằm trong bảng này. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
+
+### 3.2. Cấu hình thương hiệu chung (`brand_settings`)
+
+`brand_settings` là singleton (`id = 1`) dùng chung toàn hệ thống. Nó lưu `name`, `logo_url`, `logo_storage_key` và `welcome_slogan`. Migration khởi tạo bản ghi này bằng tên, logo và slogan của cơ sở `id = 1`; migration kế tiếp xóa các cột logo/slogan khỏi `stores`. Logo mới được upload vào thư mục Cloudinary dùng chung `cas/brand`. Chỉ `SUPER_ADMIN` được cập nhật; `ADMIN` chỉ cập nhật `stores` trong cơ sở được chọn.
 
 #### `store_banners`
 
@@ -361,7 +362,7 @@ Category loại `OPTION` không hiển thị như danh mục món chính trên g
 `menu_items.store_id` phải khớp `categories.store_id`. Composite FK của
 `menu_item_option_groups` tiếp tục bảo đảm menu item và option group cùng cửa hàng.
 
-Ảnh được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do API chung `POST /api/v1/admin/images/upload-signature` cấp theo `purpose` (`MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`). Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào cột `*_image_url`/`*_image_storage_key` (hoặc `logo_url`/`logo_storage_key`); API secret không rời Backend.
+Ảnh được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do API chung `POST /api/v1/admin/images/upload-signature` cấp theo `purpose` (`MENU_ITEM`, `BRAND_LOGO` hoặc `WELCOME`). Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào cột `*_image_url`/`*_image_storage_key` hoặc `brand_settings.logo_url`/`logo_storage_key`; API secret không rời Backend.
 
 Khi một ảnh được thay hoặc bỏ khỏi dữ liệu bền vững, Backend chỉ gọi Cloudinary xóa `storage_key` cũ sau khi transaction MySQL đã commit. Nếu xóa Cloudinary thất bại, dữ liệu mới vẫn giữ nguyên và lỗi được ghi log để xử lý lại.
 
@@ -1251,7 +1252,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Hệ thống không tách màn hình bếp và phục vụ.
 - Không lưu bảng lịch sử giá món riêng.
 - Mỗi món chỉ có một ảnh.
-- Các cột `*_image_storage_key` và `stores.logo_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; các cột URL chỉ phục vụ hiển thị.
+- Các cột `*_image_storage_key` và `brand_settings.logo_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; các cột URL chỉ phục vụ hiển thị.
 - Nhãn của menu item được quản lý bằng `tags` và quan hệ nhiều-nhiều `menu_item_tags`; không lưu cờ nhãn riêng trong `menu_items`.
 - Tag có thể gắn với bất kỳ `menu_items`, không giới hạn theo loại category.
 - QR bàn là mã cố định được in và dán tại bàn; hệ thống không tạo QR thanh toán.

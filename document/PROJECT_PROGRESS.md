@@ -58,6 +58,8 @@ Ngày cập nhật gần nhất: 2026-10-19
 - [x] Promotion: quản trị chương trình/code/target/quota, chọn promotion cho bill, discount snapshot và redemption.
 - [x] Vận hành: dashboard Operator, service booking, sự cố vận hành, thông báo, audit log và tra cứu khách hàng Admin.
 - [x] `GET /api/v1/admin/dashboard?from&to`: báo cáo doanh thu, session đã thanh toán, thời gian chờ ra món, sản lượng món bán và hao hụt làm lại theo store Admin; khoảng thời gian không có dữ liệu vẫn trả dashboard rỗng.
+- [x] `GET /api/v1/admin/stores`: `SUPER_ADMIN` lấy danh sách cơ sở hiện có để chọn phạm vi quản trị; backend xác thực `X-CAS-Store-Id` trước khi dùng cơ sở đã chọn cho request Admin/Operator.
+- [x] `GET`/`PUT /api/v1/admin/brand/settings`: chỉ `SUPER_ADMIN` quản lý tên, logo và slogan thương hiệu chung; từng cơ sở chỉ còn thông tin liên hệ, vị trí và giờ hoạt động.
 
 ### Chưa hoàn thành
 
@@ -77,6 +79,7 @@ Ngày cập nhật gần nhất: 2026-10-19
 - [x] Phiên chưa có order trong lịch sử khách hàng Admin hiển thị “Chưa gọi món” thay cho `0 lần`.
 - [x] Danh sách khách hàng Admin dùng API tìm kiếm/phân trang theo server (`query`, `page`, `size`) và component `Pagination` dùng chung.
 - [x] Dashboard `/admin`: UI bốn nhóm Doanh thu, Khách hàng, Menu & Order, Khuyến mãi; dùng dữ liệu minh họa cục bộ và có ghi chú về giới hạn `served_at`.
+- [x] Bộ lọc ngày của dashboard Admin kiểm tra đủ ngày và thứ tự khoảng ngày ở frontend; chỉ tải lại báo cáo sau 250ms khi người dùng dừng chỉnh ngày, hủy request dashboard đang chạy khi khoảng ngày sai, giữ `period`, `from`, `to` trong URL và quay lại Dashboard từ menu vẫn dùng bộ lọc gần nhất trong phiên trình duyệt.
 - [x] Tab Khách hàng của dashboard Admin dùng biểu đồ đường hai chuỗi cho thời gian chờ và sử dụng dịch vụ theo giờ.
 - [x] Chuẩn hóa thiết kế dùng token màu global, font `Inter` qua `next/font/google`, toast dùng chung và panel Admin `rounded-sm`.
 - [x] Nút `CasButton` primary dùng gradient theo theme: primary đến đen ở giao diện sáng và primary đến mint sáng hơn ở giao diện tối.
@@ -89,8 +92,13 @@ Ngày cập nhật gần nhất: 2026-10-19
 - [x] Hiển thị tên cửa hàng cạnh logo ở form đăng nhập Operator và Admin; không hiển thị subtitle.
 - [x] Chuyển lỗi tạo order, mở/hủy phiên của Operator và lỗi hủy phiên Customer sang toast dùng chung; không giữ thông báo lỗi inline sau thao tác thất bại.
 - [x] Gửi món Customer khóa đồng bộ ngay từ lần bấm đầu để bỏ qua các lần nhấp liên tiếp; idempotency key được giữ lại khi gửi lỗi để lần thử lại an toàn.
+- [x] Sau khi Customer gửi yêu cầu thanh toán, trang `/payment` chuyển sang trạng thái chờ nhân viên xác nhận và tự polling để hiện kết quả `PAID`.
 - [x] Luồng Customer chọn loại đơn và nhập bàn/QR có nút quay lại rõ ràng, gồm quay lại trang chủ, bước chọn loại đơn và form đơn mang về.
 - [x] CustomerHeader được đưa vào layout dùng chung để giữ tên/logo cửa hàng và trạng thái header khi chuyển giữa các trang Customer, tránh mount và tải lại không cần thiết.
+- [x] Header Operator lấy tên/logo theo `storeId` được gán cho tài khoản vận hành, không dùng cơ sở khách hàng đã chọn trước đó.
+- [x] Logo, tên và slogan hiển thị chung lấy từ thương hiệu hệ thống; Super Admin chỉnh một lần trong Settings, còn Admin chỉnh dữ liệu riêng của cơ sở được chọn.
+- [x] Đổi `stores.name` thành `branch_name`; dữ liệu cơ sở được hiển thị cùng tên thương hiệu chung.
+- [x] Catalog Customer luôn kiểm tra lại khi mở màn hình, đồng thời giỏ hàng tự bỏ món/tùy chọn không có trong thực đơn cơ sở hiện tại để không gửi ID từ cơ sở cũ sang phiên mới.
 
 - [x] Bắt đầu rollout React Query cho GET: chuẩn hóa query key/hook cho catalog item, order, payment và table session Customer; bill Customer dùng cache RAM kèm polling, mutation tạo order invalidates bill/order cache, logout xóa cache tài khoản.
 

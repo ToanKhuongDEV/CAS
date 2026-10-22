@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,6 +15,10 @@ import {
   YAxis,
 } from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
+import {
+  adminDashboardFilterStorageKey,
+  adminDashboardFilterUpdatedEvent,
+} from "../../lib/admin/dashboard-filter";
 import type { AdminDashboard } from "../../lib/api/operation/admin-dashboard.api";
 import { useAdminDashboardQuery } from "../../lib/api/operation/operation.query";
 
@@ -33,21 +39,55 @@ const reportTabs: { id: ReportTab; label: string }[] = [
 ];
 
 export default function AdminDashboardPage() {
-  const [period, setPeriod] = useState<Period>("oneWeek");
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const [initialFilter] = useState(() => filterFromSearchParams(searchParams));
+  const [period, setPeriod] = useState<Period>(initialFilter.period);
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
-  const [startDate, setStartDate] = useState(() => rangeFor(7).from);
-  const [endDate, setEndDate] = useState(() => rangeFor(7).to);
-  const invalidRange = startDate > endDate;
+  const [shouldPersistFilter, setShouldPersistFilter] = useState(() =>
+    ["from", "period", "to"].some((key) => searchParams.has(key)),
+  );
+  const [startDate, setStartDate] = useState(initialFilter.from);
+  const [endDate, setEndDate] = useState(initialFilter.to);
+  const [debouncedRange, setDebouncedRange] = useState({
+    from: initialFilter.from,
+    to: initialFilter.to,
+  });
+  const rangeError = validateDateRange(startDate, endDate);
+  const isDebouncing = debouncedRange.from !== startDate || debouncedRange.to !== endDate;
+
+  useEffect(() => {
+    if (rangeError || !shouldPersistFilter) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("period", period);
+    params.set("from", startDate);
+    params.set("to", endDate);
+    const query = params.toString();
+    window.sessionStorage.setItem(adminDashboardFilterStorageKey, query);
+    window.dispatchEvent(new Event(adminDashboardFilterUpdatedEvent));
+    if (query !== searchParams.toString()) router.replace(`/admin?${query}`, { scroll: false });
+  }, [endDate, period, rangeError, router, searchParams, shouldPersistFilter, startDate]);
+
+  useEffect(() => {
+    if (rangeError) return;
+    const timer = window.setTimeout(() => setDebouncedRange({ from: startDate, to: endDate }), 250);
+    return () => window.clearTimeout(timer);
+  }, [endDate, rangeError, startDate]);
+
+  useEffect(() => {
+    if (rangeError) void queryClient.cancelQueries({ queryKey: ["admin", "dashboard"] });
+  }, [queryClient, rangeError]);
+
   const {
     data: dashboard,
     error: queryError,
     isLoading,
-  } = useAdminDashboardQuery(startDate, endDate, !invalidRange);
-  const error = invalidRange
-    ? "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc."
-    : (queryError?.message ?? null);
+  } = useAdminDashboardQuery(debouncedRange.from, debouncedRange.to, !rangeError && !isDebouncing);
+  const error = rangeError ?? queryError?.message ?? null;
 
   function selectPeriod(next: Period) {
+    setShouldPersistFilter(true);
     setPeriod(next);
     if (next === "custom") return;
     const range = rangeFor(next === "threeDays" ? 3 : next === "oneWeek" ? 7 : 30);
@@ -89,6 +129,7 @@ export default function AdminDashboardPage() {
           <DateInput
             label="Ngày bắt đầu"
             onChange={(value) => {
+              setShouldPersistFilter(true);
               setPeriod("custom");
               setStartDate(value);
             }}
@@ -98,6 +139,7 @@ export default function AdminDashboardPage() {
           <DateInput
             label="Ngày kết thúc"
             onChange={(value) => {
+              setShouldPersistFilter(true);
               setPeriod("custom");
               setEndDate(value);
             }}
@@ -425,6 +467,26 @@ function rangeFor(days: number) {
 }
 function dateInputValue(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+function validateDateRange(from: string, to: string) {
+  if (!from || !to) return "Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc.";
+  return from > to ? "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." : null;
+}
+function filterFromSearchParams(searchParams: Pick<URLSearchParams, "get">) {
+  const from = searchParams.get("from") ?? "";
+  const to = searchParams.get("to") ?? "";
+  const hasValidRange = !validateDateRange(from, to);
+  const period = searchParams.get("period");
+  if (hasValidRange)
+    return {
+      from,
+      to,
+      period: period && isPeriod(period) ? period : "custom",
+    };
+  return { ...rangeFor(7), period: "oneWeek" as const };
+}
+function isPeriod(value: string): value is Period {
+  return value === "threeDays" || value === "oneWeek" || value === "oneMonth" || value === "custom";
 }
 function shortDate(value: string) {
   const [year, month, day] = value.split("-");

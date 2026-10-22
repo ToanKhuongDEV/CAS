@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StoreWelcomeConfigSection } from "../../../components/admin/store-welcome-config-section";
+import { BrandSettingsSection } from "../../../components/admin/brand-settings-section";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
@@ -10,7 +11,6 @@ import {
   updateLongWaitWarningMinutes,
 } from "../../../lib/api/store/long-wait-warning.api";
 import { loadStoreSettings, updateStoreSettings } from "../../../lib/api/store/store-settings.api";
-import { uploadImage } from "../../../lib/api/catalog/cloudinary-upload";
 
 const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -167,13 +167,7 @@ export default function AdminSettingsPage() {
   const [showMapHelp, setShowMapHelp] = useState<boolean>(false);
   const [openTime, setOpenTime] = useState<string>("08:00");
   const [closeTime, setCloseTime] = useState<string>("22:30");
-  const [slogan, setSlogan] = useState<string>(
-    "Thưởng thức Mỳ Cay & Đồ Uống Chuẩn Vị, Gọi Món QR Siêu Tốc!",
-  );
   const [storeStatus, setStoreStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-  const [logoStorageKey, setLogoStorageKey] = useState<string | null>(null);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
   const [storeError, setStoreError] = useState<string>("");
 
@@ -184,27 +178,17 @@ export default function AdminSettingsPage() {
 
   const handleSaveStoreInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isUploadingLogo) {
-      showToast({
-        message: "Đang tải logo lên Cloudinary, vui lòng chờ hoàn tất.",
-        type: "warning",
-      });
-      return;
-    }
     try {
       setSavedStoreMsg("");
       setStoreError("");
       await updateStoreSettings({
-        name: storeName,
+        branchName: storeName,
         phone,
         email,
         address,
         googleMapsLocation: googleMapUrl || null,
         openTime,
         closeTime,
-        welcomeSlogan: slogan || null,
-        logoUrl: logoPreviewUrl,
-        logoStorageKey,
         status: storeStatus,
       });
       setSavedStoreMsg("Đã lưu thông tin cửa hàng.");
@@ -258,17 +242,14 @@ export default function AdminSettingsPage() {
     void loadStoreSettings()
       .then((s) => {
         if (!active) return;
-        setStoreName(s.name);
+        setStoreName(s.branchName ?? s.name ?? "");
         setPhone(s.phone);
         setEmail(s.email);
         setAddress(s.address);
         setGoogleMapUrl(s.googleMapsLocation ?? "");
         setOpenTime(s.openTime);
         setCloseTime(s.closeTime);
-        setSlogan(s.welcomeSlogan ?? "");
         setStoreStatus(s.status);
-        setLogoPreviewUrl(s.logoUrl);
-        setLogoStorageKey(s.logoStorageKey);
         setStoreError("");
       })
       .catch((error) => {
@@ -282,34 +263,6 @@ export default function AdminSettingsPage() {
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (logoPreviewUrl) {
-        URL.revokeObjectURL(logoPreviewUrl);
-      }
-    };
-  }, [logoPreviewUrl]);
-
-  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
-      return;
-    }
-    setLogoPreviewUrl(URL.createObjectURL(selectedFile));
-    setIsUploadingLogo(true);
-    try {
-      const uploadedImage = await uploadImage(selectedFile, "STORE_LOGO");
-      setLogoPreviewUrl(uploadedImage.imageUrl);
-      setLogoStorageKey(uploadedImage.imageStorageKey);
-    } catch (error) {
-      setLogoPreviewUrl(null);
-      setLogoStorageKey(null);
-      throw error;
-    } finally {
-      setIsUploadingLogo(false);
-    }
-  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -335,6 +288,7 @@ export default function AdminSettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Column 1 & 2: Form Cấu hình Thông tin Cửa hàng */}
         <div className="lg:col-span-2 space-y-8">
+          <BrandSettingsSection />
           <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">
@@ -347,67 +301,17 @@ export default function AdminSettingsPage() {
 
             <form onSubmit={handleSaveStoreInfo} className="mt-6 space-y-5 text-xs">
               {storeError && <p className="font-bold text-cas-error">{storeError}</p>}
-              <div>
-                <label className="block font-extrabold text-cas-on-surface mb-2">
-                  Logo cửa hàng
-                </label>
-                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-cas-outline-variant/50 bg-cas-surface p-4">
-                  <div
-                    aria-label="Logo cửa hàng"
-                    className="grid size-20 shrink-0 place-items-center rounded-2xl bg-cover bg-center text-cas-primary"
-                    role="img"
-                    style={
-                      logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined
-                    }
-                  >
-                    {logoPreviewUrl ? null : <CasIcon className="size-9" name="restaurant" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-cas-on-surface">
-                      Logo hiển thị trên các khu vực thương hiệu của quán.
-                    </p>
-                    <p className="mt-1 text-cas-on-surface-variant">
-                      Chọn ảnh PNG, JPG, WEBP hoặc SVG để tải trực tiếp lên Cloudinary.
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-cas-primary px-3 py-2 font-extrabold text-cas-on-primary transition hover:brightness-110">
-                        <CasIcon className="size-4" name="edit" />
-                        Chọn logo
-                        <input
-                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                          className="sr-only"
-                          onChange={handleLogoChange}
-                          type="file"
-                        />
-                      </label>
-                      {logoPreviewUrl ? (
-                        <button
-                          className="rounded-xl px-3 py-2 font-extrabold text-cas-on-surface-variant transition hover:bg-cas-on-surface/5 hover:text-cas-on-surface"
-                          onClick={() => {
-                            setLogoPreviewUrl(null);
-                            setLogoStorageKey(null);
-                          }}
-                          type="button"
-                        >
-                          Dùng logo mặc định
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tên Cửa hàng */}
+              {/* Tên cơ sở */}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-1">
-                  Tên Cửa hàng <span className="text-cas-error">*</span>
+                  Tên cơ sở <span className="text-cas-error">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="Nhập tên quán..."
+                  placeholder="Nhập tên cơ sở..."
                   className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
                 />
               </div>
@@ -551,20 +455,6 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
-              {/* Slogan / Thông điệp chào mừng */}
-              <div>
-                <label className="block font-extrabold text-cas-on-surface mb-1">
-                  Thông điệp / Slogan Chào mừng
-                </label>
-                <input
-                  type="text"
-                  value={slogan}
-                  onChange={(e) => setSlogan(e.target.value)}
-                  placeholder="VD: Phục vụ món ngon hot dẻo, gọi món QR siêu tốc..."
-                  className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
-                />
-              </div>
-
               {/* Trạng thái hoạt động */}
               <div>
                 <label className="block font-extrabold text-cas-on-surface mb-1">
@@ -598,20 +488,8 @@ export default function AdminSettingsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-3">
-                <CasButton
-                  type="submit"
-                  disabled={isUploadingLogo}
-                  icon={
-                    isUploadingLogo ? (
-                      <span className="size-4 animate-spin rounded-full border-2 border-cas-on-primary/30 border-t-cas-on-primary" />
-                    ) : (
-                      "check"
-                    )
-                  }
-                  variant="primary"
-                  size="sm"
-                >
-                  {isUploadingLogo ? "Đang tải logo..." : "Lưu Thông tin Cửa hàng"}
+                <CasButton type="submit" icon="check" variant="primary" size="sm">
+                  Lưu Thông tin Cơ sở
                 </CasButton>
                 {savedStoreMsg && (
                   <span className="text-xs font-bold text-cas-secondary animate-in fade-in">
@@ -697,11 +575,8 @@ export default function AdminSettingsPage() {
 
               <div>
                 <h4 className="text-base font-black text-cas-on-surface">
-                  {storeName || "Tên Cửa hàng"}
+                  {storeName || "Tên cơ sở"}
                 </h4>
-                <p className="text-[0.7rem] text-cas-on-surface-variant mt-0.5">
-                  {slogan || "Thông điệp chào mừng khách..."}
-                </p>
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-cas-outline-variant/15 text-[0.75rem]">

@@ -54,6 +54,8 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Quản lý khuyến mãi (Promotions):** Tạo, sửa, kích hoạt/khóa chương trình khuyến mãi; cấu hình điều kiện, phạm vi món/danh mục và mã khuyến mãi.
 - **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các đối tượng nhận: Nhân viên (`OPERATOR`), Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
+- **Quản lý đa cơ sở:** `SUPER_ADMIN` chọn một cơ sở hiện có để quản trị; `ADMIN` và `OPERATOR` chỉ thao tác trong cơ sở được gán.
+- **Thương hiệu chung:** Chỉ `SUPER_ADMIN` chỉnh tên, logo và slogan dùng chung toàn hệ thống; mỗi cơ sở giữ địa chỉ, Google Maps, giờ hoạt động, phone và email riêng.
 - **Tra cứu khách hàng:** Xem danh sách khách đã mở bàn tại cửa hàng và lịch sử phiên bàn, order, payment hoặc khoản chưa thanh toán liên quan. Đây là chức năng tra cứu, không phải CRM.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
 - **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
@@ -97,7 +99,7 @@ Nhân viên xác nhận kết quả thanh toán
 #### Quản lý banner và ảnh giới thiệu
 
 - `ADMIN` quản lý một cấu hình Welcome cho từng cửa hàng: 2 ảnh Hero, 5 ảnh xem trước Menu, 1 ảnh Banner và trạng thái `ACTIVE`/`INACTIVE`.
-- Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá. Thông tin cửa hàng hiển thị ở Welcome vẫn dùng từ `stores`.
+- Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá. Thông tin cơ sở hiển thị ở Welcome vẫn dùng từ `stores`; tên/logo/slogan dùng từ thương hiệu chung.
 - Cấu hình không có thời gian bắt đầu/kết thúc; Admin bật hoặc tắt toàn bộ bằng trạng thái.
 
 #### Quản lý khuyến mãi (Promotions) & Thông báo Khuyến mãi
@@ -188,7 +190,6 @@ khi chưa có quyết định tiếp theo.
 - Đổi bàn, chuyển bàn hoặc gộp bàn giữa các phiên bàn.
 - Quản lý nhân viên, ca làm, chấm công và khai báo tiền mặt đầu ca/cuối ca.
 - Ma trận phân quyền chi tiết theo từng API.
-- Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
 - Chương trình thành viên và tích điểm khách hàng.
 - CRM và chăm sóc khách hàng.

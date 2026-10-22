@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import {
+  adminDashboardFilterStorageKey,
+  adminDashboardFilterUpdatedEvent,
+} from "../../lib/admin/dashboard-filter";
 
 type SubMenuItem = {
   children?: SubMenuItem[];
@@ -93,10 +97,21 @@ function isRouteActive(pathname: string, targetHref: string, siblingHrefs: strin
 
 export function AdminTabNavigation() {
   const pathname = usePathname();
+  const [dashboardHref, setDashboardHref] = useState("/admin");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ left: number } | null>(null);
   const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const updateDashboardHref = () => {
+      const query = window.sessionStorage.getItem(adminDashboardFilterStorageKey);
+      setDashboardHref(query ? `/admin?${query}` : "/admin");
+    };
+    updateDashboardHref();
+    window.addEventListener(adminDashboardFilterUpdatedEvent, updateDashboardHref);
+    return () => window.removeEventListener(adminDashboardFilterUpdatedEvent, updateDashboardHref);
+  }, []);
 
   // Tính toán vị trí ngang của popup theo menu đang mở.
   const openDropdown = (label: string, element: HTMLElement) => {
@@ -142,11 +157,12 @@ export function AdminTabNavigation() {
           // Single Link Item (e.g. "Tổng quan")
           if (group.href && !group.items) {
             const isActive = pathname === group.href;
+            const href = group.href === "/admin" ? dashboardHref : group.href;
 
             return (
               <Link
                 key={group.label}
-                href={group.href}
+                href={href}
                 onClick={() => setActiveDropdown(null)}
                 className={`flex min-h-12 shrink-0 items-center rounded-xl px-3.5 text-base font-bold transition focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring ${isActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >

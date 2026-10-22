@@ -13,7 +13,10 @@ export type PublicStoreWelcomeConfig = {
 
 export type PublicStore = {
   id: number;
-  name: string;
+  brandName?: string;
+  branchName?: string;
+  /** @deprecated API responses now use branchName. */
+  name?: string;
   address: string;
   latitude: number | null;
   longitude: number | null;

@@ -19,12 +19,11 @@ public interface StoreSettingsMapper {
 
     java.util.List<StoreSettings> findAllActive();
 
-    int updateStoreSettings(@Param("storeId") long storeId, @Param("name") String name,
+    java.util.List<StoreSettings> findAll();
+
+    int updateStoreSettings(@Param("storeId") long storeId, @Param("branchName") String branchName,
             @Param("address") String address, @Param("phone") String phone,
-            @Param("email") String email, @Param("logoUrl") String logoUrl,
-            @Param("logoStorageKey") String logoStorageKey,
-            @Param("googleMapsLocation") String googleMapsLocation,
+            @Param("email") String email, @Param("googleMapsLocation") String googleMapsLocation,
             @Param("openTime") java.time.LocalTime openTime,
-            @Param("closeTime") java.time.LocalTime closeTime,
-            @Param("welcomeSlogan") String welcomeSlogan, @Param("status") String status);
+            @Param("closeTime") java.time.LocalTime closeTime, @Param("status") String status);
 }

@@ -116,6 +116,32 @@ export function PaymentRequestPanel({
 
   if (!hasActiveSession) return null;
 
+  if (isPending) {
+    return (
+      <section
+        className="rounded-3xl border border-cas-secondary/25 bg-cas-surface-container p-7 text-center shadow-[0_8px_24px_var(--cas-shadow-color)]"
+        aria-labelledby="payment-pending-title"
+      >
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-cas-secondary-container/25 text-cas-secondary">
+          <CasIcon className="size-8" name="clock" />
+        </span>
+        <p className="mt-5 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+          Đã gửi yêu cầu
+        </p>
+        <h2 className="mt-2 text-2xl font-extrabold" id="payment-pending-title">
+          Chờ nhân viên xác nhận
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-cas-on-surface-variant">
+          Vui lòng gặp nhân viên để hoàn tất thanh toán. Màn hình sẽ tự cập nhật khi thanh toán được
+          xác nhận.
+        </p>
+        <p className="mt-6 text-2xl font-extrabold text-cas-primary">
+          {money.format(payment.amount)}
+        </p>
+      </section>
+    );
+  }
+
   if (payment?.status === "PAID") {
     return (
       <div className="fixed inset-0 z-100 overflow-y-auto bg-cas-surface text-cas-on-surface">

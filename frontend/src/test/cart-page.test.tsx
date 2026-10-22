@@ -127,6 +127,30 @@ describe("CartPage", () => {
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
   });
 
+  it("removes cart items that are absent from the current store catalog", async () => {
+    vi.mocked(loadCustomerCatalog).mockResolvedValueOnce({
+      categories: [],
+      items: [],
+      optionGroups: [],
+      tags: [],
+    });
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText("Giỏ hàng đang trống.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Giỏ hàng đã bỏ các món không còn thuộc thực đơn của cơ sở này."),
+    ).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("cas.customerCart")).toBe("[]");
+  });
+
   it("requires confirmation before clearing the cart", async () => {
     render(
       <ToastProvider>

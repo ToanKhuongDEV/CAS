@@ -124,7 +124,7 @@ export default function Home() {
 
               <h1 className="m-0 text-[clamp(2rem,9vw,3rem)] leading-[1.2] font-extrabold tracking-[-0.035em] md:text-[clamp(2.8rem,5vw,4rem)] md:leading-[1.1]">
                 Chào mừng bạn <br className="hidden md:block" />
-                đến <em className="text-cas-primary">Cas</em>
+                đến <em className="text-cas-primary">{store.brandName ?? "CAS"}</em>
               </h1>
 
               <p className="mt-4 max-w-124 text-[0.93rem] leading-[1.65] text-cas-on-surface-variant md:text-[1.05rem]">
@@ -250,7 +250,7 @@ export default function Home() {
               <div>
                 <p className="flex items-center gap-2 font-extrabold text-cas-on-surface">
                   <CasIcon className="size-4 text-cas-primary" name="restaurant" />
-                  {store.name}
+                  {store.brandName ?? store.branchName ?? store.name}
                 </p>
               </div>
               <div>

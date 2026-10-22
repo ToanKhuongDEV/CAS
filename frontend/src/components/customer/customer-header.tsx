@@ -104,7 +104,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     void loadPublicStore(getRememberedPublicStoreId() ?? 1)
       .then((store) => {
         if (!active) return;
-        setStoreName(store.name);
+        setStoreName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);

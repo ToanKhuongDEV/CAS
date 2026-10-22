@@ -34,13 +34,14 @@ export type AdminDashboard = {
   };
 };
 
-export async function loadAdminDashboard(from: string, to: string) {
+export async function loadAdminDashboard(from: string, to: string, signal?: AbortSignal) {
   const user = getFirebaseAuth().currentUser;
   if (!user) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
   const params = new URLSearchParams({ from, to });
   const response = await fetch(`${apiUrl}/api/v1/admin/dashboard?${params}`, {
     cache: "no-store",
     headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+    signal,
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isApiResponse<AdminDashboard>(body)) throw new Error(message(body));

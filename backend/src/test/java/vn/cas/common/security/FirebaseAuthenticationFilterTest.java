@@ -21,6 +21,7 @@ import vn.cas.operation.mapper.OperationalAccountMapper;
 import vn.cas.operation.model.AccountRole;
 import vn.cas.operation.model.OperationalAccount;
 import vn.cas.operation.service.firebase.FirebaseTokenVerifier;
+import vn.cas.store.mapper.StoreSettingsMapper;
 
 class FirebaseAuthenticationFilterTest {
 
@@ -33,10 +34,12 @@ class FirebaseAuthenticationFilterTest {
     void shouldAuthenticateUsingRoleLoadedFromOperationalAccount() throws Exception {
         FirebaseTokenVerifier tokenVerifier = token -> "firebase-user-1";
         OperationalAccountMapper accountMapper = mock(OperationalAccountMapper.class);
+        StoreSettingsMapper storeSettingsMapper = mock(StoreSettingsMapper.class);
         when(accountMapper.findActiveByFirebaseUid("firebase-user-1")).thenReturn(Optional
                 .of(new OperationalAccount(7L, 2L, "firebase-user-1", "operator@example.com",
                         "0901234567", "Operator One", AccountRole.OPERATOR)));
         var filter = new FirebaseAuthenticationFilter(tokenVerifier, accountMapper,
+                storeSettingsMapper,
                 new ApiAuthenticationEntryPoint(new ObjectMapper().findAndRegisterModules()));
         var request = authenticatedRequest();
         var response = new MockHttpServletResponse();
@@ -59,8 +62,10 @@ class FirebaseAuthenticationFilterTest {
     void shouldRejectTokenWhenNoActiveOperationalAccountExists() throws Exception {
         FirebaseTokenVerifier tokenVerifier = token -> "unknown-user";
         OperationalAccountMapper accountMapper = mock(OperationalAccountMapper.class);
+        StoreSettingsMapper storeSettingsMapper = mock(StoreSettingsMapper.class);
         when(accountMapper.findActiveByFirebaseUid("unknown-user")).thenReturn(Optional.empty());
         var filter = new FirebaseAuthenticationFilter(tokenVerifier, accountMapper,
+                storeSettingsMapper,
                 new ApiAuthenticationEntryPoint(new ObjectMapper().findAndRegisterModules()));
         var request = authenticatedRequest();
         var response = new MockHttpServletResponse();

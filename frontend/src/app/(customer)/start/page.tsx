@@ -38,7 +38,10 @@ export default function StartOrderPage() {
   const searchParams = useSearchParams();
   const [stores, setStores] = useState<PublicStore[]>([]);
   const [storeId, setStoreId] = useState<number | null>(null);
-  const [store, setStore] = useState<Pick<StoreSettings, "name" | "logoUrl"> | null>(null);
+  const [store, setStore] = useState<Pick<
+    StoreSettings,
+    "branchName" | "brandName" | "logoUrl"
+  > | null>(null);
   const [orderType, setOrderType] = useState<"DINE_IN" | "TAKEAWAY" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
@@ -151,16 +154,16 @@ export default function StartOrderPage() {
         <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-lg font-extrabold text-cas-primary">
           {store?.logoUrl ? (
             <img
-              alt={`Logo ${store.name}`}
+              alt={`Logo ${store.brandName ?? store.branchName ?? "CAS"}`}
               className="size-full object-cover"
               src={store.logoUrl}
             />
           ) : (
-            store?.name.slice(0, 1)
+            (store?.brandName ?? store?.branchName ?? "C").slice(0, 1)
           )}
         </span>
         <p className="text-xl leading-tight font-extrabold text-cas-primary">
-          {store?.name ?? "Đang tải cửa hàng..."}
+          {store?.brandName ?? store?.branchName ?? "Đang tải cửa hàng..."}
         </p>
       </div>
       <h1 className="mt-6 text-2xl font-extrabold">
@@ -202,7 +205,7 @@ export default function StartOrderPage() {
             >
               <span className="min-w-0 flex-1 whitespace-normal break-words">
                 {selectedStore
-                  ? `${selectedStore.name} — ${selectedStore.address}`
+                  ? `${selectedStore.branchName ?? selectedStore.name ?? "Chi nhánh"} — ${selectedStore.address}`
                   : "Chọn chi nhánh"}
               </span>
               <span aria-hidden="true" className="ml-3 shrink-0 text-cas-on-surface-variant">
@@ -226,7 +229,9 @@ export default function StartOrderPage() {
                     role="option"
                     type="button"
                   >
-                    <span className="block font-bold">{candidate.name}</span>
+                    <span className="block font-bold">
+                      {candidate.branchName ?? candidate.name}
+                    </span>
                     <span className="mt-0.5 block text-xs text-cas-on-surface-variant">
                       {candidate.address}
                     </span>

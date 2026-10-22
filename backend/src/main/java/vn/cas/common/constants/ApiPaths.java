@@ -27,9 +27,17 @@ public final class ApiPaths {
 
         public static final String LONG_WAIT_WARNING = PRE_FIX + "/settings/long-wait-warning";
         public static final String SETTINGS = PRE_FIX + "/settings";
+        public static final String LIST = API_ADMIN_PREFIX + "/stores";
         public static final String WELCOME = PRE_FIX + "/welcome";
 
         private Store() {
+        }
+    }
+
+    public static final class Brand {
+        public static final String SETTINGS = API_ADMIN_PREFIX + "/brand/settings";
+
+        private Brand() {
         }
     }
 
