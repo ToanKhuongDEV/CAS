@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
+  clearSelectedAdminStore,
   getCurrentOperationalAccount,
   signOutOperationalUser,
   type OperationalRole,
@@ -36,6 +37,7 @@ export function OperationalRouteGuard({ area, children }: OperationalRouteGuardP
     let isCurrent = true;
     const unsubscribe = onIdTokenChanged(getFirebaseAuth(), async (user) => {
       if (!user) {
+        clearSelectedAdminStore();
         if (isCurrent) {
           setIsAuthorized(false);
           router.replace(loginPath);
@@ -50,10 +52,13 @@ export function OperationalRouteGuard({ area, children }: OperationalRouteGuardP
           throw new Error("Role does not have access to this area.");
         }
 
+        if (account.role !== "SUPER_ADMIN") clearSelectedAdminStore();
+
         if (isCurrent) {
           setIsAuthorized(true);
         }
       } catch {
+        clearSelectedAdminStore();
         if (isCurrent) {
           setIsAuthorized(false);
           router.replace(loginPath);

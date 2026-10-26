@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-19
+Ngày cập nhật gần nhất: 2026-10-26
 
 ## Quy ước
 
@@ -121,6 +121,7 @@ Ngày cập nhật gần nhất: 2026-10-19
 
 - [ ] Roll out React Query for every frontend GET in phases: Customer/catalog/order/payment/table session first, then Operator and Admin. Standardize query keys, invalidate after mutations, retain polling only for live screens, and clear user-scoped cache on logout or store change.
 - [x] Chuyển các GET live của Operator (dashboard, cảnh báo bàn chờ lâu, sơ đồ bàn/bill, chi tiết order, catalog availability, tạo order hộ, payment/unpaid, chế biến và service booking) cùng Dashboard, sự cố, Catalog, quản lý Operator và Customers của Admin sang React Query; mutation liên quan invalidates cache dùng chung.
+- [x] Super Admin gắn `X-CAS-Store-Id` từ scope cơ sở đã chọn ngay từ request Admin/Operator đầu tiên sau khi tải lại trang; khi đăng xuất hoặc đăng nhập không phải Super Admin, scope này được xóa.
 
 ## 9. Tài liệu liên quan
 

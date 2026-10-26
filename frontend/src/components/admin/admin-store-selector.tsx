@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
-import { getCurrentOperationalAccount } from "../../lib/auth/operational-auth";
+import {
+  clearSelectedAdminStore,
+  getCurrentOperationalAccount,
+  getSelectedAdminStoreId,
+  selectedAdminStoreStorageKey,
+} from "../../lib/auth/operational-auth";
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { loadAdminStores, type AdminStore } from "../../lib/api/store/store-settings.api";
 
-const storageKey = "cas.admin.selectedStoreId";
 const storeHeader = "X-CAS-Store-Id";
 
 export function AdminStoreSelector() {
@@ -16,19 +20,19 @@ export function AdminStoreSelector() {
   const queryClient = useQueryClient();
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(() => getSelectedAdminStoreId() !== null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = (input, init) => {
       const url = new URL(
         typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
         window.location.origin,
       );
-      const storeId = window.sessionStorage.getItem(storageKey);
+      const storeId = getSelectedAdminStoreId();
       if (
         !isSuperAdmin ||
-        !storeId ||
+        storeId === null ||
         (!url.pathname.startsWith("/api/v1/admin") && !url.pathname.startsWith("/api/v1/operator"))
       ) {
         return originalFetch(input, init);
@@ -36,7 +40,7 @@ export function AdminStoreSelector() {
       const headers = new Headers(
         init?.headers ?? (input instanceof Request ? input.headers : undefined),
       );
-      headers.set(storeHeader, storeId);
+      headers.set(storeHeader, String(storeId));
       return originalFetch(input, { ...init, headers });
     };
     return () => {
@@ -50,14 +54,18 @@ export function AdminStoreSelector() {
     if (!user) return;
     void getCurrentOperationalAccount(user)
       .then(async (account) => {
-        if (account.role !== "SUPER_ADMIN") return;
+        if (account.role !== "SUPER_ADMIN") {
+          clearSelectedAdminStore();
+          setIsSuperAdmin(false);
+          return;
+        }
         setIsSuperAdmin(true);
         const availableStores = await loadAdminStores();
-        const rememberedStoreId = Number(window.sessionStorage.getItem(storageKey));
+        const rememberedStoreId = getSelectedAdminStoreId();
         const nextStoreId = availableStores.some((store) => store.id === rememberedStoreId)
           ? rememberedStoreId
           : account.storeId;
-        window.sessionStorage.setItem(storageKey, String(nextStoreId));
+        window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(nextStoreId));
         setStores(availableStores);
         setSelectedStoreId(nextStoreId);
       })
@@ -73,7 +81,7 @@ export function AdminStoreSelector() {
         className="rounded-lg border border-cas-outline-variant/60 bg-cas-surface px-2 py-1.5 text-cas-on-surface"
         onChange={(event) => {
           const storeId = Number(event.target.value);
-          window.sessionStorage.setItem(storageKey, String(storeId));
+          window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(storeId));
           setSelectedStoreId(storeId);
           queryClient.clear();
           router.refresh();

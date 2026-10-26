@@ -22,6 +22,18 @@ type ApiResponse<T> = {
 };
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+export const selectedAdminStoreStorageKey = "cas.admin.selectedStoreId";
+
+export function getSelectedAdminStoreId(): number | null {
+  if (typeof window === "undefined") return null;
+  const storeId = Number(window.sessionStorage.getItem(selectedAdminStoreStorageKey));
+  return Number.isSafeInteger(storeId) && storeId > 0 ? storeId : null;
+}
+
+export function clearSelectedAdminStore() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(selectedAdminStoreStorageKey);
+}
 
 export async function signInOperationalUser(
   email: string,
@@ -75,6 +87,7 @@ function getBackendErrorMessage(body: unknown, fallbackMessage: string) {
 }
 
 export async function signOutOperationalUser() {
+  clearSelectedAdminStore();
   await signOut(getFirebaseAuth());
 }
 
