@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-26
+Ngày cập nhật gần nhất: 2026-10-27
 
 ## Quy ước
 
@@ -64,6 +64,7 @@ Ngày cập nhật gần nhất: 2026-10-26
 ### Chưa hoàn thành
 
 - [x] Dashboard Admin dùng một API báo cáo theo khoảng ngày cho doanh thu, khách hàng, menu/order và khuyến mãi; discount lấy từ snapshot `bill_discounts` của payment `PAID`.
+- [x] Bổ sung integration test MySQL Testcontainers (cần Docker) chạy Flyway và kiểm tra mapper store/brand: dữ liệu cơ sở riêng, thương hiệu chung, public chỉ trả cơ sở `ACTIVE` và update theo `store_id`.
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
