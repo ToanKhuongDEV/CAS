@@ -30,12 +30,11 @@ public class FirebaseUserProvisioner {
         } catch (FirebaseAuthException exception) {
             if (AuthErrorCode.EMAIL_ALREADY_EXISTS.equals(exception.getAuthErrorCode())) {
                 log.warn(
-                        "Operator account provisioning failed: email is already registered in Firebase Authentication");
+                        "Account provisioning failed: email is already registered in Firebase Authentication");
                 throw new ApiException(HttpStatus.CONFLICT,
                         ApiMessages.OPERATOR_EMAIL_ALREADY_EXISTS);
             }
-            log.error(
-                    "Operator account provisioning failed because Firebase Authentication is unavailable",
+            log.error("Account provisioning failed because Firebase Authentication is unavailable",
                     exception);
             throw new AuthenticationServiceException(ApiMessages.FIREBASE_AUTH_UNAVAILABLE,
                     exception);

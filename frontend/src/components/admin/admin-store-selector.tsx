@@ -75,10 +75,10 @@ export function AdminStoreSelector() {
   if (stores.length < 2 || selectedStoreId === null) return null;
 
   return (
-    <label className="hidden items-center gap-2 text-xs font-bold text-cas-on-surface-variant sm:flex">
+    <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-cas-on-surface-variant">
       Cơ sở
       <select
-        className="rounded-lg border border-cas-outline-variant/60 bg-cas-surface px-2 py-1.5 text-cas-on-surface"
+        className="max-w-28 rounded-lg border border-cas-outline-variant/60 bg-cas-surface px-2 py-1.5 text-cas-on-surface sm:max-w-none"
         onChange={(event) => {
           const storeId = Number(event.target.value);
           window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(storeId));
@@ -90,7 +90,7 @@ export function AdminStoreSelector() {
       >
         {stores.map((store) => (
           <option key={store.id} value={store.id}>
-            {store.brandName ?? "CAS"} – {store.branchName ?? store.name}
+            {store.branchName ?? store.name}
           </option>
         ))}
       </select>

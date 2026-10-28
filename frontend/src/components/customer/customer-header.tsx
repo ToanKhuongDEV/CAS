@@ -27,10 +27,23 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   >([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [storeName, setStoreName] = useState("CAS");
+  const [branchName, setBranchName] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [tableCode, setTableCode] = useState<number | null>(null);
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function clearCustomerHeader() {
+      setNotifications([]);
+      setUnreadCount(0);
+      setShowNotif(false);
+      setTableCode(null);
+      setBranchName(null);
+    }
+    window.addEventListener("cas-customer-logout", clearCustomerHeader);
+    return () => window.removeEventListener("cas-customer-logout", clearCustomerHeader);
+  }, []);
 
   const loadNotifications = async () => {
     const result = await loadCustomerNotifications();
@@ -101,27 +114,35 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   useEffect(() => {
     let active = true;
-    void loadPublicStore(getRememberedPublicStoreId() ?? 1)
+    const selectedStoreId = getRememberedPublicStoreId();
+    void loadPublicStore(selectedStoreId ?? 1)
       .then((store) => {
         if (!active) return;
         setStoreName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
+        setBranchName(
+          selectedStoreId !== null &&
+            getRememberedPublicStoreId() === selectedStoreId &&
+            store.brandName
+            ? (store.branchName ?? store.name ?? null)
+            : null,
+        );
         setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-16 bg-cas-header shadow-[0_2px_12px_var(--cas-shadow-color)] backdrop-blur-xl">
       <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between px-4 md:px-8">
         <Link
-          className="inline-flex items-center gap-3 text-xl font-bold text-cas-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+          className="inline-flex min-w-0 items-center gap-3 text-xl font-bold text-cas-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"
           aria-label="CAS - Trang chào mừng"
         >
-          <span className="grid size-10 place-items-center overflow-hidden rounded-full shadow-[0_4px_12px_var(--cas-shadow-color)]">
+          <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full shadow-[0_4px_12px_var(--cas-shadow-color)]">
             <img
               alt="Logo cửa hàng"
               className="size-full object-cover"
@@ -131,10 +152,15 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
               }
             />
           </span>
-          <span>{storeName}</span>
+          <span className="truncate">{storeName}</span>
+          {branchName ? (
+            <span className="truncate text-xs font-semibold text-cas-on-surface-variant">
+              {branchName}
+            </span>
+          ) : null}
         </Link>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
           {tableCode === null ? (
             <Link
               aria-label="Bắt đầu gọi món"

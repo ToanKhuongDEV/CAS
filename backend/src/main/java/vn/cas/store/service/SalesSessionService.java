@@ -9,6 +9,7 @@ import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
+import vn.cas.payment.mapper.PaymentMapper;
 import vn.cas.store.dto.CreateClientAccountCommand;
 import vn.cas.store.dto.SalesSessionResolutionCommand;
 import vn.cas.store.mapper.DiningTableMapper;
@@ -20,11 +21,13 @@ import vn.cas.store.model.SalesSessionResolution.ResolutionStatus;
 public class SalesSessionService {
     private final DiningTableMapper diningTableMapper;
     private final AuditLogService auditLogService;
+    private final PaymentMapper paymentMapper;
 
-    public SalesSessionService(DiningTableMapper diningTableMapper,
-            AuditLogService auditLogService) {
+    public SalesSessionService(DiningTableMapper diningTableMapper, AuditLogService auditLogService,
+            PaymentMapper paymentMapper) {
         this.diningTableMapper = diningTableMapper;
         this.auditLogService = auditLogService;
+        this.paymentMapper = paymentMapper;
     }
 
     @Transactional
@@ -152,6 +155,27 @@ public class SalesSessionService {
     public java.util.List<vn.cas.store.model.OperatorTableSession> findActiveDineInSessions(
             long storeId) {
         return diningTableMapper.findActiveDineInSessionsByStoreId(storeId);
+    }
+
+    @Transactional
+    public void logout(String sessionPublicId) {
+        if (sessionPublicId == null || sessionPublicId.isBlank())
+            return;
+        var session = diningTableMapper.findSalesSessionByPublicIdForUpdate(sessionPublicId);
+        if (session == null)
+            return;
+        if (!diningTableMapper.hasOrders(session.sessionId())) {
+            if ("OPEN".equals(session.sessionStatus())
+                    && diningTableMapper.closeSessionWithoutOrders(session.sessionId()) != 1)
+                throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+            if ("OPEN".equals(session.sessionStatus()) || "CLOSED".equals(session.sessionStatus()))
+                return;
+        }
+        var payment = paymentMapper.findBySessionId(session.sessionId());
+        if (payment == null || !"PAID".equals(payment.status())
+                || !"CLOSED".equals(session.sessionStatus()))
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Vui lòng thanh toán đầy đủ trước khi đăng xuất.");
     }
 
     @Transactional

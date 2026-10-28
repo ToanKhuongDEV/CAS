@@ -177,10 +177,10 @@ export function CustomerOrderVoucherSummary({
               </button>
             </div>
 
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto p-1">
               <form className="flex gap-2" onSubmit={applyCode}>
                 <input
-                  className="min-w-0 flex-1 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm text-cas-on-surface outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary"
+                  className="min-w-0 flex-1 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm text-cas-on-surface outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary focus-visible:outline-none"
                   onChange={(event) => setCode(event.target.value.toUpperCase())}
                   placeholder="Nhập mã giảm giá"
                   value={code}

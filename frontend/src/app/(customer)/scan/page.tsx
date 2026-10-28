@@ -271,7 +271,7 @@ export default function ScanTableQrPage() {
           >
             <span className="min-w-0 flex-1 whitespace-normal break-words">
               {selectedStore
-                ? `${selectedStore.name} — ${selectedStore.address}`
+                ? `${selectedStore.branchName ?? selectedStore.name ?? "Chi nhánh"} — ${selectedStore.address}`
                 : "Chọn chi nhánh"}
             </span>
             <span aria-hidden="true" className="ml-3 shrink-0 text-cas-on-surface-variant">
@@ -296,7 +296,9 @@ export default function ScanTableQrPage() {
                   role="option"
                   type="button"
                 >
-                  <span className="block font-bold">{store.name}</span>
+                  <span className="block font-bold">
+                    {store.branchName ?? store.name ?? "Chi nhánh"}
+                  </span>
                   <span className="block text-xs text-cas-on-surface-variant">{store.address}</span>
                 </button>
               ))}

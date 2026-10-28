@@ -195,6 +195,20 @@
         FOR UPDATE
     </select>
 
+    <select id="findSalesSessionByPublicIdForUpdate" resultType="vn.cas.store.model.SalesSessionLookup">
+        SELECT sales_sessions.id AS sessionId, sales_sessions.table_id AS tableId,
+               sales_sessions.store_id AS storeId, dining_tables.code AS tableCode,
+               sales_sessions.client_account_id AS clientAccountId,
+               sales_sessions.selected_promotion_id AS selectedPromotionId,
+               sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+               sales_sessions.public_id AS sessionPublicId, sales_sessions.status AS sessionStatus,
+               sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+        FOR UPDATE
+    </select>
+
     <select id="findSalesSessionByStoreIdAndTableIdForUpdate"
             resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT

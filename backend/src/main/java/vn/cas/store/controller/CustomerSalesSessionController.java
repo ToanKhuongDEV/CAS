@@ -113,6 +113,18 @@ public class CustomerSalesSessionController {
                 null, request);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(name = CUSTOMER_SESSION_COOKIE, required = false) String sessionPublicId,
+            HttpServletRequest request, HttpServletResponse response) {
+        customerSalesSessionService.logout(sessionPublicId);
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                ResponseCookie.from(CUSTOMER_SESSION_COOKIE, "").httpOnly(true)
+                        .secure(request.isSecure()).sameSite("Lax")
+                        .path(ApiPaths.API_CUSTOMER_PREFIX).maxAge(0).build().toString());
+        return ApiResponses.success(HttpStatus.OK, "Đã thoát phiên khách.", null, request);
+    }
+
     private static String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }

@@ -49,6 +49,9 @@ Ngày cập nhật gần nhất: 2026-10-27
 
 ### API và nghiệp vụ đã hoàn thành
 
+- [x] `DELETE /api/v1/admin/admins/{id}` và `POST /api/v1/admin/admins/{id}/activate`: Super Admin khóa hoặc kích hoạt Admin trong cơ sở đang chọn; ghi audit log.
+- [x] `GET /api/v1/admin/admins`: chỉ Super Admin xem danh sách Admin thuộc cơ sở đang chọn.
+- [x] `POST /api/v1/customer/sales-sessions/logout`: đóng phiên chưa có order và xóa cookie; phiên có order chỉ được thoát sau khi thanh toán thành công.
 - [x] Store, bàn, QR, cài đặt cửa hàng và ngưỡng cảnh báo bàn chờ lâu.
 - [x] Catalog: category, menu item, tag, option group/value, ảnh Cloudinary và trạng thái bán.
 - [x] Sales session, order Customer/Operator, bill, hủy session chưa có món và yêu cầu hủy món.
@@ -60,6 +63,7 @@ Ngày cập nhật gần nhất: 2026-10-27
 - [x] `GET /api/v1/admin/dashboard?from&to`: báo cáo doanh thu, session đã thanh toán, thời gian chờ ra món, sản lượng món bán và hao hụt làm lại theo store Admin; khoảng thời gian không có dữ liệu vẫn trả dashboard rỗng.
 - [x] `GET /api/v1/admin/stores`: `SUPER_ADMIN` lấy danh sách cơ sở hiện có để chọn phạm vi quản trị; backend xác thực `X-CAS-Store-Id` trước khi dùng cơ sở đã chọn cho request Admin/Operator.
 - [x] `GET`/`PUT /api/v1/admin/brand/settings`: chỉ `SUPER_ADMIN` quản lý tên, logo và slogan thương hiệu chung; từng cơ sở chỉ còn thông tin liên hệ, vị trí và giờ hoạt động.
+- [x] `POST /api/v1/admin/admins`: Super Admin tạo Firebase user và tài khoản Admin cho cơ sở đang chọn bằng email, số điện thoại và họ tên; mật khẩu ban đầu giống Operator.
 
 ### Chưa hoàn thành
 
@@ -69,6 +73,18 @@ Ngày cập nhật gần nhất: 2026-10-27
 
 ## 6. Frontend
 
+- [x] Super Admin có thể khóa và kích hoạt tài khoản Admin trong danh sách quản lý tài khoản.
+- [x] Danh sách quản lý tài khoản của Super Admin hiển thị Admin cùng Operator theo cơ sở.
+- [x] Nút tại trang đơn hàng Customer hiển thị “Xem hóa đơn và thanh toán”.
+- [x] Chỉnh vùng cuộn và viền focus của ô nhập mã voucher để không bị cắt, lệch viền.
+- [x] Header Customer ẩn tên chi nhánh khi chưa chọn cơ sở hoặc sau khi đăng xuất.
+- [x] Cài đặt Customer có nút đăng xuất thay nút hủy phiên: đóng phiên chưa gọi món, chỉ thoát phiên có order khi đã thanh toán; xóa dữ liệu tạm và trở về trang chủ.
+- [x] Màn quét QR hiển thị tên chi nhánh đúng trong danh sách và lựa chọn cơ sở.
+- [x] Màn thanh toán Customer thành công có nút về trang chủ bên cạnh lựa chọn tạo đơn mới.
+- [x] Trang quản lý tài khoản dùng toast chung cho kết quả tạo, khóa, kích hoạt và lỗi tải danh sách.
+- [x] Dropdown chọn cơ sở của Super Admin chỉ hiển thị tên chi nhánh.
+- [x] Header Customer và Operator hiển thị tên chi nhánh nhỏ bên phải tên thương hiệu theo cơ sở hiện tại.
+- [x] Giao diện quản trị hiển thị Super Admin theo vai trò, cho phép chọn cơ sở trên màn hình nhỏ và chọn tạo Admin hoặc Operator tại trang quản lý nhân viên cho cơ sở được chọn.
 - [x] Hoàn thiện ba khu vực Customer, Operator và Admin với Firebase route guard cho khu vực vận hành.
 - [x] Customer: vào quán bằng QR/chọn chi nhánh, mở session, menu, giỏ hàng, order, hủy món, voucher, bill, thanh toán và thông báo.
 - [x] Operator: dashboard, tạo order hộ, chế biến, xử lý yêu cầu hủy, thanh toán, khoản chưa thanh toán, service booking và catalog availability.

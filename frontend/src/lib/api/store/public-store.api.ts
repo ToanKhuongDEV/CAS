@@ -36,6 +36,10 @@ export function rememberPublicStoreId(storeId: number) {
   window.localStorage.setItem(selectedStoreStorageKey, String(storeId));
 }
 
+export function clearRememberedPublicStoreId() {
+  window.localStorage.removeItem(selectedStoreStorageKey);
+}
+
 export async function loadPublicStores(): Promise<PublicStore[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const response = await fetch(`${apiUrl}/api/v1/public/stores`, { cache: "no-store" });

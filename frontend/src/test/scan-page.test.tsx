@@ -32,13 +32,24 @@ describe("ScanTableQrPage", () => {
     vi.mocked(loadPublicStores).mockResolvedValue([
       {
         id: 1,
-        name: "CAS",
+        branchName: "Cơ sở Bến Thành",
         address: "1 Đường A",
         latitude: null,
         longitude: null,
         status: "ACTIVE",
       },
     ]);
+  });
+
+  it("displays the selected branch name and its dropdown option", async () => {
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
+    const selector = await screen.findByRole("button", { name: "Cơ sở Bến Thành — 1 Đường A" });
+    fireEvent.click(selector);
+    expect(screen.getByRole("option")).toHaveTextContent("Cơ sở Bến Thành");
   });
 
   it("keeps manual entry available when the QR token is invalid", async () => {

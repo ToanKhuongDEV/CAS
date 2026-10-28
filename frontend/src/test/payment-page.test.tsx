@@ -6,7 +6,8 @@ import { loadCustomerBill } from "../lib/api/ordering/ordering.api";
 import { createCustomerPayment, loadCustomerPayment } from "../lib/api/payment/payment.api";
 import { loadCustomerPromotions } from "../lib/api/promotion/promotion.api";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace }) }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({ loadCustomerBill: vi.fn() }));
 vi.mock("../lib/api/payment/payment.api", () => ({
   createCustomerPayment: vi.fn(),
@@ -88,6 +89,8 @@ describe("PaymentRequestPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Bàn 08")).toBeInTheDocument();
     expect(screen.getByText("20:05")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Về trang chủ" }));
+    expect(replace).toHaveBeenCalledWith("/");
   });
 
   it("clears the payment view when the sales session is closed", async () => {

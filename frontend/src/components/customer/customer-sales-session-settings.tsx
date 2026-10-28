@@ -2,120 +2,57 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { cancelCustomerSalesSession } from "../../lib/api/ordering/ordering.api";
-import { useCurrentCustomerSalesSessionQuery } from "../../lib/customer/sales-session.query";
-import { CasIcon } from "../ui/cas-icon";
+import { logoutCustomer } from "../../lib/customer/sales-session";
+import { clearCustomerCart } from "../../lib/customer/cart";
+import { clearRememberedPublicStoreId } from "../../lib/api/store/public-store.api";
 import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
 
 export function CustomerSalesSessionSettings() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { data: session } = useCurrentCustomerSalesSessionQuery();
-  const isCancellable = session?.sessionStatus === "OPEN";
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const queryClient = useQueryClient();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  async function cancelSession() {
-    if (isCancelling) return;
-
-    setIsCancelling(true);
+  async function logout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
-      await cancelCustomerSalesSession();
-      setIsConfirmOpen(false);
+      await logoutCustomer();
+      await queryClient.cancelQueries({ queryKey: ["customer"] });
+      queryClient.removeQueries({ queryKey: ["customer"] });
+      clearCustomerCart();
+      clearRememberedPublicStoreId();
+      window.sessionStorage.removeItem("cas.tableQrToken");
+      window.dispatchEvent(new Event("cas-customer-logout"));
       router.replace("/");
+      router.refresh();
     } catch (cause) {
       showToast({
         type: "error",
-        message: cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.",
+        message: cause instanceof Error ? cause.message : "Không thể thoát phiên.",
       });
     } finally {
-      setIsCancelling(false);
+      setIsLoggingOut(false);
     }
   }
 
   return (
-    <section
-      className="mt-5 rounded-2xl border border-cas-error/25 bg-cas-surface-container p-5 shadow-[0_8px_24px_var(--cas-shadow-color)]"
-      aria-labelledby="sales-session-setting-title"
-    >
-      <div className="flex items-start justify-between gap-5">
+    <>
+      <section className="mt-5 flex items-center justify-between gap-5 rounded-2xl bg-cas-surface-container p-5 shadow-[0_8px_24px_var(--cas-shadow-color)]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="font-extrabold" id="sales-session-setting-title">
-              Hủy phiên bàn
-            </h2>
-            <span
-              aria-label="Chỉ hủy được khi chưa gửi món nào xuống bếp."
-              className="inline-flex text-cas-on-surface-variant"
-              role="img"
-              title="Chỉ hủy được khi chưa gửi món nào xuống bếp."
-            >
-              <CasIcon className="size-4" name="info" />
-            </span>
-          </div>
+          <h2 className="font-extrabold">Thoát phiên khách</h2>
           <p className="mt-1 text-sm leading-relaxed text-cas-on-surface-variant">
-            Kết thúc phiên bàn hiện tại khi bạn không tiếp tục gọi món.
+            Đăng xuất để bắt đầu lượt mới. Phiên chưa gọi món sẽ được đóng; phiên đã gọi món cần
+            thanh toán đầy đủ.
           </p>
         </div>
-        <button
-          className="shrink-0 rounded-xl border border-cas-error/45 px-3 py-2 text-sm font-bold text-cas-error transition hover:bg-cas-error/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!isCancellable}
-          onClick={() => setIsConfirmOpen(true)}
-          title={
-            isCancellable
-              ? "Hủy phiên bàn hiện tại"
-              : "Cần có phiên bàn đang mở để thực hiện thao tác này"
-          }
-          type="button"
-        >
-          Hủy phiên
-        </button>
-      </div>
-
-      {isConfirmOpen ? (
-        <div
-          className="fixed inset-0 z-60 grid place-items-center bg-cas-on-surface/45 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isCancelling) setIsConfirmOpen(false);
-          }}
-        >
-          <section
-            aria-labelledby="cancel-session-dialog-title"
-            aria-modal="true"
-            className="w-full max-w-sm rounded-3xl bg-cas-surface p-6 shadow-[0_16px_36px_var(--cas-shadow-color)]"
-            role="dialog"
-          >
-            <h2 className="text-lg font-extrabold" id="cancel-session-dialog-title">
-              Hủy phiên bàn này?
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
-              Chỉ hủy được nếu chưa gửi món nào xuống bếp. Thao tác này không thể hoàn tác.
-            </p>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <CasButton
-                className="min-h-11 rounded-xl"
-                disabled={isCancelling}
-                onClick={() => setIsConfirmOpen(false)}
-                type="button"
-                variant="outline"
-              >
-                Quay lại
-              </CasButton>
-              <CasButton
-                className="min-h-11 rounded-xl"
-                disabled={isCancelling}
-                onClick={() => void cancelSession()}
-                type="button"
-                variant="danger"
-              >
-                {isCancelling ? "Đang hủy..." : "Xác nhận hủy"}
-              </CasButton>
-            </div>
-          </section>
-        </div>
-      ) : null}
-    </section>
+        <CasButton variant="outline" disabled={isLoggingOut} onClick={() => void logout()}>
+          {isLoggingOut ? "Đang thoát..." : "Đăng xuất"}
+        </CasButton>
+      </section>
+    </>
   );
 }

@@ -30,7 +30,10 @@ public class SecurityConfiguration {
                                 ApiPaths.ACTUATOR_INFO)
                         .permitAll().requestMatchers(ApiPaths.AUTH_PATTERN)
                         .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
-                        .requestMatchers(ApiPaths.ADMIN_PATTERN).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(ApiPaths.AdminAccount.ADMIN_COMMON,
+                                ApiPaths.AdminAccount.ADMIN_COMMON + "/**")
+                        .hasRole("SUPER_ADMIN").requestMatchers(ApiPaths.ADMIN_PATTERN)
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(ApiPaths.OPERATOR_PATTERN)
                         .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR").anyRequest().permitAll())
                 .exceptionHandling(

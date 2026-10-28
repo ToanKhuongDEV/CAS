@@ -30,6 +30,8 @@ describe("OperatorStoreIdentity", () => {
       logoStorageKey: null,
       logoUrl: null,
       name: "Cơ sở 2",
+      brandName: "Thương hiệu CAS",
+      branchName: "Chi nhánh 2",
       openTime: "09:00",
       phone: "0900000002",
       status: "ACTIVE",
@@ -39,6 +41,7 @@ describe("OperatorStoreIdentity", () => {
     render(<OperatorStoreIdentity subtitle="Vận hành" />);
 
     await waitFor(() => expect(loadPublicStore).toHaveBeenCalledWith(2));
-    expect(await screen.findByText("Cơ sở 2")).toBeInTheDocument();
+    expect(await screen.findByText("Thương hiệu CAS")).toBeInTheDocument();
+    expect(screen.getByText("Chi nhánh 2")).toBeInTheDocument();
   });
 });

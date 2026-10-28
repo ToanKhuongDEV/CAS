@@ -20,13 +20,15 @@ import vn.cas.store.model.SalesSessionResolution.ResolutionStatus;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.service.AuditLogService;
+import vn.cas.payment.mapper.PaymentMapper;
 
 class SalesSessionServiceTest {
 
     private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final PaymentMapper paymentMapper = mock(PaymentMapper.class);
     private final SalesSessionService service = new SalesSessionService(diningTableMapper,
-            auditLogService);
+            auditLogService, paymentMapper);
 
     @Test
     void shouldRequireCustomerInformationWhenTableHasNoOpenSession() {

@@ -93,6 +93,17 @@ export async function getCurrentCustomerSalesSession(): Promise<SalesSessionReso
   return body.data;
 }
 
+export async function logoutCustomer() {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => undefined);
+    throw new Error(getBackendErrorMessage(body, "Không thể thoát phiên. Vui lòng thử lại."));
+  }
+}
+
 export async function hasOpenCustomerSalesSession(): Promise<boolean> {
   try {
     return (await getCurrentCustomerSalesSession()).sessionStatus === "OPEN";

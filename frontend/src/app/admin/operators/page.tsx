@@ -1,24 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../components/ui/cas-button";
+import { useToast } from "../../../components/ui/toast-provider";
 import {
   createOperator,
+  createAdmin,
   deactivateOperator,
   activateOperator,
+  deactivateAdmin,
+  activateAdmin,
 } from "../../../lib/api/operation/operational-management.api";
 import {
   adminOperatorsQueryKey,
+  adminAccountsQueryKey,
+  useAdminAccountsQuery,
   useAdminOperatorsQuery,
 } from "../../../lib/api/operation/operation.query";
+import { getFirebaseAuth } from "../../../lib/auth/firebase";
+import { getCurrentOperationalAccount } from "../../../lib/auth/operational-auth";
 
 type OperatorAccount = {
   email: string;
   id: number;
   fullName: string;
   phone: string;
-  role: "OPERATOR";
+  role: "ADMIN" | "OPERATOR";
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
 };
@@ -31,40 +39,84 @@ type CreateOperatorErrors = {
 
 export default function AdminOperatorsPage() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const { data: accounts = [], error: loadError } = useAdminOperatorsQuery();
-  const operators: OperatorAccount[] = accounts.map((account) => ({
-    ...account,
-    fullName: account.displayName,
-    role: "OPERATOR",
-  }));
+  const { data: admins = [], error: adminLoadError } = useAdminAccountsQuery(isSuperAdmin);
+  const operators: OperatorAccount[] = [
+    ...accounts.map((account) => ({
+      ...account,
+      fullName: account.displayName,
+      role: "OPERATOR" as const,
+    })),
+    ...admins.map((account) => ({
+      ...account,
+      fullName: account.displayName,
+      role: "ADMIN" as const,
+    })),
+  ];
   const [showAddForm, setShowAddForm] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"ADMIN" | "OPERATOR">("OPERATOR");
   const [createErrors, setCreateErrors] = useState<CreateOperatorErrors>({});
-  const [requestError, setRequestError] = useState("");
 
-  const deactivate = async (id: number) => {
+  useEffect(() => {
+    if (loadError)
+      showToast({
+        message:
+          loadError instanceof Error ? loadError.message : "Không thể tải tài khoản nhân viên.",
+        type: "error",
+      });
+  }, [loadError, showToast]);
+
+  useEffect(() => {
+    if (adminLoadError)
+      showToast({
+        message:
+          adminLoadError instanceof Error
+            ? adminLoadError.message
+            : "Không thể tải tài khoản quản trị viên.",
+        type: "error",
+      });
+  }, [adminLoadError, showToast]);
+
+  useEffect(() => {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) return;
+    void getCurrentOperationalAccount(user)
+      .then((account) => setIsSuperAdmin(account.role === "SUPER_ADMIN"))
+      .catch(() => undefined);
+  }, []);
+
+  const deactivate = async (id: number, accountRole: OperatorAccount["role"]) => {
     try {
-      await deactivateOperator(id);
-      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
-      setRequestError("");
+      await (accountRole === "ADMIN" ? deactivateAdmin(id) : deactivateOperator(id));
+      await queryClient.invalidateQueries({
+        queryKey: accountRole === "ADMIN" ? adminAccountsQueryKey : adminOperatorsQueryKey,
+      });
+      showToast({ message: "Đã khóa tài khoản.", type: "success" });
     } catch (error) {
-      setRequestError(
-        error instanceof Error ? error.message : "Không thể khóa tài khoản nhân viên.",
-      );
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể khóa tài khoản.",
+        type: "error",
+      });
     }
   };
 
-  const activate = async (id: number) => {
+  const activate = async (id: number, accountRole: OperatorAccount["role"]) => {
     try {
-      await activateOperator(id);
-      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
-      setRequestError("");
+      await (accountRole === "ADMIN" ? activateAdmin(id) : activateOperator(id));
+      await queryClient.invalidateQueries({
+        queryKey: accountRole === "ADMIN" ? adminAccountsQueryKey : adminOperatorsQueryKey,
+      });
+      showToast({ message: "Đã kích hoạt tài khoản.", type: "success" });
     } catch (error) {
-      setRequestError(
-        error instanceof Error ? error.message : "Không thể kích hoạt tài khoản nhân viên.",
-      );
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể kích hoạt tài khoản.",
+        type: "error",
+      });
     }
   };
 
@@ -100,22 +152,26 @@ export default function AdminOperatorsPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      await createOperator({
+      const input = {
         displayName: normalizedDisplayName,
         email: normalizedEmail,
         phone: normalizedPhone,
+      };
+      const created = await (role === "ADMIN" ? createAdmin(input) : createOperator(input));
+      await queryClient.invalidateQueries({
+        queryKey: role === "ADMIN" ? adminAccountsQueryKey : adminOperatorsQueryKey,
       });
-      await queryClient.invalidateQueries({ queryKey: adminOperatorsQueryKey });
       setDisplayName("");
       setEmail("");
       setPhone("");
       setCreateErrors({});
-      setRequestError("");
+      showToast({ message: `Đã tạo tài khoản ${role}: ${created.displayName}.`, type: "success" });
       setShowAddForm(false);
     } catch (error) {
-      setRequestError(
-        error instanceof Error ? error.message : "Không thể tạo tài khoản nhân viên.",
-      );
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tạo tài khoản nhân viên.",
+        type: "error",
+      });
     }
   };
 
@@ -125,20 +181,15 @@ export default function AdminOperatorsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">
-            Quản lý Tài khoản Nhân viên (OPERATOR)
+            {isSuperAdmin
+              ? "Quản lý Tài khoản Admin và Nhân viên"
+              : "Quản lý Tài khoản Nhân viên (OPERATOR)"}
           </h1>
         </div>
         <CasButton onClick={() => setShowAddForm(true)} icon="plus" variant="primary" size="md">
           Tạo tài khoản Nhân viên
         </CasButton>
       </div>
-
-      {requestError || loadError ? (
-        <p className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-4 py-3 text-xs font-bold text-cas-error">
-          {requestError ||
-            (loadError instanceof Error ? loadError.message : "Không thể tải tài khoản nhân viên.")}
-        </p>
-      ) : null}
 
       {/* Form modal tạo nhân viên */}
       {showAddForm && (
@@ -155,7 +206,9 @@ export default function AdminOperatorsPage() {
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <h3 className="text-base font-black text-cas-on-surface">
-                Thêm Tài khoản Nhân viên Mới
+                {role === "ADMIN"
+                  ? "Thêm Tài khoản Quản trị viên Mới"
+                  : "Thêm Tài khoản Nhân viên Mới"}
               </h3>
               <button
                 type="button"
@@ -167,12 +220,25 @@ export default function AdminOperatorsPage() {
             </div>
 
             <div className="space-y-3 text-xs">
+              {isSuperAdmin ? (
+                <label className="block font-bold text-cas-on-surface-variant">
+                  Loại tài khoản
+                  <select
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as "ADMIN" | "OPERATOR")}
+                  >
+                    <option value="OPERATOR">Operator</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </label>
+              ) : null}
               <div>
                 <label
                   className="block font-bold text-cas-on-surface-variant"
                   htmlFor="operator-display-name"
                 >
-                  Họ và Tên Nhân viên:
+                  {role === "ADMIN" ? "Họ và Tên Quản trị viên:" : "Họ và Tên Nhân viên:"}
                 </label>
                 <input
                   aria-describedby={
@@ -281,7 +347,7 @@ export default function AdminOperatorsPage() {
                 <td className="px-6 py-4 text-cas-on-surface-variant">{op.phone}</td>
                 <td className="px-6 py-4">
                   <span className="rounded-md bg-cas-secondary/15 px-2 py-0.5 text-[0.68rem] font-extrabold text-cas-secondary">
-                    OPERATOR
+                    {op.role}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-cas-on-surface-variant">{op.createdAt}</td>
@@ -294,11 +360,19 @@ export default function AdminOperatorsPage() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   {op.status === "ACTIVE" ? (
-                    <CasButton onClick={() => void deactivate(op.id)} variant="danger" size="sm">
+                    <CasButton
+                      onClick={() => void deactivate(op.id, op.role)}
+                      variant="danger"
+                      size="sm"
+                    >
                       Khóa tài khoản
                     </CasButton>
                   ) : (
-                    <CasButton onClick={() => void activate(op.id)} variant="outline" size="sm">
+                    <CasButton
+                      onClick={() => void activate(op.id, op.role)}
+                      variant="outline"
+                      size="sm"
+                    >
                       Kích hoạt
                     </CasButton>
                   )}

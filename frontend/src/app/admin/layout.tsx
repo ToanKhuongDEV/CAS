@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { AdminTabNavigation } from "../../components/admin/admin-tab-navigation";
 import { AdminStoreSelector } from "../../components/admin/admin-store-selector";
 import { OperationalRouteGuard } from "../../components/auth/operational-route-guard";
-import { StoreIdentity } from "../../components/ui/store-identity";
+import { AdminStoreIdentity } from "../../components/admin/admin-store-identity";
 import { OperationalAccountMenu } from "../../components/ui/operational-account-menu";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 
@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="sticky top-0 z-40 shadow-xs">
           <header className="relative z-50 bg-cas-header px-4 py-4 backdrop-blur-xl sm:px-8 xl:px-12 border-b border-cas-outline-variant/15">
             <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4">
-              <StoreIdentity subtitle="Admin" />
+              <AdminStoreIdentity />
 
               <div className="flex items-center gap-3">
                 <AdminStoreSelector />

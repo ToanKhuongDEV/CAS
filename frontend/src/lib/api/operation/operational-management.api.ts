@@ -37,12 +37,18 @@ export function loadOperators() {
   return request<ManagedOperator[]>("/api/v1/admin/operators");
 }
 
-export function createAdmin(input: {
-  displayName: string;
-  email: string;
-  firebaseUid: string;
-  phone: string;
-}) {
+export function loadAdmins() {
+  return request<ManagedOperator[]>("/api/v1/admin/admins");
+}
+
+export function deactivateAdmin(adminId: number) {
+  return request<void>(`/api/v1/admin/admins/${adminId}`, { method: "DELETE" });
+}
+export function activateAdmin(adminId: number) {
+  return request<void>(`/api/v1/admin/admins/${adminId}/activate`, { method: "POST" });
+}
+
+export function createAdmin(input: { displayName: string; email: string; phone: string }) {
   return request<{ displayName: string; firebaseUid: string; id: number }>("/api/v1/admin/admins", {
     body: JSON.stringify(input),
     method: "POST",

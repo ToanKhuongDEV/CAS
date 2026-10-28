@@ -121,7 +121,10 @@ describe("OrdersPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("customer-bottom-navigation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Gọi thêm món" })).toHaveAttribute("href", "/menu");
-    expect(screen.getByRole("link", { name: "Xem hóa đơn" })).toHaveAttribute("href", "/payment");
+    expect(screen.getByRole("link", { name: "Xem hóa đơn và thanh toán" })).toHaveAttribute(
+      "href",
+      "/payment",
+    );
   });
 
   it("shows a load error without redirecting the customer to scan the QR again", async () => {

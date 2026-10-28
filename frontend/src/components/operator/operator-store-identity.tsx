@@ -27,5 +27,12 @@ export function OperatorStoreIdentity(props: OperatorStoreIdentityProps) {
     };
   }, []);
 
-  return <StoreIdentity {...props} fallbackToPublicStore={false} storeId={storeId ?? undefined} />;
+  return (
+    <StoreIdentity
+      {...props}
+      showBranchName
+      fallbackToPublicStore={false}
+      storeId={storeId ?? undefined}
+    />
+  );
 }

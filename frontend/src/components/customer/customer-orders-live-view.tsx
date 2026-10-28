@@ -248,7 +248,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
             href="/payment"
           >
             <CasIcon className="size-5" name="bill" />
-            Xem hóa đơn
+            Xem hóa đơn và thanh toán
           </Link>
         ) : null}
         <Link

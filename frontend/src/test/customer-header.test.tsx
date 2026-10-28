@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CustomerHeader } from "../components/customer/customer-header";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
+import { getRememberedPublicStoreId } from "../lib/api/store/public-store.api";
 import {
   loadCustomerNotifications,
   markAllCustomerNotificationsRead,
@@ -17,7 +18,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
-  loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
+  loadPublicStore: vi
+    .fn()
+    .mockResolvedValue({ logoUrl: null, brandName: "Thương hiệu CAS", branchName: "Chi nhánh 1" }),
 }));
 vi.mock("../lib/api/notification/notification.api", () => ({
   loadCustomerNotifications: vi.fn(),
@@ -27,6 +30,7 @@ vi.mock("../lib/api/notification/notification.api", () => ({
 
 describe("CustomerHeader", () => {
   beforeEach(() => {
+    vi.mocked(getRememberedPublicStoreId).mockReturnValue(1);
     vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("No active table"));
     vi.mocked(loadCustomerNotifications).mockResolvedValue({
       notifications: [
@@ -56,6 +60,27 @@ describe("CustomerHeader", () => {
       "href",
       "/start",
     );
+  });
+
+  it("shows the branch next to the brand", async () => {
+    render(<CustomerHeader />);
+    expect(await screen.findByText("Chi nhánh 1")).toBeInTheDocument();
+    expect(screen.getByText("Thương hiệu CAS")).toBeInTheDocument();
+  });
+
+  it("hides the default branch when no store is selected", async () => {
+    vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
+    render(<CustomerHeader />);
+    expect(await screen.findByText("Thương hiệu CAS")).toBeInTheDocument();
+    expect(screen.queryByText("Chi nhánh 1")).not.toBeInTheDocument();
+  });
+
+  it("clears the branch on logout", async () => {
+    render(<CustomerHeader />);
+    expect(await screen.findByText("Chi nhánh 1")).toBeInTheDocument();
+    vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
+    fireEvent(window, new Event("cas-customer-logout"));
+    expect(screen.queryByText("Chi nhánh 1")).not.toBeInTheDocument();
   });
 
   it("redirects a payment-pending session to payment", async () => {

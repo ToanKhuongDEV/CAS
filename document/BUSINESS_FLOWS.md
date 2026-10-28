@@ -92,6 +92,9 @@ Khi `ADMIN` tạo tài khoản `OPERATOR`, Client gửi `email`, `phone` và `di
 khẩu mặc định ở server, gọi Firebase Admin SDK để tạo Firebase user, rồi lưu
 Firebase UID trả về vào `accounts.firebase_uid` với role cố định `OPERATOR` và
 `store_id` của ADMIN đang đăng nhập. Client không gửi role để backend tin cậy.
+Khi `SUPER_ADMIN` tạo `ADMIN`, client gửi cùng các trường đến
+`POST /api/v1/admin/admins`; backend tạo Firebase user với mật khẩu mặc định như
+Operator và lưu tài khoản `ADMIN` cho cơ sở đang chọn.
 6. Hệ thống ghi nhận `last_login_at`.
 7. Người dùng được chuyển vào giao diện vận hành phù hợp với role.
 

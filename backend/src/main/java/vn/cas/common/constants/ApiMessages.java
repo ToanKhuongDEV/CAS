@@ -22,7 +22,7 @@ public final class ApiMessages {
     public static final String CUSTOMER_RETRIEVED = "Đã lấy chi tiết khách hàng.";
     public static final String AUDIT_LOGS_RETRIEVED = "Đã lấy nhật ký thao tác.";
     public static final String OPERATOR_NOT_FOUND = "Không tìm thấy tài khoản nhân viên.";
-    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Email này đã được đăng ký cho tài khoản nhân viên.";
+    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Email này đã được đăng ký trên Firebase.";
     public static final String FIREBASE_UID_ALREADY_EXISTS = "Tài khoản Firebase này đã được đăng ký.";
     public static final String ADMIN_CREATED = "Đã tạo tài khoản quản trị viên.";
     public static final String CUSTOMER_SALES_SESSION_RESOLVED = "Đã xác thực phiên bàn của khách.";

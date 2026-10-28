@@ -5,18 +5,24 @@ import CustomerSettingsPage from "../app/(customer)/settings/page";
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { cancelCustomerSalesSession } from "../lib/api/ordering/ordering.api";
-import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
+import { getCurrentCustomerSalesSession, logoutCustomer } from "../lib/customer/sales-session";
+import { clearRememberedPublicStoreId } from "../lib/api/store/public-store.api";
 
 const replace = vi.fn();
+const refresh = vi.fn();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/settings",
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ replace, refresh }),
 }));
-vi.mock("../lib/customer/sales-session", () => ({ getCurrentCustomerSalesSession: vi.fn() }));
+vi.mock("../lib/customer/sales-session", () => ({
+  getCurrentCustomerSalesSession: vi.fn(),
+  logoutCustomer: vi.fn(),
+}));
 vi.mock("../lib/api/ordering/ordering.api", () => ({ cancelCustomerSalesSession: vi.fn() }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   loadPublicStore: vi.fn().mockResolvedValue({ logoUrl: null, name: "CAS" }),
+  clearRememberedPublicStoreId: vi.fn(),
 }));
 vi.mock("../lib/api/notification/notification.api", () => ({
   loadCustomerNotifications: vi.fn().mockResolvedValue({ notifications: [], unreadCount: 0 }),
@@ -26,6 +32,7 @@ vi.mock("../lib/api/notification/notification.api", () => ({
 
 describe("CustomerSettingsPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
       customerInformationRequired: false,
       joinSessionRequired: false,
@@ -34,7 +41,9 @@ describe("CustomerSettingsPage", () => {
       tableCode: 1,
     });
     vi.mocked(cancelCustomerSalesSession).mockResolvedValue();
+    vi.mocked(logoutCustomer).mockResolvedValue();
     replace.mockClear();
+    refresh.mockClear();
   });
 
   it("renders appearance settings and the default customer navigation", () => {
@@ -56,7 +65,7 @@ describe("CustomerSettingsPage", () => {
     expect(screen.queryByRole("link", { name: "Thanh toán" })).not.toBeInTheDocument();
   });
 
-  it("confirms and cancels the current sales session", async () => {
+  it("does not show a separate cancel session button", async () => {
     render(
       <QueryProvider>
         <ToastProvider>
@@ -65,16 +74,42 @@ describe("CustomerSettingsPage", () => {
       </QueryProvider>,
     );
 
-    const cancelButton = await screen.findByRole("button", { name: "Hủy phiên" });
-    await vi.waitFor(() => expect(cancelButton).toBeEnabled());
-    expect(
-      screen.getByRole("img", { name: "Chỉ hủy được khi chưa gửi món nào xuống bếp." }),
-    ).toHaveAttribute("title", "Chỉ hủy được khi chưa gửi món nào xuống bếp.");
+    expect(screen.queryByRole("button", { name: "Hủy phiên" })).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(cancelButton);
-    fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy" }));
+  it("logs out without cancelling the session and clears customer data", async () => {
+    window.sessionStorage.setItem("cas.customerCart", "[]");
+    window.sessionStorage.setItem("cas.tableQrToken", "qr");
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <CustomerSettingsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Đăng xuất" }));
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(logoutCustomer).toHaveBeenCalledOnce();
+    expect(cancelCustomerSalesSession).not.toHaveBeenCalled();
+    expect(clearRememberedPublicStoreId).toHaveBeenCalled();
+    expect(window.sessionStorage.getItem("cas.customerCart")).toBeNull();
+    expect(window.sessionStorage.getItem("cas.tableQrToken")).toBeNull();
+    expect(refresh).toHaveBeenCalled();
+  });
 
-    await vi.waitFor(() => expect(cancelCustomerSalesSession).toHaveBeenCalledOnce());
-    expect(replace).toHaveBeenCalledWith("/");
+  it("keeps local data and reports logout failures", async () => {
+    vi.mocked(logoutCustomer).mockRejectedValueOnce(new Error("Không thể thoát phiên."));
+    window.sessionStorage.setItem("cas.tableQrToken", "qr");
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <CustomerSettingsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Đăng xuất" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể thoát phiên.");
+    expect(window.sessionStorage.getItem("cas.tableQrToken")).toBe("qr");
+    expect(replace).not.toHaveBeenCalled();
   });
 });

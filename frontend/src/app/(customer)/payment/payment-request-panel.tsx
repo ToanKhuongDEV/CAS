@@ -182,6 +182,14 @@ export function PaymentRequestPanel({
             >
               Tiếp tục tạo đơn mới
             </CasButton>
+            <CasButton
+              className="mt-3 w-full"
+              size="lg"
+              variant="outline"
+              onClick={() => router.replace("/")}
+            >
+              Về trang chủ
+            </CasButton>
           </section>
         </main>
       </div>

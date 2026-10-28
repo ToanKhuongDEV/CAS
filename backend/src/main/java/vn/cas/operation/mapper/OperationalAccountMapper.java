@@ -29,4 +29,10 @@ public interface OperationalAccountMapper {
     int activateOperatorAccount(@Param("accountId") long accountId, @Param("storeId") long storeId);
 
     List<OperatorAccountView> findOperatorsByStoreId(@Param("storeId") long storeId);
+
+    List<AdminAccountView> findAdminsByStoreId(@Param("storeId") long storeId);
+
+    int deactivateAdminAccount(@Param("accountId") long accountId, @Param("storeId") long storeId);
+
+    int activateAdminAccount(@Param("accountId") long accountId, @Param("storeId") long storeId);
 }

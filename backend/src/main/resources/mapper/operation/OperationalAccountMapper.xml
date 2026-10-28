@@ -63,4 +63,19 @@
         WHERE store_id = #{storeId} AND role = 'OPERATOR'
         ORDER BY created_at DESC, id DESC
     </select>
+    <select id="findAdminsByStoreId" resultType="vn.cas.operation.mapper.AdminAccountView">
+        SELECT id, email, phone, display_name AS displayName, status, created_at AS createdAt,
+               last_login_at AS lastLoginAt
+        FROM accounts
+        WHERE store_id = #{storeId} AND role = 'ADMIN'
+        ORDER BY created_at DESC, id DESC
+    </select>
+    <update id="deactivateAdminAccount">
+        UPDATE accounts SET status = 'INACTIVE'
+        WHERE id = #{accountId} AND store_id = #{storeId} AND role = 'ADMIN' AND status = 'ACTIVE'
+    </update>
+    <update id="activateAdminAccount">
+        UPDATE accounts SET status = 'ACTIVE'
+        WHERE id = #{accountId} AND store_id = #{storeId} AND role = 'ADMIN' AND status = 'INACTIVE'
+    </update>
 </mapper>
