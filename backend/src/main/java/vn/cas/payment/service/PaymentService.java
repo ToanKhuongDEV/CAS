@@ -108,7 +108,11 @@ public class PaymentService {
     }
     @Transactional(readOnly = true)
     public PaymentView current(String id) {
-        return payments.findBySessionId(sessions.requireCurrent(id).sessionId());
+        var payment = id == null || id.isBlank() ? null : payments.findCustomerPayment(id);
+        if (payment != null)
+            return payment;
+        sessions.requireCurrent(id);
+        return null;
     }
     @Transactional(readOnly = true)
     public List<PaymentView> pending(OperationalPrincipal p) {

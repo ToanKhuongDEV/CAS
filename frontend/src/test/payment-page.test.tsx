@@ -93,6 +93,55 @@ describe("PaymentRequestPanel", () => {
     expect(replace).toHaveBeenCalledWith("/");
   });
 
+  it("shows takeaway instead of a table number on the success screen", async () => {
+    vi.mocked(loadCustomerBill).mockRejectedValue(
+      new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
+    );
+    vi.mocked(loadCustomerPayment).mockResolvedValue({
+      amount: 55_000,
+      billSnapshot: "{}",
+      confirmedAt: "2026-09-01T20:05:00+07:00",
+      createdAt: "2026-09-01T20:00:00+07:00",
+      publicId: "payment-1",
+      status: "PAID",
+      tableCode: null,
+    });
+    render(<PaymentRequestPanel />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Thanh toán thành công" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Mang về")).toBeInTheDocument();
+  });
+
+  it("updates a pending takeaway payment after its session closes", async () => {
+    const pending = {
+      amount: 55_000,
+      billSnapshot: "{}",
+      confirmedAt: null,
+      createdAt: "2026-09-01T20:00:00+07:00",
+      publicId: "payment-1",
+      status: "PENDING" as const,
+      tableCode: null,
+    };
+    vi.mocked(loadCustomerBill)
+      .mockResolvedValueOnce({ ...bill, tableCode: null })
+      .mockRejectedValue(new Error("Vui lòng quét mã QR của bàn để tiếp tục."));
+    vi.mocked(loadCustomerPayment)
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValue({ ...pending, status: "PAID", confirmedAt: "2026-09-01T20:05:00+07:00" });
+    render(<PaymentRequestPanel pollIntervalMs={50} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Chờ nhân viên xác nhận" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Thanh toán thành công" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Mang về")).toBeInTheDocument();
+  });
+
   it("clears the payment view when the sales session is closed", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValue(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),

@@ -39,6 +39,25 @@ class PaymentServiceTest {
             ordering, auditLogs, new ObjectMapper());
 
     @Test
+    void returnsPaidPaymentForItsClosedSession() {
+        var paid = payment("PAID");
+        when(payments.findCustomerPayment("session-1")).thenReturn(paid);
+
+        assertThat(service.current("session-1")).isEqualTo(paid);
+        verify(sessions, never()).requireCurrent(any());
+    }
+
+    @Test
+    void rejectsMissingOrClosedSessionWithoutPaidPayment() {
+        when(sessions.requireCurrent("session-1")).thenThrow(
+                new ApiException(org.springframework.http.HttpStatus.UNAUTHORIZED, "closed"));
+
+        assertThatThrownBy(() -> service.current("session-1")).isInstanceOf(ApiException.class);
+        assertThat(service.current("active-session")).isNull();
+        verify(sessions).requireCurrent("active-session");
+    }
+
+    @Test
     void shouldRejectPaymentForSessionThatIsNotOpen() {
         when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("PAYMENT_PENDING"));
 

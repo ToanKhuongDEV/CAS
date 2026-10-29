@@ -55,12 +55,16 @@ export function PaymentRequestPanel({
         ]);
         if (!isActive) return;
 
-        const sessionIsClosed = [billResult, paymentResult].some(
-          (result) =>
-            result.status === "rejected" &&
-            result.reason instanceof Error &&
-            result.reason.message === customerSalesSessionRequiredMessage,
-        );
+        if (paymentResult.status === "fulfilled" && paymentResult.value?.status === "PAID") {
+          setPayment(paymentResult.value);
+          setError(null);
+          return;
+        }
+
+        const sessionIsClosed =
+          paymentResult.status === "rejected" &&
+          paymentResult.reason instanceof Error &&
+          paymentResult.reason.message === customerSalesSessionRequiredMessage;
         if (sessionIsClosed) {
           setBill(null);
           setPayment(null);
@@ -161,8 +165,12 @@ export function PaymentRequestPanel({
             </p>
             <dl className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass text-left shadow-[0_8px_24px_var(--cas-shadow-color)]">
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
-                <dt className="text-sm text-cas-on-surface-variant">Bàn</dt>
-                <dd className="font-extrabold">Bàn {String(payment.tableCode).padStart(2, "0")}</dd>
+                <dt className="text-sm text-cas-on-surface-variant">Hình thức</dt>
+                <dd className="font-extrabold">
+                  {payment.tableCode === null
+                    ? "Mang về"
+                    : `Bàn ${String(payment.tableCode).padStart(2, "0")}`}
+                </dd>
               </div>
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
                 <dt className="text-sm text-cas-on-surface-variant">Tổng thanh toán</dt>

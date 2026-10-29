@@ -11,6 +11,7 @@ import vn.cas.payment.model.UnpaidSessionView;
 @Mapper
 public interface PaymentMapper {
     PaymentView findBySessionId(@Param("sessionId") long sessionId);
+    PaymentView findCustomerPayment(@Param("sessionPublicId") String sessionPublicId);
     PaymentView findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
     List<PaymentView> findPending(@Param("storeId") long storeId);
     List<PaymentView> findPaidBetween(@Param("storeId") long storeId,
