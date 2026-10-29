@@ -1,10 +1,17 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminStoreIdentity } from "../components/admin/admin-store-identity";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
 
-vi.mock("../lib/auth/firebase", () => ({ getFirebaseAuth: () => ({ currentUser: {} }) }));
+const auth = vi.hoisted(() => ({ listener: null as null | ((user: unknown) => void) }));
+vi.mock("firebase/auth", () => ({
+  onIdTokenChanged: (_auth: unknown, callback: (user: unknown) => void) => {
+    auth.listener = callback;
+    return vi.fn();
+  },
+}));
+vi.mock("../lib/auth/firebase", () => ({ getFirebaseAuth: () => ({}) }));
 vi.mock("../lib/auth/operational-auth", () => ({ getCurrentOperationalAccount: vi.fn() }));
 vi.mock("../components/ui/store-identity", () => ({
   StoreIdentity: ({ subtitle }: { subtitle: string }) => <span>{subtitle}</span>,
@@ -27,6 +34,22 @@ describe("AdminStoreIdentity", () => {
       role,
     });
     render(<AdminStoreIdentity />);
+    act(() => auth.listener?.({}));
     expect(await screen.findByText(label)).toBeInTheDocument();
+  });
+
+  it("updates the label when a super admin signs in after the header mounts", async () => {
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      storeId: 1,
+      displayName: "User",
+      role: "SUPER_ADMIN",
+    });
+    render(<AdminStoreIdentity />);
+
+    act(() => auth.listener?.(null));
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+    act(() => auth.listener?.({}));
+    expect(await screen.findByText("Super Admin")).toBeInTheDocument();
   });
 });

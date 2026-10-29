@@ -46,4 +46,17 @@ class BrandSettingsServiceTest {
         assertThrows(ApiException.class, () -> service.get(principal));
         verifyNoInteractions(mapper);
     }
+
+    @Test
+    void rejectsBrandUpdatesByAdminAndOperator() {
+        var settings = new BrandSettings("Tên mới", null, null, "Slogan mới");
+        for (var role : new String[]{"ADMIN", "OPERATOR"}) {
+            var principal = new OperationalPrincipal(8, 1, "user", "User", role);
+            var error = assertThrows(ApiException.class,
+                    () -> service.update(principal, settings, UUID.randomUUID()));
+            org.junit.jupiter.api.Assertions
+                    .assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, error.status());
+        }
+        verifyNoInteractions(mapper, cloudinary, auditLogs);
+    }
 }

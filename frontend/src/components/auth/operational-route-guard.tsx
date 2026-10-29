@@ -35,7 +35,9 @@ export function OperationalRouteGuard({ area, children }: OperationalRouteGuardP
     }
 
     let isCurrent = true;
+    let authRevision = 0;
     const unsubscribe = onIdTokenChanged(getFirebaseAuth(), async (user) => {
+      const revision = ++authRevision;
       if (!user) {
         clearSelectedAdminStore();
         if (isCurrent) {
@@ -47,6 +49,7 @@ export function OperationalRouteGuard({ area, children }: OperationalRouteGuardP
 
       try {
         const account = await getCurrentOperationalAccount(user);
+        if (!isCurrent || revision !== authRevision) return;
         if (!canAccessArea(account.role, area)) {
           await signOutOperationalUser();
           throw new Error("Role does not have access to this area.");
@@ -54,10 +57,11 @@ export function OperationalRouteGuard({ area, children }: OperationalRouteGuardP
 
         if (account.role !== "SUPER_ADMIN") clearSelectedAdminStore();
 
-        if (isCurrent) {
+        if (isCurrent && revision === authRevision) {
           setIsAuthorized(true);
         }
       } catch {
+        if (!isCurrent || revision !== authRevision) return;
         clearSelectedAdminStore();
         if (isCurrent) {
           setIsAuthorized(false);

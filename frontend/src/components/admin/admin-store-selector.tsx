@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { onIdTokenChanged } from "firebase/auth";
 
 import {
   clearSelectedAdminStore,
@@ -19,6 +20,7 @@ export function AdminStoreSelector() {
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(() => getSelectedAdminStoreId() !== null);
+  const [loadError, setLoadError] = useState("");
 
   useLayoutEffect(() => {
     const originalFetch = window.fetch;
@@ -48,29 +50,60 @@ export function AdminStoreSelector() {
   }, [isSuperAdmin]);
 
   useEffect(() => {
-    const user = getFirebaseAuth().currentUser;
-    if (!user) return;
-    void getCurrentOperationalAccount(user)
-      .then(async (account) => {
-        if (account.role !== "SUPER_ADMIN") {
-          clearSelectedAdminStore();
-          setIsSuperAdmin(false);
-          return;
-        }
-        setIsSuperAdmin(true);
-        const availableStores = await loadAdminStores();
-        const rememberedStoreId = getSelectedAdminStoreId();
-        const nextStoreId = availableStores.some((store) => store.id === rememberedStoreId)
-          ? rememberedStoreId
-          : account.storeId;
-        window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(nextStoreId));
-        setStores(availableStores);
-        setSelectedStoreId(nextStoreId);
-      })
-      .catch(() => undefined);
+    let active = true;
+    let revision = 0;
+    const unsubscribe = onIdTokenChanged(getFirebaseAuth(), (user) => {
+      const currentRevision = ++revision;
+      if (!user) {
+        setStores([]);
+        setSelectedStoreId(null);
+        setIsSuperAdmin(false);
+        setLoadError("");
+        return;
+      }
+      void getCurrentOperationalAccount(user)
+        .then(async (account) => {
+          if (!active || currentRevision !== revision) return;
+          if (account.role !== "SUPER_ADMIN") {
+            clearSelectedAdminStore();
+            setIsSuperAdmin(false);
+            setStores([]);
+            setSelectedStoreId(null);
+            return;
+          }
+          setIsSuperAdmin(true);
+          setLoadError("");
+          const availableStores = await loadAdminStores();
+          if (!active || currentRevision !== revision) return;
+          const rememberedStoreId = getSelectedAdminStoreId();
+          const nextStoreId = availableStores.some((store) => store.id === rememberedStoreId)
+            ? rememberedStoreId
+            : availableStores.some((store) => store.id === account.storeId)
+              ? account.storeId
+              : (availableStores[0]?.id ?? null);
+          if (nextStoreId !== null)
+            window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(nextStoreId));
+          setStores(availableStores);
+          setSelectedStoreId(nextStoreId);
+        })
+        .catch(() => {
+          if (active && currentRevision === revision)
+            setLoadError("Không thể tải danh sách cơ sở.");
+        });
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
-  if (stores.length < 2 || selectedStoreId === null) return null;
+  if (loadError)
+    return (
+      <span role="alert" className="text-xs font-bold text-cas-on-primary">
+        {loadError}
+      </span>
+    );
+  if (stores.length === 0 || selectedStoreId === null) return null;
 
   return (
     <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-cas-on-primary">

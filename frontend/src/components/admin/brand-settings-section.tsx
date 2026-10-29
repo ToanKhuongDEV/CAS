@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { getCurrentOperationalAccount } from "../../lib/auth/operational-auth";
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { uploadImage } from "../../lib/api/catalog/cloudinary-upload";
-import { loadBrandSettings, updateBrandSettings } from "../../lib/api/store/store-settings.api";
+import {
+  loadBrandSettings,
+  loadStoreSettings,
+  updateBrandSettings,
+} from "../../lib/api/store/store-settings.api";
 import { STORE_LOGO } from "../../lib/store-logo";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
@@ -14,6 +19,7 @@ import { useToast } from "../ui/toast-provider";
 export function BrandSettingsSection() {
   const { showToast } = useToast();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [name, setName] = useState("");
   const [welcomeSlogan, setWelcomeSlogan] = useState("");
@@ -22,25 +28,51 @@ export function BrandSettingsSection() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const user = getFirebaseAuth().currentUser;
-    if (!user) return;
-    void getCurrentOperationalAccount(user)
-      .then(async (account) => {
-        if (account.role !== "SUPER_ADMIN") return;
-        const brand = await loadBrandSettings();
-        setIsSuperAdmin(true);
-        setName(brand.name);
-        setWelcomeSlogan(brand.welcomeSlogan ?? "");
-        setLogoUrl(brand.logoUrl);
-        setLogoStorageKey(brand.logoStorageKey);
-      })
-      .catch((error) => {
-        setLoadError(error instanceof Error ? error.message : "Không thể tải thương hiệu chung.");
-      });
+    let active = true;
+    let revision = 0;
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
+      const currentRevision = ++revision;
+      setIsLoaded(false);
+      setIsSuperAdmin(false);
+      setLoadError("");
+      if (!user) return;
+      void getCurrentOperationalAccount(user)
+        .then(async (account) => {
+          if (account.role !== "SUPER_ADMIN" && account.role !== "ADMIN") return;
+          const superAdmin = account.role === "SUPER_ADMIN";
+          const brand = superAdmin ? await loadBrandSettings() : await loadStoreSettings();
+          if (!active || currentRevision !== revision) return;
+          setIsSuperAdmin(superAdmin);
+          setName(
+            superAdmin
+              ? "name" in brand
+                ? (brand.name ?? "")
+                : ""
+              : "brandName" in brand
+                ? (brand.brandName ?? "")
+                : "",
+          );
+          setWelcomeSlogan(brand.welcomeSlogan ?? "");
+          setLogoUrl(brand.logoUrl);
+          setLogoStorageKey(brand.logoStorageKey);
+          setIsLoaded(true);
+        })
+        .catch((error) => {
+          if (active && currentRevision === revision)
+            setLoadError(
+              error instanceof Error ? error.message : "Không thể tải thương hiệu chung.",
+            );
+        });
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (!isLoaded || !isSuperAdmin) return;
     setIsSaving(true);
     try {
       await updateBrandSettings({
@@ -85,7 +117,7 @@ export function BrandSettingsSection() {
         {loadError}
       </p>
     );
-  if (!isSuperAdmin) return null;
+  if (!isLoaded) return null;
 
   return (
     <section className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sm:p-8">
@@ -138,6 +170,7 @@ export function BrandSettingsSection() {
             className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
             id="brand-name"
             maxLength={150}
+            disabled={!isSuperAdmin}
             onChange={(event) => setName(event.target.value)}
             required
             value={name}
@@ -151,12 +184,13 @@ export function BrandSettingsSection() {
             className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
             id="brand-slogan"
             maxLength={500}
+            disabled={!isSuperAdmin}
             onChange={(event) => setWelcomeSlogan(event.target.value)}
             value={welcomeSlogan}
           />
         </div>
         <CasButton
-          disabled={isSaving}
+          disabled={!isSuperAdmin || isSaving}
           icon={isSaving ? undefined : "check"}
           size="sm"
           type="submit"

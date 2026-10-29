@@ -1,18 +1,30 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BrandSettingsSection } from "../components/admin/brand-settings-section";
 import { StoreWelcomeConfigSection } from "../components/admin/store-welcome-config-section";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
-import { loadBrandSettings, updateBrandSettings } from "../lib/api/store/store-settings.api";
+import {
+  loadBrandSettings,
+  loadStoreSettings,
+  updateBrandSettings,
+} from "../lib/api/store/store-settings.api";
 import { loadStoreWelcomeConfig } from "../lib/api/store/store-welcome-config.api";
 
 const showToast = vi.fn();
+const auth = vi.hoisted(() => ({ listener: null as null | ((user: unknown) => void) }));
+vi.mock("firebase/auth", () => ({
+  onAuthStateChanged: (_auth: unknown, callback: (user: unknown) => void) => {
+    auth.listener = callback;
+    return vi.fn();
+  },
+}));
 vi.mock("../components/ui/toast-provider", () => ({ useToast: () => ({ showToast }) }));
 vi.mock("../lib/auth/firebase", () => ({ getFirebaseAuth: () => ({ currentUser: {} }) }));
 vi.mock("../lib/auth/operational-auth", () => ({ getCurrentOperationalAccount: vi.fn() }));
 vi.mock("../lib/api/store/store-settings.api", () => ({
   loadBrandSettings: vi.fn(),
+  loadStoreSettings: vi.fn(),
   updateBrandSettings: vi.fn(),
 }));
 vi.mock("../lib/api/store/store-welcome-config.api", async (importOriginal) => ({
@@ -37,6 +49,7 @@ describe("Admin settings sections", () => {
     vi.mocked(loadBrandSettings).mockRejectedValue(new Error("Không thể tải thương hiệu."));
 
     render(<BrandSettingsSection />);
+    act(() => auth.listener?.({}));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải thương hiệu.");
   });
@@ -56,6 +69,7 @@ describe("Admin settings sections", () => {
     });
 
     render(<BrandSettingsSection />);
+    act(() => auth.listener?.({}));
 
     expect(await screen.findByRole("img", { name: "Logo thương hiệu" })).toHaveAttribute(
       "src",
@@ -72,6 +86,38 @@ describe("Admin settings sections", () => {
         welcomeSlogan: "Xin chào",
       }),
     );
+  });
+
+  it("shows shared brand settings to an admin without allowing changes", async () => {
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadStoreSettings).mockResolvedValue({
+      brandName: "CAS",
+      branchName: "Cơ sở 1",
+      address: "A",
+      phone: "123",
+      email: "a@example.com",
+      logoUrl: null,
+      logoStorageKey: null,
+      googleMapsLocation: null,
+      openTime: "08:00",
+      closeTime: "22:00",
+      welcomeSlogan: "Xin chào",
+      status: "ACTIVE",
+    });
+    render(<BrandSettingsSection />);
+    act(() => auth.listener?.(null));
+    act(() => auth.listener?.({}));
+
+    expect(await screen.findByLabelText("Tên thương hiệu")).toHaveValue("CAS");
+    expect(screen.getByLabelText("Tên thương hiệu")).toBeDisabled();
+    expect(screen.getByLabelText("Slogan chung")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Lưu thương hiệu chung" })).toBeDisabled();
+    expect(loadBrandSettings).not.toHaveBeenCalled();
   });
 
   it("does not allow saving welcome images after a loading failure", async () => {

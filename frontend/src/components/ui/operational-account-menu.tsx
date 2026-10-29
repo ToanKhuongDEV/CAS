@@ -60,7 +60,6 @@ export function OperationalAccountMenu({
 
     queryClient.clear();
     router.replace(loginPath);
-    router.refresh();
   }
 
   const accountName = user?.displayName || fallbackName;
