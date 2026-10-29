@@ -199,7 +199,7 @@ export default function MenuPage() {
 
             return (
               <section
-                className="scroll-mt-32 border-t border-cas-outline-variant/55 py-5 first:border-t-0 md:py-6"
+                className="scroll-mt-40 border-t border-cas-outline-variant/55 py-5 first:border-t-0 md:py-6"
                 id={category.id}
                 key={category.id}
                 aria-labelledby={`${category.id}-title`}
@@ -321,7 +321,7 @@ export default function MenuPage() {
           })}
 
           <section
-            className="scroll-mt-32 border-t border-cas-outline-variant/55 py-5 md:py-6"
+            className="scroll-mt-40 border-t border-cas-outline-variant/55 py-5 md:py-6"
             id="additional-services"
             aria-labelledby="additional-services-title"
           >

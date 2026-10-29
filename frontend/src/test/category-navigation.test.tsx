@@ -35,11 +35,11 @@ describe("CategoryNavigation", () => {
     const firstSection = document.getElementById("first-category");
     const lastSection = document.getElementById("last-category");
 
-    vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 64, 390, 56));
+    vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 76, 390, 56));
     vi.spyOn(firstSection!, "getBoundingClientRect").mockReturnValue(
       new DOMRect(0, -400, 390, 520),
     );
-    vi.spyOn(lastSection!, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 120, 390, 220));
+    vi.spyOn(lastSection!, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 132, 390, 220));
 
     fireEvent.scroll(window);
 

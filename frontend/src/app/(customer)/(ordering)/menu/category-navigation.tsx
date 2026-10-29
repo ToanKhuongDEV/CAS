@@ -16,7 +16,7 @@ type CategoryNavigationProps = {
 export function CategoryNavigation({
   categories,
   className,
-  stickyTopClass = "top-16",
+  stickyTopClass = "top-19",
 }: CategoryNavigationProps) {
   const navigationRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
