@@ -16,5 +16,5 @@ export function AdminStoreIdentity() {
       .catch(() => undefined);
   }, []);
 
-  return <StoreIdentity subtitle={subtitle} />;
+  return <StoreIdentity inHeader subtitle={subtitle} />;
 }

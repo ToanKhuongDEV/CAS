@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-27
+Ngày cập nhật gần nhất: 2026-10-28
 
 ## Quy ước
 
@@ -13,6 +13,7 @@ Ngày cập nhật gần nhất: 2026-10-27
 - [x] Hoàn thiện phạm vi sản phẩm, luồng QR tại bàn, gọi món, hủy món, thanh toán, khoản chưa thanh toán và các trường hợp biên.
 - [x] Chốt phạm vi tra cứu khách hàng Admin, in hóa đơn/phiếu bếp nội bộ và định hướng offline-first cho Operation; thao tác tài chính vẫn yêu cầu online.
 - [x] Chuẩn hóa tài liệu kiến trúc, quy tắc nghiệp vụ, thiết kế dữ liệu và cấu trúc dự án.
+- [x] Mở rộng `TEST_CASES.md` thành 151 kịch bản kiểm thử thủ công trong 18 cụm chức năng; bổ sung timeout sau commit, xóa bù Firebase khi lưu CAS lỗi, biên thời gian và bất biến hủy/chế biến đồng thời. Các case chưa thực thi, trạng thái ban đầu `NOT RUN`; ghi riêng phạm vi chưa chốt/chưa triển khai.
 
 ## 2. Quyết định nghiệp vụ đã chốt
 
@@ -72,6 +73,20 @@ Ngày cập nhật gần nhất: 2026-10-27
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Hiển thị tên cơ sở bên dưới tên thương hiệu trong header Customer và Operator.
+
+- [x] Header Customer, Operator và Admin dùng logo chữ SVG Bambu Garden và nền primary.
+
+- [x] Dùng logo Bambu Garden cố định trên giao diện; tạm khóa tải và bỏ logo trong cài đặt thương hiệu, giữ dữ liệu logo đã lưu.
+
+- [x] Làm mới dữ liệu quản trị khi Super Admin đổi cơ sở; khóa lưu cấu hình khi tải lỗi và báo lỗi tải thương hiệu chung.
+
+- [x] Rà soát quyền và màn hình thông tin thương hiệu, cơ sở và Welcome của Admin/Super Admin; ghi nhận các sai lệch cần xử lý.
+
+- [x] Thêm skeleton khi chuyển đến giỏ hàng, cài đặt, quét QR và thông tin bàn Customer.
+
+- [x] Bỏ nút “Bắt đầu gọi món” trên header Customer; vẫn hiển thị số bàn khi có phiên tại bàn.
 
 - [x] Super Admin có thể khóa và kích hoạt tài khoản Admin trong danh sách quản lý tài khoản.
 - [x] Danh sách quản lý tài khoản của Super Admin hiển thị Admin cùng Operator theo cơ sở.

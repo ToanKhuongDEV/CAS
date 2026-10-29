@@ -75,7 +75,7 @@ export function OperationalAccountMenu({
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className="flex items-center gap-3 rounded-xl bg-cas-glass px-3 py-2 text-left transition hover:bg-cas-on-surface/5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+        className="flex items-center gap-3 rounded-xl bg-cas-surface px-3 py-2 text-left text-cas-on-surface transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         onClick={() => setIsOpen((currentValue) => !currentValue)}
         type="button"
       >

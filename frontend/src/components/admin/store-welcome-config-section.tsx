@@ -50,6 +50,7 @@ export function StoreWelcomeConfigSection() {
   const { showToast } = useToast();
   const [config, setConfig] = useState<StoreWelcomeConfig>(createEmptyStoreWelcomeConfig);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadSucceeded, setLoadSucceeded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingSlots, setUploadingSlots] = useState<Set<string>>(new Set());
 
@@ -57,7 +58,10 @@ export function StoreWelcomeConfigSection() {
     let active = true;
     void loadStoreWelcomeConfig()
       .then((savedConfig) => {
-        if (active && savedConfig) setConfig({ ...savedConfig, status: "ACTIVE" });
+        if (active) {
+          if (savedConfig) setConfig({ ...savedConfig, status: "ACTIVE" });
+          setLoadSucceeded(true);
+        }
       })
       .catch((error) => {
         if (active) {
@@ -114,6 +118,7 @@ export function StoreWelcomeConfigSection() {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!loadSucceeded) return;
     if (uploadingSlots.size > 0) {
       showToast({ message: "Hãy chờ ảnh tải xong trước khi lưu.", type: "warning" });
       return;
@@ -194,14 +199,14 @@ export function StoreWelcomeConfigSection() {
                       <input
                         accept="image/png,image/jpeg,image/webp"
                         className="sr-only"
-                        disabled={isUploading || isSaving}
+                        disabled={!loadSucceeded || isUploading || isSaving}
                         onChange={(event) => void handleImageChange(slot, event)}
                         type="file"
                       />
                     </label>
                     {imageUrl ? (
                       <CasButton
-                        disabled={isUploading || isSaving}
+                        disabled={!loadSucceeded || isUploading || isSaving}
                         icon="trash"
                         onClick={() => clearImage(slot)}
                         size="sm"
@@ -220,7 +225,7 @@ export function StoreWelcomeConfigSection() {
 
         <div className="flex flex-wrap items-center gap-3 border-t border-cas-outline-variant/15 pt-5">
           <CasButton
-            disabled={isLoading || isSaving || uploadingSlots.size > 0}
+            disabled={!loadSucceeded || isLoading || isSaving || uploadingSlots.size > 0}
             icon={
               isSaving ? (
                 <span className="size-4 animate-spin rounded-full border-2 border-cas-on-primary/30 border-t-cas-on-primary" />

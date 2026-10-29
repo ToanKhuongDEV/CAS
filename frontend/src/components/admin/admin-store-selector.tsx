@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 
 import {
   clearSelectedAdminStore,
@@ -16,7 +15,6 @@ import { loadAdminStores, type AdminStore } from "../../lib/api/store/store-sett
 const storeHeader = "X-CAS-Store-Id";
 
 export function AdminStoreSelector() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
@@ -75,7 +73,7 @@ export function AdminStoreSelector() {
   if (stores.length < 2 || selectedStoreId === null) return null;
 
   return (
-    <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-cas-on-surface-variant">
+    <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-cas-on-primary">
       Cơ sở
       <select
         className="max-w-28 rounded-lg border border-cas-outline-variant/60 bg-cas-surface px-2 py-1.5 text-cas-on-surface sm:max-w-none"
@@ -84,7 +82,7 @@ export function AdminStoreSelector() {
           window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(storeId));
           setSelectedStoreId(storeId);
           queryClient.clear();
-          router.refresh();
+          window.location.reload();
         }}
         value={selectedStoreId}
       >

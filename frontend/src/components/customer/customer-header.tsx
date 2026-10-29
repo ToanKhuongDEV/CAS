@@ -28,7 +28,6 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [storeName, setStoreName] = useState("CAS");
   const [branchName, setBranchName] = useState<string | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [tableCode, setTableCode] = useState<number | null>(null);
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -126,7 +125,6 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
             ? (store.branchName ?? store.name ?? null)
             : null,
         );
-        setLogoUrl(store.logoUrl);
       })
       .catch(() => undefined);
     return () => {
@@ -135,47 +133,35 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   }, [pathname]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 bg-cas-header shadow-[0_2px_12px_var(--cas-shadow-color)] backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-50 h-19 bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">
       <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between px-4 md:px-8">
         <Link
-          className="inline-flex min-w-0 items-center gap-3 text-xl font-bold text-cas-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+          className="inline-flex min-w-0 items-center gap-2 text-xl font-bold text-cas-on-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"
           aria-label="CAS - Trang chào mừng"
         >
-          <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full shadow-[0_4px_12px_var(--cas-shadow-color)]">
-            <img
-              alt="Logo cửa hàng"
-              className="size-full object-cover"
-              src={
-                logoUrl ??
-                "https://www.clipartmax.com/png/middle/9-92296_red-restaurant-3-icon-restaurant.png"
-              }
-            />
+          <img
+            alt="Logo cửa hàng"
+            className="h-14 w-24 shrink-0 object-contain"
+            src="/images/bambu-garden-wordmark.svg"
+          />
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate">{storeName}</span>
+            {branchName ? (
+              <span className="truncate text-xs font-semibold text-cas-on-primary">
+                {branchName}
+              </span>
+            ) : null}
           </span>
-          <span className="truncate">{storeName}</span>
-          {branchName ? (
-            <span className="truncate text-xs font-semibold text-cas-on-surface-variant">
-              {branchName}
-            </span>
-          ) : null}
         </Link>
 
         <div className="flex shrink-0 items-center gap-2.5">
-          {tableCode === null ? (
-            <Link
-              aria-label="Bắt đầu gọi món"
-              className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary transition hover:bg-cas-secondary-container/35 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-              href="/start"
-            >
-              <CasIcon className="size-4" name="table" />
-              Bắt đầu gọi món
-            </Link>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-secondary-container/20 px-3 py-1.5 text-xs font-semibold text-cas-secondary">
+          {tableCode !== null ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-on-primary/15 px-3 py-1.5 text-xs font-semibold text-cas-on-primary">
               {/* <CasIcon className="size-4" name="table" /> */}
               {`Bàn ${String(tableCode).padStart(2, "0")}`}
             </span>
-          )}
+          ) : null}
 
           {/* Customer Notification Bell */}
           <div className="relative" ref={notifRef}>
@@ -185,12 +171,12 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
                 setShowNotif(!showNotif);
                 if (!showNotif) void loadNotifications().catch(() => undefined);
               }}
-              className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              className="relative grid size-10 place-items-center rounded-full text-cas-on-primary transition hover:bg-cas-on-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
               aria-label="Thông báo khuyến mãi và hệ thống"
             >
               <CasIcon className="size-5.5" name="bell" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-cas-primary text-[0.6rem] font-bold text-cas-on-primary animate-pulse">
+                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-primary animate-pulse">
                   {unreadCount}
                 </span>
               )}
@@ -260,12 +246,12 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
           {liveCartCount > 0 ? (
             <Link
-              className="relative grid size-10 place-items-center rounded-full text-cas-on-surface-variant transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              className="relative grid size-10 place-items-center rounded-full text-cas-on-primary transition hover:bg-cas-on-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
               href="/cart"
               aria-label={`Giỏ hàng có ${liveCartCount} món`}
             >
               <CasIcon className="size-5.5" name="cart" />
-              <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-primary text-[0.6rem] font-bold text-cas-on-primary">
+              <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-primary">
                 {liveCartCount}
               </span>
             </Link>

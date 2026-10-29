@@ -41,6 +41,7 @@ describe("StartOrderPage", () => {
       logoStorageKey: "stores/cas-logo",
       logoUrl: "https://cdn.example.com/cas-logo.png",
       name: "CAS Mỳ Cay",
+      brandName: "CAS Mỳ Cay",
       openTime: "08:00:00",
       phone: "0900000000",
       status: "ACTIVE",
@@ -64,7 +65,7 @@ describe("StartOrderPage", () => {
     expect(await screen.findByText("CAS Mỳ Cay")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Logo CAS Mỳ Cay" })).toHaveAttribute(
       "src",
-      "https://cdn.example.com/cas-logo.png",
+      "/images/bambu-garden-logo.png",
     );
     expect(screen.getByRole("button", { name: "Ăn tại quán" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mang về" })).toBeInTheDocument();

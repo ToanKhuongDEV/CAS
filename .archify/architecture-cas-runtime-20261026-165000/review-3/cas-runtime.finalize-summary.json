@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+    "sha256": "29f71a3425a28733e4f1309c69efcac3f21b9e85810a53bc92c0cbcf5e35ec37",
+    "bytes": 11730
+  },
+  "artifact": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+    "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+    "bytes": 888982
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\review-3\\cas-runtime.finalize.json",
+    "summaryReceipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\review-3\\cas-runtime.finalize-summary.json",
+    "browserCheckReceipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\review-3\\cas-runtime.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-26T10:02:07.431Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 4224,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 41,
+      "routesOverSuggestedBends": 8,
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "store",
+            "label": "public QR / session APIs",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "right": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "point": [
+            258.3,
+            184
+          ],
+          "sharedNode": "customer-ui"
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "store",
+            "label": "public QR / session APIs",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "right": {
+            "from": "operator-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            246,
+            316
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "from": "operator-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            246,
+            184
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "from": "admin-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            343,
+            184
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "from": "firebase",
+            "to": "security",
+            "label": "verify Firebase UID",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            357,
+            184
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "from": "security",
+            "to": "store",
+            "label": "scoped admin / operator APIs",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "point": [
+            674.7272727272727,
+            184
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "ordering",
+            "label": "session-cookie order APIs",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "from": "operator-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            246,
+            338.95
+          ]
+        },
+        {
+          "left": {
+            "from": "customer-ui",
+            "to": "ordering",
+            "label": "session-cookie order APIs",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "from": "admin-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            343,
+            338.95
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "from": "customer-ui",
+            "to": "store",
+            "label": "public QR / session APIs",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 4,
+          "stretch": 1.192
+        },
+        {
+          "relationship": {
+            "from": "customer-ui",
+            "to": "catalog",
+            "label": "public menu APIs",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "bends": 3,
+          "stretch": 1.35
+        },
+        {
+          "relationship": {
+            "from": "customer-ui",
+            "to": "payment",
+            "label": "payment request",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "from": "operator-ui",
+            "to": "firebase",
+            "label": "sign in",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "from": "ordering",
+            "to": "payment",
+            "label": "current bill",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "bends": 4,
+          "stretch": 1.801,
+          "directCorridorBlockers": [
+            {
+              "id": "preparation",
+              "label": "Preparation module",
+              "box": [
+                750,
+                540,
+                190,
+                70
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "from": "catalog",
+            "to": "cloudinary",
+            "label": "signed asset upload",
+            "collectionIndex": 19,
+            "artifactIndex": 20
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "from": "preparation",
+            "to": "mybatis",
+            "label": "mapped persistence",
+            "collectionIndex": 23,
+            "artifactIndex": 24
+          },
+          "bends": 5,
+          "stretch": 1.218
+        },
+        {
+          "relationship": {
+            "from": "payment",
+            "to": "mybatis",
+            "label": "mapped persistence",
+            "collectionIndex": 24,
+            "artifactIndex": 25
+          },
+          "bends": 4,
+          "stretch": 1.471
+        }
+      ],
+      "truncated": true
+    },
+    "hints": [
+      "customer-ui has 4 relationships facing its right side, which fits 3 ports: make that side at least 74px, or move some of those neighbours so they face another side of customer-ui.",
+      "customer-ui → store and customer-ui → catalog cross next to customer-ui: move node store or catalog so the two reach customer-ui from different sides (for example one level with it, one directly above or below it).",
+      "customer-ui → store crosses operator-ui → firebase: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "customer-ui → catalog crosses operator-ui → firebase: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "customer-ui → catalog crosses admin-ui → firebase: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "customer-ui → catalog crosses firebase → security: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "customer-ui → catalog crosses security → store: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "customer-ui → ordering crosses operator-ui → firebase: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

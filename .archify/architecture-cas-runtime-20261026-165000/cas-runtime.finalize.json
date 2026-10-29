@@ -1,0 +1,1937 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-26T10:02:43.453Z",
+  "specification": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+    "sha256": "29f71a3425a28733e4f1309c69efcac3f21b9e85810a53bc92c0cbcf5e35ec37",
+    "bytes": 11730
+  },
+  "artifact": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+    "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+    "bytes": 888982
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "C:\\Users\\KhuongXuanToan\\AppData\\Local\\Volta\\tools\\image\\node\\22.23.1\\node.exe",
+        "C:\\Users\\KhuongXuanToan\\.codex-account-b\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "D:\\CAS",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "29f71a3425a28733e4f1309c69efcac3f21b9e85810a53bc92c0cbcf5e35ec37",
+          "bytes": 11730
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1287,
+      "command": [
+        "C:\\Users\\KhuongXuanToan\\AppData\\Local\\Volta\\tools\\image\\node\\22.23.1\\node.exe",
+        "C:\\Users\\KhuongXuanToan\\.codex-account-b\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "D:\\CAS",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "9e9d9392-65b7-4ca8-b098-9b7c9fe57ecb",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+        "output": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "specification": {
+          "sha256": "29f71a3425a28733e4f1309c69efcac3f21b9e85810a53bc92c0cbcf5e35ec37",
+          "bytes": 11730
+        },
+        "artifact": {
+          "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+          "bytes": 888982
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/ToanKhuongDEV/CAS",
+          "revision": "d3e399b7e0921558ba3b5f9e40348254668b793e",
+          "references": 23
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 295,
+      "command": [
+        "C:\\Users\\KhuongXuanToan\\AppData\\Local\\Volta\\tools\\image\\node\\22.23.1\\node.exe",
+        "C:\\Users\\KhuongXuanToan\\.codex-account-b\\skills\\archify\\bin\\archify.mjs",
+        "check",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "artifact": {
+          "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+          "bytes": 888982
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 41,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 4.8,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.031152204836416,
+            "maxBends": 5,
+            "routesOverSuggestedBends": 8,
+            "maxStretch": 1.801,
+            "routesOverSuggestedStretch": 2,
+            "minSegmentPx": 24,
+            "minInteriorSegmentPx": 44.5,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "store",
+                  "label": "public QR / session APIs",
+                  "collectionIndex": 0,
+                  "artifactIndex": 1
+                },
+                "right": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "point": [
+                  258.3,
+                  184
+                ],
+                "sharedNode": "customer-ui"
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "store",
+                  "label": "public QR / session APIs",
+                  "collectionIndex": 0,
+                  "artifactIndex": 1
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  246,
+                  316
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  246,
+                  184
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "from": "admin-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "point": [
+                  343,
+                  184
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "from": "firebase",
+                  "to": "security",
+                  "label": "verify Firebase UID",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
+                "point": [
+                  357,
+                  184
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "from": "security",
+                  "to": "store",
+                  "label": "scoped admin / operator APIs",
+                  "collectionIndex": 10,
+                  "artifactIndex": 11
+                },
+                "point": [
+                  674.7272727272727,
+                  184
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  246,
+                  338.95
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "admin-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "point": [
+                  343,
+                  338.95
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "security",
+                  "label": "Bearer ID token",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  480.85769230770416,
+                  345
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "admin-scope",
+                  "to": "security",
+                  "label": "Bearer token + store header",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "point": [
+                  595,
+                  438
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "point": [
+                  609,
+                  438
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  747,
+                  438
+                ],
+                "sharedNode": "ordering"
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  714,
+                  438
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "ordering",
+                  "label": "session-cookie order APIs",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  674,
+                  438
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  246,
+                  354
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "admin-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "point": [
+                  341.06529850746267,
+                  576.9160447761194
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "security",
+                  "label": "Bearer ID token",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  337.8499999999999,
+                  474.95
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "admin-scope",
+                  "to": "security",
+                  "label": "Bearer token + store header",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "point": [
+                  350,
+                  578
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "point": [
+                  339.07222222221185,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  714,
+                  578
+                ],
+                "sharedNode": "payment"
+              },
+              {
+                "left": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  674,
+                  577.9999999999999
+                ]
+              },
+              {
+                "left": {
+                  "from": "admin-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "security",
+                  "label": "Bearer ID token",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "point": [
+                  343,
+                  474.8833333333333
+                ]
+              },
+              {
+                "left": {
+                  "from": "admin-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "point": [
+                  342.27272727272725,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "admin-scope",
+                  "to": "security",
+                  "label": "Bearer token + store header",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "point": [
+                  350,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "from": "ordering",
+                  "to": "preparation",
+                  "label": "pending order items",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "point": [
+                  852,
+                  531
+                ]
+              },
+              {
+                "left": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  747,
+                  531
+                ]
+              },
+              {
+                "left": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "from": "preparation",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 23,
+                  "artifactIndex": 24
+                },
+                "point": [
+                  964,
+                  531
+                ]
+              },
+              {
+                "left": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  714,
+                  531
+                ]
+              },
+              {
+                "left": {
+                  "from": "security",
+                  "to": "operations",
+                  "label": "role-authorized APIs",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  674,
+                  531
+                ],
+                "sharedNode": "security"
+              },
+              {
+                "left": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "right": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  747,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  714,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "operator-ui",
+                  "to": "preparation",
+                  "label": "FIFO completion APIs",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  674,
+                  575
+                ]
+              },
+              {
+                "left": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  747,
+                  643.5
+                ],
+                "sharedNode": "payment"
+              },
+              {
+                "left": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  747,
+                  619
+                ]
+              },
+              {
+                "left": {
+                  "from": "payment",
+                  "to": "operations",
+                  "label": "audit and notifications",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  970,
+                  619
+                ]
+              },
+              {
+                "left": {
+                  "from": "catalog",
+                  "to": "cloudinary",
+                  "label": "signed asset upload",
+                  "collectionIndex": 19,
+                  "artifactIndex": 20
+                },
+                "right": {
+                  "from": "store",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 20,
+                  "artifactIndex": 21
+                },
+                "point": [
+                  1004.1000000000001,
+                  276
+                ]
+              },
+              {
+                "left": {
+                  "from": "catalog",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "right": {
+                  "from": "ordering",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 22,
+                  "artifactIndex": 23
+                },
+                "point": [
+                  975,
+                  354
+                ],
+                "sharedNode": "mybatis"
+              },
+              {
+                "left": {
+                  "from": "catalog",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  845.3846153846154,
+                  349
+                ],
+                "sharedNode": "mybatis"
+              },
+              {
+                "left": {
+                  "from": "ordering",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 22,
+                  "artifactIndex": 23
+                },
+                "right": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  975,
+                  349
+                ],
+                "sharedNode": "mybatis"
+              },
+              {
+                "left": {
+                  "from": "preparation",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 23,
+                  "artifactIndex": 24
+                },
+                "right": {
+                  "from": "operations",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 25,
+                  "artifactIndex": 26
+                },
+                "point": [
+                  1111.5,
+                  475
+                ],
+                "sharedNode": "mybatis"
+              },
+              {
+                "left": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "right": {
+                  "from": "security",
+                  "to": "redis",
+                  "label": "Spring Data Redis configured",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  714,
+                  619
+                ]
+              }
+            ],
+            "crowdedSides": [
+              {
+                "node": "customer-ui",
+                "label": "Customer Next.js area",
+                "side": "right",
+                "relationships": 4,
+                "sidePx": 70,
+                "neededPx": 74
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "from": "customer-ui",
+                  "to": "store",
+                  "label": "public QR / session APIs",
+                  "collectionIndex": 0,
+                  "artifactIndex": 1
+                },
+                "bends": 4,
+                "stretch": 1.192
+              },
+              {
+                "relationship": {
+                  "from": "customer-ui",
+                  "to": "catalog",
+                  "label": "public menu APIs",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "bends": 3,
+                "stretch": 1.35
+              },
+              {
+                "relationship": {
+                  "from": "customer-ui",
+                  "to": "payment",
+                  "label": "payment request",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "bends": 4,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "from": "operator-ui",
+                  "to": "firebase",
+                  "label": "sign in",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "bends": 3,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "from": "ordering",
+                  "to": "payment",
+                  "label": "current bill",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "bends": 4,
+                "stretch": 1.801,
+                "directCorridorBlockers": [
+                  {
+                    "id": "preparation",
+                    "label": "Preparation module",
+                    "box": [
+                      750,
+                      540,
+                      190,
+                      70
+                    ]
+                  }
+                ]
+              },
+              {
+                "relationship": {
+                  "from": "catalog",
+                  "to": "cloudinary",
+                  "label": "signed asset upload",
+                  "collectionIndex": 19,
+                  "artifactIndex": 20
+                },
+                "bends": 3,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "from": "preparation",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 23,
+                  "artifactIndex": 24
+                },
+                "bends": 5,
+                "stretch": 1.218
+              },
+              {
+                "relationship": {
+                  "from": "payment",
+                  "to": "mybatis",
+                  "label": "mapped persistence",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "bends": 4,
+                "stretch": 1.471
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 10,
+            "emptyTopRatio": 0.012,
+            "occupiedTop": 10,
+            "viewBoxTop": 0,
+            "canvasHeight": 844,
+            "typicalNodeHeight": 70,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1346,
+            "actualBudgetPx": 1346,
+            "actualReaderWidth": 1376,
+            "desiredReaderWidth": 1436,
+            "viewportCap": 1376,
+            "limit": "viewport-cap",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "operations"
+            },
+            "minimumSourceTextPx": 6.3,
+            "minimumProjectedTextPx": 6.031152204836416,
+            "semanticTextCount": 64
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "9e9d9392-65b7-4ca8-b098-9b7c9fe57ecb"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 2377,
+      "command": [
+        "C:\\Users\\KhuongXuanToan\\AppData\\Local\\Volta\\tools\\image\\node\\22.23.1\\node.exe",
+        "C:\\Users\\KhuongXuanToan\\.codex-account-b\\skills\\archify\\bin\\archify.mjs",
+        "browser-check",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "9e9d9392-65b7-4ca8-b098-9b7c9fe57ecb",
+        "artifact": {
+          "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+          "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+          "bytes": 888982
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 951,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 808,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.031152204836416,
+              "minimumProjectedNonEdgeTextPx": 6.031152204836416,
+              "minimumProjectedEdgeTextPx": 7.658605974395448,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1053,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1436,
+              "diagramWidth": 1406,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 844,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1463,
+              "diagramWidth": 1433,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1852,
+              "diagramWidth": 1802,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 951,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 808,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.031152204836416,
+              "minimumProjectedNonEdgeTextPx": 6.031152204836416,
+              "minimumProjectedEdgeTextPx": 7.658605974395448,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1053,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1436,
+              "diagramWidth": 1406,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 844,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1463,
+              "diagramWidth": 1433,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1852,
+              "diagramWidth": 1802,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 951,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1376,
+              "diagramWidth": 1346,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 808,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.031152204836416,
+              "minimumProjectedNonEdgeTextPx": 6.031152204836416,
+              "minimumProjectedEdgeTextPx": 7.658605974395448,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1053,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1436,
+              "diagramWidth": 1406,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 844,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1463,
+              "diagramWidth": 1433,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1852,
+              "diagramWidth": 1802,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 94,
+                "svgPx": 1082,
+                "cardsPx": 0,
+                "viewBoxHeight": 844
+              },
+              "viewBoxWidth": 1406,
+              "minimumProjectedNodeTextPx": 6.3,
+              "minimumProjectedNonEdgeTextPx": 6.3,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "accounts, dashboard, incidents, audit, recipients",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "cas-runtime.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.finalize.json",
+    "summaryReceipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.finalize-summary.json",
+    "browserCheckReceipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-26T10:02:47.880Z",
+  "durationMs": 4426,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-26T10:02:07.431Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

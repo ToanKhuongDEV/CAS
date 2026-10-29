@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { STORE_LOGO } from "../../lib/store-logo";
 
 type CasLogoProps = {
   className?: string;
@@ -13,7 +14,7 @@ export function CasLogo({ className, priority = false }: CasLogoProps) {
       className={className}
       height={64}
       priority={priority}
-      src="/cas-logo.svg"
+      src={STORE_LOGO}
       unoptimized
       width={64}
     />

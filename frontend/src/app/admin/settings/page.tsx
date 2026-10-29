@@ -170,14 +170,17 @@ export default function AdminSettingsPage() {
   const [storeStatus, setStoreStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [savedStoreMsg, setSavedStoreMsg] = useState<string>("");
   const [storeError, setStoreError] = useState<string>("");
+  const [storeLoaded, setStoreLoaded] = useState(false);
 
   // State cho Tham số Vận hành & Cảnh báo
   const [warningMins, setWarningMins] = useState<number>(25);
   const [savedOpsMsg, setSavedOpsMsg] = useState<string>("");
   const [opsError, setOpsError] = useState<string>("");
+  const [opsLoaded, setOpsLoaded] = useState(false);
 
   const handleSaveStoreInfo = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!storeLoaded) return;
     try {
       setSavedStoreMsg("");
       setStoreError("");
@@ -204,6 +207,7 @@ export default function AdminSettingsPage() {
 
   const handleSaveOpsSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!opsLoaded) return;
     try {
       setSavedOpsMsg("");
       const savedMinutes = await updateLongWaitWarningMinutes(warningMins);
@@ -225,7 +229,10 @@ export default function AdminSettingsPage() {
     let active = true;
     void loadLongWaitWarningMinutes()
       .then((minutes) => {
-        if (active) setWarningMins(minutes);
+        if (active) {
+          setWarningMins(minutes);
+          setOpsLoaded(true);
+        }
       })
       .catch((error) => {
         if (active) {
@@ -251,6 +258,7 @@ export default function AdminSettingsPage() {
         setCloseTime(s.closeTime);
         setStoreStatus(s.status);
         setStoreError("");
+        setStoreLoaded(true);
       })
       .catch((error) => {
         if (active) {
@@ -488,7 +496,13 @@ export default function AdminSettingsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-3">
-                <CasButton type="submit" icon="check" variant="primary" size="sm">
+                <CasButton
+                  disabled={!storeLoaded}
+                  type="submit"
+                  icon="check"
+                  variant="primary"
+                  size="sm"
+                >
                   Lưu Thông tin Cơ sở
                 </CasButton>
                 {savedStoreMsg && (
@@ -543,7 +557,13 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <CasButton type="submit" icon="check" variant="primary" size="sm">
+                <CasButton
+                  disabled={!opsLoaded}
+                  type="submit"
+                  icon="check"
+                  variant="primary"
+                  size="sm"
+                >
                   Lưu Tham số Vận hành
                 </CasButton>
                 {savedOpsMsg && (

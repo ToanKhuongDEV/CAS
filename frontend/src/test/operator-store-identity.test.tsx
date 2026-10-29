@@ -38,10 +38,14 @@ describe("OperatorStoreIdentity", () => {
       welcomeSlogan: null,
     });
 
-    render(<OperatorStoreIdentity subtitle="Vận hành" />);
+    render(<OperatorStoreIdentity inHeader subtitle="Vận hành" />);
 
     await waitFor(() => expect(loadPublicStore).toHaveBeenCalledWith(2));
     expect(await screen.findByText("Thương hiệu CAS")).toBeInTheDocument();
     expect(screen.getByText("Chi nhánh 2")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
+      "src",
+      "/images/bambu-garden-wordmark.svg",
+    );
   });
 });

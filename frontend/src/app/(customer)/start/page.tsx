@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { STORE_LOGO } from "../../../lib/store-logo";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -152,15 +153,11 @@ export default function StartOrderPage() {
       </Link>
       <div className="flex items-center gap-4">
         <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-lg font-extrabold text-cas-primary">
-          {store?.logoUrl ? (
-            <img
-              alt={`Logo ${store.brandName ?? store.branchName ?? "CAS"}`}
-              className="size-full object-cover"
-              src={store.logoUrl}
-            />
-          ) : (
-            (store?.brandName ?? store?.branchName ?? "C").slice(0, 1)
-          )}
+          <img
+            alt={`Logo ${store?.brandName ?? store?.branchName ?? "CAS"}`}
+            className="size-full object-cover"
+            src={STORE_LOGO}
+          />
         </span>
         <p className="text-xl leading-tight font-extrabold text-cas-primary">
           {store?.brandName ?? store?.branchName ?? "Đang tải cửa hàng..."}

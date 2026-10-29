@@ -16,9 +16,9 @@ export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceL
     <OperationalRouteGuard area="OPERATOR">
       <main className="min-h-screen bg-cas-surface text-cas-on-surface">
         <div className="sticky top-0 z-40 shadow-xs">
-          <header className="relative z-50 bg-cas-header px-4 py-4 backdrop-blur-xl sm:px-8 xl:px-12 border-b border-cas-outline-variant/15">
+          <header className="relative z-50 bg-cas-primary px-4 py-2 sm:px-8 xl:px-12">
             <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4">
-              <OperatorStoreIdentity subtitle="Vận hành" />
+              <OperatorStoreIdentity inHeader subtitle="Vận hành" />
 
               <div className="flex items-center gap-3">
                 <ThemeToggle />

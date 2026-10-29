@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CAS Runtime Architecture",
+    "output": ".archify/architecture-cas-runtime-20261026-165000/cas-runtime.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ToanKhuongDEV/CAS.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d3e399b7e0921558ba3b5f9e40348254668b793e"
+    },
+    "views": [
+      {
+        "id": "customer-flow",
+        "label": "Customer ordering",
+        "focus": ["customer-ui", "store", "catalog", "ordering", "payment"],
+        "note": "QR/session, catalog, order and manual-payment request."
+      },
+      {
+        "id": "operations",
+        "label": "Operations",
+        "focus": ["operator-ui", "preparation", "payment", "operations", "mysql"],
+        "note": "Preparation, payment confirmation and store-scoped operations."
+      },
+      {
+        "id": "admin-scope",
+        "label": "Admin scope",
+        "focus": ["admin-ui", "admin-scope", "firebase", "security", "store"],
+        "note": "Only SUPER_ADMIN can select a different store scope."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "customer-ui",
+      "type": "frontend",
+      "label": "Customer Next.js area",
+      "sublabel": "QR, menu, cart, orders, payment",
+      "pos": [40, 300],
+      "size": [160, 70],
+      "sources": [{ "path": "frontend/src/app/(customer)/layout.tsx", "line": 10, "end_line": 16, "label": "customer layout" }]
+    },
+    {
+      "id": "operator-ui",
+      "type": "frontend",
+      "label": "Operator Next.js area",
+      "sublabel": "authenticated workspace",
+      "pos": [40, 455],
+      "size": [160, 70],
+      "sources": [{ "path": "frontend/src/app/(operator)/operator/(workspace)/layout.tsx", "line": 14, "end_line": 42, "label": "operator guard" }]
+    },
+    {
+      "id": "admin-ui",
+      "type": "frontend",
+      "label": "Admin / Super Admin area",
+      "sublabel": "authenticated management workspace",
+      "pos": [40, 610],
+      "size": [160, 70],
+      "sources": [{ "path": "frontend/src/app/admin/layout.tsx", "line": 14, "end_line": 41, "label": "admin guard" }]
+    },
+    {
+      "id": "firebase",
+      "type": "security",
+      "label": "Firebase Authentication",
+      "sublabel": "issues operational ID token",
+      "pos": [270, 95],
+      "size": [160, 70],
+      "sources": [{ "path": "backend/src/main/java/vn/cas/common/security/FirebaseAuthenticationFilter.java", "line": 47, "end_line": 65, "label": "token verification" }]
+    },
+    {
+      "id": "admin-scope",
+      "type": "security",
+      "label": "Selected store scope",
+      "sublabel": "X-CAS-Store-Id for SUPER_ADMIN",
+      "pos": [270, 610],
+      "size": [160, 70],
+      "sources": [{ "path": "frontend/src/components/admin/admin-store-selector.tsx", "line": 25, "end_line": 44, "label": "header injection" }]
+    },
+    {
+      "id": "security",
+      "type": "security",
+      "label": "Security + Firebase filter",
+      "sublabel": "stateless role and store validation",
+      "pos": [500, 300],
+      "size": [190, 76],
+      "sources": [
+        { "path": "backend/src/main/java/vn/cas/common/config/SecurityConfiguration.java", "line": 25, "end_line": 40, "label": "role routes" },
+        { "path": "backend/src/main/java/vn/cas/common/security/FirebaseAuthenticationFilter.java", "line": 72, "end_line": 88, "label": "store override" }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "backend",
+      "label": "Store module",
+      "sublabel": "QR, sales sessions, store and brand settings",
+      "pos": [750, 120],
+      "size": [190, 76],
+      "sources": [
+        { "path": "backend/src/main/java/vn/cas/store/controller/CustomerSalesSessionController.java", "line": 31, "end_line": 43, "label": "customer sessions" },
+        { "path": "backend/src/main/java/vn/cas/store/controller/StoreSettingsController.java", "line": 30, "end_line": 63, "label": "store API" },
+        { "path": "backend/src/main/java/vn/cas/store/service/BrandSettingsService.java", "line": 29, "end_line": 61, "label": "global brand" }
+      ]
+    },
+    {
+      "id": "catalog",
+      "type": "backend",
+      "label": "Catalog module",
+      "sublabel": "categories, menu items, options, availability",
+      "pos": [750, 260],
+      "size": [190, 70],
+      "sources": [{ "path": "backend/src/main/java/vn/cas/catalog/service/CatalogService.java", "label": "catalog service" }]
+    },
+    {
+      "id": "ordering",
+      "type": "backend",
+      "label": "Ordering module",
+      "sublabel": "orders, items, cancellation, idempotency",
+      "pos": [750, 400],
+      "size": [190, 76],
+      "sources": [{ "path": "backend/src/main/java/vn/cas/ordering/controller/CustomerOrderingController.java", "line": 35, "end_line": 87, "label": "customer orders" }]
+    },
+    {
+      "id": "preparation",
+      "type": "backend",
+      "label": "Preparation module",
+      "sublabel": "FIFO groups and completion batches",
+      "pos": [750, 540],
+      "size": [190, 70],
+      "sources": [{ "path": "backend/src/main/java/vn/cas/ordering/controller/PreparationController.java", "line": 35, "end_line": 76, "label": "preparation API" }]
+    },
+    {
+      "id": "payment",
+      "type": "backend",
+      "label": "Payment + Promotion modules",
+      "sublabel": "bill snapshot, discount, manual PAID",
+      "pos": [750, 680],
+      "size": [190, 76],
+      "sources": [
+        { "path": "backend/src/main/java/vn/cas/payment/controller/PaymentController.java", "line": 23, "end_line": 69, "label": "payment API" },
+        { "path": "backend/src/main/java/vn/cas/promotion/controller/PromotionController.java", "line": 67, "end_line": 141, "label": "promotion API" }
+      ]
+    },
+    {
+      "id": "operations",
+      "type": "backend",
+      "label": "Operation + notifications",
+      "sublabel": "accounts, dashboard, incidents, audit, recipients",
+      "pos": [1000, 500],
+      "size": [195, 76],
+      "sources": [
+        { "path": "backend/src/main/java/vn/cas/operation/controller/OperationalIncidentController.java", "line": 26, "end_line": 52, "label": "incidents API" },
+        { "path": "backend/src/main/java/vn/cas/notification/controller/SystemNotificationController.java", "line": 31, "end_line": 105, "label": "notification API" }
+      ]
+    },
+    {
+      "id": "mybatis",
+      "type": "backend",
+      "label": "MyBatis mappers",
+      "sublabel": "explicit SQL mapper XML",
+      "pos": [1010, 255],
+      "size": [175, 70],
+      "sources": [{ "path": "backend/src/main/resources/application.yml", "line": 29, "end_line": 34, "label": "mapper config" }]
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL 8.4",
+      "sublabel": "durable CAS data; Flyway migrations",
+      "pos": [1160, 333],
+      "size": [180, 76],
+      "sources": [
+        { "path": "backend/src/main/resources/application.yml", "line": 9, "end_line": 25, "label": "datasource + Flyway" },
+        { "path": "compose.yaml", "line": 1, "end_line": 25, "label": "MySQL service" }
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis 7.4",
+      "sublabel": "configured supporting data store",
+      "pos": [1160, 584],
+      "size": [180, 70],
+      "sources": [
+        { "path": "backend/src/main/resources/application.yml", "line": 16, "end_line": 21, "label": "Redis config" },
+        { "path": "compose.yaml", "line": 27, "end_line": 43, "label": "Redis service" }
+      ]
+    },
+    {
+      "id": "cloudinary",
+      "type": "cloud",
+      "label": "Cloudinary",
+      "sublabel": "signed menu, welcome and brand assets",
+      "pos": [1010, 10],
+      "size": [185, 70],
+      "sources": [{ "path": "backend/src/main/java/vn/cas/catalog/service/CloudinarySignatureService.java", "line": 47, "end_line": 67, "label": "signed upload" }]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Public browser surface", "wraps": ["customer-ui"], "pad": 24 },
+    { "kind": "security-group", "label": "Operational UI scope", "wraps": ["operator-ui", "admin-ui", "admin-scope"], "pad": 26 },
+    { "kind": "region", "label": "CAS Spring Boot modular monolith", "wraps": ["store", "catalog", "ordering", "preparation", "payment", "operations", "mybatis"], "pad": 28 },
+    { "kind": "region", "label": "Durable and supporting infrastructure", "wraps": ["mysql", "redis"], "pad": 26 }
+  ],
+  "connections": [
+    { "from": "customer-ui", "to": "store", "label": "public QR / session APIs", "variant": "emphasis" },
+    { "from": "customer-ui", "to": "catalog", "label": "public menu APIs" },
+    { "from": "customer-ui", "to": "ordering", "label": "session-cookie order APIs", "variant": "emphasis" },
+    { "from": "customer-ui", "to": "payment", "label": "payment request" },
+    { "from": "operator-ui", "to": "firebase", "label": "sign in" },
+    { "from": "admin-ui", "to": "firebase", "label": "sign in" },
+    { "from": "operator-ui", "to": "security", "label": "Bearer ID token", "variant": "security" },
+    { "from": "admin-ui", "to": "admin-scope", "label": "select store" },
+    { "from": "admin-scope", "to": "security", "label": "Bearer token + store header", "variant": "security" },
+    { "from": "firebase", "to": "security", "label": "verify Firebase UID", "variant": "security" },
+    { "from": "security", "to": "store", "label": "scoped admin / operator APIs", "variant": "security" },
+    { "from": "security", "to": "operations", "label": "role-authorized APIs", "variant": "security" },
+    { "from": "operator-ui", "to": "preparation", "label": "FIFO completion APIs", "variant": "emphasis" },
+    { "from": "operator-ui", "to": "payment", "label": "manual PAID confirmation", "variant": "emphasis" },
+    { "from": "store", "to": "catalog", "label": "store scope" },
+    { "from": "ordering", "to": "preparation", "label": "pending order items" },
+    { "from": "ordering", "to": "payment", "label": "current bill" },
+    { "from": "payment", "to": "operations", "label": "audit and notifications" },
+    { "from": "store", "to": "cloudinary", "label": "validate / manage assets" },
+    { "from": "catalog", "to": "cloudinary", "label": "signed asset upload" },
+    { "from": "store", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "catalog", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "ordering", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "preparation", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "payment", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "operations", "to": "mybatis", "label": "mapped persistence" },
+    { "from": "mybatis", "to": "mysql", "label": "SQL" },
+    { "from": "security", "to": "redis", "label": "Spring Data Redis configured", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Customer trust boundary",
+      "items": ["Customer APIs use the cas_customer_session cookie after QR/session resolution.", "Customer creates payment requests; an operational user confirms PAID manually."]
+    },
+    {
+      "dot": "violet",
+      "title": "Store and brand ownership",
+      "items": ["ADMIN is scoped to its assigned store.", "SUPER_ADMIN may select an existing store through X-CAS-Store-Id.", "brand_settings is shared; store contact and operating data remain per-store."]
+    },
+    {
+      "dot": "rose",
+      "title": "Deliberate omissions",
+      "items": ["No payment gateway, bank webhook, message queue, SSE, or WebSocket is shown.", "Redis is shown as configured infrastructure; this overview does not claim a particular cache path."]
+    }
+  ]
+}

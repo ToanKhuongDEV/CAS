@@ -39,5 +39,6 @@ describe("AdminSettingsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Không thể tải cấu hình cửa hàng.")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "Lưu Thông tin Cơ sở" })).toBeDisabled();
   });
 });

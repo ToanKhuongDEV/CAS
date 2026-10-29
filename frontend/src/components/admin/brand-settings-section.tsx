@@ -6,6 +6,7 @@ import { getCurrentOperationalAccount } from "../../lib/auth/operational-auth";
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { uploadImage } from "../../lib/api/catalog/cloudinary-upload";
 import { loadBrandSettings, updateBrandSettings } from "../../lib/api/store/store-settings.api";
+import { STORE_LOGO } from "../../lib/store-logo";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
@@ -13,6 +14,7 @@ import { useToast } from "../ui/toast-provider";
 export function BrandSettingsSection() {
   const { showToast } = useToast();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [name, setName] = useState("");
   const [welcomeSlogan, setWelcomeSlogan] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -32,7 +34,9 @@ export function BrandSettingsSection() {
         setLogoUrl(brand.logoUrl);
         setLogoStorageKey(brand.logoStorageKey);
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Không thể tải thương hiệu chung.");
+      });
   }, []);
 
   async function save(event: React.FormEvent) {
@@ -75,6 +79,12 @@ export function BrandSettingsSection() {
     }
   }
 
+  if (loadError)
+    return (
+      <p role="alert" className="text-sm text-cas-error">
+        {loadError}
+      </p>
+    );
   if (!isSuperAdmin) return null;
 
   return (
@@ -94,24 +104,22 @@ export function BrandSettingsSection() {
       <form className="mt-6 space-y-5 text-xs" onSubmit={save}>
         <div className="flex items-center gap-4">
           <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-cas-primary">
-            {logoUrl ? (
-              <img alt="Logo thương hiệu" className="size-full object-cover" src={logoUrl} />
-            ) : (
-              <CasIcon className="size-8" name="restaurant" />
-            )}
+            <img alt="Logo thương hiệu" className="size-full object-cover" src={STORE_LOGO} />
           </span>
-          <label className="cursor-pointer rounded-xl border border-cas-outline-variant/40 px-3 py-2 font-extrabold text-cas-primary hover:bg-cas-primary/10">
+          <label className="cursor-not-allowed rounded-xl border border-cas-outline-variant/40 px-3 py-2 font-extrabold text-cas-on-surface-variant opacity-60">
             Tải logo chung
             <input
               accept="image/png,image/jpeg,image/webp,image/svg+xml"
               className="sr-only"
+              disabled
               onChange={uploadLogo}
               type="file"
             />
           </label>
           {logoUrl ? (
             <button
-              className="font-bold text-cas-on-surface-variant hover:text-cas-on-surface"
+              className="cursor-not-allowed font-bold text-cas-on-surface-variant opacity-60"
+              disabled
               onClick={() => {
                 setLogoUrl(null);
                 setLogoStorageKey(null);

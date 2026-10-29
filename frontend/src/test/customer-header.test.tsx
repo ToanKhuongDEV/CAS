@@ -53,17 +53,33 @@ describe("CustomerHeader", () => {
     replace.mockClear();
   });
 
-  it("links an unselected table indicator to order-type selection", async () => {
+  it("does not show a start ordering link when no table is selected", async () => {
     render(<CustomerHeader />);
 
-    expect(await screen.findByRole("link", { name: "Bắt đầu gọi món" })).toHaveAttribute(
-      "href",
-      "/start",
-    );
+    await vi.waitFor(() => expect(getCurrentCustomerSalesSession).toHaveBeenCalled());
+    expect(screen.queryByRole("link", { name: "Bắt đầu gọi món" })).not.toBeInTheDocument();
   });
 
-  it("shows the branch next to the brand", async () => {
+  it("shows the selected table", async () => {
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
+      customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
+      sessionStatus: "OPEN",
+      tableCode: 5,
+    });
+
     render(<CustomerHeader />);
+
+    expect(await screen.findByText("Bàn 05")).toBeInTheDocument();
+  });
+
+  it("shows the branch below the brand", async () => {
+    render(<CustomerHeader />);
+    expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
+      "src",
+      "/images/bambu-garden-wordmark.svg",
+    );
     expect(await screen.findByText("Chi nhánh 1")).toBeInTheDocument();
     expect(screen.getByText("Thương hiệu CAS")).toBeInTheDocument();
   });
