@@ -26,6 +26,7 @@ const request = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(loadOperatorCancellationRequests).mockResolvedValue([request]);
   vi.mocked(loadOperatorCancellationRequest).mockResolvedValue({
     candidates: [],
@@ -36,6 +37,19 @@ beforeEach(() => {
 });
 
 describe("OperatorCancellationRequestsView", () => {
+  it("shows a takeaway cancellation request without a table", async () => {
+    vi.mocked(loadOperatorCancellationRequests).mockResolvedValue([
+      {
+        ...request,
+        tableCode: null,
+        customerName: "An",
+        orderId: "12345678-1234",
+      },
+    ]);
+    render(<OperatorCancellationRequestsView />);
+    expect(await screen.findByText("Mang về · An · 12345678")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Từ chối" })).toBeInTheDocument();
+  });
   it("renders the list of pending cancellation requests from the API", async () => {
     render(<OperatorCancellationRequestsView />);
 
@@ -70,10 +84,17 @@ describe("OperatorCancellationRequestsView", () => {
     expect(screen.getByRole("heading", { name: "Từ chối hủy món?" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận từ chối" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Vui lòng nhập lý do từ chối.");
+    expect(resolveOperatorCancellationRequest).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Lý do từ chối"), {
+      target: { value: "  Món đã chế biến  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận từ chối" }));
 
     await vi.waitFor(() =>
       expect(resolveOperatorCancellationRequest).toHaveBeenCalledWith("request-1", {
         decision: "REJECT",
+        rejectionReason: "Món đã chế biến",
       }),
     );
   });

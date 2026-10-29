@@ -8,6 +8,7 @@ import {
   cancelOperatorSalesSession,
   createOperatorOrder,
   loadOperatorTables,
+  loadOperatorSessionListing,
   openOperatorSalesSession,
 } from "../lib/api/ordering/ordering.api";
 
@@ -16,11 +17,13 @@ vi.mock("../lib/api/ordering/ordering.api", () => ({
   cancelOperatorSalesSession: vi.fn(),
   createOperatorOrder: vi.fn(),
   loadOperatorTables: vi.fn(),
+  loadOperatorSessionListing: vi.fn(),
   openOperatorSalesSession: vi.fn(),
 }));
 
 describe("OperatorOrderCreationView", () => {
   beforeEach(() => {
+    vi.mocked(loadOperatorSessionListing).mockResolvedValue({ tables: [], takeawaySessions: [] });
     vi.mocked(loadOperatorCatalog).mockResolvedValue({
       categories: [
         {
@@ -126,12 +129,24 @@ describe("OperatorOrderCreationView", () => {
       </QueryProvider>,
     );
 
+  it("selects an existing takeaway session for ordering", async () => {
+    vi.mocked(loadOperatorSessionListing).mockResolvedValue({
+      tables: [],
+      takeawaySessions: [{ sessionId: "takeaway-session", customerName: "An", status: "OPEN" }],
+    });
+    renderOrderCreationView();
+    await screen.findByText("Gà rán giòn rụm");
+    fireEvent.click(screen.getAllByRole("button", { name: "Chọn phiên khác" })[0]);
+    fireEvent.click(await screen.findByRole("button", { name: /Mang về · An · takeaway/ }));
+    expect(screen.getAllByText("Mang về · An · takeaway").length).toBeGreaterThan(0);
+  });
+
   it("renders table context, allows selecting items and adding options to cart", async () => {
     renderOrderCreationView();
 
     await screen.findByText("Gà rán giòn rụm");
 
-    expect(screen.getByRole("heading", { name: "Tạo order hộ tại bàn" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tạo order hộ" })).toBeInTheDocument();
 
     // Table context
     expect(screen.getAllByText(/Bàn 05/i).length).toBeGreaterThan(0);
@@ -246,6 +261,6 @@ describe("OperatorOrderCreationView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận hủy phiên" }));
 
     await vi.waitFor(() => expect(cancelOperatorSalesSession).toHaveBeenCalledWith("session-5"));
-    expect(await screen.findByText("Đã hủy phiên bàn.")).toBeInTheDocument();
+    expect(await screen.findByText("Đã hủy phiên.")).toBeInTheDocument();
   });
 });

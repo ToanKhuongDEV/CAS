@@ -1,5 +1,7 @@
 "use client";
 
+import { formatOrderDestination } from "../../lib/ordering/order-destination";
+
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -115,7 +117,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
       await confirmOperatorPayment(record.paymentId);
       showToast({
         type: "success",
-        message: `Đã xác nhận thanh toán cho Bàn ${record.tableCode}.`,
+        message: `Đã xác nhận thanh toán cho ${formatOrderDestination(record.tableCode, null, record.salesSessionId)}.`,
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: operatorUnpaidRecordsQueryKey(recordStatus) }),
@@ -217,7 +219,8 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
             >
               {sessions.map((session) => (
                 <option key={session.sessionId} value={session.sessionId}>
-                  Bàn {session.tableCode} · {money(session.amount)} · mở {date(session.openedAt)}
+                  {formatOrderDestination(session.tableCode, null, session.sessionId)} ·{" "}
+                  {money(session.amount)} · mở {date(session.openedAt)}
                 </option>
               ))}
             </select>
@@ -329,7 +332,8 @@ function RecordList({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-black">
-                Bàn {record.tableCode} · {money(record.amount)}
+                {formatOrderDestination(record.tableCode, null, record.salesSessionId)} ·{" "}
+                {money(record.amount)}
               </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
                 {record.reportedByName} · {date(record.createdAt)}
@@ -399,8 +403,9 @@ function ConfirmCollectedPaymentDialog({
           className="mt-3 text-sm leading-6 text-cas-on-surface-variant"
           id="confirm-collected-payment-description"
         >
-          Xác nhận đã thu {money(record.amount)} của Bàn {record.tableCode}? Thao tác này không thể
-          hoàn tác.
+          Xác nhận đã thu {money(record.amount)} của{" "}
+          {formatOrderDestination(record.tableCode, null, record.salesSessionId)}? Thao tác này
+          không thể hoàn tác.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <CasButton disabled={isSaving} onClick={onCancel} type="button" variant="outline">
@@ -431,7 +436,9 @@ function BillSnapshot({ record, onClose }: { record: UnpaidRecord; onClose: () =
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold text-cas-on-surface-variant">Bàn {record.tableCode}</p>
+            <p className="text-xs font-bold text-cas-on-surface-variant">
+              {formatOrderDestination(record.tableCode, null, record.salesSessionId)}
+            </p>
             <h2 className="text-xl font-black">Bill snapshot</h2>
             <p className="mt-1 text-sm text-cas-on-surface-variant">
               Tổng cần thu: {money(record.amount)}

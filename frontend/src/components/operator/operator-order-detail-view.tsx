@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useOperatorOrderDetailQuery } from "../../lib/api/ordering/ordering.query";
 import { CasIcon } from "../ui/cas-icon";
+import { formatOrderDestination } from "../../lib/ordering/order-destination";
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 
@@ -55,12 +56,19 @@ export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
           {order.orderNumber}
         </p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Đơn của Bàn {String(tableCode).padStart(2, "0")}
+          Đơn{" "}
+          {tableCode === null
+            ? formatOrderDestination(tableCode, customerName)
+            : `của ${formatOrderDestination(tableCode)}`}
         </h1>
       </header>
 
       <section className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Tóm tắt đơn gọi món">
-        <Summary icon="table" label="Bàn" value={`Bàn ${String(tableCode).padStart(2, "0")}`} />
+        <Summary
+          icon="table"
+          label={tableCode === null ? "Loại đơn" : "Bàn"}
+          value={formatOrderDestination(tableCode, customerName)}
+        />
         <Summary
           icon="clock"
           label="Thời gian gửi"

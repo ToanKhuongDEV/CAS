@@ -65,14 +65,13 @@ public class PreparationController {
                 completion, request);
     }
 
-    @PostMapping("/tables/{tableCode}/completions")
-    public ResponseEntity<ApiResponse<PreparationService.TableCompletion>> completeTable(
-            @AuthenticationPrincipal OperationalPrincipal principal,
-            @PathVariable @Positive int tableCode, @Valid @RequestBody CompleteTableRequest body,
-            HttpServletRequest request) {
-        var completion = preparations.completeTable(principal, tableCode, body.idempotencyKey(),
+    @PostMapping("/sessions/{sessionId}/completions")
+    public ResponseEntity<ApiResponse<PreparationService.SessionCompletion>> completeSession(
+            @AuthenticationPrincipal OperationalPrincipal principal, @PathVariable String sessionId,
+            @Valid @RequestBody CompleteTableRequest body, HttpServletRequest request) {
+        var completion = preparations.completeSession(principal, sessionId, body.idempotencyKey(),
                 (UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME));
-        return ApiResponses.success(HttpStatus.CREATED, "Đã hoàn thành toàn bộ món của bàn.",
+        return ApiResponses.success(HttpStatus.CREATED, "Đã hoàn thành toàn bộ món của phiên.",
                 completion, request);
     }
 

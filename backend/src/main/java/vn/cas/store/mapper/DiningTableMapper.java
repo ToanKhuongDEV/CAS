@@ -45,6 +45,9 @@ public interface DiningTableMapper {
     java.util.List<OperatorTableSession> findActiveDineInSessionsByStoreId(
             @Param("storeId") long storeId);
 
+    java.util.List<JoinableSalesSession> findActiveTakeawaySessionsByStoreId(
+            @Param("storeId") long storeId);
+
     SalesSessionLookup findCurrentSalesSessionByPublicId(
             @Param("sessionPublicId") String sessionPublicId);
 

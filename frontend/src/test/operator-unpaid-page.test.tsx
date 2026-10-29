@@ -64,7 +64,7 @@ describe("OperatorUnpaidView", () => {
 
     expect(await screen.findByRole("heading", { name: "Không thanh toán" })).toBeInTheDocument();
     const snapshotButton = await screen.findByRole("button", { name: "Xem bill snapshot" });
-    expect(screen.getByText(/Bàn 9/)).toBeInTheDocument();
+    expect(screen.getByText(/Bàn 09/)).toBeInTheDocument();
     fireEvent.click(snapshotButton);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();

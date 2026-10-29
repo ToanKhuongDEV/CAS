@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
 import {
@@ -21,6 +21,7 @@ import { useOperatorCatalogQuery } from "../../../lib/api/catalog/catalog.query"
 import {
   cancelOperatorSalesSession,
   createOperatorOrder,
+  loadOperatorSessionListing,
   openOperatorSalesSession,
 } from "../../../lib/api/ordering/ordering.api";
 import {
@@ -386,6 +387,20 @@ export function OperatorOrderCreationView({
   const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const { data: sessionListing } = useQuery({
+    queryKey: ["operator", "sales-sessions", "takeaway"],
+    queryFn: loadOperatorSessionListing,
+    enabled: isTableModalOpen,
+  });
+  const takeawayTables: TableOption[] = (sessionListing?.takeawaySessions ?? []).map((session) => ({
+    id: `takeaway:${session.sessionId}`,
+    code: "MV",
+    label: `Mang về · ${session.customerName} · ${session.sessionId.slice(0, 8)}`,
+    customerName: session.customerName,
+    sessionPublicId: session.sessionId,
+    activeOrdersCount: 0,
+    status: session.status,
+  }));
   const [sessionSelectionTable, setSessionSelectionTable] = useState<TableOption | null>(null);
   const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
   const [isCustomerInformationFormOpen, setIsCustomerInformationFormOpen] = useState(false);
@@ -406,15 +421,18 @@ export function OperatorOrderCreationView({
       operatorTables.find((table) => table.status === "OPEN") ??
       operatorTables[0];
     const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
-    if (selected && selectedSession) {
-      setSelectedTable({
-        ...selected,
-        customerName: selectedSession.customerName,
-        label: `${selected.label} · ${selectedSession.customerName}`,
-        sessionPublicId: selectedSession.sessionId,
-        status: selectedSession.status,
-      });
-    } else if (selected) setSelectedTable(selected);
+    setSelectedTable((current) => {
+      if (current.id.startsWith("takeaway:")) return current;
+      if (selected && selectedSession)
+        return {
+          ...selected,
+          customerName: selectedSession.customerName,
+          label: `${selected.label} · ${selectedSession.customerName}`,
+          sessionPublicId: selectedSession.sessionId,
+          status: selectedSession.status,
+        };
+      return selected ?? current;
+    });
   }, [defaultTableId, operatorTables]);
 
   const filteredMenuItems = useMemo(() => {
@@ -494,7 +512,7 @@ export function OperatorOrderCreationView({
     if (!selectedTable.sessionPublicId) {
       showToast({
         type: "error",
-        message: "Vui lòng chọn bàn đang có phiên phục vụ trước khi gửi món.",
+        message: "Vui lòng chọn phiên đang phục vụ trước khi gửi món.",
       });
       return;
     }
@@ -545,11 +563,11 @@ export function OperatorOrderCreationView({
       setCartItems([]);
       setOrderNote("");
       setIsCancelSessionDialogOpen(false);
-      showToast({ type: "success", message: "Đã hủy phiên bàn." });
+      showToast({ type: "success", message: "Đã hủy phiên." });
     } catch (cause) {
       showToast({
         type: "error",
-        message: cause instanceof Error ? cause.message : "Không thể hủy phiên bàn.",
+        message: cause instanceof Error ? cause.message : "Không thể hủy phiên.",
       });
     } finally {
       setIsCancellingSession(false);
@@ -560,7 +578,7 @@ export function OperatorOrderCreationView({
     <div className="relative pb-24 lg:pb-0">
       <header className="mb-4">
         <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
-          Tạo order hộ tại bàn
+          Tạo order hộ
         </h1>
       </header>
       {isCancelSessionDialogOpen ? (
@@ -583,8 +601,8 @@ export function OperatorOrderCreationView({
               Hủy phiên {selectedTable.label}?
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
-              Chỉ có thể hủy khi bàn chưa gửi món nào xuống bếp. Hệ thống sẽ kiểm tra lại điều kiện
-              này trước khi đóng phiên.
+              Chỉ có thể hủy khi phiên chưa gửi món nào xuống bếp. Hệ thống sẽ kiểm tra lại điều
+              kiện này trước khi đóng phiên.
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <CasButton
@@ -834,7 +852,7 @@ export function OperatorOrderCreationView({
       {/* Table Selector Modal */}
       <OperatorTableSelectModal
         isOpen={isTableModalOpen}
-        tables={operatorTables}
+        tables={[...operatorTables, ...takeawayTables]}
         newlyOpenedTableIds={newlyOpenedTableIds}
         selectedTableId={selectedTable.id}
         onClose={() => setIsTableModalOpen(false)}
@@ -843,6 +861,11 @@ export function OperatorOrderCreationView({
           setIsTableModalOpen(false);
         }}
         onSelectTable={(table) => {
+          if (table.sessionPublicId) {
+            setSelectedTable(table);
+            setIsTableModalOpen(false);
+            return;
+          }
           setSessionSelectionTable(table);
           setIsTableModalOpen(false);
         }}
@@ -1119,7 +1142,7 @@ export function OperatorOrderCreationView({
               <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
                 <CasIcon className="size-6 text-cas-secondary" name="table" />
                 <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
-                  Bàn phục vụ
+                  Phiên phục vụ
                 </p>
                 <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
                   {successOrderData.tableLabel}
@@ -1172,7 +1195,7 @@ export function OperatorOrderCreationView({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cas-on-surface-variant">Bàn phục vụ:</span>
+                <span className="text-cas-on-surface-variant">Phiên phục vụ:</span>
                 <span className="font-bold text-cas-on-surface">{successOrderData.tableLabel}</span>
               </div>
               <div className="flex justify-between">

@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import {
   type CustomerBill,
   loadOperatorBill,
-  loadOperatorTables,
+  loadOperatorSessionListing,
 } from "../../lib/api/ordering/ordering.api";
+import { formatOrderDestination } from "../../lib/ordering/order-destination";
 import { createOperatorPayment, recordOperatorUnpaid } from "../../lib/api/payment/payment.api";
 import {
   CustomerOrderVoucherSummary,
@@ -24,7 +25,7 @@ import { CasIcon } from "../ui/cas-icon";
 
 const money = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
-type ActiveTable = { sessionId: string; tableCode: number };
+type ActiveTable = { sessionId: string; tableCode: number | null; customerName: string };
 
 export function OperatorPaymentControlView({
   onPaymentRequested,
@@ -45,14 +46,25 @@ export function OperatorPaymentControlView({
   async function refresh() {
     setIsLoading(true);
     try {
-      const result = await loadOperatorTables();
-      setTables(
-        result.flatMap((table) =>
+      const result = await loadOperatorSessionListing();
+      setTables([
+        ...result.tables.flatMap((table) =>
           table.sessions
             .filter((session) => session.status === "OPEN")
-            .map((session) => ({ sessionId: session.sessionId, tableCode: table.tableCode })),
+            .map((session) => ({
+              sessionId: session.sessionId,
+              tableCode: table.tableCode,
+              customerName: session.customerName,
+            })),
         ),
-      );
+        ...result.takeawaySessions
+          .filter((session) => session.status === "OPEN")
+          .map((session) => ({
+            sessionId: session.sessionId,
+            tableCode: null,
+            customerName: session.customerName,
+          })),
+      ]);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không thể tải các bàn đang hoạt động.");
@@ -127,7 +139,7 @@ export function OperatorPaymentControlView({
       <header>
         <h1 className="text-2xl font-extrabold text-cas-on-surface">Kiểm soát thanh toán</h1>
         <p className="mt-1 text-sm text-cas-on-surface-variant">
-          Chọn bàn đang phục vụ để tạo yêu cầu thanh toán hộ hoặc ghi nhận chưa thanh toán.
+          Chọn phiên đang phục vụ để tạo yêu cầu thanh toán hộ hoặc ghi nhận chưa thanh toán.
         </p>
       </header>
       {error ? (
@@ -136,7 +148,7 @@ export function OperatorPaymentControlView({
         </p>
       ) : null}
       {isLoading ? (
-        <p className="text-sm text-cas-on-surface-variant">Đang tải bàn đang hoạt động...</p>
+        <p className="text-sm text-cas-on-surface-variant">Đang tải phiên đang hoạt động...</p>
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass">
           {tables.map((table) => (
@@ -144,7 +156,10 @@ export function OperatorPaymentControlView({
               className="flex flex-wrap items-center justify-between gap-3 border-b border-cas-outline-variant/25 p-4 last:border-0"
               key={table.sessionId}
             >
-              <p className="font-extrabold">Bàn {String(table.tableCode).padStart(2, "0")}</p>
+              <p className="font-extrabold">
+                {formatOrderDestination(table.tableCode, table.customerName, table.sessionId)}
+                {table.tableCode !== null ? ` · ${table.customerName}` : ""}
+              </p>
               <div className="flex flex-wrap gap-2">
                 <CasButton size="sm" variant="outline" onClick={() => setUnpaidTable(table)}>
                   Đánh dấu không thanh toán
@@ -157,7 +172,7 @@ export function OperatorPaymentControlView({
           ))}
           {tables.length === 0 ? (
             <li className="p-8 text-center text-sm text-cas-on-surface-variant">
-              Không có bàn đang hoạt động.
+              Không có phiên đang hoạt động.
             </li>
           ) : null}
         </ul>
@@ -173,7 +188,11 @@ export function OperatorPaymentControlView({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-                  Bàn {String(selected.tableCode).padStart(2, "0")}
+                  {formatOrderDestination(
+                    selected.tableCode,
+                    selected.customerName,
+                    selected.sessionId,
+                  )}
                 </p>
                 <h2 className="mt-1 text-xl font-extrabold" id="operator-payment-request-title">
                   Tạo yêu cầu thanh toán
@@ -289,8 +308,12 @@ export function OperatorPaymentControlView({
           >
             <h2 className="text-xl font-extrabold">Đánh dấu không thanh toán?</h2>
             <p className="mt-3 text-sm text-cas-on-surface-variant">
-              Bàn {String(unpaidTable.tableCode).padStart(2, "0")} sẽ được đóng và ghi nhận khoản
-              chưa thu.
+              {formatOrderDestination(
+                unpaidTable.tableCode,
+                unpaidTable.customerName,
+                unpaidTable.sessionId,
+              )}{" "}
+              sẽ được đóng và ghi nhận khoản chưa thu.
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <CasButton disabled={isSaving} variant="outline" onClick={() => setUnpaidTable(null)}>

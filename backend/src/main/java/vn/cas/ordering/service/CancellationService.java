@@ -16,6 +16,7 @@ import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
+import vn.cas.notification.service.SystemNotificationService;
 import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.model.OperatorCancellationRequestRow;
 import vn.cas.ordering.model.PreparedItemTransfer;
@@ -26,10 +27,13 @@ import vn.cas.ordering.model.PreparationOptionRow;
 public class CancellationService {
     private final OrderingMapper mapper;
     private final AuditLogService auditLogs;
+    private final SystemNotificationService notifications;
 
-    public CancellationService(OrderingMapper mapper, AuditLogService auditLogs) {
+    public CancellationService(OrderingMapper mapper, AuditLogService auditLogs,
+            SystemNotificationService notifications) {
         this.mapper = mapper;
         this.auditLogs = auditLogs;
+        this.notifications = notifications;
     }
 
     @Transactional(readOnly = true)
@@ -51,13 +55,17 @@ public class CancellationService {
 
     @Transactional
     public Resolution resolve(OperationalPrincipal principal, String publicId, String decision,
-            boolean isRemade, String targetOrderItemId, int transferQuantity, UUID requestId) {
+            boolean isRemade, String targetOrderItemId, int transferQuantity,
+            String rejectionReason, UUID requestId) {
+        if ("REJECT".equals(decision) && (rejectionReason == null || rejectionReason.isBlank()))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vui lòng nhập lý do từ chối.");
         var request = requireRequest(principal, publicId, true);
         if (!"PENDING".equals(request.status()))
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
         if ("REJECT".equals(decision)) {
             mapper.resolveCancellationRequest(request.id(), "REJECTED", false,
                     principal.accountId(), principal.displayName());
+            notifyCustomer(principal, request, false, rejectionReason.trim());
             auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
                     "CANCELLATION_REQUEST_RESOLVED", "ORDER_ITEM_CANCELLATION_REQUEST",
                     request.id(), request.publicId(), "{\"decision\":\"REJECT\"}",
@@ -109,6 +117,7 @@ public class CancellationService {
                     new PreparedItemTransfer(request.id(), source.orderItemId(),
                             target.orderItemId(), transferQuantity, principal.accountId()));
         }
+        notifyCustomer(principal, request, true, null);
         auditLogs.record(
                 new AuditLogCommand(principal.storeId(), requestId, "CANCELLATION_REQUEST_RESOLVED",
                         "ORDER_ITEM_CANCELLATION_REQUEST", request.id(), request.publicId(),
@@ -117,6 +126,19 @@ public class CancellationService {
                         "Nhân viên duyệt yêu cầu hủy món."));
         return new Resolution(request.publicId(), "APPROVED", transferQuantity,
                 target == null ? null : target.orderItemPublicId(), remakeOrderPublicId);
+    }
+
+    private void notifyCustomer(OperationalPrincipal principal,
+            OperatorCancellationRequestRow request, boolean approved, String rejectionReason) {
+        var session = mapper.findSessionByOrderPublicIdAndStoreId(principal.storeId(),
+                request.orderPublicId());
+        if (session == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST);
+        String title = approved ? "Yêu cầu hủy món đã được đồng ý" : "Yêu cầu hủy món bị từ chối";
+        String content = "Yêu cầu hủy " + request.requestedQuantity() + " phần "
+                + request.itemName()
+                + (approved ? " đã được đồng ý." : " đã bị từ chối. Lý do: " + rejectionReason);
+        notifications.createForCustomerSession(principal, session.sessionId(), title, content);
     }
 
     @Transactional
@@ -193,8 +215,8 @@ public class CancellationService {
         var candidates = items.stream().filter(item -> item.orderItemId() != source.orderItemId())
                 .filter(item -> remaining(item) > 0 && sourceHash.equals(optionHash(items, item)))
                 .sorted(Comparator.comparing(PreparationItemRow::orderCreatedAt))
-                .map(item -> new TransferCandidate(item.orderItemPublicId(), item.tableCode(),
-                        remaining(item)))
+                .map(item -> new TransferCandidate(item.orderItemPublicId(), item.orderPublicId(),
+                        item.tableCode(), item.customerName(), remaining(item)))
                 .toList();
         return new RequestDetail(RequestSummary.from(request), itemDetail, candidates);
     }
@@ -234,16 +256,17 @@ public class CancellationService {
     }
 
     public record RequestSummary(String cancellationRequestId, String orderItemId, String itemName,
-            int tableCode, int requestedQuantity, int preparedQuantity, String reason,
-            java.time.LocalDateTime requestedAt) {
+            Integer tableCode, String customerName, String orderId, int requestedQuantity,
+            int preparedQuantity, String reason, java.time.LocalDateTime requestedAt) {
         static RequestSummary from(OperatorCancellationRequestRow row) {
             return new RequestSummary(row.publicId(), row.orderItemPublicId(), row.itemName(),
-                    row.tableCode(), row.requestedQuantity(), row.preparedQuantity(), row.reason(),
-                    row.createdAt());
+                    row.tableCode(), row.customerName(), row.orderPublicId(),
+                    row.requestedQuantity(), row.preparedQuantity(), row.reason(), row.createdAt());
         }
     }
 
-    public record TransferCandidate(String orderItemId, int tableCode, int remainingQuantity) {
+    public record TransferCandidate(String orderItemId, String orderId, Integer tableCode,
+            String customerName, int remainingQuantity) {
     }
 
     public record ItemDetail(BigDecimal unitPrice, List<ItemOption> options) {

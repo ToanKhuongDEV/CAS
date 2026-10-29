@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertTrue;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +64,7 @@ public class OperatorCancellationController {
         return ApiResponses.success(HttpStatus.OK, "Đã xử lý yêu cầu hủy món.",
                 cancellations.resolve(principal, cancellationRequestId, body.decision(),
                         body.isRemade(), body.targetOrderItemId(), body.transferQuantity(),
+                        normalize(body.rejectionReason()),
                         (java.util.UUID) request.getAttribute(RequestId.ATTRIBUTE_NAME)),
                 request);
     }
@@ -83,7 +85,13 @@ public class OperatorCancellationController {
     }
 
     public record ResolutionRequest(@NotBlank @Pattern(regexp = "APPROVE|REJECT") String decision,
-            boolean isRemade, String targetOrderItemId, @Min(0) @Max(10000) int transferQuantity) {
+            boolean isRemade, String targetOrderItemId, @Min(0) @Max(10000) int transferQuantity,
+            @Size(max = 1000) String rejectionReason) {
+        @AssertTrue(message = "Vui lòng nhập lý do từ chối.")
+        public boolean isRejectionReasonValid() {
+            return !"REJECT".equals(decision)
+                    || (rejectionReason != null && !rejectionReason.isBlank());
+        }
     }
 
     public record IncidentRequest(@NotBlank String orderItemId, @Min(1) int requestedQuantity,

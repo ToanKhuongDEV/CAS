@@ -15,6 +15,8 @@ public interface SystemNotificationMapper {
             @Param("storeId") long storeId);
     int insertRecipientsForActiveCustomerSessions(@Param("notificationId") long notificationId,
             @Param("storeId") long storeId);
+    int insertRecipientForCustomerSession(@Param("notificationId") long notificationId,
+            @Param("salesSessionId") long salesSessionId);
     List<SystemNotification> findByStoreId(@Param("storeId") long storeId);
     List<RecipientNotification> findByAccountId(@Param("accountId") long accountId);
     List<RecipientNotification> findBySalesSessionId(@Param("salesSessionId") long salesSessionId);

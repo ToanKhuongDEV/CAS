@@ -157,6 +157,12 @@ public class SalesSessionService {
         return diningTableMapper.findActiveDineInSessionsByStoreId(storeId);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<vn.cas.store.model.JoinableSalesSession> findActiveTakeawaySessions(
+            long storeId) {
+        return diningTableMapper.findActiveTakeawaySessionsByStoreId(storeId);
+    }
+
     @Transactional
     public void logout(String sessionPublicId) {
         if (sessionPublicId == null || sessionPublicId.isBlank())

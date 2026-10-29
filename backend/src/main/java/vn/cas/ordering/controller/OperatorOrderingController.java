@@ -48,13 +48,17 @@ public class OperatorOrderingController {
     }
 
     @GetMapping("/tables")
-    public ResponseEntity<ApiResponse<List<TableResponse>>> listTables(
+    public ResponseEntity<ApiResponse<TableListingResponse>> listTables(
             @AuthenticationPrincipal OperationalPrincipal principal, HttpServletRequest request) {
         var sessionsByTable = activeSessionsByTable(principal);
         var response = tables.list(principal).stream().map(table -> new TableResponse(table.id(),
                 table.code(), sessionsByTable.getOrDefault(table.id(), List.of()))).toList();
-        return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách bàn phục vụ.", response,
-                request);
+        var takeaway = sessions.findActiveTakeawaySessions(principal.storeId()).stream()
+                .map(v -> new TableSessionResponse(v.sessionPublicId(), v.customerName(),
+                        v.sessionStatus()))
+                .toList();
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy danh sách phiên phục vụ.",
+                new TableListingResponse(response, takeaway), request);
     }
 
     @PostMapping
@@ -165,6 +169,10 @@ public class OperatorOrderingController {
     }
 
     public record TableResponse(long tableId, long tableCode, List<TableSessionResponse> sessions) {
+    }
+
+    public record TableListingResponse(List<TableResponse> tables,
+            List<TableSessionResponse> takeawaySessions) {
     }
 
     public record TableSessionResponse(String sessionId, String customerName, String status) {

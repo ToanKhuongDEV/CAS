@@ -63,14 +63,11 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
   }
   if (error) return <p className="text-cas-error">{error.message}</p>;
   if (!bill) return <p className="text-cas-on-surface-variant">Đang tải đơn hàng…</p>;
-  const visibleOrders = bill.orders
-    .map((order) => ({
-      ...order,
-      items: order.items.filter((item) => item.cancelledQuantity === 0),
-    }))
-    .filter((order) => order.items.length > 0);
+  const visibleOrders = bill.orders.filter((order) => order.items.length > 0);
   const totalItemQuantity = visibleOrders.reduce(
-    (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+    (sum, order) =>
+      sum +
+      order.items.reduce((itemSum, item) => itemSum + item.quantity - item.cancelledQuantity, 0),
     0,
   );
   const orderNotes = bill.orders.flatMap((order) => (order.note ? [order.note] : []));
@@ -102,7 +99,8 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
           Món đã gọi
         </p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">
-          Đơn hàng · Bàn {String(bill.tableCode).padStart(2, "0")}
+          Đơn hàng ·{" "}
+          {bill.tableCode === null ? "Mang về" : `Bàn ${String(bill.tableCode).padStart(2, "0")}`}
         </h1>
         <p className="mt-2 text-sm text-cas-on-surface-variant">
           Kiểm tra món đã gọi và yêu cầu thanh toán khi dùng bữa xong.
@@ -110,7 +108,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
       </header>
 
       <section className="mt-7 rounded-3xl bg-cas-surface-container p-5 shadow-[0_5px_18px_var(--cas-shadow-color)]">
-        {totalItemQuantity > 0 ? (
+        {visibleOrders.length > 0 ? (
           <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-4">
             <div>
               <h2 className="text-lg font-extrabold">Chi tiết món đã gọi</h2>
@@ -180,16 +178,28 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                           </p>
                         ))}
                       </div>
-                      <div className="mt-3 flex items-center justify-between gap-3">
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <strong className="text-sm text-cas-primary">
+                          {item.cancelledQuantity > 0 ? "Tổng gốc: " : ""}
                           {money.format(item.totalAmount)}
                         </strong>
+                        {item.cancelledQuantity > 0 ? (
+                          <span className="text-xs font-bold text-cas-on-surface-variant">
+                            Đã hủy {item.cancelledQuantity} phần
+                          </span>
+                        ) : null}
+                        {item.pendingCancellationQuantity === 0 &&
+                        item.latestCancellationStatus === "APPROVED" ? (
+                          <span className="text-xs font-bold text-cas-secondary">
+                            Yêu cầu hủy đã được đồng ý
+                          </span>
+                        ) : null}
                         {item.pendingCancellationQuantity > 0 ? (
                           <span className="inline-flex items-center gap-1.5 rounded-lg bg-cas-tertiary-container/25 px-2 py-1 text-xs font-bold text-cas-on-tertiary-container">
                             <CasIcon className="size-4" name="clock" />
                             Chờ xác nhận
                           </span>
-                        ) : (
+                        ) : item.cancelledQuantity < item.quantity ? (
                           <button
                             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
                             onClick={() => {
@@ -197,7 +207,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                               setReason("");
                               setCancellation({
                                 itemId: item.orderItemId,
-                                maximum: item.quantity,
+                                maximum: item.quantity - item.cancelledQuantity,
                               });
                             }}
                             type="button"
@@ -205,7 +215,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                             <CasIcon className="size-4" name="minus" />
                             Yêu cầu hủy
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </li>

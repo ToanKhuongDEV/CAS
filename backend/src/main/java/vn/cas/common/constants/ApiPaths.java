@@ -119,7 +119,8 @@ public final class ApiPaths {
         public static final String GROUPS = COMMON + "/groups";
         public static final String PENDING_TABLE_COUNT = COMMON + "/pending-table-count";
         public static final String GROUP_COMPLETIONS = GROUPS + "/{groupKey}/completions";
-        public static final String TABLE_COMPLETIONS = COMMON + "/tables/{tableCode}/completions";
+        public static final String SESSION_COMPLETIONS = COMMON
+                + "/sessions/{sessionId}/completions";
 
         private Preparation() {
         }

@@ -189,6 +189,7 @@ public class CustomerOrderingService {
                                         item.unitPrice(), item.optionsAmount(), item.quantity(),
                                         item.preparedQuantity(), item.cancelledQuantity(),
                                         item.pendingCancellationQuantity(), item.totalAmount(),
+                                        item.latestCancellationStatus(),
                                         optionsByItem.getOrDefault(item.id(), List.of()).stream()
                                                 .map(option -> new OrderOptionDetail(
                                                         option.groupName(), option.optionName(),
@@ -318,13 +319,14 @@ public class CustomerOrderingService {
             List<OrderItemDetail> items) {
     }
 
-    public record OperatorOrderDetail(long tableCode, String customerName, String customerPhone,
+    public record OperatorOrderDetail(Long tableCode, String customerName, String customerPhone,
             OrderDetail order) {
     }
 
     public record OrderItemDetail(String orderItemId, String itemName, BigDecimal unitPrice,
             BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
             int pendingCancellationQuantity, BigDecimal totalAmount,
+            @com.fasterxml.jackson.annotation.JsonIgnore String latestCancellationStatus,
             List<OrderOptionDetail> options) {
     }
 

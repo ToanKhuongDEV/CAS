@@ -28,7 +28,7 @@ export function useCustomerBillQuery(pollIntervalMs?: number) {
     queryFn: loadCustomerBill,
     retry: false,
     refetchInterval: pollIntervalMs,
-    refetchIntervalInBackground: false,
+    refetchIntervalInBackground: true,
   });
 }
 

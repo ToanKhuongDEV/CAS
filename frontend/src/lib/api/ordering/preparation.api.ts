@@ -13,7 +13,9 @@ export type PreparationOption = {
 export type PendingPreparationAllocation = {
   orderItemId: string;
   orderId: string;
-  tableCode: number;
+  sessionId: string;
+  tableCode: number | null;
+  customerName?: string | null;
   remainingQuantity: number;
   orderCreatedAt: string;
 };
@@ -45,7 +47,7 @@ export type PreparationBatchCompletion = {
     orderItemId: number;
     orderItemPublicId: string;
     orderId: string;
-    tableCode: number;
+    tableCode: number | null;
     quantity: number;
   }[];
 };
@@ -78,12 +80,15 @@ export function completePreparationBatch(
   );
 }
 
-export function completePreparationTable(tableCode: number, idempotencyKey: string) {
-  return request<{ completedQuantity: number }>(`/preparation/tables/${tableCode}/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idempotencyKey }),
-  });
+export function completePreparationSession(sessionId: string, idempotencyKey: string) {
+  return request<{ completedQuantity: number }>(
+    `/preparation/sessions/${encodeURIComponent(sessionId)}/completions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idempotencyKey }),
+    },
+  );
 }
 
 async function request<T>(path: string, init: RequestInit = {}) {

@@ -137,10 +137,10 @@ export function OperatorTableSelectModal({
               className="text-xl font-extrabold text-cas-on-surface"
               id="table-select-modal-title"
             >
-              Chọn bàn phục vụ
+              Chọn bàn hoặc đơn mang về
             </h2>
             <p className="mt-0.5 text-xs text-cas-on-surface-variant">
-              Chọn bàn có phiên đang mở để tạo hoặc gọi thêm món
+              Chọn phiên đang mở để tạo hoặc gọi thêm món
             </p>
           </div>
 
@@ -228,7 +228,8 @@ export function OperatorTableSelectModal({
                     <div className="mt-2 text-xs text-cas-on-surface-variant">
                       <p className="font-semibold text-cas-on-surface">{table.customerName}</p>
                       <p className="text-[0.7rem] text-cas-on-surface-variant/80">
-                        {table.customerPhone ?? "Khách lẻ"} • Mở lúc {table.openedAt}
+                        {table.customerPhone ?? "Khách lẻ"}
+                        {table.openedAt ? ` • Mở lúc ${table.openedAt}` : ""}
                       </p>
                     </div>
                   )}

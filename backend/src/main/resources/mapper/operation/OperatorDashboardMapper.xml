@@ -10,17 +10,16 @@
                 SELECT COUNT(*)
                 FROM orders
                 INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
-                INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
-                WHERE dining_tables.store_id = #{storeId}
+                WHERE sales_sessions.store_id = #{storeId}
                   AND orders.created_at &gt;= #{todayStart}
                   AND orders.created_at &lt; #{tomorrowStart}
             ) AS ordersToday,
             (
-                SELECT COUNT(*)
+                SELECT COUNT(DISTINCT sales_sessions.table_id)
                 FROM sales_sessions
                 INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
                 WHERE dining_tables.store_id = #{storeId}
-                  AND sales_sessions.status = 'OPEN'
+                  AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
             ) AS activeTableCount,
             (
                 SELECT COUNT(*)
@@ -31,8 +30,7 @@
                 SELECT COUNT(*)
                 FROM payments
                 INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
-                INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
-                WHERE dining_tables.store_id = #{storeId}
+                WHERE sales_sessions.store_id = #{storeId}
                   AND payments.status = 'PENDING'
                   AND NOT EXISTS (
                       SELECT 1

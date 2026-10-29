@@ -34,7 +34,7 @@ class OperatorCancellationControllerTest {
     @Test
     void shouldApproveAndTransferPreparedItem() {
         when(service.resolve(eq(operator), eq("request-1"), eq("APPROVE"), eq(false),
-                eq("target-item-1"), eq(1), any(UUID.class)))
+                eq("target-item-1"), eq(1), eq(null), any(UUID.class)))
                 .thenReturn(new CancellationService.Resolution("request-1", "APPROVED", 1,
                         "target-item-1", null));
         var request = new MockHttpServletRequest();
@@ -42,10 +42,21 @@ class OperatorCancellationControllerTest {
 
         var response = controller.resolve(operator, "request-1",
                 new OperatorCancellationController.ResolutionRequest("APPROVE", false,
-                        "target-item-1", 1),
+                        "target-item-1", 1, null),
                 request);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().data().transferQuantity()).isEqualTo(1);
+    }
+
+    @Test
+    void requiresReasonForRejection() {
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            assertThat(validator.validate(new OperatorCancellationController.ResolutionRequest(
+                    "REJECT", false, null, 0, "  "))).isNotEmpty();
+            assertThat(validator.validate(new OperatorCancellationController.ResolutionRequest(
+                    "REJECT", false, null, 0, "Món đã chế biến"))).isEmpty();
+        }
     }
 }

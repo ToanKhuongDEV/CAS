@@ -55,6 +55,15 @@ public class SystemNotificationService {
     }
 
     @Transactional
+    public void createForCustomerSession(OperationalPrincipal principal, long salesSessionId,
+            String title, String content) {
+        var command = new CreateSystemNotificationCommand(principal.storeId(), title, content,
+                "INFO", "CUSTOMER", principal.accountId());
+        mapper.insert(command);
+        mapper.insertRecipientForCustomerSession(command.getId(), salesSessionId);
+    }
+
+    @Transactional
     public void delete(OperationalPrincipal principal, long notificationId, UUID requestId) {
         if (mapper.deleteByStoreIdAndId(principal.storeId(), notificationId) != 1)
             throw notFound();

@@ -1,5 +1,5 @@
 package vn.cas.ordering.model;
 
-public record StoredPreparationTableCompletion(int tableCode, String requestFingerprint,
+public record StoredPreparationTableCompletion(String sessionPublicId, String requestFingerprint,
         String allocationSnapshot) {
 }

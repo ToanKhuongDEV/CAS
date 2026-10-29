@@ -7,6 +7,7 @@ import { CasIcon } from "../../../../../../components/ui/cas-icon";
 import { CasButton } from "../../../../../../components/ui/cas-button";
 import { createOperatorIncidentCancellation } from "../../../../../../lib/api/ordering/cancellation.api";
 import { useOperatorPreparationGroupsQuery } from "../../../../../../lib/api/ordering/preparation.query";
+import { formatOrderDestination } from "../../../../../../lib/ordering/order-destination";
 
 type TableOrderItem = {
   id: string;
@@ -35,7 +36,11 @@ export default function IncidentCancellationPage() {
     const next: Record<string, TableOrderItem[]> = {};
     for (const group of groups) {
       for (const allocation of group.allocations) {
-        const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
+        const table = formatOrderDestination(
+          allocation.tableCode,
+          allocation.customerName,
+          allocation.orderId,
+        );
         next[table] ??= [];
         next[table].push({
           id: allocation.orderItemId,
@@ -74,7 +79,7 @@ export default function IncidentCancellationPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedTable) {
-      setValidationError("Vui lòng chọn bàn đang phục vụ.");
+      setValidationError("Vui lòng chọn bàn hoặc đơn mang về.");
       return;
     }
     if (totalCancelCount === 0) {
@@ -131,11 +136,11 @@ export default function IncidentCancellationPage() {
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-cas-primary/15 text-xs font-extrabold text-cas-primary">
               1
             </span>
-            <h2 className="text-lg font-extrabold">Thông tin Bàn & Danh sách Món</h2>
+            <h2 className="text-lg font-extrabold">Thông tin đơn & Danh sách Món</h2>
           </div>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold">Bàn đang phục vụ</span>
+            <span className="mb-2 block text-sm font-bold">Bàn / đơn mang về</span>
             <select
               required
               value={selectedTable}
@@ -144,7 +149,7 @@ export default function IncidentCancellationPage() {
               className="h-13 w-full cursor-pointer appearance-none rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-4 text-sm font-medium outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
             >
               <option value="" disabled>
-                --- Chọn bàn để xem danh sách món ---
+                --- Chọn bàn hoặc đơn mang về ---
               </option>
               {Object.keys(tableOrders).map((table) => (
                 <option key={table} value={table}>
@@ -268,7 +273,7 @@ export default function IncidentCancellationPage() {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-cas-outline-variant/40 bg-cas-surface/50 p-6 text-center text-xs text-cas-on-surface-variant">
-              Vui lòng chọn bàn ở trên để xem chi tiết các món ăn và chọn số lượng cần hủy.
+              Vui lòng chọn bàn hoặc đơn mang về để xem món và chọn số lượng cần hủy.
             </div>
           )}
         </section>

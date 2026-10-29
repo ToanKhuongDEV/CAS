@@ -4,5 +4,6 @@ import java.math.BigDecimal;
 
 public record OrderItemView(long id, long orderId, String publicId, String itemName,
         BigDecimal unitPrice, BigDecimal optionsAmount, int quantity, int preparedQuantity,
-        int cancelledQuantity, int pendingCancellationQuantity, BigDecimal totalAmount) {
+        int cancelledQuantity, int pendingCancellationQuantity, BigDecimal totalAmount,
+        String latestCancellationStatus) {
 }

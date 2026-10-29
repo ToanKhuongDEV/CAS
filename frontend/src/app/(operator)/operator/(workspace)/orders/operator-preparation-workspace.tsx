@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import {
   completePreparationBatch,
-  completePreparationTable,
+  completePreparationSession,
   type PreparationGroup,
 } from "../../../../../lib/api/ordering/preparation.api";
 import { useOperatorPreparationGroupsQuery } from "../../../../../lib/api/ordering/preparation.query";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { useToast } from "../../../../../components/ui/toast-provider";
+import { formatOrderDestination } from "../../../../../lib/ordering/order-destination";
 
 type TablePreparationItem = {
   id: string;
@@ -22,9 +23,11 @@ type TablePreparationItem = {
 };
 
 type TablePreparationGroup = {
+  key: string;
+  sessionId: string;
   items: TablePreparationItem[];
   table: string;
-  tableCode: number;
+  tableCode: number | null;
   totalRemainingQuantity: number;
 };
 
@@ -50,8 +53,19 @@ function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparati
   const byTable = new Map<string, TablePreparationGroup>();
   groups.forEach((group) => {
     group.allocations.forEach((allocation) => {
-      const table = `Bàn ${String(allocation.tableCode).padStart(2, "0")}`;
-      const current = byTable.get(table) ?? {
+      const destination = formatOrderDestination(
+        allocation.tableCode,
+        allocation.customerName,
+        allocation.orderId,
+      );
+      const table =
+        allocation.tableCode !== null && allocation.customerName
+          ? `${destination} · ${allocation.customerName}`
+          : destination;
+      const key = allocation.sessionId;
+      const current = byTable.get(key) ?? {
+        key,
+        sessionId: allocation.sessionId,
         items: [],
         table,
         tableCode: allocation.tableCode,
@@ -66,7 +80,7 @@ function buildTablePreparationGroups(groups: PreparationGroup[]): TablePreparati
         requestedAt: allocation.orderCreatedAt,
       });
       current.totalRemainingQuantity += allocation.remainingQuantity;
-      byTable.set(table, current);
+      byTable.set(key, current);
     });
   });
   return [...byTable.values()]
@@ -103,7 +117,9 @@ export function OperatorPreparationWorkspace() {
   const { showToast } = useToast();
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [submittingGroupKey, setSubmittingGroupKey] = useState<string | null>(null);
-  const [submittingTableCode, setSubmittingTableCode] = useState<number | null>(null);
+  const [submittingSessionId, setSubmittingSessionId] = useState<string | null>(null);
+  const sessionKeys = useRef<Record<string, string>>({});
+  const submittingSession = useRef(false);
   const { data: groups = [], isLoading, refetch } = useOperatorPreparationGroupsQuery(10_000);
 
   const totalRemainingQuantity = groups.reduce(
@@ -151,10 +167,15 @@ export function OperatorPreparationWorkspace() {
     }
   }
 
-  async function handleCompleteTable(table: TablePreparationGroup) {
-    setSubmittingTableCode(table.tableCode);
+  async function handleCompleteSession(table: TablePreparationGroup) {
+    if (submittingSession.current) return;
+    submittingSession.current = true;
+    setSubmittingSessionId(table.sessionId);
     try {
-      const completion = await completePreparationTable(table.tableCode, crypto.randomUUID());
+      const key = sessionKeys.current[table.sessionId] ?? crypto.randomUUID();
+      sessionKeys.current[table.sessionId] = key;
+      const completion = await completePreparationSession(table.sessionId, key);
+      delete sessionKeys.current[table.sessionId];
       showToast({
         message: `Đã hoàn thành ${completion.completedQuantity} phần của ${table.table}.`,
         type: "success",
@@ -162,11 +183,12 @@ export function OperatorPreparationWorkspace() {
       await refetch();
     } catch (error) {
       showToast({
-        message: error instanceof Error ? error.message : "Không thể hoàn thành món của bàn.",
+        message: error instanceof Error ? error.message : "Không thể hoàn thành món của phiên.",
         type: "error",
       });
     } finally {
-      setSubmittingTableCode(null);
+      submittingSession.current = false;
+      setSubmittingSessionId(null);
     }
   }
 
@@ -221,7 +243,7 @@ export function OperatorPreparationWorkspace() {
                       <h3 className="truncate text-sm font-extrabold">{group.itemName}</h3>
                       <p className="mt-0.5 truncate text-xs text-cas-on-surface-variant">
                         {optionSummary(group) && `${optionSummary(group)} · `}
-                        {group.allocations.length} bàn
+                        {group.allocations.length} lượt gọi món
                       </p>
                     </div>
                     <span className="px-2.5 py-1 text-sm font-extrabold text-cas-on-surface">
@@ -237,7 +259,11 @@ export function OperatorPreparationWorkspace() {
                         >
                           <div>
                             <p className="text-sm font-extrabold">
-                              Bàn {String(allocation.tableCode).padStart(2, "0")}
+                              {formatOrderDestination(
+                                allocation.tableCode,
+                                allocation.customerName,
+                                allocation.orderId,
+                              )}
                             </p>
                             <p className="mt-0.5 text-xs text-cas-on-surface-variant">
                               Gửi lúc {formatTime(allocation.orderCreatedAt)}
@@ -296,15 +322,15 @@ export function OperatorPreparationWorkspace() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-lg font-extrabold" id="table-preparation-title">
-                Món theo bàn
+                Món theo bàn / đơn mang về
               </h2>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
-                Theo dõi phần còn chờ theo từng bàn để ưu tiên phục vụ đúng lượt.
+                Theo dõi phần còn chờ theo từng bàn hoặc đơn mang về.
               </p>
             </div>
             {tableGroups.length > 0 && (
               <p className="rounded-lg bg-cas-secondary-container/25 px-3 py-1.5 text-xs font-extrabold text-cas-secondary">
-                {tableGroups.length} bàn đang chờ
+                {tableGroups.length} phiên đang chờ
               </p>
             )}
           </div>
@@ -317,7 +343,7 @@ export function OperatorPreparationWorkspace() {
                     .map((table) => (
                       <article
                         className="block w-full overflow-hidden bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
-                        key={table.table}
+                        key={table.key}
                       >
                         <header className="flex items-center justify-between gap-3 border-b border-cas-outline-variant/20 bg-cas-surface-container/45 px-4 py-3">
                           <div className="min-w-0">
@@ -335,8 +361,8 @@ export function OperatorPreparationWorkspace() {
                             <button
                               aria-label={`Hoàn thành toàn bộ món của ${table.table}`}
                               className="grid size-8 place-items-center rounded-lg text-cas-secondary transition hover:bg-cas-secondary-container/40 disabled:opacity-60"
-                              disabled={submittingTableCode === table.tableCode}
-                              onClick={() => void handleCompleteTable(table)}
+                              disabled={submittingSessionId === table.sessionId}
+                              onClick={() => void handleCompleteSession(table)}
                               type="button"
                             >
                               <CasIcon className="size-5" name="check" />

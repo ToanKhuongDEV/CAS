@@ -13,6 +13,7 @@ export type CustomerOrderItem = {
   preparedQuantity: number;
   cancelledQuantity: number;
   pendingCancellationQuantity: number;
+  latestCancellationStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   totalAmount: number;
   options: { groupName: string; optionName: string; unitPrice: number; quantityPerItem: number }[];
 };
@@ -28,7 +29,7 @@ export type CustomerOrder = {
 };
 
 export type CustomerBill = {
-  tableCode: number;
+  tableCode: number | null;
   sessionStatus: "OPEN" | "PAYMENT_PENDING" | "CLOSED";
   originalAmount: number;
   payableAmount: number;
@@ -47,8 +48,13 @@ export type OperatorTableSession = {
   status: "OPEN" | "PAYMENT_PENDING";
 };
 
+export type OperatorSessionListing = {
+  tables: OperatorTable[];
+  takeawaySessions: OperatorTableSession[];
+};
+
 export type OperatorOrderDetail = {
-  tableCode: number;
+  tableCode: number | null;
   customerName: string;
   customerPhone: string | null;
   order: CustomerOrder;
@@ -91,7 +97,11 @@ export async function requestCustomerCancellation(
 }
 
 export async function loadOperatorTables() {
-  return operatorRequest<OperatorTable[]>("/sales-sessions/tables");
+  return (await loadOperatorSessionListing()).tables;
+}
+
+export async function loadOperatorSessionListing() {
+  return operatorRequest<OperatorSessionListing>("/sales-sessions/tables");
 }
 
 export async function loadOperatorBill(sessionPublicId: string) {

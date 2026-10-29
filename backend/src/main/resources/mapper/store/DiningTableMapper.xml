@@ -156,6 +156,15 @@
         ORDER BY sales_sessions.table_id ASC, sales_sessions.created_at ASC, sales_sessions.id ASC
     </select>
 
+    <select id="findActiveTakeawaySessionsByStoreId" resultType="vn.cas.store.model.JoinableSalesSession">
+        SELECT public_id AS sessionPublicId, opened_by_customer_name AS customerName,
+               status AS sessionStatus
+        FROM sales_sessions
+        WHERE store_id = #{storeId} AND session_type = 'TAKEAWAY'
+          AND status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY created_at ASC, id ASC
+    </select>
+
     <select id="findCurrentSalesSessionByPublicId"
             resultType="vn.cas.store.model.SalesSessionLookup">
         SELECT

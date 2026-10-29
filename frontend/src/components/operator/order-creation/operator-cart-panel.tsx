@@ -69,7 +69,7 @@ export function OperatorCartPanel({
                   {selectedTable.label}
                 </h3>
                 <span className="rounded-full bg-cas-secondary-container/30 px-2 py-0.5 text-[0.68rem] font-bold text-cas-secondary">
-                  {selectedTable.sessionPublicId ? "Phiên đang mở" : "Chưa chọn bàn"}
+                  {selectedTable.sessionPublicId ? "Phiên đang mở" : "Chưa chọn phiên"}
                 </span>
               </div>
               {selectedTable.customerName && (
@@ -77,7 +77,9 @@ export function OperatorCartPanel({
                   Khách: {selectedTable.customerName}
                   {selectedTable.customerPhone
                     ? ` (${selectedTable.customerPhone})`
-                    : " (Khách lẻ)"}
+                    : selectedTable.id.startsWith("takeaway:")
+                      ? ""
+                      : " (Khách lẻ)"}
                 </p>
               )}
             </div>
@@ -98,7 +100,7 @@ export function OperatorCartPanel({
               onClick={onChangeTableClick}
               className="rounded-xl border border-cas-secondary/40 bg-cas-glass px-2.5 py-1 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
             >
-              Bàn khác
+              Chọn phiên khác
             </button>
             {onCloseMobileDrawer && (
               <button

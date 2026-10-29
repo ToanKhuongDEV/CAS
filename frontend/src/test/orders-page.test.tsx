@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { focusManager } from "@tanstack/react-query";
 
 import OrdersPage from "../app/(customer)/orders/page";
+import { CustomerOrdersLiveView } from "../components/customer/customer-orders-live-view";
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
@@ -81,6 +83,18 @@ describe("OrdersPage", () => {
       optionGroups: [],
       tags: [],
     });
+  });
+
+  it("labels a customer takeaway session without a table", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValue({ ...bill, tableCode: null });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    expect(await screen.findByRole("heading", { name: "Đơn hàng · Mang về" })).toBeInTheDocument();
   });
 
   it("lets a customer submit a cancellation request in the UI", async () => {
@@ -208,6 +222,45 @@ describe("OrdersPage", () => {
     }
   });
 
+  it("updates a pending cancellation after the operator rejects it", async () => {
+    const pendingBill = {
+      ...bill,
+      orders: [
+        {
+          ...bill.orders[0],
+          items: [{ ...bill.orders[0].items[0], pendingCancellationQuantity: 1 }],
+        },
+      ],
+    };
+    const rejectedBill = {
+      ...bill,
+      orders: [
+        {
+          ...bill.orders[0],
+          items: [{ ...bill.orders[0].items[0], latestCancellationStatus: "REJECTED" as const }],
+        },
+      ],
+    };
+    vi.mocked(loadCustomerBill).mockResolvedValueOnce(pendingBill).mockResolvedValue(rejectedBill);
+    focusManager.setFocused(false);
+    try {
+      render(
+        <QueryProvider>
+          <ToastProvider>
+            <CustomerOrdersLiveView pollIntervalMs={100} />
+          </ToastProvider>
+        </QueryProvider>,
+      );
+
+      expect(await screen.findByText("Chờ xác nhận")).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Yêu cầu hủy" })).toBeInTheDocument();
+      expect(screen.queryByText("Yêu cầu hủy bị từ chối")).not.toBeInTheDocument();
+      expect(screen.queryByText("Chờ xác nhận")).not.toBeInTheDocument();
+    } finally {
+      focusManager.setFocused(undefined);
+    }
+  });
+
   it("shows pending cancellation status instead of another cancellation action", async () => {
     vi.mocked(loadCustomerBill).mockResolvedValue({
       ...bill,
@@ -231,13 +284,19 @@ describe("OrdersPage", () => {
     expect(screen.queryByRole("button", { name: "Yêu cầu hủy" })).not.toBeInTheDocument();
   });
 
-  it("hides an item after its cancellation has been approved", async () => {
+  it("keeps partially cancelled items and allows cancelling the remaining quantity", async () => {
     vi.mocked(loadCustomerBill).mockResolvedValue({
       ...bill,
       orders: [
         {
           ...bill.orders[0],
-          items: [{ ...bill.orders[0].items[0], cancelledQuantity: 1 }],
+          items: [
+            {
+              ...bill.orders[0].items[0],
+              cancelledQuantity: 1,
+              latestCancellationStatus: "APPROVED",
+            },
+          ],
         },
       ],
     });
@@ -250,7 +309,31 @@ describe("OrdersPage", () => {
       </QueryProvider>,
     );
 
-    await waitFor(() => expect(loadCustomerBill).toHaveBeenCalledOnce());
-    expect(screen.queryByText("Mỳ cay đặc biệt 7 cấp độ")).not.toBeInTheDocument();
+    expect(await screen.findByText("Đã hủy 1 phần")).toBeInTheDocument();
+    expect(screen.getByText("Yêu cầu hủy đã được đồng ý")).toBeInTheDocument();
+    expect(screen.getByText("Mỳ cay đặc biệt 7 cấp độ")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yêu cầu hủy" }));
+    expect(screen.getByRole("spinbutton", { name: "Số lượng muốn hủy" })).toHaveAttribute(
+      "max",
+      "1",
+    );
+  });
+
+  it("shows a fully cancelled item without allowing another cancellation", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValue({
+      ...bill,
+      orders: [
+        { ...bill.orders[0], items: [{ ...bill.orders[0].items[0], cancelledQuantity: 2 }] },
+      ],
+    });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    expect(await screen.findByText("Đã hủy 2 phần")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Yêu cầu hủy" })).not.toBeInTheDocument();
   });
 });

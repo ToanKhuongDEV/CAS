@@ -85,7 +85,7 @@ function formatRequestedAt(value: string) {
 }
 
 function formatTable(tableCode: number | null) {
-  return tableCode === null ? null : `Bàn ${String(tableCode).padStart(2, "0")}`;
+  return tableCode === null ? "Mang về" : `Bàn ${String(tableCode).padStart(2, "0")}`;
 }
 
 function toOperatorPayment(payment: Payment): OperatorPayment {

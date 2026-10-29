@@ -4,12 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import OperatorOrdersPage from "../app/(operator)/operator/(workspace)/orders/page";
 import {
   completePreparationBatch,
+  completePreparationSession,
   loadPreparationGroups,
 } from "../lib/api/ordering/preparation.api";
 import { ToastProvider } from "../components/ui/toast-provider";
+import { QueryProvider } from "../components/providers/query-provider";
 
 vi.mock("../lib/api/ordering/preparation.api", () => ({
   completePreparationBatch: vi.fn(),
+  completePreparationSession: vi.fn(),
   loadPreparationGroups: vi.fn(),
 }));
 
@@ -18,6 +21,7 @@ const group = {
     {
       orderCreatedAt: "2026-08-30T18:55:00",
       orderId: "order-1",
+      sessionId: "session-1",
       orderItemId: "item-1",
       remainingQuantity: 4,
       tableCode: 3,
@@ -25,6 +29,7 @@ const group = {
     {
       orderCreatedAt: "2026-08-30T19:05:00",
       orderId: "order-2",
+      sessionId: "session-2",
       orderItemId: "item-2",
       remainingQuantity: 8,
       tableCode: 5,
@@ -43,6 +48,7 @@ const sameTimeGroup = {
     {
       orderCreatedAt: "2026-08-30T18:55:00",
       orderId: "order-3",
+      sessionId: "session-1",
       orderItemId: "item-3",
       remainingQuantity: 2,
       tableCode: 3,
@@ -62,6 +68,60 @@ describe("OperatorOrdersPage", () => {
     vi.mocked(completePreparationBatch).mockReset();
   });
 
+  it("completes the selected takeaway session", async () => {
+    vi.mocked(loadPreparationGroups).mockResolvedValue([
+      {
+        ...group,
+        allocations: [
+          { ...group.allocations[0], orderId: "takeaway-123", tableCode: null, customerName: "An" },
+        ],
+      },
+    ]);
+    vi.mocked(completePreparationSession).mockResolvedValue({ completedQuantity: 4 });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    expect((await screen.findAllByText("Mang về · An · takeaway")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Hoàn thành toàn bộ món của Mang về/ }));
+    await vi.waitFor(() =>
+      expect(completePreparationSession).toHaveBeenCalledWith("session-1", expect.any(String)),
+    );
+  });
+
+  it("separates two sessions at the same table", async () => {
+    vi.mocked(loadPreparationGroups).mockResolvedValue([
+      {
+        ...group,
+        allocations: [
+          { ...group.allocations[0], customerName: "An" },
+          { ...group.allocations[1], tableCode: 3, customerName: "Bình" },
+        ],
+      },
+    ]);
+    vi.mocked(completePreparationSession).mockResolvedValue({ completedQuantity: 4 });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Hoàn thành toàn bộ món của Bàn 03 · An" }),
+    );
+    await vi.waitFor(() =>
+      expect(completePreparationSession).toHaveBeenCalledWith("session-1", expect.any(String)),
+    );
+    expect(
+      screen.getByRole("button", { name: "Hoàn thành toàn bộ món của Bàn 03 · Bình" }),
+    ).toBeInTheDocument();
+  });
+
   it("loads preparation groups and records a completed batch", async () => {
     vi.mocked(loadPreparationGroups)
       .mockResolvedValueOnce([group, sameTimeGroup])
@@ -74,9 +134,11 @@ describe("OperatorOrdersPage", () => {
     });
 
     render(
-      <ToastProvider>
-        <OperatorOrdersPage />
-      </ToastProvider>,
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
     );
 
     expect((await screen.findAllByText("Bò sốt tiêu đen")).length).toBeGreaterThan(0);
@@ -89,8 +151,8 @@ describe("OperatorOrdersPage", () => {
         .map((item) => item.textContent),
     ).toEqual(["Bàn 03", "Bàn 05"]);
 
-    const tableView = screen.getByRole("region", { name: "Món theo bàn" });
-    expect(within(tableView).getByText("2 bàn đang chờ")).toBeInTheDocument();
+    const tableView = screen.getByRole("region", { name: "Món theo bàn / đơn mang về" });
+    expect(within(tableView).getByText("2 phiên đang chờ")).toBeInTheDocument();
     expect(within(tableView).getByRole("heading", { name: "Bàn 03" })).toBeInTheDocument();
     expect(within(tableView).getByText("×4")).toBeInTheDocument();
     const tableThreeItems = within(tableView).getByRole("list", { name: "Món chờ tại Bàn 03" });

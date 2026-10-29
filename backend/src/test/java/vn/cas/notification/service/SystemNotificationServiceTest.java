@@ -29,6 +29,18 @@ class SystemNotificationServiceTest {
             "firebase-admin-1", "Admin One", "ADMIN");
 
     @Test
+    void shouldSendTargetedNotificationOnlyToSpecifiedSession() {
+        doAnswer(invocation -> {
+            invocation.getArgument(0, CreateSystemNotificationCommand.class).setId(12L);
+            return 1;
+        }).when(mapper).insert(any());
+        service.createForCustomerSession(principal, 45L, "Kết quả hủy món", "Đã đồng ý");
+        verify(mapper).insertRecipientForCustomerSession(12L, 45L);
+        verify(mapper, org.mockito.Mockito.never()).insertRecipientsForActiveCustomerSessions(
+                org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
     void shouldCreateRecipientsForBothTargetRoles() {
         doAnswer(invocation -> {
             invocation.getArgument(0, CreateSystemNotificationCommand.class).setId(12L);

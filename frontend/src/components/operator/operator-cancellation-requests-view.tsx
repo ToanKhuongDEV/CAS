@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
+import { formatOrderDestination } from "../../lib/ordering/order-destination";
 import {
   loadOperatorCancellationRequest,
   loadOperatorCancellationRequests,
@@ -159,6 +160,8 @@ export function OperatorCancellationRequestsView() {
 
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [transferCandidates, setTransferCandidates] = useState<CancellationTransferCandidate[]>([]);
   const [activeDetail, setActiveDetail] = useState<CancellationRequestDetail | null>(null);
@@ -171,7 +174,7 @@ export function OperatorCancellationRequestsView() {
         setRequests(
           items.map((item) => ({
             id: item.cancellationRequestId,
-            table: `Bàn ${String(item.tableCode).padStart(2, "0")}`,
+            table: formatOrderDestination(item.tableCode, item.customerName, item.orderId),
             item: item.itemName,
             quantity: `${item.requestedQuantity} phần`,
             requestedQuantity: item.requestedQuantity,
@@ -224,6 +227,7 @@ export function OperatorCancellationRequestsView() {
 
   const openRejectModal = (request: CancellationRequest) => {
     setModalError(null);
+    setRejectionReason("");
     setActiveDetail(null);
     setActiveModal({ type: "REJECT", request });
     void loadOperatorCancellationRequest(request.id)
@@ -256,10 +260,16 @@ export function OperatorCancellationRequestsView() {
   };
 
   const handleConfirmReject = () => {
-    if (!activeModal) return;
+    if (!activeModal || isRejecting) return;
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      setModalError("Vui lòng nhập lý do từ chối.");
+      return;
+    }
     const req = activeModal.request;
+    setIsRejecting(true);
 
-    void resolveOperatorCancellationRequest(req.id, { decision: "REJECT" })
+    void resolveOperatorCancellationRequest(req.id, { decision: "REJECT", rejectionReason: reason })
       .then(() => {
         setRequests((prev) => prev.filter((item) => item.id !== req.id));
         setFeedbackMessage(`Đã từ chối yêu cầu hủy món của ${req.table}.`);
@@ -267,7 +277,8 @@ export function OperatorCancellationRequestsView() {
       })
       .catch((error: unknown) =>
         setModalError(error instanceof Error ? error.message : "Không thể xử lý yêu cầu."),
-      );
+      )
+      .finally(() => setIsRejecting(false));
   };
 
   const pendingRequests = requests.filter((r) => r.status === "PENDING");
@@ -456,8 +467,12 @@ export function OperatorCancellationRequestsView() {
                     <option value="">Không điều chuyển</option>
                     {transferCandidates.map((candidate) => (
                       <option value={candidate.orderItemId} key={candidate.orderItemId}>
-                        Bàn {String(candidate.tableCode).padStart(2, "0")} — còn{" "}
-                        {candidate.remainingQuantity} phần
+                        {formatOrderDestination(
+                          candidate.tableCode,
+                          candidate.customerName,
+                          candidate.orderId,
+                        )}{" "}
+                        — còn {candidate.remainingQuantity} phần
                       </option>
                     ))}
                   </select>
@@ -521,12 +536,40 @@ export function OperatorCancellationRequestsView() {
 
             <CancellationItemDetails detail={activeDetail} request={activeModal.request} />
 
+            <label
+              className="mt-4 block text-sm font-bold text-cas-on-surface"
+              htmlFor="rejection-reason"
+            >
+              Lý do từ chối
+            </label>
+            <textarea
+              id="rejection-reason"
+              className="mt-2 min-h-24 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface p-3 text-sm text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+              maxLength={1000}
+              value={rejectionReason}
+              onChange={(event) => {
+                setRejectionReason(event.target.value);
+                setModalError(null);
+              }}
+              required
+            />
+            {modalError ? (
+              <p role="alert" className="mt-2 text-xs font-bold text-cas-error">
+                {modalError}
+              </p>
+            ) : null}
+
             <div className="mt-6 flex items-center justify-end gap-3">
               <CasButton variant="outline" size="sm" onClick={() => setActiveModal(null)}>
                 Quay lại
               </CasButton>
-              <CasButton variant="danger" size="sm" onClick={handleConfirmReject}>
-                Xác nhận từ chối
+              <CasButton
+                variant="danger"
+                size="sm"
+                disabled={isRejecting}
+                onClick={handleConfirmReject}
+              >
+                {isRejecting ? "Đang xử lý..." : "Xác nhận từ chối"}
               </CasButton>
             </div>
           </section>

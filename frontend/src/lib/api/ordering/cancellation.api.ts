@@ -13,7 +13,9 @@ export type CancellationRequestSummary = {
   cancellationRequestId: string;
   orderItemId: string;
   itemName: string;
-  tableCode: number;
+  tableCode: number | null;
+  customerName?: string | null;
+  orderId?: string;
   requestedQuantity: number;
   preparedQuantity: number;
   reason: string | null;
@@ -21,7 +23,9 @@ export type CancellationRequestSummary = {
 };
 export type CancellationTransferCandidate = {
   orderItemId: string;
-  tableCode: number;
+  tableCode: number | null;
+  customerName?: string | null;
+  orderId?: string;
   remainingQuantity: number;
 };
 export type CancellationRequestDetail = {
@@ -59,6 +63,7 @@ export async function resolveOperatorCancellationRequest(
     isRemade?: boolean;
     targetOrderItemId?: string | null;
     transferQuantity?: number;
+    rejectionReason?: string;
   },
 ) {
   return request(`/cancellation-requests/${encodeURIComponent(id)}/resolution`, {
@@ -68,6 +73,7 @@ export async function resolveOperatorCancellationRequest(
       targetOrderItemId: input.targetOrderItemId ?? null,
       transferQuantity: input.transferQuantity ?? 0,
       decision: input.decision,
+      rejectionReason: input.rejectionReason ?? null,
     }),
   });
 }

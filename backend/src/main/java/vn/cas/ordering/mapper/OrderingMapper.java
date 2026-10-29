@@ -87,8 +87,8 @@ public interface OrderingMapper {
 
     List<PreparationItemRow> findPreparationItemsForUpdate(@Param("storeId") long storeId,
             @Param("menuItemId") long menuItemId);
-    List<PreparationItemRow> findPreparationItemsByTableCodeForUpdate(
-            @Param("storeId") long storeId, @Param("tableCode") int tableCode);
+    List<PreparationItemRow> findPreparationItemsBySessionForUpdate(@Param("storeId") long storeId,
+            @Param("sessionPublicId") String sessionPublicId);
 
     List<PreparationOptionRow> findPreparationOptions(
             @Param("orderItemIds") List<Long> orderItemIds);
@@ -110,7 +110,7 @@ public interface OrderingMapper {
     StoredPreparationTableCompletion findPreparationTableCompletion(@Param("storeId") long storeId,
             @Param("idempotencyKey") String idempotencyKey);
     int insertPreparationTableCompletion(@Param("publicId") String publicId,
-            @Param("storeId") long storeId, @Param("tableId") long tableId,
+            @Param("storeId") long storeId, @Param("sessionId") long sessionId,
             @Param("idempotencyKey") String idempotencyKey,
             @Param("requestFingerprint") String requestFingerprint,
             @Param("allocationSnapshot") String allocationSnapshot,

@@ -57,9 +57,13 @@
             'UNREAD',
             NULL
         FROM sales_sessions
-        INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
-        WHERE dining_tables.store_id = #{storeId}
+        WHERE sales_sessions.store_id = #{storeId}
           AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+    </insert>
+
+    <insert id="insertRecipientForCustomerSession">
+        INSERT INTO system_notification_recipients (notification_id, account_id, sales_session_id, status, read_at)
+        VALUES (#{notificationId}, NULL, #{salesSessionId}, 'UNREAD', NULL)
     </insert>
 
     <select id="findByStoreId" resultType="vn.cas.notification.model.SystemNotification">

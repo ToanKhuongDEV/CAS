@@ -141,12 +141,35 @@ public class CustomerOrderingController {
         }
     }
 
+    public record BillItemResponse(String orderItemId, String itemName, BigDecimal unitPrice,
+            BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
+            int pendingCancellationQuantity, BigDecimal totalAmount,
+            String latestCancellationStatus, List<OrderOptionResponse> options) {
+        static BillItemResponse from(CustomerOrderingService.OrderItemDetail item) {
+            return new BillItemResponse(item.orderItemId(), item.itemName(), item.unitPrice(),
+                    item.optionsAmount(), item.quantity(), item.preparedQuantity(),
+                    item.cancelledQuantity(), item.pendingCancellationQuantity(),
+                    item.totalAmount(), item.latestCancellationStatus(),
+                    item.options().stream().map(OrderOptionResponse::from).toList());
+        }
+    }
+
+    public record BillOrderResponse(String orderId, String orderNumber, BigDecimal originalAmount,
+            BigDecimal payableAmount, String note, java.time.LocalDateTime createdAt,
+            List<BillItemResponse> items) {
+        static BillOrderResponse from(CustomerOrderingService.OrderDetail order) {
+            return new BillOrderResponse(order.orderId(), order.orderNumber(),
+                    order.originalAmount(), order.payableAmount(), order.note(), order.createdAt(),
+                    order.items().stream().map(BillItemResponse::from).toList());
+        }
+    }
+
     public record BillResponse(Long tableCode, String sessionStatus, BigDecimal originalAmount,
-            BigDecimal payableAmount, List<OrderDetailResponse> orders) {
+            BigDecimal payableAmount, List<BillOrderResponse> orders) {
         static BillResponse from(CustomerOrderingService.Bill bill) {
             return new BillResponse(bill.tableCode(), bill.sessionStatus(), bill.originalAmount(),
                     bill.payableAmount(),
-                    bill.orders().stream().map(OrderDetailResponse::from).toList());
+                    bill.orders().stream().map(BillOrderResponse::from).toList());
         }
     }
 }

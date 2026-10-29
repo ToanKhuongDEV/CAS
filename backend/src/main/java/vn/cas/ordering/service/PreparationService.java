@@ -27,6 +27,7 @@ import vn.cas.ordering.model.PreparationItemRow;
 import vn.cas.ordering.model.PreparationOptionRow;
 import vn.cas.ordering.model.StoredPreparationTableCompletion;
 import vn.cas.store.service.LongWaitWarningSettingService;
+import vn.cas.store.service.SalesSessionService;
 
 @Service
 public class PreparationService {
@@ -34,13 +35,15 @@ public class PreparationService {
     private final LongWaitWarningSettingService settings;
     private final AuditLogService auditLogs;
     private final ObjectMapper objectMapper;
+    private final SalesSessionService sessions;
 
     public PreparationService(OrderingMapper mapper, LongWaitWarningSettingService settings,
-            AuditLogService auditLogs, ObjectMapper objectMapper) {
+            AuditLogService auditLogs, ObjectMapper objectMapper, SalesSessionService sessions) {
         this.mapper = mapper;
         this.settings = settings;
         this.auditLogs = auditLogs;
         this.objectMapper = objectMapper;
+        this.sessions = sessions;
     }
 
     @Transactional(readOnly = true)
@@ -50,7 +53,7 @@ public class PreparationService {
             return List.of();
         Map<Long, PreparationItemRow> oldestByTable = new LinkedHashMap<>();
         for (var item : mapper.findPreparationItems(principal.storeId())) {
-            if (remainingQuantity(item) <= 0)
+            if (item.tableId() == null || remainingQuantity(item) <= 0)
                 continue;
             oldestByTable.putIfAbsent(item.tableId(), item);
         }
@@ -123,12 +126,18 @@ public class PreparationService {
     }
 
     @Transactional(noRollbackFor = DuplicateKeyException.class)
-    public TableCompletion completeTable(OperationalPrincipal principal, int tableCode,
+    public SessionCompletion completeSession(OperationalPrincipal principal, String sessionPublicId,
             String idempotencyKey, UUID requestId) {
         var existing = mapper.findPreparationTableCompletion(principal.storeId(), idempotencyKey);
         if (existing != null)
-            return existingTableCompletion(existing, tableCode);
-        var items = mapper.findPreparationItemsByTableCodeForUpdate(principal.storeId(), tableCode)
+            return existingSessionCompletion(existing, sessionPublicId);
+        var session = sessions.requireCurrentForUpdate(sessionPublicId);
+        if (session.storeId() != principal.storeId())
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST);
+        if (!"OPEN".equals(session.sessionStatus()))
+            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+        var items = mapper
+                .findPreparationItemsBySessionForUpdate(principal.storeId(), sessionPublicId)
                 .stream().filter(item -> remainingQuantity(item) > 0).toList();
         if (items.isEmpty())
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
@@ -137,25 +146,25 @@ public class PreparationService {
                         item.orderPublicId(), item.tableCode(), remainingQuantity(item)))
                 .toList();
         String snapshot = writeAllocations(allocations);
-        String fingerprint = sha256("table:" + tableCode + ":" + snapshot);
+        String fingerprint = sha256("session:" + sessionPublicId + ":" + snapshot);
         try {
             mapper.insertPreparationTableCompletion(UUID.randomUUID().toString(),
-                    principal.storeId(), items.getFirst().tableId(), idempotencyKey, fingerprint,
-                    snapshot, principal.accountId());
+                    principal.storeId(), session.sessionId(), idempotencyKey, fingerprint, snapshot,
+                    principal.accountId());
         } catch (DuplicateKeyException exception) {
             var duplicate = mapper.findPreparationTableCompletion(principal.storeId(),
                     idempotencyKey);
             if (duplicate != null)
-                return existingTableCompletion(duplicate, tableCode);
+                return existingSessionCompletion(duplicate, sessionPublicId);
             throw exception;
         }
         for (var allocation : allocations)
             mapper.addPreparedQuantity(allocation.orderItemId(), allocation.quantity(), true);
         auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
-                "PREPARATION_TABLE_COMPLETED", "PREPARATION_TABLE_COMPLETION",
-                mapper.lastInsertId(), "Bàn " + tableCode, snapshot, principal.accountId(),
-                principal.displayName(), "Nhân viên ghi nhận hoàn thành toàn bộ món của bàn."));
-        return new TableCompletion(tableCode,
+                "PREPARATION_SESSION_COMPLETED", "PREPARATION_TABLE_COMPLETION",
+                mapper.lastInsertId(), sessionPublicId, snapshot, principal.accountId(),
+                principal.displayName(), "Nhân viên ghi nhận hoàn thành toàn bộ món của phiên."));
+        return new SessionCompletion(sessionPublicId,
                 allocations.stream().mapToInt(Allocation::quantity).sum(), allocations);
     }
 
@@ -206,14 +215,14 @@ public class PreparationService {
         }
     }
 
-    private TableCompletion existingTableCompletion(StoredPreparationTableCompletion completion,
-            int requestedTableCode) {
-        if (completion.tableCode() != requestedTableCode)
+    private SessionCompletion existingSessionCompletion(StoredPreparationTableCompletion completion,
+            String sessionPublicId) {
+        if (!sessionPublicId.equals(completion.sessionPublicId()))
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
         try {
             var allocations = List.of(
                     objectMapper.readValue(completion.allocationSnapshot(), Allocation[].class));
-            return new TableCompletion(completion.tableCode(),
+            return new SessionCompletion(sessionPublicId,
                     allocations.stream().mapToInt(Allocation::quantity).sum(), allocations);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Stored preparation table allocation is invalid",
@@ -308,8 +317,8 @@ public class PreparationService {
                     options, remainingQuantity(),
                     items.stream().filter(item -> PreparationService.remainingQuantity(item) > 0)
                             .map(item -> new PendingAllocation(item.orderItemPublicId(),
-                                    item.orderPublicId(), item.tableCode(),
-                                    PreparationService.remainingQuantity(item),
+                                    item.orderPublicId(), item.sessionPublicId(), item.tableCode(),
+                                    item.customerName(), PreparationService.remainingQuantity(item),
                                     item.orderCreatedAt()))
                             .toList());
         }
@@ -327,19 +336,20 @@ public class PreparationService {
     public record SelectedOption(String groupName, String optionName, int quantityPerItem) {
     }
 
-    public record PendingAllocation(String orderItemId, String orderId, int tableCode,
-            int remainingQuantity, LocalDateTime orderCreatedAt) {
+    public record PendingAllocation(String orderItemId, String orderId, String sessionId,
+            Integer tableCode, String customerName, int remainingQuantity,
+            LocalDateTime orderCreatedAt) {
     }
 
     public record BatchCompletion(String groupKey, int requestedQuantity, Integer remainingQuantity,
             List<Allocation> allocations) {
     }
 
-    public record TableCompletion(int tableCode, int completedQuantity,
+    public record SessionCompletion(String sessionId, int completedQuantity,
             List<Allocation> allocations) {
     }
 
     public record Allocation(long orderItemId, String orderItemPublicId, String orderId,
-            int tableCode, int quantity) {
+            Integer tableCode, int quantity) {
     }
 }

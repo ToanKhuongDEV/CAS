@@ -20,7 +20,7 @@ export type Payment = {
 export type UnpaidRecord = {
   publicId: string;
   salesSessionId: string;
-  tableCode: number;
+  tableCode: number | null;
   amount: number;
   billSnapshot: string;
   status: "OPEN" | "RESOLVED";
@@ -32,14 +32,14 @@ export type UnpaidRecord = {
 };
 export type EligibleUnpaidSession = {
   sessionId: string;
-  tableCode: number;
+  tableCode: number | null;
   amount: number;
   sessionStatus: "OPEN" | "PAYMENT_PENDING";
   openedAt: string;
 };
 
 export function loadCustomerPayment() {
-  return customer<Payment>("/payments");
+  return customer<Payment | null>("/payments");
 }
 export function createCustomerPayment() {
   return customer<Payment>("/payments", { method: "POST" });
