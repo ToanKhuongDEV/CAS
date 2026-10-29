@@ -561,6 +561,7 @@ Khách hàng gửi yêu cầu hủy một phần hoặc toàn bộ số lượng
 3. Hệ thống tạo `order_item_cancellation_requests` với trạng thái `PENDING`, lưu `public_id` và `idempotency_key`.
 4. Nhân viên xem yêu cầu hủy trong giao diện vận hành.
 5. Nhân viên chọn đồng ý hoặc từ chối.
+   Khi từ chối, nhân viên bắt buộc nhập lý do; kết quả và lý do từ chối được gửi qua thông báo tới phiên khách hàng của order.
 6. Nếu đồng ý, hệ thống giữ nguyên `order_items.quantity` và ghi nhận số lượng được hủy qua yêu cầu có trạng thái `APPROVED`.
 7. Hệ thống tính lại tổng tiền order.
 8. Hệ thống lưu người xử lý, tên người xử lý và thời điểm xử lý.
@@ -626,9 +627,9 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 6. Trong cùng transaction, hệ thống chuyển payment sang `PAID`, lưu `confirmed_by`, `confirmed_by_name`, `confirmed_at`, chuyển sales session sang `CLOSED` và lưu `closed_at`.
 7. Nếu session có `unpaid_records` trạng thái `OPEN`, hệ thống chuyển bản ghi đó sang `RESOLVED`.
 8. Hệ thống ghi audit log xác nhận thanh toán.
-9. Sau khi session `CLOSED`, API Customer không còn trả order, bill hoặc payment
-   của session đó qua cookie cũ. Giao diện Customer bỏ dữ liệu cũ và cần quét lại
-   QR để bắt đầu phiên mới.
+9. Sau khi session `CLOSED`, API Customer không còn trả order hoặc bill của session
+   qua cookie cũ. API payment vẫn trả payment `PAID` của chính session đó để hiển thị
+   màn hình cảm ơn; khách bắt đầu phiên mới bằng luồng chọn bàn hoặc mang về.
 
 ### Quy tắc nghiệp vụ
 
@@ -639,9 +640,8 @@ Nhân viên xác minh chuyển khoản qua loa báo giao dịch (“ting ting”
 - CAS không kết nối với loa hoặc ngân hàng và không tự xác minh giao dịch; tín hiệu “ting ting” là bước kiểm tra thủ công bên ngoài hệ thống.
 - Khi payment đã `PAID`, session đã `CLOSED`; Customer không được gọi thêm món,
   hủy món hoặc gửi lại yêu cầu thanh toán.
-- Mọi thiết bị đang xem cùng sales session phải bỏ dữ liệu cũ khi polling không
-  còn tìm thấy session `OPEN` hoặc `PAYMENT_PENDING` và chỉ bắt đầu lượt mới sau
-  khi quét QR.
+- Mọi thiết bị đang xem cùng sales session phải bỏ order và bill cũ khi session đóng;
+  màn hình thanh toán có thể hiển thị kết quả `PAID` của chính session đó.
 
 ## 12. Luồng ghi nhận chưa thanh toán
 

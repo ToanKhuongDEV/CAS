@@ -43,6 +43,8 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ## 5. Backend
 
+- [x] Rà soát API phụ thuộc bàn và sales session: ghi nhận các điểm cần xử lý cho hoàn thành order mang về, dashboard, thông báo và giao diện thanh toán Operator.
+
 ### Nền tảng và bảo mật
 
 - [x] Chuẩn hóa response/error, request ID, validation, logging an toàn, audit log và kiểm thử thủ công cURL/Postman.
@@ -50,6 +52,13 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ### API và nghiệp vụ đã hoàn thành
 
+- [x] `POST /api/v1/operator/preparation/sessions/{sessionId}/completions`: hoàn thành các món còn lại của một sales session; lưu idempotency theo session và giữ lịch sử thao tác theo bàn.
+- [x] `GET /api/v1/operator/sales-sessions/tables`: trả danh sách bàn và các session mang về đang hoạt động để Operator chọn phiên.
+- [x] `POST /api/v1/admin/notifications`: thông báo Customer được gửi tới cả phiên tại bàn và mang về đang hoạt động trong cơ sở.
+- [x] `GET /api/v1/operator/dashboard/summary`: tính order và payment mang về theo sales session; đếm mỗi bàn đang phục vụ một lần.
+- [x] Các API yêu cầu hủy, chi tiết order và nhóm chế biến Operator hỗ trợ phiên mang về theo `sales_sessions.store_id`; `tableCode` có thể là null và kết quả hủy gửi đúng phiên.
+- [x] `POST /api/v1/operator/cancellation-requests/{id}/resolution`: bắt buộc `rejectionReason` khi từ chối; tạo thông báo kết quả cho phiên khách của order trong cùng transaction.
+- [x] `GET /api/v1/customer/orders/bill`: trả trạng thái yêu cầu hủy gần nhất của từng món qua `latestCancellationStatus`.
 - [x] `DELETE /api/v1/admin/admins/{id}` và `POST /api/v1/admin/admins/{id}/activate`: Super Admin khóa hoặc kích hoạt Admin trong cơ sở đang chọn; ghi audit log.
 - [x] `GET /api/v1/admin/admins`: chỉ Super Admin xem danh sách Admin thuộc cơ sở đang chọn.
 - [x] `POST /api/v1/customer/sales-sessions/logout`: đóng phiên chưa có order và xóa cookie; phiên có order chỉ được thoát sau khi thanh toán thành công.
@@ -58,6 +67,7 @@ Ngày cập nhật gần nhất: 2026-10-28
 - [x] Sales session, order Customer/Operator, bill, hủy session chưa có món và yêu cầu hủy món.
 - [x] Chế biến: bàn chờ lâu, danh sách món cần làm và hoàn thành theo mẻ có idempotency.
 - [x] Lưu `order_items.served_at` khi món được ghi nhận làm xong toàn bộ số lượng hiệu lực để phục vụ thống kê thời gian chờ ra món.
+- [x] `GET /api/v1/customer/payments`: trả payment của phiên đang hoạt động hoặc payment PAID của chính phiên đã đóng để hiển thị kết quả thanh toán.
 - [x] Payment, khoản chưa thanh toán, bill snapshot và xác nhận thanh toán thủ công.
 - [x] Promotion: quản trị chương trình/code/target/quota, chọn promotion cho bill, discount snapshot và redemption.
 - [x] Vận hành: dashboard Operator, service booking, sự cố vận hành, thông báo, audit log và tra cứu khách hàng Admin.
@@ -73,6 +83,28 @@ Ngày cập nhật gần nhất: 2026-10-28
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Màn thanh toán thành công phân biệt đơn mang về và đơn tại bàn.
+
+- [x] Nhóm chế biến Operator theo sales session; nút hoàn thành dùng được cho đơn tại bàn và mang về.
+
+- [x] Ẩn trạng thái từ chối hủy trên dòng món Customer; kết quả vẫn được gửi qua thông báo.
+
+- [x] Customer và Operator phân biệt đơn mang về trong luồng hủy món và chế biến; hoàn thành món theo từng sales session.
+
+- [x] Operator nhập lý do từ chối hủy món; Customer tiếp tục thấy dòng món đã hủy và số lượng hủy, kể cả khi hủy một phần.
+
+- [x] Trang đơn hàng Customer tiếp tục cập nhật hóa đơn khi tab không được chọn để nhận kết quả xử lý hủy món.
+
+- [x] Admin chỉ xem thương hiệu chung với các trường bị khóa; Super Admin có thể sửa tên và slogan, API từ chối vai trò khác cập nhật.
+
+- [x] Dropdown chọn cơ sở của Super Admin cập nhật sau đăng nhập, hiển thị cả khi chỉ có một cơ sở và báo lỗi tải danh sách.
+
+- [x] Header Admin cập nhật đúng nhãn Super Admin sau khi đăng nhập, kể cả khi header đã được tạo trước đó.
+
+- [x] Ổn định chuyển về trang đăng nhập sau đăng xuất Admin/Operator và bỏ qua kết quả kiểm tra phiên đã cũ.
+
+- [x] Điều chỉnh vị trí thanh danh mục và khoảng cuộn trang thực đơn theo chiều cao header Customer `h-19`.
 
 - [x] Hiển thị tên cơ sở bên dưới tên thương hiệu trong header Customer và Operator.
 

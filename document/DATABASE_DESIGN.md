@@ -1266,7 +1266,7 @@ Thiết kế hiện tại chưa bao gồm:
 - Không sửa `menu_items.price` khi một chương trình chạy. Discount cấp bill được tính lại trước payment khi bill thay đổi và được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món. Các snapshot được khóa khi session chuyển `PAYMENT_PENDING`.
 - `promotion_redemptions` chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` và không tính quota nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
 - `system_notifications` lưu danh sách thông báo hệ thống do `ADMIN` phát hành (tiêu đề `title`, nội dung `content`, mức độ `type` IN (`INFO`, `WARNING`, `URGENT`), đối tượng nhận `target_role` IN (`OPERATOR`, `CUSTOMER`, `BOTH`)).
-- `system_notification_recipients` lưu trạng thái `UNREAD` hoặc `READ` theo từng người nhận. Một record nhận gắn với đúng một `account_id` (Operator) hoặc một `sales_session_id` (Customer); `CHECK` constraint bắt buộc điều kiện này. Khi phát hành, backend chỉ tạo recipient Customer cho sales session `DINE_IN` trạng thái `OPEN` hoặc `PAYMENT_PENDING`; sales session đã `CLOSED` chỉ giữ lịch sử recipient có sẵn và không nhận notification mới. `read_at` chỉ có khi trạng thái là `READ`.
+- `system_notification_recipients` lưu trạng thái `UNREAD` hoặc `READ` theo từng người nhận. Một record nhận gắn với đúng một `account_id` (Operator) hoặc một `sales_session_id` (Customer); `CHECK` constraint bắt buộc điều kiện này. Khi phát hành, backend tạo recipient Customer cho sales session `DINE_IN` và `TAKEAWAY` trạng thái `OPEN` hoặc `PAYMENT_PENDING`; sales session đã `CLOSED` chỉ giữ lịch sử recipient có sẵn và không nhận notification mới. `read_at` chỉ có khi trạng thái là `READ`.
 
 ## 11. Bước tiếp theo
 

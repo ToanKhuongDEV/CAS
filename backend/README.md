@@ -96,11 +96,15 @@ curl.exe -X POST http://localhost:8080/api/v1/customer/orders -H "Content-Type: 
 curl.exe http://localhost:8080/api/v1/customer/orders -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/orders/<order-public-id> -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/orders/bill -b customer-session-cookie.txt
+# Với phiên mang về, tableCode trong bill là null.
+# Mỗi món trong bill có latestCancellationStatus (PENDING, APPROVED, REJECTED hoặc null).
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders/items/<order-item-public-id>/cancellation-requests -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"requestedQuantity\":1,\"reason\":\"Gọi nhầm món\"}"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests -H "Authorization: Bearer <firebase-id-token>"
+# Đơn mang về có tableCode null; response trả customerName và orderId để phân biệt đơn.
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/pending-count -H "Authorization: Bearer <firebase-id-token>"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id> -H "Authorization: Bearer <firebase-id-token>"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"decision\":\"APPROVE\",\"isRemade\":false,\"targetOrderItemId\":\"<order-item-public-id-ban-nhan>\",\"transferQuantity\":1}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"decision\":\"REJECT\",\"rejectionReason\":\"Món đã được chế biến\"}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Đổ món khi phục vụ\",\"isRemade\":false}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
 curl.exe http://localhost:8080/api/v1/customer/promotions/eligible -b customer-session-cookie.txt
@@ -129,9 +133,11 @@ hoặc mở một phiên `DINE_IN` mới khi khách không chung bàn. Tên khá
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"DINE_IN\",\"tableId\":1,\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionType\":\"TAKEAWAY\",\"customerName\":\"Nguyen Van A\",\"customerPhone\":\"0901234567\"}"
 curl.exe http://localhost:8080/api/v1/operator/sales-sessions/tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Response gồm `tables` và `takeawaySessions`; mỗi phiên có sessionId, customerName và status.
 curl.exe -X DELETE http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/bill -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/orders/<order-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Chi tiết order mang về có tableCode null và thông tin khách của phiên.
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/orders -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"note\":\"Ít đá\",\"items\":[{\"menuItemId\":1,\"quantity\":2,\"optionValueIds\":[1]}]}"
 ```
 
@@ -141,6 +147,7 @@ Response payment trả `createdAt` để giao diện vận hành hiển thị đ
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
+# Sau khi xác nhận, cookie phiên cũ vẫn lấy được payment PAID của chính phiên đã đóng.
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
@@ -166,9 +173,10 @@ nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành m�
 ```powershell
 curl.exe http://localhost:8080/api/v1/operator/preparation/long-wait-tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Allocation mang về có tableCode null và customerName; hoàn thành theo mẻ áp dụng FIFO cho cả hai loại đơn.
 curl.exe http://localhost:8080/api/v1/operator/preparation/pending-table-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/groups/<group-key>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"quantity\":3}"
-curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/tables/5/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\"}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/sessions/<session-public-id>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\"}"
 ```
 
 Ví dụ Thông báo hệ thống: `ADMIN` tạo, xem và xóa notification của store. Khi
@@ -178,6 +186,7 @@ bàn, còn `OPERATOR` dùng Firebase ID Token:
 ```powershell
 curl.exe http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"title\":\"Bảo trì hệ thống\",\"content\":\"Hệ thống tạm dừng lúc 22:00.\",\"type\":\"WARNING\",\"targetRole\":\"BOTH\"}"
+# Thông báo Customer được phân phối cho phiên tại bàn và mang về đang OPEN/PAYMENT_PENDING.
 curl.exe -X DELETE http://localhost:8080/api/v1/admin/notifications/<notification-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X PATCH http://localhost:8080/api/v1/operator/notifications/<notification-id>/read -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
@@ -229,6 +238,7 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/service-bookings/<service
 curl.exe -X POST http://localhost:8080/api/v1/operator/operational-incidents -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"reporterName\":\"Nguyen Van A\",\"description\":\"May in bep bi ket giay.\"}"
 curl.exe http://localhost:8080/api/v1/admin/operational-incidents -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/dashboard/summary -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# ordersToday và pendingPaymentCount gồm cả phiên mang về; activeTableCount đếm bàn duy nhất có phiên OPEN/PAYMENT_PENDING.
 ```
 
 ```bash
