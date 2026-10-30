@@ -35,30 +35,45 @@
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
         INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
-        INNER JOIN payments ON payments.sales_session_id = sales_sessions.id
         WHERE sales_sessions.store_id = #{storeId}
-          AND payments.status = 'PAID'
-          AND payments.confirmed_at &gt;= #{from}
-          AND payments.confirmed_at &lt; #{to}
+          AND orders.created_at &gt;= #{from}
+          AND orders.created_at &lt; #{to}
           AND order_items.served_at IS NOT NULL
     </select>
 
     <select id="findCustomerSeries" resultType="vn.cas.operation.model.AdminDashboard$CustomerPoint">
-        SELECT DATE(payments.confirmed_at) AS date,
-               COUNT(DISTINCT payments.id) AS paidSessionCount,
-               AVG(CASE WHEN order_items.served_at IS NOT NULL
-                   THEN TIMESTAMPDIFF(SECOND, orders.created_at, order_items.served_at) / 60.0
-                   END) AS averageWaitMinutes
-        FROM payments
-        INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
-        LEFT JOIN orders ON orders.sales_session_id = sales_sessions.id
-        LEFT JOIN order_items ON order_items.order_id = orders.id
-        WHERE sales_sessions.store_id = #{storeId}
-          AND payments.status = 'PAID'
-          AND payments.confirmed_at &gt;= #{from}
-          AND payments.confirmed_at &lt; #{to}
-        GROUP BY DATE(payments.confirmed_at)
-        ORDER BY DATE(payments.confirmed_at) ASC
+        SELECT dates.date, COALESCE(paid.paidSessionCount, 0) AS paidSessionCount,
+               waits.averageWaitMinutes
+        FROM (
+            SELECT DATE(payments.confirmed_at) AS date
+            FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+            WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
+              AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+            UNION
+            SELECT DATE(orders.created_at) AS date
+            FROM orders INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+            INNER JOIN order_items ON order_items.order_id = orders.id
+            WHERE sales_sessions.store_id = #{storeId} AND orders.created_at &gt;= #{from}
+              AND orders.created_at &lt; #{to} AND order_items.served_at IS NOT NULL
+        ) dates
+        LEFT JOIN (
+            SELECT DATE(payments.confirmed_at) AS date, COUNT(*) AS paidSessionCount
+            FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+            WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
+              AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+            GROUP BY DATE(payments.confirmed_at)
+        ) paid ON paid.date = dates.date
+        LEFT JOIN (
+            SELECT DATE(orders.created_at) AS date,
+                   AVG(TIMESTAMPDIFF(SECOND, orders.created_at, order_items.served_at) / 60.0)
+                       AS averageWaitMinutes
+            FROM order_items INNER JOIN orders ON orders.id = order_items.order_id
+            INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+            WHERE sales_sessions.store_id = #{storeId} AND orders.created_at &gt;= #{from}
+              AND orders.created_at &lt; #{to} AND order_items.served_at IS NOT NULL
+            GROUP BY DATE(orders.created_at)
+        ) waits ON waits.date = dates.date
+        ORDER BY dates.date ASC
     </select>
 
     <select id="findMenuItems" resultType="vn.cas.operation.model.AdminDashboard$MenuItem">

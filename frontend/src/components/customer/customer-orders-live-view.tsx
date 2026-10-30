@@ -43,7 +43,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
           <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/25 text-cas-secondary">
             <CasIcon className="size-7" name="table" />
           </span>
-          <p className="mt-5 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+          <p className="mt-5 text-sm font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
             Chưa chọn bàn
           </p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight">Xem đơn hàng theo bàn</h1>
@@ -95,10 +95,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
   return (
     <main className="min-w-0 flex-1 pb-6">
       <header>
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-          Món đã gọi
-        </p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">
+        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">
           Đơn hàng ·{" "}
           {bill.tableCode === null ? "Mang về" : `Bàn ${String(bill.tableCode).padStart(2, "0")}`}
         </h1>
@@ -112,9 +109,9 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
           <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-4">
             <div>
               <h2 className="text-lg font-extrabold">Chi tiết món đã gọi</h2>
-              <p className="mt-1 text-xs text-cas-on-surface-variant">Các món đã gửi xuống bếp.</p>
+              <p className="mt-1 text-sm text-cas-on-surface-variant">Các món đã gửi xuống bếp.</p>
             </div>
-            <span className="rounded-full bg-cas-secondary-container/35 px-3 py-1.5 text-xs font-extrabold text-cas-secondary">
+            <span className="rounded-full bg-cas-secondary-container/35 px-3 py-1.5 text-sm font-extrabold text-cas-secondary">
               {totalItemQuantity} món
             </span>
           </div>
@@ -133,7 +130,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
         <div className="divide-y divide-cas-outline-variant/40">
           {visibleOrders.map((order) => (
             <section className="py-4 first:pt-5" key={order.orderId}>
-              <div className="mb-3 flex justify-end text-xs text-cas-on-surface-variant">
+              <div className="mb-3 flex justify-end text-sm text-cas-on-surface-variant">
                 <span>Gửi lúc {formatOrderTime(order.createdAt)}</span>
               </div>
               <ul className="space-y-4">
@@ -156,21 +153,21 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                     )}
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="line-clamp-2 min-w-0 flex-1 text-sm leading-tight font-extrabold">
+                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base leading-tight font-extrabold">
                           {item.itemName}
                         </h3>
-                        <span className="shrink-0 text-xs font-bold text-cas-on-surface-variant">
+                        <span className="shrink-0 text-sm font-bold text-cas-on-surface-variant">
                           ×{item.quantity}
                         </span>
                       </div>
-                      <div className="mt-2 space-y-1 text-xs text-cas-on-surface-variant">
-                        <p className="flex justify-between gap-4">
+                      <div className="mt-2 space-y-1 text-sm text-cas-on-surface-variant">
+                        <p className="flex flex-wrap justify-between gap-x-4 gap-y-1">
                           <span>Giá món gốc</span>
                           <span>{money.format(item.unitPrice)}</span>
                         </p>
                         {item.options.map((option) => (
                           <p
-                            className="flex justify-between gap-4"
+                            className="flex flex-wrap justify-between gap-x-4 gap-y-1"
                             key={option.groupName + option.optionName}
                           >
                             <span>+ {option.optionName}</span>
@@ -179,29 +176,29 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                         ))}
                       </div>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <strong className="text-sm text-cas-primary">
+                        <strong className="text-base text-cas-primary">
                           {item.cancelledQuantity > 0 ? "Tổng gốc: " : ""}
                           {money.format(item.totalAmount)}
                         </strong>
                         {item.cancelledQuantity > 0 ? (
-                          <span className="text-xs font-bold text-cas-on-surface-variant">
+                          <span className="text-sm font-bold text-cas-on-surface-variant">
                             Đã hủy {item.cancelledQuantity} phần
                           </span>
                         ) : null}
                         {item.pendingCancellationQuantity === 0 &&
                         item.latestCancellationStatus === "APPROVED" ? (
-                          <span className="text-xs font-bold text-cas-secondary">
+                          <span className="text-sm font-bold text-cas-secondary">
                             Yêu cầu hủy đã được đồng ý
                           </span>
                         ) : null}
                         {item.pendingCancellationQuantity > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cas-tertiary-container/25 px-2 py-1 text-xs font-bold text-cas-on-tertiary-container">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cas-tertiary-container/25 px-2 py-1 text-sm font-bold text-cas-on-tertiary-container">
                             <CasIcon className="size-4" name="clock" />
                             Chờ xác nhận
                           </span>
                         ) : item.cancelledQuantity < item.quantity ? (
                           <button
-                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
                             onClick={() => {
                               setQuantity(1);
                               setReason("");
@@ -226,7 +223,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
         </div>
 
         <div className="border-t border-cas-outline-variant/40 pt-5">
-          <h2 className="text-xs font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+          <h2 className="text-sm font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
             Ghi chú chung
           </h2>
           <p className="mt-3 rounded-2xl bg-cas-surface px-4 py-3 text-sm leading-6 text-cas-on-surface-variant">
@@ -239,10 +236,10 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
         <div className="mt-5 border-t border-cas-outline-variant/40 pt-4 text-sm">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+              <p className="text-sm font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
                 Tổng tiền
               </p>
-              <p className="mt-1 text-xs text-cas-on-surface-variant">
+              <p className="mt-1 text-sm text-cas-on-surface-variant">
                 Tạm tính trước khi gửi yêu cầu
               </p>
             </div>
@@ -274,7 +271,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
           <div className="w-full max-w-md rounded-3xl bg-cas-surface p-6 shadow-[0_16px_36px_var(--cas-shadow-color)]">
             <h2 className="text-lg font-extrabold">Yêu cầu hủy món</h2>
             <div className="mt-4">
-              <p className="text-xs font-bold text-cas-on-surface-variant">
+              <p className="text-sm font-bold text-cas-on-surface-variant">
                 Số lượng muốn hủy · tối đa {cancellation.maximum} phần đã gọi
               </p>
               <div className="mt-2 inline-flex h-12 overflow-hidden rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container">
@@ -308,7 +305,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
               </div>
             </div>
             <textarea
-              className="mt-3 min-h-24 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container p-3 text-sm outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+              className="mt-3 min-h-24 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface-container p-3 text-base outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
               onChange={(event) => setReason(event.target.value)}
               placeholder="Lý do hủy (không bắt buộc)"
               value={reason}

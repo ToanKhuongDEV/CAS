@@ -209,7 +209,7 @@ export function CategoryNavigation({
 
           return (
             <a
-              className={`shrink-0 snap-start whitespace-nowrap rounded-full px-4 py-2.5 text-xs font-bold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+              className={`shrink-0 snap-start whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-bold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
                 isActive
                   ? "bg-cas-primary text-cas-on-primary shadow-sm"
                   : "bg-cas-surface-container text-cas-on-surface-variant hover:bg-cas-primary hover:text-cas-on-primary"

@@ -66,7 +66,7 @@ export function CustomerInformationFormFields({
   return (
     <form noValidate onSubmit={handleSubmit}>
       <label className="block" htmlFor={`${idPrefix}-name`}>
-        <span className="text-xs font-bold">
+        <span className="text-sm font-bold">
           Tên của bạn <span aria-hidden="true">*</span>
         </span>
         <span className="relative mt-2 block">
@@ -76,7 +76,7 @@ export function CustomerInformationFormFields({
           />
           <input
             ref={customerNameInputRef}
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-base outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-name`}
             name="customerName"
             placeholder="Ví dụ: Nguyễn Văn A"
@@ -97,13 +97,13 @@ export function CustomerInformationFormFields({
         </span>
       </label>
       {errors.customerName ? (
-        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-name-error`}>
+        <p className="mt-2 text-sm font-semibold text-cas-primary" id={`${idPrefix}-name-error`}>
           {errors.customerName}
         </p>
       ) : null}
 
       <label className="mt-5 block" htmlFor={`${idPrefix}-phone`}>
-        <span className="text-xs font-bold">
+        <span className="text-sm font-bold">
           Số điện thoại {phoneRequired ? <span aria-hidden="true">*</span> : null}
           {!phoneRequired ? (
             <span className="font-medium text-cas-on-surface-variant">(không bắt buộc)</span>
@@ -116,7 +116,7 @@ export function CustomerInformationFormFields({
           />
           <input
             ref={customerPhoneInputRef}
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-base outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-phone`}
             name="customerPhone"
             placeholder="09xx xxx xxx"
@@ -138,7 +138,7 @@ export function CustomerInformationFormFields({
         </span>
       </label>
       {errors.customerPhone ? (
-        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
+        <p className="mt-2 text-sm font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
           {errors.customerPhone}
         </p>
       ) : null}

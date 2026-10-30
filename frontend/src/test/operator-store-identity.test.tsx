@@ -35,14 +35,15 @@ describe("OperatorStoreIdentity", () => {
       openTime: "09:00",
       phone: "0900000002",
       status: "ACTIVE",
-      welcomeSlogan: null,
+      welcomeSlogan: "Vui trọn từng bàn",
     });
 
     render(<OperatorStoreIdentity inHeader subtitle="Vận hành" />);
 
     await waitFor(() => expect(loadPublicStore).toHaveBeenCalledWith(2));
-    expect(await screen.findByText("Thương hiệu CAS")).toBeInTheDocument();
-    expect(screen.getByText("Chi nhánh 2")).toBeInTheDocument();
+    expect(await screen.findByText("Vui trọn từng bàn")).toBeInTheDocument();
+    expect(screen.getByText("Cơ sở Chi nhánh 2")).toBeInTheDocument();
+    expect(screen.queryByText("Thương hiệu CAS")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
       "src",
       "/images/bambu-garden-wordmark.svg",

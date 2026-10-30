@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { useToast } from "../../../../../components/ui/toast-provider";
 import { OperatorPaymentControlView } from "../../../../../components/operator/operator-payment-control-view";
+import { OperatorBillAdjustmentForm } from "../../../../../components/operator/operator-bill-adjustment-form";
 import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
 import {
@@ -521,6 +522,8 @@ export function OperatorPaymentConfirmationList({
                   </p>
                 ) : null}
               </div>
+
+              {activePayment.status === "PENDING" ? <OperatorBillAdjustmentForm /> : null}
 
               {selectedPayment && confirmError ? (
                 <p className="mt-4 text-sm font-bold text-cas-error" role="alert">

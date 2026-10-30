@@ -26,7 +26,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     Awaited<ReturnType<typeof loadCustomerNotifications>>["notifications"]
   >([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [storeName, setStoreName] = useState("CAS");
+  const [slogan, setSlogan] = useState<string | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
   const [tableCode, setTableCode] = useState<number | null>(null);
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
@@ -117,7 +117,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     void loadPublicStore(selectedStoreId ?? 1)
       .then((store) => {
         if (!active) return;
-        setStoreName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
+        setSlogan(store.welcomeSlogan);
         setBranchName(
           selectedStoreId !== null &&
             getRememberedPublicStoreId() === selectedStoreId &&
@@ -134,7 +134,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-19 bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">
-      <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between px-4 md:px-8">
+      <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between gap-1 px-2 sm:px-4 md:px-8">
         <Link
           className="inline-flex min-w-0 items-center gap-2 text-xl font-bold text-cas-on-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"
@@ -142,22 +142,22 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
         >
           <img
             alt="Logo cửa hàng"
-            className="h-14 w-24 shrink-0 object-contain"
+            className="h-16.5 w-[113px] shrink-0 object-contain brightness-0 invert"
             src="/images/bambu-garden-wordmark.svg"
           />
           <span className="flex min-w-0 flex-col">
-            <span className="truncate">{storeName}</span>
+            {slogan ? <span className="truncate text-sm">{slogan}</span> : null}
             {branchName ? (
               <span className="truncate text-xs font-semibold text-cas-on-primary">
-                {branchName}
+                Cơ sở {branchName}
               </span>
             ) : null}
           </span>
         </Link>
 
-        <div className="flex shrink-0 items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2.5">
           {tableCode !== null ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-on-primary/15 px-3 py-1.5 text-xs font-semibold text-cas-on-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cas-on-primary/15 px-2 py-1.5 text-sm font-semibold whitespace-nowrap text-cas-on-primary sm:px-3">
               {/* <CasIcon className="size-4" name="table" /> */}
               {`Bàn ${String(tableCode).padStart(2, "0")}`}
             </span>
@@ -183,15 +183,15 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
             </button>
 
             {showNotif && (
-              <div className="absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-4 shadow-2xl backdrop-blur-2xl animate-in fade-in duration-150">
-                <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-2.5">
-                  <h4 className="text-xs font-black uppercase text-cas-on-surface flex items-center gap-1.5">
+              <div className="fixed inset-x-3 top-19 mt-2 overflow-hidden rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-4 shadow-2xl backdrop-blur-2xl animate-in fade-in duration-150 sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:w-80">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cas-outline-variant/20 pb-2.5">
+                  <h4 className="text-sm font-black uppercase text-cas-on-surface flex items-center gap-1.5">
                     <CasIcon className="size-4 text-cas-primary" name="sparkle" />
                     Thông báo & Khuyến mãi
                   </h4>
                   <button
                     onClick={() => void markAllRead()}
-                    className="text-[0.65rem] font-bold text-cas-primary hover:underline"
+                    className="text-sm font-bold text-cas-primary hover:underline"
                   >
                     Đánh dấu đã đọc
                   </button>
@@ -207,7 +207,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
                       }
                       disabled={n.status === "READ"}
                       key={n.id}
-                      className={`rounded-2xl p-3 text-xs transition ${
+                      className={`rounded-2xl p-3 text-sm transition ${
                         n.status === "READ"
                           ? "w-full cursor-default bg-cas-glass text-left"
                           : "w-full border border-cas-primary/20 bg-cas-primary/10 text-left hover:bg-cas-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
@@ -231,10 +231,10 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-[0.7rem] text-cas-on-surface-variant leading-relaxed">
+                      <p className="mt-1 text-sm text-cas-on-surface-variant leading-relaxed break-words">
                         {n.content}
                       </p>
-                      <span className="mt-2 block text-[0.65rem] font-medium text-cas-on-surface-variant/80">
+                      <span className="mt-2 block text-sm font-medium text-cas-on-surface-variant/80">
                         {new Date(n.createdAt).toLocaleString("vi-VN")}
                       </span>
                     </button>

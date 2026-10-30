@@ -52,6 +52,8 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ### API và nghiệp vụ đã hoàn thành
 
+- [x] API chế biến Operator tiếp tục hiển thị và hoàn thành món chưa làm của phiên chờ thanh toán hoặc đã đóng; dashboard Admin tính thời gian chờ theo ngày gọi món, không phụ thuộc thanh toán.
+
 - [x] `POST /api/v1/operator/preparation/sessions/{sessionId}/completions`: hoàn thành các món còn lại của một sales session; lưu idempotency theo session và giữ lịch sử thao tác theo bàn.
 - [x] `GET /api/v1/operator/sales-sessions/tables`: trả danh sách bàn và các session mang về đang hoạt động để Operator chọn phiên.
 - [x] `POST /api/v1/admin/notifications`: thông báo Customer được gửi tới cả phiên tại bàn và mang về đang hoạt động trong cơ sở.
@@ -78,11 +80,38 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ### Chưa hoàn thành
 
+- [ ] Điều chỉnh tăng/giảm thủ công trên bill: đã dự thảo migration V9; còn triển khai API, tính tiền, audit log, giao diện và kiểm thử MySQL.
+
+- [x] Món chưa chế biến xong vẫn xuất hiện và có thể hoàn thành sau khi yêu cầu hoặc xác nhận thanh toán.
 - [x] Dashboard Admin dùng một API báo cáo theo khoảng ngày cho doanh thu, khách hàng, menu/order và khuyến mãi; discount lấy từ snapshot `bill_discounts` của payment `PAID`.
 - [x] Bổ sung integration test MySQL Testcontainers (cần Docker) chạy Flyway và kiểm tra mapper store/brand: dữ liệu cơ sở riêng, thương hiệu chung, public chỉ trả cơ sở `ACTIVE` và update theo `store_id`.
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [ ] Giao diện điều chỉnh hóa đơn Operator đã có các trường loại, số tiền và lý do tại phiên mở và payment chờ; đang khóa thao tác đến khi backend được triển khai.
+
+- [x] Đồng bộ header Operator, Admin và Super Admin với logo, slogan và cơ sở tương ứng; không hiển thị số bàn.
+
+- [x] Ưu tiên tải các ảnh món đầu tiên trong danh mục hiển thị của thực đơn để tránh tải trễ ảnh LCP.
+
+- [x] Thêm nhãn “Cơ sở” trước tên chi nhánh trong header Customer.
+
+- [x] Tăng cỡ chữ Customer trên mobile cho menu, điều hướng, giỏ hàng, hóa đơn, thông báo và biểu mẫu; cho các khu vực hẹp co giãn, xuống dòng.
+
+- [x] Header Customer hiển thị slogan thương hiệu thay tên và số bàn đang dùng bên trái chuông thông báo.
+
+- [x] Tăng độ đậm chữ GARDEN trong SVG logo Bambu Garden.
+
+- [x] Tăng kích thước logo header lên cao 66px và giữ tỷ lệ khung logo.
+
+- [x] Hiển thị logo Bambu Garden màu trắng trên nền header, không thêm nền riêng cho logo.
+
+- [x] Cập nhật logo Bambu Garden và favicon theo tệp thương hiệu mới cho web, Android và iOS.
+
+- [x] Bỏ nhãn “Món đã gọi” khỏi tiêu đề trang đơn hàng Customer.
+
+- [x] Bỏ nhãn “Tùy chỉnh” khỏi tiêu đề trang cài đặt Customer.
 
 - [x] Màn thanh toán thành công phân biệt đơn mang về và đơn tại bàn.
 

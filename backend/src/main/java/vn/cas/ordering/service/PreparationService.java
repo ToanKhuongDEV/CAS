@@ -52,7 +52,7 @@ public class PreparationService {
         if (threshold == 0)
             return List.of();
         Map<Long, PreparationItemRow> oldestByTable = new LinkedHashMap<>();
-        for (var item : mapper.findPreparationItems(principal.storeId())) {
+        for (var item : mapper.findPendingPreparationItems(principal.storeId())) {
             if (item.tableId() == null || remainingQuantity(item) <= 0)
                 continue;
             oldestByTable.putIfAbsent(item.tableId(), item);
@@ -68,7 +68,7 @@ public class PreparationService {
 
     @Transactional(readOnly = true)
     public List<PreparationGroup> groups(OperationalPrincipal principal) {
-        return groupItems(mapper.findPreparationItems(principal.storeId())).values().stream()
+        return groupItems(mapper.findPendingPreparationItems(principal.storeId())).values().stream()
                 .map(GroupState::toResponse).filter(group -> group.remainingQuantity() > 0)
                 .toList();
     }
@@ -88,7 +88,8 @@ public class PreparationService {
             return existingCompletion(existing.menuItemId(), existing.optionConfigurationHash(),
                     existing.requestFingerprint(), fingerprint, existing.allocationSnapshot());
 
-        var items = mapper.findPreparationItemsForUpdate(principal.storeId(), key.menuItemId());
+        var items = mapper.findPendingPreparationItemsForUpdate(principal.storeId(),
+                key.menuItemId());
         var groups = groupItems(items);
         var group = groups.get(groupKey);
         if (group == null || group.remainingQuantity() < requestedQuantity)
@@ -131,11 +132,9 @@ public class PreparationService {
         var existing = mapper.findPreparationTableCompletion(principal.storeId(), idempotencyKey);
         if (existing != null)
             return existingSessionCompletion(existing, sessionPublicId);
-        var session = sessions.requireCurrentForUpdate(sessionPublicId);
+        var session = sessions.requireForPreparationUpdate(sessionPublicId);
         if (session.storeId() != principal.storeId())
             throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST);
-        if (!"OPEN".equals(session.sessionStatus()))
-            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
         var items = mapper
                 .findPreparationItemsBySessionForUpdate(principal.storeId(), sessionPublicId)
                 .stream().filter(item -> remainingQuantity(item) > 0).toList();

@@ -18,9 +18,12 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../lib/api/store/public-store.api", () => ({
   getRememberedPublicStoreId: vi.fn().mockReturnValue(null),
-  loadPublicStore: vi
-    .fn()
-    .mockResolvedValue({ logoUrl: null, brandName: "Thương hiệu CAS", branchName: "Chi nhánh 1" }),
+  loadPublicStore: vi.fn().mockResolvedValue({
+    logoUrl: null,
+    brandName: "Thương hiệu CAS",
+    branchName: "Chi nhánh 1",
+    welcomeSlogan: "Vui trọn từng bàn",
+  }),
 }));
 vi.mock("../lib/api/notification/notification.api", () => ({
   loadCustomerNotifications: vi.fn(),
@@ -72,31 +75,35 @@ describe("CustomerHeader", () => {
     render(<CustomerHeader />);
 
     expect(await screen.findByText("Bàn 05")).toBeInTheDocument();
+    expect(screen.getByText("Bàn 05").nextElementSibling).toContainElement(
+      screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" }),
+    );
   });
 
-  it("shows the branch below the brand", async () => {
+  it("shows the slogan and branch instead of the brand name", async () => {
     render(<CustomerHeader />);
     expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
       "src",
       "/images/bambu-garden-wordmark.svg",
     );
-    expect(await screen.findByText("Chi nhánh 1")).toBeInTheDocument();
-    expect(screen.getByText("Thương hiệu CAS")).toBeInTheDocument();
+    expect(await screen.findByText("Cơ sở Chi nhánh 1")).toBeInTheDocument();
+    expect(screen.getByText("Vui trọn từng bàn")).toBeInTheDocument();
+    expect(screen.queryByText("Thương hiệu CAS")).not.toBeInTheDocument();
   });
 
   it("hides the default branch when no store is selected", async () => {
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
     render(<CustomerHeader />);
-    expect(await screen.findByText("Thương hiệu CAS")).toBeInTheDocument();
-    expect(screen.queryByText("Chi nhánh 1")).not.toBeInTheDocument();
+    expect(await screen.findByText("Vui trọn từng bàn")).toBeInTheDocument();
+    expect(screen.queryByText("Cơ sở Chi nhánh 1")).not.toBeInTheDocument();
   });
 
   it("clears the branch on logout", async () => {
     render(<CustomerHeader />);
-    expect(await screen.findByText("Chi nhánh 1")).toBeInTheDocument();
+    expect(await screen.findByText("Cơ sở Chi nhánh 1")).toBeInTheDocument();
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
     fireEvent(window, new Event("cas-customer-logout"));
-    expect(screen.queryByText("Chi nhánh 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cơ sở Chi nhánh 1")).not.toBeInTheDocument();
   });
 
   it("redirects a payment-pending session to payment", async () => {

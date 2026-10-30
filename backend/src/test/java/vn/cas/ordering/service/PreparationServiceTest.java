@@ -39,7 +39,8 @@ class PreparationServiceTest {
     void shouldAllocateBatchCompletionInFifoOrder() {
         var first = item(11L, "item-1", "order-1", 1, 2, LocalDateTime.of(2026, 8, 30, 9, 0));
         var second = item(12L, "item-2", "order-2", 2, 3, LocalDateTime.of(2026, 8, 30, 9, 1));
-        when(mapper.findPreparationItemsForUpdate(2L, 9L)).thenReturn(List.of(first, second));
+        when(mapper.findPendingPreparationItemsForUpdate(2L, 9L))
+                .thenReturn(List.of(first, second));
         when(mapper.findPreparationOptions(List.of(11L, 12L))).thenReturn(List.of());
         when(mapper.lastInsertId()).thenReturn(99L);
 
@@ -68,7 +69,8 @@ class PreparationServiceTest {
         var takeaway = new PreparationItemRow(11L, "item-1", 11L, "order-1", "session-1", null,
                 null, "An", 9L, "Mì cay", 1, 0, 0, LocalDateTime.of(2026, 8, 30, 9, 0));
         var dineIn = item(12L, "item-2", "order-2", 2, 2, LocalDateTime.of(2026, 8, 30, 9, 1));
-        when(mapper.findPreparationItemsForUpdate(2L, 9L)).thenReturn(List.of(takeaway, dineIn));
+        when(mapper.findPendingPreparationItemsForUpdate(2L, 9L))
+                .thenReturn(List.of(takeaway, dineIn));
         when(mapper.findPreparationOptions(List.of(11L, 12L))).thenReturn(List.of());
 
         var result = service.complete(operator, "9-" + EMPTY_OPTIONS_HASH, "batch-key", 2,
@@ -82,7 +84,7 @@ class PreparationServiceTest {
 
     @Test
     void completesAllRemainingItemsInOneSession() {
-        when(sessions.requireCurrentForUpdate("session-1"))
+        when(sessions.requireForPreparationUpdate("session-1"))
                 .thenReturn(new SalesSessionLookup(7L, null, 2L, null, "session-1", "OPEN"));
         var first = new PreparationItemRow(11L, "item-1", 11L, "order-1", "session-1", null, null,
                 "An", 9L, "Mì cay", 2, 1, 0, LocalDateTime.now());
@@ -96,6 +98,21 @@ class PreparationServiceTest {
         verify(mapper).addPreparedQuantity(12L, 2, true);
         verify(mapper).insertPreparationTableCompletion(any(), eq(2L), eq(7L), eq("key"), any(),
                 any(), eq(3L));
+    }
+
+    @Test
+    void completesRemainingItemsAfterPaymentRequestOrConfirmation() {
+        for (String status : List.of("PAYMENT_PENDING", "CLOSED")) {
+            String sessionId = "session-" + status;
+            when(sessions.requireForPreparationUpdate(sessionId))
+                    .thenReturn(new SalesSessionLookup(7L, null, 2L, null, sessionId, status));
+            var item = new PreparationItemRow(11L, "item-1", 11L, "order-1", sessionId, null, null,
+                    "An", 9L, "Mì cay", 2, 1, 0, LocalDateTime.now());
+            when(mapper.findPreparationItemsBySessionForUpdate(2L, sessionId))
+                    .thenReturn(List.of(item));
+            assertThat(service.completeSession(operator, sessionId, status, UUID.randomUUID())
+                    .completedQuantity()).isEqualTo(1);
+        }
     }
 
     @Test
@@ -117,7 +134,7 @@ class PreparationServiceTest {
 
     @Test
     void rejectsSessionsFromAnotherStore() {
-        when(sessions.requireCurrentForUpdate("other-session"))
+        when(sessions.requireForPreparationUpdate("other-session"))
                 .thenReturn(new SalesSessionLookup(7L, null, 3L, null, "other-session", "OPEN"));
         assertThatThrownBy(
                 () -> service.completeSession(operator, "other-session", "key", UUID.randomUUID()))

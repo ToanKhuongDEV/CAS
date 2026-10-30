@@ -126,7 +126,7 @@ export function CustomerCartView() {
   return (
     <main className="w-full pb-52 md:pb-40">
       <header>
-        <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+        <p className="text-sm font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
           Món đang chọn
         </p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">
@@ -159,12 +159,12 @@ export function CustomerCartView() {
                 <h2 className="text-lg font-extrabold" id="cart-items-title">
                   Món mới
                 </h2>
-                <span className="grid min-w-6 place-items-center rounded-full bg-cas-primary px-2 py-1 text-[0.65rem] font-extrabold text-cas-on-primary">
+                <span className="grid min-w-6 place-items-center rounded-full bg-cas-primary px-2 py-1 text-sm font-extrabold text-cas-on-primary">
                   {totalQuantity}
                 </span>
               </div>
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-bold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
                 onClick={() => setIsClearConfirmationOpen(true)}
                 type="button"
               >
@@ -199,26 +199,29 @@ export function CustomerCartView() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-start gap-2">
-                          <h3 className="line-clamp-2 min-w-0 flex-1 text-sm leading-tight font-extrabold">
+                          <h3 className="line-clamp-2 min-w-0 flex-1 text-base leading-tight font-extrabold">
                             {line.itemName}
                           </h3>
-                          <span className="shrink-0 text-xs font-bold text-cas-on-surface-variant">
+                          <span className="shrink-0 text-sm font-bold text-cas-on-surface-variant">
                             ×{line.quantity}
                           </span>
                         </div>
                         {line.selectedOptions?.length ? (
-                          <p className="mt-1 text-xs text-cas-on-surface-variant">
+                          <p className="mt-1 text-sm text-cas-on-surface-variant">
                             {line.selectedOptions.map((option) => option.name).join(", ")}
                           </p>
                         ) : null}
                         {hasPricing ? (
-                          <div className="mt-3 space-y-1 text-xs text-cas-on-surface-variant">
-                            <p className="flex justify-between gap-4">
+                          <div className="mt-3 space-y-1 text-sm text-cas-on-surface-variant">
+                            <p className="flex flex-wrap justify-between gap-x-4 gap-y-1">
                               <span>Giá món gốc</span>
                               <span>{formatMoney(line.basePrice ?? 0)}</span>
                             </p>
                             {line.selectedOptions?.map((option) => (
-                              <p className="flex justify-between gap-4" key={option.name}>
+                              <p
+                                className="flex flex-wrap justify-between gap-x-4 gap-y-1"
+                                key={option.name}
+                              >
                                 <span>+ {option.name}</span>
                                 <span>+{formatMoney(option.price)}</span>
                               </p>
@@ -248,23 +251,23 @@ export function CustomerCartView() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex min-w-30 flex-row items-center justify-between gap-4 md:flex-col md:items-end">
+                    <div className="flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 md:flex-col md:items-end">
                       {hasPricing ? (
                         <strong className="text-base text-cas-primary">
                           {formatMoney(itemTotal)}
                         </strong>
                       ) : (
-                        <span className="text-xs text-cas-on-surface-variant">
+                        <span className="text-sm text-cas-on-surface-variant">
                           {line.optionValueIds.length} tùy chọn
                         </span>
                       )}
                       {optionAmount > 0 && line.quantity > 1 ? (
-                        <span className="text-xs text-cas-on-surface-variant">
+                        <span className="text-sm text-cas-on-surface-variant">
                           {formatMoney(lineUnitPrice(line))} × {line.quantity}
                         </span>
                       ) : null}
                       <button
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-bold text-cas-on-surface-variant transition hover:bg-cas-primary/10 hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
                         onClick={() => changeQuantity(index, 0)}
                         type="button"
                       >
@@ -286,11 +289,11 @@ export function CustomerCartView() {
               <span className="text-lg font-extrabold" id="order-note-title">
                 Ghi chú chung
               </span>
-              <span className="mt-1 block text-xs text-cas-on-surface-variant">
+              <span className="mt-1 block text-sm text-cas-on-surface-variant">
                 Ghi chú này áp dụng cho toàn bộ lần gửi món.
               </span>
               <textarea
-                className="mt-3 min-h-28 w-full resize-none rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container p-4 text-sm outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+                className="mt-3 min-h-28 w-full resize-none rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container p-4 text-base outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
                 id="order-note"
                 onChange={(event) => {
                   idempotencyKeyRef.current = null;
@@ -309,7 +312,7 @@ export function CustomerCartView() {
           <div className="mx-auto w-full max-w-[42rem]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs text-cas-on-surface-variant">
+                <p className="text-sm text-cas-on-surface-variant">
                   Tạm tính ({totalQuantity} món)
                 </p>
                 <strong className="text-lg text-cas-primary">
@@ -317,7 +320,7 @@ export function CustomerCartView() {
                 </strong>
               </div>
               <Link
-                className="text-xs font-bold text-cas-secondary underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+                className="text-sm font-bold text-cas-secondary underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
                 href="/menu"
               >
                 Chọn thêm món

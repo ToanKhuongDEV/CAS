@@ -32,7 +32,7 @@ export function CustomerBottomNavigation({ activeItem }: CustomerBottomNavigatio
 
         return (
           <Link
-            className={`flex flex-col items-center justify-center gap-1 rounded-xl text-[0.62rem] font-semibold focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring md:min-h-13 md:flex-row md:justify-start md:gap-3.5 md:rounded-2xl md:border md:border-cas-outline-variant/35 md:bg-cas-surface-container md:px-4 md:text-sm md:font-bold md:shadow-[0_4px_14px_var(--cas-shadow-color)] md:transition md:hover:-translate-y-0.5 md:hover:border-cas-primary/45 ${
+            className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring md:min-h-13 md:flex-row md:justify-start md:gap-3.5 md:rounded-2xl md:border md:border-cas-outline-variant/35 md:bg-cas-surface-container md:px-4 md:text-sm md:font-bold md:shadow-[0_4px_14px_var(--cas-shadow-color)] md:transition md:hover:-translate-y-0.5 md:hover:border-cas-primary/45 ${
               isActive
                 ? "bg-cas-secondary-container/20 text-cas-primary md:border-cas-primary/50 md:bg-cas-primary/10"
                 : "text-cas-on-surface-variant"

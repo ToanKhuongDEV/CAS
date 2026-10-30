@@ -151,6 +151,13 @@ public class SalesSessionService {
         return session;
     }
 
+    public SalesSessionLookup requireForPreparationUpdate(String sessionPublicId) {
+        var session = diningTableMapper.findSalesSessionByPublicIdForUpdate(sessionPublicId);
+        if (session == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, ApiMessages.INVALID_REQUEST);
+        return session;
+    }
+
     @Transactional(readOnly = true)
     public java.util.List<vn.cas.store.model.OperatorTableSession> findActiveDineInSessions(
             long storeId) {

@@ -246,6 +246,16 @@
           AND sales_sessions.status = 'OPEN'
         ORDER BY orders.created_at ASC, order_items.id ASC
     </select>
+    <select id="findPendingPreparationItems" resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
+        ORDER BY orders.created_at ASC, order_items.id ASC
+    </select>
     <select id="countPendingPreparationTables" resultType="int">
         SELECT COUNT(DISTINCT dining_tables.id)
         FROM order_items
@@ -253,7 +263,7 @@
         INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
         INNER JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE dining_tables.store_id = #{storeId}
-          AND sales_sessions.status = 'OPEN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
           AND order_items.quantity > order_items.prepared_quantity + COALESCE((
               SELECT SUM(cancellation_requests.requested_quantity)
               FROM order_item_cancellation_requests cancellation_requests
@@ -267,7 +277,7 @@
         INNER JOIN sales_sessions ON sales_sessions.id=orders.sales_session_id
         LEFT JOIN dining_tables ON dining_tables.id=sales_sessions.table_id
         WHERE sales_sessions.store_id=#{storeId} AND sales_sessions.public_id=#{sessionPublicId}
-          AND sales_sessions.status='OPEN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
         ORDER BY orders.created_at ASC, order_items.id ASC FOR UPDATE
     </select>
     <select id="findPreparationTableCompletion" resultType="vn.cas.ordering.model.StoredPreparationTableCompletion">
@@ -285,6 +295,19 @@
         LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
         WHERE sales_sessions.store_id = #{storeId}
           AND sales_sessions.status = 'OPEN'
+          AND order_items.menu_item_id = #{menuItemId}
+        ORDER BY orders.created_at ASC, order_items.id ASC
+        FOR UPDATE
+    </select>
+    <select id="findPendingPreparationItemsForUpdate"
+            resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
           AND order_items.menu_item_id = #{menuItemId}
         ORDER BY orders.created_at ASC, order_items.id ASC
         FOR UPDATE

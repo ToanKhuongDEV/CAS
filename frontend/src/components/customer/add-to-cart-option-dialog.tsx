@@ -144,7 +144,7 @@ export function AddToCartOptionDialog({
   return (
     <>
       {disabled ? (
-        <span className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-cas-outline-variant/45 px-3 text-xs font-bold text-cas-on-surface-variant">
+        <span className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-cas-outline-variant/45 px-3 text-sm font-bold text-cas-on-surface-variant">
           Hết hàng
         </span>
       ) : currentQuantity && currentQuantity > 0 ? (
@@ -174,7 +174,7 @@ export function AddToCartOptionDialog({
           <section className="mx-auto my-auto w-full max-w-lg rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_16px_36px_var(--cas-shadow-color)] md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                <p className="text-sm font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
                   Chọn tùy chọn
                 </p>
                 <h2 className="mt-1 text-xl font-extrabold" id={`${itemId}-options-title`}>
@@ -191,7 +191,7 @@ export function AddToCartOptionDialog({
                 {optionGroups.map((group) => (
                   <fieldset key={group.id}>
                     <legend className="text-sm font-extrabold">{group.label}</legend>
-                    <p className="mt-1 text-xs text-cas-on-surface-variant">
+                    <p className="mt-1 text-sm text-cas-on-surface-variant">
                       {group.minSelect
                         ? `Chọn ít nhất ${group.minSelect} lựa chọn.`
                         : "Tùy chọn thêm."}
@@ -229,7 +229,7 @@ export function AddToCartOptionDialog({
                               />
                               <span className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm transition peer-checked:border-cas-primary peer-checked:bg-cas-primary/10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
                                 <span className="font-bold">{option.label}</span>
-                                <span className="shrink-0 text-xs font-bold text-cas-primary">
+                                <span className="shrink-0 text-sm font-bold text-cas-primary">
                                   +{formatPrice(option.priceDelta)}
                                 </span>
                               </span>

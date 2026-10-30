@@ -140,6 +140,13 @@ export default function MenuPage() {
     { id: "additional-services", label: "Dịch vụ thêm" },
   ];
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const matchesSearch = (item: CustomerMenuItem) =>
+    !normalizedSearchQuery ||
+    item.name.toLocaleLowerCase().includes(normalizedSearchQuery) ||
+    item.description.toLocaleLowerCase().includes(normalizedSearchQuery);
+  const firstVisibleCategoryId = catalogCategories.find((category) =>
+    catalogItems.some((item) => item.categoryId === category.id && matchesSearch(item)),
+  )?.id;
 
   return (
     <>
@@ -156,7 +163,7 @@ export default function MenuPage() {
               name="search"
             />
             <input
-              className="h-12 w-full rounded-2xl border border-cas-outline-variant/35 bg-cas-surface-container pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/70 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+              className="h-12 w-full rounded-2xl border border-cas-outline-variant/35 bg-cas-surface-container pr-4 pl-12 text-base outline-none placeholder:text-cas-on-surface-variant/70 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
               id="menu-search"
               name="search"
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -190,11 +197,7 @@ export default function MenuPage() {
           ) : null}
           {catalogCategories.map((category) => {
             const categoryItems = catalogItems.filter(
-              (item) =>
-                item.categoryId === category.id &&
-                (!normalizedSearchQuery ||
-                  item.name.toLocaleLowerCase().includes(normalizedSearchQuery) ||
-                  item.description.toLocaleLowerCase().includes(normalizedSearchQuery)),
+              (item) => item.categoryId === category.id && matchesSearch(item),
             );
 
             return (
@@ -216,7 +219,7 @@ export default function MenuPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {categoryItems.map((item, itemIndex) => (
                     <article
-                      className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4"
+                      className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-3 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] sm:grid-cols-[7.25rem_minmax(0,1fr)] sm:gap-4 md:grid-cols-1 md:p-4"
                       key={item.name}
                     >
                       <div className="relative min-h-32 overflow-hidden rounded-2xl md:aspect-[4/3] md:min-h-0">
@@ -226,7 +229,9 @@ export default function MenuPage() {
                           alt={item.imageAlt}
                           fill
                           loading={
-                            category.id === "mon-noi-bat" && itemIndex === 0 ? "eager" : "lazy"
+                            category.id === firstVisibleCategoryId && itemIndex < 3
+                              ? "eager"
+                              : "lazy"
                           }
                           sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
                         />
@@ -249,7 +254,7 @@ export default function MenuPage() {
                       </div>
 
                       <div className="flex min-w-0 flex-col">
-                        <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
+                        <h3 className="line-clamp-2 text-base leading-snug font-extrabold">
                           {item.detailSlug ? (
                             <Link
                               className="rounded-sm transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
@@ -261,13 +266,11 @@ export default function MenuPage() {
                             item.name
                           )}
                         </h3>
-                        <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                        <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-cas-on-surface-variant">
                           {item.description}
                         </p>
-                        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                          <strong className="text-sm text-cas-primary md:text-base">
-                            {item.price}
-                          </strong>
+                        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-3">
+                          <strong className="text-base text-cas-primary">{item.price}</strong>
                           <AddToCartOptionDialog
                             basePrice={item.basePrice}
                             beforeAddToCart={async () => {
@@ -331,24 +334,24 @@ export default function MenuPage() {
               </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <article className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4">
+              <article className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-3 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] sm:grid-cols-[7.25rem_minmax(0,1fr)] sm:gap-4 md:grid-cols-1 md:p-4">
                 <div className="grid min-h-32 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary md:aspect-[4/3] md:min-h-0">
                   <CasIcon className="size-10" name="sparkle" />
                 </div>
                 <div className="flex min-w-0 flex-col">
-                  <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
+                  <h3 className="line-clamp-2 text-base leading-snug font-extrabold">
                     Đặt dịch vụ theo yêu cầu
                   </h3>
-                  <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                  <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-cas-on-surface-variant">
                     Liên hệ nhân viên để trao đổi dịch vụ và chốt giá trước khi đặt.
                   </p>
                   <div className="mt-auto pt-3">
-                    <p className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
+                    <p className="text-sm font-semibold text-cas-on-surface-variant">
                       Chốt giá qua Zalo
                     </p>
                     {storePhone ? (
                       <a
-                        className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary transition hover:bg-cas-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                        className="mt-2 inline-flex min-h-10 max-w-full items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-sm font-extrabold break-words text-cas-primary transition hover:bg-cas-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
                         href={zaloContactUrl(storePhone)}
                         rel="noopener noreferrer"
                         target="_blank"

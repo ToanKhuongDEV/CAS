@@ -14,6 +14,7 @@ import {
   type VoucherSummary,
 } from "../customer/customer-order-voucher-summary";
 import { PaymentRequestForm } from "../payment/payment-request-form";
+import { OperatorBillAdjustmentForm } from "./operator-bill-adjustment-form";
 import {
   clearOperatorPromotion,
   loadOperatorEligiblePromotions,
@@ -210,6 +211,7 @@ export function OperatorPaymentControlView({
               <p className="mt-6 text-sm text-cas-on-surface-variant">Đang tải hóa đơn...</p>
             ) : (
               <>
+                <OperatorBillAdjustmentForm />
                 <PaymentRequestForm
                   bill={bill}
                   error={error}

@@ -18,6 +18,7 @@ import vn.cas.ordering.service.CancellationService;
 import vn.cas.ordering.service.PreparationService;
 import vn.cas.notification.service.SystemNotificationService;
 import vn.cas.operation.mapper.OperatorDashboardMapper;
+import vn.cas.operation.mapper.AdminDashboardMapper;
 import vn.cas.payment.mapper.PaymentMapper;
 import java.time.LocalDate;
 
@@ -49,6 +50,42 @@ class TakeawayCancellationIntegrationTest {
     SystemNotificationService notifications;
     @Autowired
     PaymentMapper payments;
+    @Autowired
+    AdminDashboardMapper adminDashboard;
+
+    @Test
+    @Transactional
+    void reportsWaitByOrderDateWithoutPayment() {
+        insertStore(1);
+        insertOrder(1, 1);
+        jdbc.update("UPDATE orders SET created_at = '2026-10-01 10:00:00' WHERE id = 1");
+        jdbc.update("UPDATE order_items SET served_at = '2026-10-01 10:20:00' WHERE id = 1");
+        var start = LocalDate.of(2026, 10, 1).atStartOfDay();
+        var end = start.plusDays(1);
+
+        assertThat(adminDashboard.findCustomerSummary(1, start, end).averageWaitMinutes())
+                .isEqualByComparingTo("20");
+        assertThat(adminDashboard.findCustomerSeries(1, start, end)).singleElement()
+                .satisfies(point -> {
+                    assertThat(point.paidSessionCount()).isZero();
+                    assertThat(point.averageWaitMinutes()).isEqualByComparingTo("20");
+                });
+    }
+
+    @Test
+    @Transactional
+    void keepsPaidAndPendingSessionsInPreparationButNotCancellationQueries() {
+        insertStore(1);
+        insertOrder(1, 1);
+        insertOrder(2, 1);
+        jdbc.update("UPDATE sales_sessions SET status = 'PAYMENT_PENDING' WHERE id = 1");
+        jdbc.update("UPDATE sales_sessions SET status = 'CLOSED' WHERE id = 2");
+
+        assertThat(mapper.findPendingPreparationItems(1)).hasSize(2);
+        assertThat(mapper.findPreparationItems(1)).isEmpty();
+        assertThat(mapper.findPendingPreparationItemsForUpdate(1, 1)).hasSize(2);
+        assertThat(mapper.findPreparationItemsForUpdate(1, 1)).isEmpty();
+    }
 
     @Test
     @Transactional

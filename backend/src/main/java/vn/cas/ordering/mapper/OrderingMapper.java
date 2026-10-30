@@ -83,9 +83,14 @@ public interface OrderingMapper {
 
     List<PreparationItemRow> findPreparationItems(@Param("storeId") long storeId);
 
+    List<PreparationItemRow> findPendingPreparationItems(@Param("storeId") long storeId);
+
     int countPendingPreparationTables(@Param("storeId") long storeId);
 
     List<PreparationItemRow> findPreparationItemsForUpdate(@Param("storeId") long storeId,
+            @Param("menuItemId") long menuItemId);
+
+    List<PreparationItemRow> findPendingPreparationItemsForUpdate(@Param("storeId") long storeId,
             @Param("menuItemId") long menuItemId);
     List<PreparationItemRow> findPreparationItemsBySessionForUpdate(@Param("storeId") long storeId,
             @Param("sessionPublicId") String sessionPublicId);

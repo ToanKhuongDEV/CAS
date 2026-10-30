@@ -25,7 +25,7 @@ export function PaymentRequestForm({
       <section className="rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_10px_28px_var(--cas-shadow-color)] md:p-7">
         <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-4">
           <div>
-            <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+            <p className="text-sm font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
               Phiên bàn hiện tại
             </p>
             <h2 className="mt-1 text-lg font-extrabold">Chi tiết thanh toán</h2>
@@ -41,20 +41,20 @@ export function PaymentRequestForm({
           {bill.orders
             .flatMap((order) => order.items)
             .map((item) => (
-              <li className="flex items-start gap-3 py-4" key={item.orderItemId}>
+              <li className="flex flex-wrap items-start gap-3 py-4" key={item.orderItemId}>
                 <span className="grid size-8 shrink-0 place-items-center rounded-full bg-cas-surface text-xs font-extrabold text-cas-primary">
                   {item.quantity}×
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-extrabold">{item.itemName}</h3>
-                  <div className="mt-2 space-y-1 text-[0.68rem] text-cas-on-surface-variant">
-                    <p className="flex justify-between gap-3">
+                  <h3 className="break-words text-base font-extrabold">{item.itemName}</h3>
+                  <div className="mt-2 space-y-1 text-sm text-cas-on-surface-variant">
+                    <p className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                       <span>Giá món gốc</span>
                       <span>{money.format(item.unitPrice)}</span>
                     </p>
                     {item.options.map((option) => (
                       <p
-                        className="flex justify-between gap-3"
+                        className="flex flex-wrap justify-between gap-x-3 gap-y-1"
                         key={`${item.orderItemId}-${option.optionName}`}
                       >
                         <span>+ {option.optionName}</span>
@@ -63,7 +63,7 @@ export function PaymentRequestForm({
                     ))}
                   </div>
                 </div>
-                <strong className="shrink-0 text-sm text-cas-primary">
+                <strong className="ml-auto text-base text-cas-primary">
                   {money.format(item.totalAmount)}
                 </strong>
               </li>

@@ -122,6 +122,7 @@ describe("MenuPage", () => {
         .find((link) => link.getAttribute("href") === "/menu/10"),
     ).toBeDefined();
     expect(screen.getByText("Món từ API")).toBeInTheDocument();
+    expect(screen.getByAltText("Mỳ cay API")).toHaveAttribute("loading", "eager");
     expect(screen.getByRole("link", { name: "Dịch vụ thêm" })).toHaveAttribute(
       "href",
       "#additional-services",

@@ -17,10 +17,7 @@ export default function CustomerSettingsPage() {
 
         <main className="mx-auto w-full max-w-[38rem] min-w-0 flex-1">
           <header>
-            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-              Tùy chỉnh
-            </p>
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">Cài đặt</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Cài đặt</h1>
           </header>
 
           <section

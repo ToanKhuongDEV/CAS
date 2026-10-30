@@ -27,21 +27,28 @@ export function StoreIdentity({
 }: StoreIdentityProps) {
   const [name, setName] = useState("CAS");
   const [branchName, setBranchName] = useState<string | null>(null);
+  const [slogan, setSlogan] = useState<string | null>(null);
   useEffect(() => {
+    let active = true;
     const effectiveStoreId =
       storeId ?? (fallbackToPublicStore ? (getRememberedPublicStoreId() ?? 1) : null);
     if (!effectiveStoreId) return;
     void loadPublicStore(effectiveStoreId)
       .then((store) => {
+        if (!active) return;
         setName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
-        setBranchName(store.brandName ? (store.branchName ?? store.name ?? null) : null);
+        setBranchName(store.branchName ?? store.name ?? null);
+        setSlogan(store.welcomeSlogan);
       })
       .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, [fallbackToPublicStore, storeId]);
   const logo = inHeader ? (
     <img
       alt="Logo cửa hàng"
-      className="h-14 w-24 shrink-0 object-contain"
+      className="h-16.5 w-[113px] shrink-0 object-contain brightness-0 invert"
       src="/images/bambu-garden-wordmark.svg"
     />
   ) : (
@@ -56,16 +63,18 @@ export function StoreIdentity({
     <div className="flex min-w-0 items-center gap-3">
       {logo}
       <div className="flex min-w-0 flex-col">
-        <span
-          className={inHeader ? "truncate text-lg font-black text-cas-on-primary" : nameClassName}
-        >
-          {name}
-        </span>
+        {inHeader ? (
+          slogan ? (
+            <span className="truncate text-sm font-bold text-cas-on-primary">{slogan}</span>
+          ) : null
+        ) : (
+          <span className={nameClassName}>{name}</span>
+        )}
         {showBranchName && branchName ? (
           <span
             className={`truncate text-xs font-semibold ${inHeader ? "text-cas-on-primary" : "text-cas-on-surface-variant"}`}
           >
-            {branchName}
+            {inHeader ? `Cơ sở ${branchName}` : branchName}
           </span>
         ) : null}
         {subtitle ? (

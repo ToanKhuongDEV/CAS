@@ -174,6 +174,7 @@ nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành m�
 curl.exe http://localhost:8080/api/v1/operator/preparation/long-wait-tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # Allocation mang về có tableCode null và customerName; hoàn thành theo mẻ áp dụng FIFO cho cả hai loại đơn.
+# Món chưa hoàn thành vẫn xuất hiện và có thể hoàn thành khi phiên chờ thanh toán hoặc đã đóng.
 curl.exe http://localhost:8080/api/v1/operator/preparation/pending-table-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/groups/<group-key>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"quantity\":3}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/sessions/<session-public-id>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\"}"
@@ -208,6 +209,7 @@ curl.exe http://localhost:8080/api/v1/auth/me -H "Authorization: Bearer $env:CAS
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/logout -b customer-session-cookie.txt -c customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # SUPER_ADMIN chọn cơ sở cho API Admin/Operator bằng header này.
+# Thời gian chờ lấy các món đã làm xong theo ngày gọi món, không phụ thuộc thanh toán.
 curl.exe "http://localhost:8080/api/v1/admin/dashboard?from=2026-10-01&to=2026-10-10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2"
 curl.exe -X POST http://localhost:8080/api/v1/admin/admins -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2" -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"phone\":\"0901234567\",\"displayName\":\"Admin Two\"}"
 curl.exe http://localhost:8080/api/v1/admin/admins -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2"

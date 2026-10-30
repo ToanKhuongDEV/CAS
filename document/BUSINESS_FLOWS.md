@@ -605,6 +605,7 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 - `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè số tiền.
 - `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
+- Các món chưa làm xong vẫn được hiển thị và ghi nhận chế biến khi session `PAYMENT_PENDING` hoặc `CLOSED`; thanh toán không tự hoàn thành món và không cho hủy món sau thanh toán.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
 - Session `PAYMENT_PENDING` vẫn được tính là một lượt đang chiếm dụng bàn, nhưng không khóa việc tạo hoặc xử lý các session độc lập khác tại cùng bàn.
 - `orders` không có trạng thái riêng; trạng thái chờ thanh toán nằm ở `sales_sessions.status`.
