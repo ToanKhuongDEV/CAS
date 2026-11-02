@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
@@ -159,6 +159,33 @@ describe("MenuPage", () => {
     await screen.findByRole("heading", { level: 2, name: "Mỳ cay API" });
 
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" }));
+  });
+
+  it("keeps each category in a separate two-column grid", async () => {
+    const catalog = await loadCustomerCatalog();
+    vi.mocked(loadCustomerCatalog).mockResolvedValue({
+      ...catalog,
+      categories: [...catalog.categories, { ...catalog.categories[0], id: 2, name: "Đồ uống" }],
+      items: [...catalog.items, { ...catalog.items[0], id: 12, categoryId: 2, name: "Trà" }],
+    });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrderingLayout>
+            <MenuPage />
+          </OrderingLayout>
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    const food = await screen.findByRole("region", { name: "Mỳ cay API" });
+    const drinks = screen.getByRole("region", { name: "Đồ uống" });
+    expect(within(food).getByText("Món hết hàng API")).toBeInTheDocument();
+    expect(within(food).queryByText("Trà")).not.toBeInTheDocument();
+    expect(within(drinks).getByText("Trà")).toBeInTheDocument();
+    expect(within(drinks).getByText("Trà").closest("article")?.parentElement).toHaveClass(
+      "grid-cols-2",
+    );
   });
 
   it("shows a success toast after adding an item to the cart", async () => {

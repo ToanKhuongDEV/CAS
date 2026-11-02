@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import styles from "./customer-order-voucher-summary.module.css";
 import {
   clearCustomerPromotion,
@@ -25,6 +25,7 @@ export type VoucherSummary = {
 const formatMoney = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 type Props = {
+  beforePayable?: ReactNode;
   onSummaryChange?: (summary: VoucherSummary) => void;
   originalAmount: number;
   operatorSessionId?: string;
@@ -41,6 +42,7 @@ type VoucherDisplay = Pick<
 >;
 
 export function CustomerOrderVoucherSummary({
+  beforePayable,
   onSummaryChange,
   operatorSessionId,
   originalAmount,
@@ -324,6 +326,7 @@ export function CustomerOrderVoucherSummary({
           </dt>
           <dd className="font-bold text-cas-secondary">-{formatMoney(discountAmount)}</dd>
         </div>
+        {beforePayable && <div>{beforePayable}</div>}
         <div className="flex items-end justify-between gap-4 border-t border-cas-outline-variant/40 pt-4">
           <div>
             <dt className="text-sm font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">

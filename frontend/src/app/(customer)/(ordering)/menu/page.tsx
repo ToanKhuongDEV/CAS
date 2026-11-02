@@ -216,13 +216,10 @@ export default function MenuPage() {
                   </span>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2">
                   {categoryItems.map((item, itemIndex) => (
-                    <article
-                      className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-3 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] sm:grid-cols-[7.25rem_minmax(0,1fr)] sm:gap-4 md:grid-cols-1 md:p-4"
-                      key={item.name}
-                    >
-                      <div className="relative min-h-32 overflow-hidden rounded-2xl md:aspect-[4/3] md:min-h-0">
+                    <article className="flex min-w-0 flex-col gap-3 p-1 md:p-2" key={item.name}>
+                      <div className="relative aspect-square w-full overflow-hidden rounded-sm">
                         <Image
                           className="object-cover transition-transform duration-500 hover:scale-105"
                           src={item.imageSrc}
@@ -233,7 +230,7 @@ export default function MenuPage() {
                               ? "eager"
                               : "lazy"
                           }
-                          sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
+                          sizes="(max-width: 767px) 50vw, (max-width: 1023px) 45vw, 38rem"
                         />
                         {item.badges.length > 0 ? (
                           <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
@@ -266,10 +263,10 @@ export default function MenuPage() {
                             item.name
                           )}
                         </h3>
-                        <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-cas-on-surface-variant">
+                        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-cas-on-surface-variant">
                           {item.description}
                         </p>
-                        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-3">
+                        <div className="flex flex-wrap items-start justify-between gap-2 pt-1">
                           <strong className="text-base text-cas-primary">{item.price}</strong>
                           <AddToCartOptionDialog
                             basePrice={item.basePrice}

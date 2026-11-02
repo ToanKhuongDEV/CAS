@@ -25,6 +25,19 @@ beforeEach(() => {
   });
 });
 
+it("uses the default discount for each unit and preserves values when the unit stays the same", () => {
+  render(<AdminPromotionsPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
+  const type = screen.getByLabelText("Loại promotion");
+  fireEvent.change(type, { target: { value: "PERCENT_OFF" } });
+  expect(screen.getByPlaceholderText("VD: 15")).toHaveValue(20);
+  fireEvent.change(screen.getByPlaceholderText("VD: 15"), { target: { value: "35" } });
+  fireEvent.change(type, { target: { value: "ITEM_PERCENT_OFF" } });
+  expect(screen.getByPlaceholderText("VD: 15")).toHaveValue(35);
+  fireEvent.change(type, { target: { value: "FIXED_AMOUNT_OFF" } });
+  expect(screen.getByPlaceholderText("VD: 50,000")).toHaveValue("20,000");
+});
+
 it("keeps the form and identifies a code rejected as duplicate by the server", async () => {
   vi.mocked(createPromotion).mockRejectedValue(new Error("Mã RT42 đã tồn tại trong cơ sở này."));
   render(<AdminPromotionsPage />);

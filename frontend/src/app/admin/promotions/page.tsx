@@ -874,6 +874,13 @@ export default function AdminPromotionsPage() {
                         setForm((current) => ({
                           ...current,
                           promotionType,
+                          discountValue:
+                            promotionType.includes("PERCENT") ===
+                            current.promotionType.includes("PERCENT")
+                              ? current.discountValue
+                              : promotionType.includes("PERCENT")
+                                ? 20
+                                : 20000,
                           maxDiscountAmount: promotionType.includes("PERCENT")
                             ? current.maxDiscountAmount
                             : null,

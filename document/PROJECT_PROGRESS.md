@@ -84,6 +84,8 @@ Ngày cập nhật gần nhất: 2026-11-02
 
 ### Chưa hoàn thành
 
+- [ ] Hoàn thiện điều chỉnh hóa đơn: chốt quy tắc nghiệp vụ cho phiên mở và payment chờ; xây dựng API lưu điều chỉnh và tính lại số tiền, cập nhật hóa đơn/thanh toán liên quan và kiểm thử.
+
 - [ ] Chạy integration test MySQL cho cập nhật hạn mức và xóa mềm mã voucher khi Docker sẵn sàng.
 
 - [ ] Điều chỉnh tăng/giảm thủ công trên bill: đã dự thảo migration V9; còn triển khai API, tính tiền, audit log, giao diện và kiểm thử MySQL.
@@ -94,6 +96,24 @@ Ngày cập nhật gần nhất: 2026-11-02
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Thêm khoảng cách phía trên chi tiết thanh toán trong form tạo yêu cầu thanh toán Operator.
+
+- [x] Đưa điều chỉnh hóa đơn Operator vào ngay trước tổng thanh toán, thu gọn và mở bằng nút.
+
+- [x] Đặt giá trị giảm mặc định theo đơn vị khi chuyển loại promotion: 20% hoặc 20.000đ.
+
+- [x] Nút bắt đầu gọi món ở trang chủ tiếp tục phiên Customer đang mở hoặc chuyển tới thanh toán nếu phiên đang chờ thanh toán.
+
+- [x] Giới hạn mô tả món trong menu Customer tối đa hai dòng.
+
+- [x] Thu hẹp khoảng cách giữa mô tả và giá món trong menu Customer.
+
+- [x] Giảm bo góc ảnh món và khoảng cách giữa hai cột menu Customer.
+
+- [x] Menu Customer hiển thị hai món mỗi hàng và giữ từng danh mục trong lưới riêng.
+
+- [x] Thẻ món trong menu Customer bỏ nền, dùng ảnh vuông toàn chiều rộng và đưa thông tin, thao tác xuống dưới ảnh.
 
 - [x] Khi yêu cầu thanh toán gặp khuyến mãi không còn khả dụng, thông báo và tải lại danh sách khuyến mãi để chọn lại.
 
@@ -139,7 +159,7 @@ Ngày cập nhật gần nhất: 2026-11-02
 
 - [x] Trang bắt đầu gọi món Customer hiển thị slogan thương hiệu từ dữ liệu cửa hàng như header Customer.
 
-- [ ] Giao diện điều chỉnh hóa đơn Operator đã có các trường loại, số tiền và lý do tại phiên mở và payment chờ; đang khóa thao tác đến khi backend được triển khai.
+- [ ] Kết nối giao diện điều chỉnh hóa đơn Operator với backend, kiểm tra dữ liệu nhập và cập nhật số tiền sau điều chỉnh; hiện các trường và thao tác đang bị khóa.
 
 - [x] Đồng bộ header Operator, Admin và Super Admin với logo, slogan và cơ sở tương ứng; không hiển thị số bàn.
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CustomerBottomNavigation } from "../../components/customer/customer-bottom-navigation";
@@ -12,6 +13,7 @@ import {
   type PublicStoreWelcomeConfig,
 } from "../../lib/api/store/public-store.api";
 import type { StoreSettings } from "../../lib/api/store/store-settings.api";
+import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 
 const quickStats = [
   { value: "4.9", label: "Đánh giá" },
@@ -70,8 +72,28 @@ function formatOpeningHours(openTime: string, closeTime: string) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [store, setStore] = useState<StoreSettings>(fallbackStore);
   const [welcome, setWelcome] = useState<PublicStoreWelcomeConfig | null>(null);
+  const [checkingSession, setCheckingSession] = useState(false);
+
+  async function startOrdering() {
+    setCheckingSession(true);
+    try {
+      const session = await getCurrentCustomerSalesSession();
+      router.push(
+        session.sessionStatus === "OPEN"
+          ? "/menu"
+          : session.sessionStatus === "PAYMENT_PENDING"
+            ? "/payment"
+            : "/start",
+      );
+    } catch {
+      router.push("/start");
+    } finally {
+      setCheckingSession(false);
+    }
+  }
 
   useEffect(() => {
     const storeId = getRememberedPublicStoreId() ?? 1;
@@ -132,13 +154,15 @@ export default function Home() {
                   "Cùng chọn món ngon cho bàn của bạn. Thưởng thức mỳ cay 7 cấp độ, gà rán giòn tan cùng cà phê, trà sữa và đồ uống mát lạnh."}
               </p>
 
-              <Link
+              <button
                 className="mt-6 inline-flex min-h-14 w-full max-w-84 items-center justify-center gap-3.5 rounded-xl bg-cas-primary px-7 font-bold text-cas-on-primary shadow-[0_10px_28px_var(--cas-shadow-color)] transition duration-200 hover:-translate-y-0.5 hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring md:w-auto md:min-w-54"
-                href="/start"
+                type="button"
+                disabled={checkingSession}
+                onClick={startOrdering}
               >
                 Bắt đầu gọi món
                 <CasIcon className="size-5" name="arrow" />
-              </Link>
+              </button>
 
               <div
                 className="mt-6 grid w-full max-w-92 grid-cols-3 divide-x divide-cas-outline-variant text-cas-on-surface-variant md:w-auto"

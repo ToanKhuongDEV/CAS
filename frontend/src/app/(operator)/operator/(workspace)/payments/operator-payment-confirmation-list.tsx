@@ -500,6 +500,11 @@ export function OperatorPaymentConfirmationList({
                       : "Giảm giá"}
                   </span>
                   <strong>{activePayment.discountAmount}</strong>
+                  {activePayment.status === "PENDING" ? (
+                    <div className="col-span-2 print:hidden">
+                      <OperatorBillAdjustmentForm />
+                    </div>
+                  ) : null}
                   <span>TỔNG THANH TOÁN</span>
                   <strong className="print-bill__grand-total">{activePayment.payableAmount}</strong>
                 </div>
@@ -520,8 +525,6 @@ export function OperatorPaymentConfirmationList({
                   </p>
                 ) : null}
               </div>
-
-              {activePayment.status === "PENDING" ? <OperatorBillAdjustmentForm /> : null}
 
               {selectedPayment && confirmError ? (
                 <p className="mt-4 text-sm font-bold text-cas-error" role="alert">

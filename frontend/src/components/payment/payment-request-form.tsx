@@ -1,6 +1,7 @@
 "use client";
 
 import { CustomerOrderVoucherSummary } from "../customer/customer-order-voucher-summary";
+import { OperatorBillAdjustmentForm } from "../operator/operator-bill-adjustment-form";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import type { CustomerBill } from "../../lib/api/ordering/ordering.api";
@@ -74,6 +75,7 @@ export function PaymentRequestForm({
       </section>
       <div className="mt-4">
         <CustomerOrderVoucherSummary
+          beforePayable={operatorSessionId ? <OperatorBillAdjustmentForm /> : undefined}
           key={voucherRefreshKey}
           operatorSessionId={operatorSessionId}
           originalAmount={bill.payableAmount}

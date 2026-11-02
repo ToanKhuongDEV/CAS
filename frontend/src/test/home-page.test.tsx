@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
@@ -6,9 +6,11 @@ import CustomerLayout from "../app/(customer)/layout";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 
+const { push, replace } = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push, replace }),
 }));
 
 vi.mock("../lib/api/store/public-store.api", () => ({
@@ -23,6 +25,7 @@ vi.mock("../lib/customer/sales-session", () => ({
 
 describe("Home", () => {
   beforeEach(() => {
+    push.mockClear();
     vi.mocked(loadPublicStore).mockResolvedValue({
       address: "123 Đường Ẩm Thực, Quận 1",
       closeTime: "22:00:00",
@@ -63,18 +66,15 @@ describe("Home", () => {
     );
 
     expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
-    expect(await screen.findByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toBeInTheDocument();
+    expect(await screen.findAllByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toHaveLength(2);
     expect(await screen.findByText("Bàn 12")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /bắt đầu gọi món/i })).toHaveAttribute(
-      "href",
-      "/start",
-    );
+    expect(screen.getByRole("button", { name: /bắt đầu gọi món/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mỳ cay" })).toHaveAttribute(
       "href",
       "/menu?category=M%E1%BB%B3%20cay",
     );
     expect(screen.getByRole("heading", { name: "Khám phá thực đơn" })).toBeInTheDocument();
-    expect(screen.getAllByText("CAS Mì Cay")).toHaveLength(2);
+    expect(screen.getByText("CAS Mì Cay")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "0900000000" })).toHaveAttribute(
       "href",
       "tel:0900000000",
@@ -95,5 +95,28 @@ describe("Home", () => {
     expect(
       screen.getByRole("img", { name: "Tô mỳ cay nóng với rau nấm và nhiều topping" }),
     ).toHaveAttribute("src", "https://example.test/menu-1.jpg");
+  });
+
+  it.each([
+    ["OPEN", "/menu"],
+    ["PAYMENT_PENDING", "/payment"],
+  ] as const)("opens %s session at %s", async (sessionStatus, destination) => {
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
+      customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
+      sessionStatus,
+      tableCode: 12,
+    });
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /bắt đầu gọi món/i }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(destination));
+  });
+
+  it("opens the start page when there is no current session", async () => {
+    vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("No session"));
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /bắt đầu gọi món/i }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/start"));
   });
 });
