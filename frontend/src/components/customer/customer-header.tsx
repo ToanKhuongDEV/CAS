@@ -134,7 +134,12 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-19 bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">
-      <div className="mx-auto flex h-full w-full max-w-[85rem] items-center justify-between gap-1 px-2 sm:px-4 md:px-8">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <span className="absolute -top-12 left-[35%] size-24 rounded-full bg-cas-on-primary/8 motion-safe:animate-cas-float" />
+        <span className="absolute -bottom-14 left-[58%] size-28 rotate-45 rounded-3xl bg-cas-on-primary/6" />
+        <span className="absolute -top-8 right-[20%] size-20 rounded-full border-8 border-cas-on-primary/8 motion-safe:animate-cas-float" />
+      </div>
+      <div className="relative mx-auto flex h-full w-full max-w-[85rem] items-center justify-between gap-1 px-2 sm:px-4 md:px-8">
         <Link
           className="inline-flex min-w-0 items-center gap-2 text-xl font-bold text-cas-on-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"

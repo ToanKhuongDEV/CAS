@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                 <OperationalAccountMenu
                   area="ADMIN"
-                  fallbackName="ADMIN Master"
+                  fallbackName="Quản trị viên"
                   loginPath="/admin/login"
                 />
               </div>

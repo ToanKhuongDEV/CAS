@@ -122,6 +122,40 @@ describe("OperatorOrdersPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a Vietnamese validation message when completed quantity exceeds the remaining quantity", async () => {
+    vi.mocked(loadPreparationGroups).mockResolvedValue([group]);
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    const input = await screen.findByRole("spinbutton", { name: "Số phần vừa làm xong" });
+    fireEvent.change(input, { target: { value: "13" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận hoàn thành" }));
+    expect(await screen.findByText("Số phần hoàn thành tối đa là 12.")).toBeInTheDocument();
+    expect(completePreparationBatch).not.toHaveBeenCalled();
+  });
+
+  it("explains that a negative completed quantity is invalid", async () => {
+    vi.mocked(loadPreparationGroups).mockResolvedValue([group]);
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    const input = await screen.findByRole("spinbutton", { name: "Số phần vừa làm xong" });
+    fireEvent.change(input, { target: { value: "-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận hoàn thành" }));
+    expect(
+      await screen.findByText("Số phần hoàn thành phải lớn hơn hoặc bằng 1."),
+    ).toBeInTheDocument();
+    expect(completePreparationBatch).not.toHaveBeenCalled();
+  });
+
   it("loads preparation groups and records a completed batch", async () => {
     vi.mocked(loadPreparationGroups)
       .mockResolvedValueOnce([group, sameTimeGroup])

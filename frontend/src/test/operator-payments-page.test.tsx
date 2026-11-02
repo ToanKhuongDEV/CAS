@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorPaymentsPage from "../app/(operator)/operator/(workspace)/payments/page";
 import { QueryProvider } from "../components/providers/query-provider";
@@ -8,18 +8,22 @@ import { ToastProvider } from "../components/ui/toast-provider";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
+  createOperatorPayment,
   loadOperatorPaidTodayPayments,
   loadOperatorPayments,
 } from "../lib/api/payment/payment.api";
 import { loadPublicStore } from "../lib/api/store/public-store.api";
+import { loadOperatorBill, loadOperatorSessionListing } from "../lib/api/ordering/ordering.api";
 
 vi.mock("../lib/api/payment/payment.api", () => ({
   confirmOperatorPayment: vi.fn(),
+  createOperatorPayment: vi.fn(),
   loadEligibleUnpaidSessions: vi.fn(),
   loadOperatorPaidTodayPayments: vi.fn(),
   loadOperatorPayments: vi.fn(),
   loadOperatorUnpaidRecords: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
+  promotionUnavailableMessage: "Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi.",
   recordOperatorUnpaid: vi.fn(),
 }));
 vi.mock("../lib/auth/firebase", () => ({
@@ -27,6 +31,18 @@ vi.mock("../lib/auth/firebase", () => ({
 }));
 vi.mock("../lib/auth/operational-auth", () => ({ getCurrentOperationalAccount: vi.fn() }));
 vi.mock("../lib/api/store/public-store.api", () => ({ loadPublicStore: vi.fn() }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({
+  loadOperatorBill: vi.fn(),
+  loadOperatorSessionListing: vi.fn(),
+}));
+vi.mock("../components/customer/customer-order-voucher-summary", () => ({
+  CustomerOrderVoucherSummary: () => null,
+}));
+vi.mock("../components/payment/payment-request-form", () => ({
+  PaymentRequestForm: ({ onRequest }: { onRequest: () => void }) => (
+    <button onClick={onRequest}>Gửi yêu cầu thanh toán</button>
+  ),
+}));
 
 const payment = {
   amount: 170000,
@@ -69,6 +85,119 @@ const payment = {
 };
 
 describe("OperatorPaymentsPage", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns to the open sessions after creating a payment request", async () => {
+    vi.mocked(loadOperatorPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Operator",
+      role: "OPERATOR",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không thể tải cơ sở"));
+    vi.mocked(loadOperatorSessionListing)
+      .mockResolvedValueOnce({
+        tables: [
+          {
+            tableId: 1,
+            tableCode: 1,
+            sessions: [{ sessionId: "session-1", customerName: "An", status: "OPEN" }],
+          },
+          {
+            tableId: 2,
+            tableCode: 2,
+            sessions: [{ sessionId: "session-2", customerName: "Bình", status: "OPEN" }],
+          },
+        ],
+        takeawaySessions: [],
+      })
+      .mockResolvedValue({
+        tables: [
+          {
+            tableId: 2,
+            tableCode: 2,
+            sessions: [{ sessionId: "session-2", customerName: "Bình", status: "OPEN" }],
+          },
+        ],
+        takeawaySessions: [],
+      });
+    vi.mocked(loadOperatorBill).mockResolvedValue({
+      tableCode: 1,
+      sessionStatus: "OPEN",
+      originalAmount: 100,
+      payableAmount: 100,
+      orders: [],
+    });
+    vi.mocked(createOperatorPayment).mockResolvedValue(payment);
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Kiểm soát thanh toán" }));
+    const row = (await screen.findByText(/Bàn 01/)).closest("li")!;
+    fireEvent.click(within(row).getByRole("button", { name: "Tạo yêu cầu thanh toán" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Gửi yêu cầu thanh toán" }))[0]);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Tạo yêu cầu thanh toán" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(createOperatorPayment).toHaveBeenCalledWith("session-1");
+    expect(await screen.findByText(/Bàn 02/)).toBeInTheDocument();
+    expect(screen.queryByText(/Bàn 01/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Kiểm soát thanh toán" })).toBeInTheDocument();
+  });
+
+  it("keeps the request form open when its promotion is no longer available", async () => {
+    vi.mocked(loadOperatorPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Operator",
+      role: "OPERATOR",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không thể tải cơ sở"));
+    vi.mocked(loadOperatorSessionListing).mockResolvedValue({
+      tables: [
+        {
+          tableId: 1,
+          tableCode: 1,
+          sessions: [{ sessionId: "session-1", customerName: "An", status: "OPEN" }],
+        },
+      ],
+      takeawaySessions: [],
+    });
+    vi.mocked(loadOperatorBill).mockResolvedValue({
+      tableCode: 1,
+      sessionStatus: "OPEN",
+      originalAmount: 100,
+      payableAmount: 100,
+      orders: [],
+    });
+    vi.mocked(createOperatorPayment).mockRejectedValue(
+      new Error("Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi."),
+    );
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Kiểm soát thanh toán" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Tạo yêu cầu thanh toán" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Gửi yêu cầu thanh toán" }))[0]);
+    expect(
+      await screen.findByText("Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Tạo yêu cầu thanh toán" })).toBeInTheDocument();
+  });
   it("loads a real pending payment and requires confirmation before marking it as paid", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(loadOperatorPayments).mockResolvedValue([payment]);
@@ -129,14 +258,14 @@ describe("OperatorPaymentsPage", () => {
     expect(within(dialog).getByText("Ghi chú: Không hành")).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("payment-05");
     expect(dialog).not.toHaveTextContent("801a5c7c-f5d9-4882-b0ec-c672ba3e1649");
-    expect(within(dialog).getByText("Số tiền").parentElement).toHaveTextContent("170.000đ");
+    expect(
+      within(dialog).getByText("Số tiền", { selector: "span" }).parentElement,
+    ).toHaveTextContent("170.000đ");
     expect(within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i)).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Xác nhận đã thanh toán" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Đã xác nhận Bàn 05 thanh toán 170.000đ.",
-    );
+    expect(await screen.findByText("Đã xác nhận Bàn 05 thanh toán 170.000đ.")).toBeInTheDocument();
     expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-05");
 
     fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));

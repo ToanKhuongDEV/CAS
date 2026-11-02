@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
@@ -54,7 +55,7 @@ public class PaymentService {
             AuditLogService auditLogs, ObjectMapper json) {
         this(payments, sessions, tables, orders, ordering, auditLogs, json, null);
     }
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, noRollbackFor = PromotionUnavailableException.class)
     public PaymentView create(String sessionPublicId) {
         var session = sessions.requireCurrentForUpdate(sessionPublicId);
         var current = payments.findBySessionId(session.sessionId());
@@ -67,6 +68,10 @@ public class PaymentService {
                     "Vui lòng chờ xử lý các yêu cầu hủy món trước khi thanh toán.");
         var bill = orders.currentBill(sessionPublicId);
         var discount = promotions == null ? null : promotions.selectedForPayment(session);
+        if (promotions != null && session.selectedPromotionId() != null && discount == null) {
+            promotions.clear(sessionPublicId);
+            throw new PromotionUnavailableException();
+        }
         var amount = discount == null ? bill.payableAmount() : discount.payableAmount();
         if (amount.signum() < 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
@@ -89,7 +94,7 @@ public class PaymentService {
             throw new IllegalStateException(e);
         }
     }
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, noRollbackFor = PromotionUnavailableException.class)
     public PaymentView createForOperator(OperationalPrincipal principal, String sessionPublicId,
             UUID requestId) {
         var session = sessions.requireCurrentForUpdate(sessionPublicId);
@@ -105,6 +110,13 @@ public class PaymentService {
                     "Nhân viên tạo yêu cầu thanh toán hộ khách."));
         }
         return payment;
+    }
+
+    private static final class PromotionUnavailableException extends ApiException {
+        private PromotionUnavailableException() {
+            super(HttpStatus.CONFLICT,
+                    "Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi.");
+        }
     }
     @Transactional(readOnly = true)
     public PaymentView current(String id) {

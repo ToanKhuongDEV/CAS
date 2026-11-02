@@ -2,6 +2,8 @@ import { getFirebaseAuth } from "../../auth/firebase";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 type ApiResponse<T> = { data: T; message?: string };
+export const promotionUnavailableMessage =
+  "Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi.";
 export const operatorPendingPaymentCountQueryKey = [
   "operator",
   "payments",

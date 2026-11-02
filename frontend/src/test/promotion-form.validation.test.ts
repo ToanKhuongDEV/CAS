@@ -42,4 +42,17 @@ describe("validatePromotionForm", () => {
   it("accepts a valid whole-bill promotion", () => {
     expect(validatePromotionForm(validForm())).toEqual([]);
   });
+
+  it("accepts comma-separated codes and identifies invalid entries", () => {
+    expect(validatePromotionForm({ ...validForm(), code: "DG12345, RT42, DVG34DD" })).toEqual([]);
+    expect(validatePromotionForm({ ...validForm(), code: "DG12345,, RT-42" })).toEqual(
+      expect.arrayContaining([expect.stringContaining("Ví dụ: DG12345, RT42, DVG34DD")]),
+    );
+  });
+
+  it("identifies duplicate codes even when their quotas differ", () => {
+    expect(
+      validatePromotionForm({ ...validForm(), code: "DG12345:5, RT42, DG12345:10" }),
+    ).toContain("Mã DG12345 bị trùng trong danh sách nhập.");
+  });
 });

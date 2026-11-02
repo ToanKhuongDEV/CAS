@@ -13,12 +13,14 @@ export function PaymentRequestForm({
   isRequesting,
   onRequest,
   operatorSessionId,
+  voucherRefreshKey,
 }: {
   bill: CustomerBill;
   error?: string | null;
   isRequesting?: boolean;
   onRequest: () => void;
   operatorSessionId?: string;
+  voucherRefreshKey?: number;
 }) {
   return (
     <>
@@ -72,6 +74,7 @@ export function PaymentRequestForm({
       </section>
       <div className="mt-4">
         <CustomerOrderVoucherSummary
+          key={voucherRefreshKey}
           operatorSessionId={operatorSessionId}
           originalAmount={bill.payableAmount}
         />

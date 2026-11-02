@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
   showToast: vi.fn(),
   tokenListener: null as null | ((user: unknown) => void),
+  authListener: null as null | ((user: unknown) => void),
 }));
 const router = { replace: mocks.replace, refresh: mocks.refresh };
 
@@ -23,7 +24,10 @@ vi.mock("firebase/auth", () => ({
     mocks.tokenListener = callback;
     return vi.fn();
   },
-  onAuthStateChanged: () => vi.fn(),
+  onAuthStateChanged: (_auth: unknown, callback: (user: unknown) => void) => {
+    mocks.authListener = callback;
+    return vi.fn();
+  },
 }));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ clear: mocks.clear }) }));
 vi.mock("../lib/auth/firebase", () => ({ getFirebaseAuth: () => ({}) }));
@@ -40,8 +44,43 @@ describe("operational logout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.tokenListener = null;
+    mocks.authListener = null;
   });
   afterEach(cleanup);
+
+  it("shows the CAS account name and role instead of the fallback", async () => {
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      storeId: 1,
+      displayName: "Nguyễn An",
+      role: "SUPER_ADMIN",
+    });
+    render(
+      <OperationalAccountMenu area="ADMIN" fallbackName="Quản trị viên" loginPath="/admin/login" />,
+    );
+    act(() => mocks.authListener?.({ displayName: null, email: "admin@example.com" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Nguyễn An/ }));
+    expect(screen.getByRole("menu")).toHaveTextContent("Nguyễn An");
+    expect(screen.getByRole("menu")).toHaveTextContent("SUPER_ADMIN");
+  });
+
+  it("ignores an account response after logout", async () => {
+    let resolveAccount!: (value: Awaited<ReturnType<typeof getCurrentOperationalAccount>>) => void;
+    vi.mocked(getCurrentOperationalAccount).mockReturnValue(
+      new Promise((resolve) => {
+        resolveAccount = resolve;
+      }),
+    );
+    render(
+      <OperationalAccountMenu area="ADMIN" fallbackName="Quản trị viên" loginPath="/admin/login" />,
+    );
+    act(() => mocks.authListener?.({}));
+    act(() => mocks.authListener?.(null));
+    await act(async () =>
+      resolveAccount({ accountId: 1, storeId: 1, displayName: "Tên cũ", role: "SUPER_ADMIN" }),
+    );
+    expect(screen.queryByText("Tên cũ")).not.toBeInTheDocument();
+  });
 
   it("redirects after signing out without refreshing the current route", async () => {
     vi.mocked(signOutOperationalUser).mockResolvedValue();

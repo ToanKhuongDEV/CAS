@@ -28,17 +28,47 @@ vi.mock("../lib/api/store/public-store.api", () => ({
 describe("ScanTableQrPage", () => {
   beforeEach(() => {
     replace.mockClear();
+    searchParams.delete("storeId");
     window.sessionStorage.clear();
     vi.mocked(loadPublicStores).mockResolvedValue([
       {
         id: 1,
         branchName: "Cơ sở Bến Thành",
         address: "1 Đường A",
+        phone: "0900000000",
         latitude: null,
         longitude: null,
         status: "ACTIVE",
       },
     ]);
+  });
+
+  it("uses the branch selected on the start page", async () => {
+    searchParams.set("storeId", "2");
+    vi.mocked(loadPublicStores).mockResolvedValue([
+      {
+        id: 1,
+        branchName: "Cơ sở A",
+        address: "Đường A",
+        latitude: null,
+        longitude: null,
+        status: "ACTIVE",
+      },
+      {
+        id: 2,
+        branchName: "Cơ sở B",
+        address: "Đường B",
+        latitude: null,
+        longitude: null,
+        status: "ACTIVE",
+      },
+    ]);
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
+    expect(await screen.findByRole("button", { name: "Cơ sở B — Đường B" })).toBeInTheDocument();
   });
 
   it("displays the selected branch name and its dropdown option", async () => {
@@ -48,6 +78,9 @@ describe("ScanTableQrPage", () => {
       </ToastProvider>,
     );
     const selector = await screen.findByRole("button", { name: "Cơ sở Bến Thành — 1 Đường A" });
+    expect(
+      screen.getByRole("link", { name: "Không tìm thấy mã bàn? Bấm gọi phục vụ ngay" }),
+    ).toHaveAttribute("href", "tel:0900000000");
     fireEvent.click(selector);
     expect(screen.getByRole("option")).toHaveTextContent("Cơ sở Bến Thành");
   });
@@ -65,9 +98,9 @@ describe("ScanTableQrPage", () => {
       "/start?returnTo=%2Fmenu",
     );
 
-    const input = screen.getByRole("textbox", { name: "Nhập mã QR của bàn" });
+    const input = screen.getByRole("textbox", { name: /Nhập mã QR của bàn/ });
     fireEvent.change(input, { target: { value: "Q00000000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận vào bàn gọi món" }));
 
     expect(await screen.findByText("QR không hợp lệ")).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
@@ -92,10 +125,26 @@ describe("ScanTableQrPage", () => {
     fireEvent.change(await screen.findByRole("textbox", { name: "Số bàn" }), {
       target: { value: "01abc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục với số bàn" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận vào bàn gọi món" }));
 
     await vi.waitFor(() =>
       expect(resolveCustomerSalesSessionByTable).toHaveBeenCalledWith({ storeId: 1, tableCode: 1 }),
     );
+  });
+
+  it("switches between scanning and manual entry", () => {
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
+    const scan = screen.getByRole("button", { name: "Quét mã QR bàn" });
+    const manual = screen.getByRole("button", { name: "Nhập số bàn thủ công" });
+    expect(scan).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(manual);
+    expect(manual).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("textbox", { name: "Số bàn" })).toBeInTheDocument();
+    fireEvent.click(scan);
+    expect(scan).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -58,6 +60,7 @@ public class PromotionService {
     public AdminPromotion create(OperationalPrincipal principal, Promotion promotion,
             List<Code> codes, List<Target> targets, UUID requestId) {
         validate(principal.storeId(), promotion, codes, targets);
+        validateCodeOwnership(principal.storeId(), null, codes);
         String publicId = UUID.randomUUID().toString();
         mapper.insert(publicId, principal.storeId(), promotion);
         long id = mapper.lastInsertId();
@@ -69,13 +72,49 @@ public class PromotionService {
     @Transactional
     public AdminPromotion update(OperationalPrincipal principal, String publicId,
             Promotion promotion, List<Code> codes, List<Target> targets, UUID requestId) {
-        var existing = require(principal.storeId(), publicId);
+        var existing = mapper.findByPublicIdForUpdate(principal.storeId(), publicId);
+        if (existing == null)
+            throw notFound();
         validate(principal.storeId(), promotion, codes, targets);
+        validateCodeOwnership(principal.storeId(), existing.id(), codes);
+        if (promotion.maxRedemptions() != null
+                && promotion.maxRedemptions() < mapper.countConsumedRedemptions(existing.id()))
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Số lượt dùng tối đa không thể nhỏ hơn số lượt đã sử dụng hoặc đang giữ chỗ.");
+        var existingCodes = mapper.findCodes(existing.id());
+        var allCodes = mapper.findAllCodes(existing.id());
+        for (Code code : codes) {
+            var existingCode = allCodes.stream()
+                    .filter(value -> value.code().equalsIgnoreCase(code.value().trim()))
+                    .findFirst();
+            if (existingCode.isPresent() && code.maxRedemptions() != null
+                    && code.maxRedemptions() < mapper
+                            .countConsumedRedemptionsByCode(existingCode.get().id()))
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Số lượt tối đa của mã " + code.value().trim()
+                                + " không thể nhỏ hơn số lượt đã sử dụng hoặc đang giữ chỗ.");
+        }
         if (mapper.update(principal.storeId(), existing.id(), promotion) != 1)
             throw notFound();
-        mapper.deleteCodes(existing.id());
+        for (var existingCode : existingCodes) {
+            if (codes.stream()
+                    .noneMatch(code -> existingCode.code().equalsIgnoreCase(code.value().trim()))
+                    && mapper.softDeleteCode(existing.id(), existingCode.id()) != 1)
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Không thể xóa mã " + existingCode.code() + ".");
+        }
+        for (Code code : codes) {
+            var existingCode = allCodes.stream()
+                    .filter(value -> value.code().equalsIgnoreCase(code.value().trim()))
+                    .findFirst();
+            if (existingCode.isPresent())
+                mapper.restoreCode(existing.id(), existingCode.get().id(), code.maxRedemptions());
+            else
+                insertCode(principal.storeId(), existing.id(), code);
+        }
         mapper.deleteTargets(existing.id());
-        links(principal.storeId(), existing.id(), codes, targets);
+        for (Target target : targets)
+            mapper.insertTarget(principal.storeId(), existing.id(), target.type(), target.id());
         audit(principal, requestId, "PROMOTION_UPDATED", existing.id(), existing.name());
         return details(require(principal.storeId(), publicId));
     }
@@ -109,7 +148,7 @@ public class PromotionService {
         var session = sessions.requireCurrent(sessionPublicId);
         return mapper.findByStoreId(session.storeId()).stream()
                 .filter(promotion -> "ACTIVE".equals(promotion.status()))
-                .filter(promotion -> mapper.findCodes(promotion.id()).isEmpty())
+                .filter(promotion -> !mapper.hasAnyCodes(promotion.id()))
                 .map(promotion -> customerPromotion(session, promotion)).toList();
     }
 
@@ -138,7 +177,7 @@ public class PromotionService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Không có quyền truy cập phiên bàn.");
         return mapper.findByStoreId(session.storeId()).stream()
                 .filter(promotion -> "ACTIVE".equals(promotion.status()))
-                .filter(promotion -> mapper.findCodes(promotion.id()).isEmpty())
+                .filter(promotion -> !mapper.hasAnyCodes(promotion.id()))
                 .map(promotion -> customerPromotion(session, promotion)).toList();
     }
 
@@ -147,7 +186,7 @@ public class PromotionService {
         var session = sessions.requireCurrentForUpdate(sessionPublicId);
         if (!"OPEN".equals(session.sessionStatus()))
             throw invalid();
-        var promotion = require(session.storeId(), promotionId);
+        var promotion = requireForUpdate(session.storeId(), promotionId);
         var selected = eligible(session, promotion, code).orElseThrow(this::invalid);
         mapper.setSelection(session.sessionId(), promotion.id(), selected.codeId());
         return selected;
@@ -161,7 +200,7 @@ public class PromotionService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Không có quyền truy cập phiên bàn.");
         if (!"OPEN".equals(session.sessionStatus()))
             throw invalid();
-        var promotion = require(session.storeId(), promotionId);
+        var promotion = requireForUpdate(session.storeId(), promotionId);
         var selected = eligible(session, promotion, code).orElseThrow(this::invalid);
         mapper.setSelection(session.sessionId(), promotion.id(), selected.codeId());
         return selected;
@@ -277,7 +316,7 @@ public class PromotionService {
         }
         List<PromotionCode> codes = mapper.findCodes(promotion.id());
         PromotionCode code = null;
-        if (!codes.isEmpty()) {
+        if (!codes.isEmpty() || mapper.hasAnyCodes(promotion.id())) {
             if (requestedCode == null || requestedCode.isBlank()) {
                 log.debug("Promotion {} excluded: a code is required", promotion.publicId());
                 return java.util.Optional.empty();
@@ -389,6 +428,10 @@ public class PromotionService {
         if (promotion.promotionType().startsWith("ITEM_") && targets.isEmpty()
                 || !promotion.promotionType().startsWith("ITEM_") && !targets.isEmpty())
             throw invalid();
+        var seen = new java.util.HashSet<String>();
+        for (Code code : codes)
+            if (!seen.add(code.value().trim().toUpperCase(Locale.ROOT)))
+                throw duplicateCode(code.value().trim());
         for (Target target : targets)
             if (!("MENU_ITEM".equals(target.type()) && mapper.existsMenuItem(storeId, target.id())
                     || "CATEGORY".equals(target.type())
@@ -398,13 +441,40 @@ public class PromotionService {
 
     private void links(long storeId, long promotionId, List<Code> codes, List<Target> targets) {
         for (Code code : codes)
-            mapper.insertCode(storeId, promotionId, code.value().trim(), code.maxRedemptions());
+            insertCode(storeId, promotionId, code);
         for (Target target : targets)
             mapper.insertTarget(storeId, promotionId, target.type(), target.id());
     }
 
+    private void validateCodeOwnership(long storeId, Long promotionId, List<Code> codes) {
+        for (Code code : codes) {
+            Long owner = mapper.findCodePromotionId(storeId, code.value().trim());
+            if (owner != null && !owner.equals(promotionId))
+                throw duplicateCode(code.value().trim());
+        }
+    }
+
+    private void insertCode(long storeId, long promotionId, Code code) {
+        try {
+            mapper.insertCode(storeId, promotionId, code.value().trim(), code.maxRedemptions());
+        } catch (DuplicateKeyException exception) {
+            throw duplicateCode(code.value().trim());
+        }
+    }
+
+    private ApiException duplicateCode(String code) {
+        return new ApiException(HttpStatus.CONFLICT, "Mã " + code + " đã tồn tại trong cơ sở này.");
+    }
+
     private Promotion require(long storeId, String publicId) {
         var promotion = mapper.findByPublicId(storeId, publicId);
+        if (promotion == null)
+            throw notFound();
+        return promotion;
+    }
+
+    private Promotion requireForUpdate(long storeId, String publicId) {
+        var promotion = mapper.findByPublicIdForUpdate(storeId, publicId);
         if (promotion == null)
             throw notFound();
         return promotion;

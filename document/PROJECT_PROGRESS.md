@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-10-28
+Ngày cập nhật gần nhất: 2026-11-02
 
 ## Quy ước
 
@@ -52,6 +52,10 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ### API và nghiệp vụ đã hoàn thành
 
+- [x] `POST /api/v1/customer/payments` và `POST /api/v1/operator/sales-sessions/{sessionId}/payments`: trả 409 và bỏ lựa chọn khuyến mãi không còn khả dụng trước khi tạo payment.
+- [x] `POST /api/v1/admin/promotions`, `PUT /api/v1/admin/promotions/{id}`: kiểm tra mã trùng theo cơ sở và trả tên mã bị trùng, kể cả khi phát sinh đồng thời.
+- [x] `PUT /api/v1/admin/promotions/{id}`: cập nhật hạn mức giữ nguyên ID mã, không giảm dưới lượt đã dùng/giữ chỗ; xóa mềm mã và giữ lịch sử kể cả khi đã sử dụng.
+
 - [x] API chế biến Operator tiếp tục hiển thị và hoàn thành món chưa làm của phiên chờ thanh toán hoặc đã đóng; dashboard Admin tính thời gian chờ theo ngày gọi món, không phụ thuộc thanh toán.
 
 - [x] `POST /api/v1/operator/preparation/sessions/{sessionId}/completions`: hoàn thành các món còn lại của một sales session; lưu idempotency theo session và giữ lịch sử thao tác theo bàn.
@@ -80,6 +84,8 @@ Ngày cập nhật gần nhất: 2026-10-28
 
 ### Chưa hoàn thành
 
+- [ ] Chạy integration test MySQL cho cập nhật hạn mức và xóa mềm mã voucher khi Docker sẵn sàng.
+
 - [ ] Điều chỉnh tăng/giảm thủ công trên bill: đã dự thảo migration V9; còn triển khai API, tính tiền, audit log, giao diện và kiểm thử MySQL.
 
 - [x] Món chưa chế biến xong vẫn xuất hiện và có thể hoàn thành sau khi yêu cầu hoặc xác nhận thanh toán.
@@ -88,6 +94,50 @@ Ngày cập nhật gần nhất: 2026-10-28
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Khi yêu cầu thanh toán gặp khuyến mãi không còn khả dụng, thông báo và tải lại danh sách khuyến mãi để chọn lại.
+
+- [x] Thêm hướng dẫn giới hạn lượt chung và lượt riêng từng mã trong form khuyến mãi.
+
+- [x] Bỏ viền focus chồng lớp trên các ô trong form khuyến mãi, giữ viền primary khi được chọn.
+
+- [x] Form khuyến mãi dùng ô mã và số lượt để thêm từng mã hoặc nhóm mã phân tách bằng dấu phẩy; báo rõ mã trùng và giữ dữ liệu khi lưu thất bại.
+
+- [x] Voucher công khai hết lượt sử dụng hiển thị “Hết mã” thay cho “Chưa đủ điều kiện”.
+
+- [x] Thêm hiệu ứng viền đỏ chuyển động cho lựa chọn voucher trên trang thanh toán Customer.
+
+- [x] Thêm họa tiết nhẹ cùng tông màu vào header Customer, không cản thao tác.
+
+- [x] Phân biệt thông báo số phần chế biến vượt mức còn lại và số phần nhỏ hơn 1.
+
+- [x] Hiển thị thông báo tiếng Việt khi Operator nhập số phần chế biến vượt số lượng còn lại.
+
+- [x] Sau khi Operator tạo yêu cầu thanh toán, đóng form và cập nhật danh sách phiên đang mở để tiếp tục thao tác.
+
+- [x] Bổ sung khung góc và vệt sáng chuyển động cho camera quét QR; tôn trọng cài đặt giảm chuyển động.
+
+- [x] Trang Scan hiển thị liên hệ phục vụ theo số điện thoại cơ sở đang chọn.
+
+- [x] Đặt ô số bàn và mã QR cạnh nhau trên trang Scan, kể cả màn hình mobile.
+
+- [x] Chỉnh lại trang Scan theo thiết kế Stitch: chuyển chế độ quét hoặc nhập thủ công, khung camera và khối nhập chi tiết dùng màu, font và header hiện có.
+
+- [x] Trang Start yêu cầu chọn chi nhánh trước khi tiếp tục chọn bàn.
+
+- [x] Số bước trên trang Start hiển thị 1/2 khi ăn tại quán và 1/1 khi mang về.
+
+- [x] Bỏ thông báo trình duyệt không hỗ trợ quét QR tự động trên trang Scan.
+
+- [x] Menu tài khoản vận hành hiển thị tên và vai trò từ tài khoản CAS hiện tại; bỏ tên mặc định ADMIN Master.
+
+- [x] Lời chào trang bắt đầu gọi món dùng tên thương hiệu trả về từ API, không dùng tên thương hiệu mặc định khi chưa tải được dữ liệu.
+
+- [x] Bổ sung nội dung hướng dẫn, bước thực hiện và thông tin cơ sở thực tế trên màn bắt đầu gọi món và xác nhận bàn.
+
+- [x] Làm mới bố cục chọn hình thức phục vụ và xác nhận bàn theo thiết kế Stitch, giữ header, font và màu hiện có.
+
+- [x] Trang bắt đầu gọi món Customer hiển thị slogan thương hiệu từ dữ liệu cửa hàng như header Customer.
 
 - [ ] Giao diện điều chỉnh hóa đơn Operator đã có các trường loại, số tiền và lý do tại phiên mở và payment chờ; đang khóa thao tác đến khi backend được triển khai.
 
@@ -203,6 +253,8 @@ Ngày cập nhật gần nhất: 2026-10-28
 - [ ] Chốt cấu hình VPS, logging/monitoring, backup/restore MySQL và thử nghiệm triển khai tại cửa hàng.
 
 ## 8. Việc tiếp theo
+
+- Rà soát ngày 2026-11-02: ưu tiên kiểm thử các luồng cốt lõi và hoàn thiện điều chỉnh bill sau khi chốt nghiệp vụ; cần đối chiếu lại mục dashboard dùng mock vì frontend hiện gọi API dashboard.
 
 1. Chốt định nghĩa báo cáo Admin, dữ liệu nguồn, bộ lọc và API contract; phân tách hao hụt dựa trên `is_remade`.
 2. Ghép dashboard Admin và các phần còn dùng mock với API/dữ liệu production.

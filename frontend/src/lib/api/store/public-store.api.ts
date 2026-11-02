@@ -18,6 +18,7 @@ export type PublicStore = {
   /** @deprecated API responses now use branchName. */
   name?: string;
   address: string;
+  phone?: string | null;
   latitude: number | null;
   longitude: number | null;
   status: "ACTIVE";

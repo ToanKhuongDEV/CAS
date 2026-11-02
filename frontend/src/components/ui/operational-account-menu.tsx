@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { getFirebaseAuth } from "../../lib/auth/firebase";
-import { signOutOperationalUser } from "../../lib/auth/operational-auth";
+import {
+  getCurrentOperationalAccount,
+  signOutOperationalUser,
+  type CurrentOperationalAccount,
+} from "../../lib/auth/operational-auth";
 import { CasIcon } from "./cas-icon";
 import { useToast } from "./toast-provider";
 
@@ -27,12 +31,28 @@ export function OperationalAccountMenu({
   const menuReference = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [account, setAccount] = useState<CurrentOperationalAccount | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    let revision = 0;
     try {
-      const unsubscribe = onAuthStateChanged(getFirebaseAuth(), setUser);
-      return unsubscribe;
+      const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (nextUser) => {
+        const currentRevision = ++revision;
+        setUser(nextUser);
+        setAccount(null);
+        if (!nextUser) return;
+        void getCurrentOperationalAccount(nextUser)
+          .then((nextAccount) => {
+            if (active && revision === currentRevision) setAccount(nextAccount);
+          })
+          .catch(() => undefined);
+      });
+      return () => {
+        active = false;
+        unsubscribe();
+      };
     } catch {}
   }, []);
 
@@ -62,7 +82,7 @@ export function OperationalAccountMenu({
     router.replace(loginPath);
   }
 
-  const accountName = user?.displayName || fallbackName;
+  const accountName = account?.displayName || fallbackName;
   const phone = user?.phoneNumber || "Chưa cập nhật";
   const avatarClasses =
     area === "ADMIN"
@@ -84,7 +104,11 @@ export function OperationalAccountMenu({
         <span className="hidden sm:block">
           <span className="block text-xs font-extrabold">{accountName}</span>
           <span className="block text-[0.68rem] text-cas-on-surface-variant">
-            {area === "ADMIN" ? "Quản trị viên" : "Nhân viên đang trực"}
+            {account?.role === "SUPER_ADMIN"
+              ? "Super Admin"
+              : area === "ADMIN"
+                ? "Quản trị viên"
+                : "Nhân viên đang trực"}
           </span>
         </span>
         <CasIcon
@@ -105,7 +129,7 @@ export function OperationalAccountMenu({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-extrabold">{accountName}</p>
-              <p className="text-xs text-cas-on-surface-variant">{area}</p>
+              <p className="text-xs text-cas-on-surface-variant">{account?.role ?? area}</p>
             </div>
           </div>
 

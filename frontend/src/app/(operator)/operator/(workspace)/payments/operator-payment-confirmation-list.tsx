@@ -264,8 +264,6 @@ export function OperatorPaymentConfirmationList({
         <div className="mt-6">
           <OperatorPaymentControlView
             onPaymentRequested={() => {
-              setShowPaymentControl(false);
-              setMode("PENDING");
               void queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey });
             }}
           />

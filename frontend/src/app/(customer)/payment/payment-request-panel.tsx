@@ -10,6 +10,7 @@ import { loadCustomerBill, type CustomerBill } from "../../../lib/api/ordering/o
 import {
   createCustomerPayment,
   loadCustomerPayment,
+  promotionUnavailableMessage,
   type Payment,
 } from "../../../lib/api/payment/payment.api";
 
@@ -35,6 +36,8 @@ export function PaymentRequestPanel({
   const [bill, setBill] = useState<CustomerBill | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
+  const [voucherRefreshKey, setVoucherRefreshKey] = useState(0);
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(true);
 
@@ -108,11 +111,17 @@ export function PaymentRequestPanel({
     if (isRequestingPayment || isPending) return;
 
     setError(null);
+    setPromotionError(null);
     setIsRequestingPayment(true);
     try {
       setPayment(await createCustomerPayment());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể gửi yêu cầu thanh toán.");
+      if (cause instanceof Error && cause.message === promotionUnavailableMessage) {
+        setPromotionError(cause.message);
+        setVoucherRefreshKey((value) => value + 1);
+      } else {
+        setError(cause instanceof Error ? cause.message : "Không thể gửi yêu cầu thanh toán.");
+      }
     } finally {
       setIsRequestingPayment(false);
     }
@@ -209,9 +218,10 @@ export function PaymentRequestPanel({
   return (
     <PaymentRequestForm
       bill={bill}
-      error={error}
+      error={promotionError ?? error}
       isRequesting={isRequestingPayment || isPending}
       onRequest={() => void requestPayment()}
+      voucherRefreshKey={voucherRefreshKey}
     />
   );
 }

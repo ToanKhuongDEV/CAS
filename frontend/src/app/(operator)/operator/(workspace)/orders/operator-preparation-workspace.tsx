@@ -139,7 +139,13 @@ export function OperatorPreparationWorkspace() {
       quantity > group.remainingQuantity
     ) {
       showToast({
-        message: `Vui lòng nhập số phần từ 1 đến ${group?.remainingQuantity ?? 1}.`,
+        message: !group
+          ? "Không tìm thấy món cần hoàn thành. Vui lòng tải lại danh sách."
+          : quantity < 1
+            ? "Số phần hoàn thành phải lớn hơn hoặc bằng 1."
+            : quantity > group.remainingQuantity
+              ? `Số phần hoàn thành tối đa là ${group.remainingQuantity}.`
+              : "Số phần hoàn thành phải là số nguyên.",
         type: "error",
       });
       return;
@@ -277,6 +283,7 @@ export function OperatorPreparationWorkspace() {
                     </ol>
                     <form
                       className="mt-3 flex flex-wrap items-end gap-2 border-t border-cas-outline-variant/25 pt-3"
+                      noValidate
                       onSubmit={(event) => void handlePreparedQuantitySubmit(event, group.groupKey)}
                     >
                       <label className="min-w-40 flex-1" htmlFor={`prepared-${group.groupKey}`}>

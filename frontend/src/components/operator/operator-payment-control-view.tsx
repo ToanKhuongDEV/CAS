@@ -8,7 +8,11 @@ import {
   loadOperatorSessionListing,
 } from "../../lib/api/ordering/ordering.api";
 import { formatOrderDestination } from "../../lib/ordering/order-destination";
-import { createOperatorPayment, recordOperatorUnpaid } from "../../lib/api/payment/payment.api";
+import {
+  createOperatorPayment,
+  promotionUnavailableMessage,
+  recordOperatorUnpaid,
+} from "../../lib/api/payment/payment.api";
 import {
   CustomerOrderVoucherSummary,
   type VoucherSummary,
@@ -43,6 +47,7 @@ export function OperatorPaymentControlView({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [unpaidTable, setUnpaidTable] = useState<ActiveTable | null>(null);
+  const [voucherRefreshKey, setVoucherRefreshKey] = useState(0);
 
   async function refresh() {
     setIsLoading(true);
@@ -94,6 +99,7 @@ export function OperatorPaymentControlView({
   async function chooseVoucher(voucher: EligiblePromotion | null) {
     if (!selected) return;
     setIsSaving(true);
+    setError(null);
     try {
       if (voucher)
         await selectOperatorPromotion(selected.sessionId, voucher.promotionId, voucher.code);
@@ -110,11 +116,16 @@ export function OperatorPaymentControlView({
   async function requestPayment() {
     if (!selected) return;
     setIsSaving(true);
+    setError(null);
     try {
       await createOperatorPayment(selected.sessionId);
       setSelected(null);
+      setTables((current) => current.filter((table) => table.sessionId !== selected.sessionId));
       onPaymentRequested();
+      await refresh();
     } catch (cause) {
+      if (cause instanceof Error && cause.message === promotionUnavailableMessage)
+        setVoucherRefreshKey((value) => value + 1);
       setError(cause instanceof Error ? cause.message : "Không thể tạo yêu cầu thanh toán.");
     } finally {
       setIsSaving(false);
@@ -218,6 +229,7 @@ export function OperatorPaymentControlView({
                   isRequesting={isSaving}
                   onRequest={() => void requestPayment()}
                   operatorSessionId={selected.sessionId}
+                  voucherRefreshKey={voucherRefreshKey}
                 />
                 <div className="hidden">
                   <ul className="mt-5 divide-y divide-cas-outline-variant/35">

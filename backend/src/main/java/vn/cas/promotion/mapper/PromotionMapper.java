@@ -12,9 +12,14 @@ import vn.cas.promotion.model.PromotionTarget;
 public interface PromotionMapper {
     List<Promotion> findByStoreId(@Param("storeId") long storeId);
     Promotion findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
+    Promotion findByPublicIdForUpdate(@Param("storeId") long storeId,
+            @Param("publicId") String publicId);
     Promotion findById(@Param("storeId") long storeId, @Param("id") long id);
     Promotion findByIdForUpdate(@Param("storeId") long storeId, @Param("id") long id);
     List<PromotionCode> findCodes(@Param("promotionId") long promotionId);
+    List<PromotionCode> findAllCodes(@Param("promotionId") long promotionId);
+    boolean hasAnyCodes(@Param("promotionId") long promotionId);
+    Long findCodePromotionId(@Param("storeId") long storeId, @Param("code") String code);
     List<PromotionTarget> findTargets(@Param("promotionId") long promotionId);
     List<PromotionTargetName> findTargetNames(@Param("promotionId") long promotionId);
     PromotionCode findCode(@Param("promotionId") long promotionId, @Param("id") long id);
@@ -37,6 +42,9 @@ public interface PromotionMapper {
     int updateStatus(@Param("storeId") long storeId, @Param("id") long id,
             @Param("status") String status);
     int deleteCodes(@Param("promotionId") long promotionId);
+    int restoreCode(@Param("promotionId") long promotionId, @Param("id") long id,
+            @Param("maxRedemptions") Integer maxRedemptions);
+    int softDeleteCode(@Param("promotionId") long promotionId, @Param("id") long id);
     int insertCode(@Param("storeId") long storeId, @Param("promotionId") long promotionId,
             @Param("code") String code, @Param("maxRedemptions") Integer maxRedemptions);
     int deleteTargets(@Param("promotionId") long promotionId);

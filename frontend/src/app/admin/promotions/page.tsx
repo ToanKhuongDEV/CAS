@@ -149,15 +149,17 @@ export function validatePromotionForm(form: PromotionForm): string[] {
   if (!isItemPromotion && form.targets.length > 0) {
     errors.push("Khuyến mãi toàn bill không được chọn phạm vi món hoặc danh mục.");
   }
-  if (
-    form.code
-      .split(",")
-      .map((value) => value.trim())
-      .some((value) => value && !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))
-  ) {
-    errors.push(
-      "Mã chỉ gồm chữ in hoa không dấu và số; dùng CODE:quota, ngăn nhiều mã bằng dấu phẩy.",
-    );
+  if (form.code.trim()) {
+    const entries = form.code.split(",").map((value) => value.trim());
+    if (entries.some((value) => !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))) {
+      errors.push(
+        "Mã chỉ gồm chữ in hoa không dấu và số, ngăn cách bằng dấu phẩy. Ví dụ: DG12345, RT42, DVG34DD. Giới hạn riêng: DG12345:50.",
+      );
+    } else {
+      const codes = entries.map((entry) => entry.split(":")[0]);
+      const duplicate = codes.find((code, index) => codes.indexOf(code) !== index);
+      if (duplicate) errors.push(`Mã ${duplicate} bị trùng trong danh sách nhập.`);
+    }
   }
 
   return errors;
@@ -193,6 +195,9 @@ export default function AdminPromotionsPage() {
   } | null>(null);
   const [targetType, setTargetType] = useState<TargetType | "">("");
   const [targetId, setTargetId] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [codeQuota, setCodeQuota] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [catalogMenuItems, setCatalogMenuItems] = useState(menuItems);
   const [catalogCategories, setCatalogCategories] = useState(categories);
 
@@ -274,6 +279,9 @@ export default function AdminPromotionsPage() {
     setForm(emptyForm());
     setTargetType("");
     setTargetId("");
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
     setFormErrors([]);
     setShowForm(true);
   };
@@ -298,6 +306,9 @@ export default function AdminPromotionsPage() {
     });
     setTargetType("");
     setTargetId("");
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
     setFormErrors([]);
     setShowForm(true);
   };
@@ -337,9 +348,77 @@ export default function AdminPromotionsPage() {
     setFormErrors([]);
   };
 
+  const addCodes = () => {
+    const entries = codeInput.split(",").map((code) => code.trim());
+    if (!codeInput.trim() || entries.some((code) => !/^[A-Z0-9]{1,100}$/.test(code))) {
+      setCodeError(
+        "Mã chỉ gồm chữ in hoa không dấu và số, cách nhau bằng dấu phẩy. Ví dụ: DG12345, RT42, DVG34DD.",
+      );
+      return;
+    }
+    if (codeQuota && (!/^[1-9]\d*$/.test(codeQuota) || Number(codeQuota) > 2147483647)) {
+      setCodeError(
+        "Số lượt phải là số nguyên từ 1 đến 2147483647, hoặc để trống nếu không giới hạn.",
+      );
+      return;
+    }
+    const added = form.code
+      .split(",")
+      .map((entry) => entry.trim().split(":")[0])
+      .filter(Boolean);
+    const duplicate = entries.find(
+      (code, index) => entries.indexOf(code) !== index || added.includes(code),
+    );
+    if (duplicate) {
+      setCodeError(`Mã ${duplicate} bị trùng trong danh sách nhập.`);
+      return;
+    }
+    const existing = entries.find((code) =>
+      promotions.some(
+        (promotion) =>
+          promotion.id !== editingId &&
+          promotion.code.split(",").some((entry) => entry.trim().split(":")[0] === code),
+      ),
+    );
+    if (existing) {
+      setCodeError(`Mã ${existing} đã tồn tại trong cơ sở này.`);
+      return;
+    }
+    const next = entries.map((code) => (codeQuota ? `${code}:${codeQuota}` : code));
+    updateForm(
+      "code",
+      [
+        ...form.code
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+        ...next,
+      ].join(", "),
+    );
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (codeInput.trim() || codeQuota.trim()) {
+      setCodeError("Nhấn Thêm mã để đưa mã đang nhập vào danh sách trước khi lưu.");
+      return;
+    }
     const errors = validatePromotionForm(form);
+    const enteredCodes = form.code
+      .split(",")
+      .map((entry) => entry.trim().split(":")[0])
+      .filter(Boolean);
+    const duplicate = enteredCodes.find((code) =>
+      promotions.some(
+        (promotion) =>
+          promotion.id !== editingId &&
+          promotion.code.split(",").some((entry) => entry.trim().split(":")[0] === code),
+      ),
+    );
+    if (duplicate) errors.push(`Mã ${duplicate} đã tồn tại trong cơ sở này.`);
     if (errors.length > 0) {
       setFormErrors(errors);
       return;
@@ -456,7 +535,8 @@ export default function AdminPromotionsPage() {
         );
         setApiError(null);
       } catch (cause) {
-        setApiError(cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi.");
+        setFormErrors([cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi."]);
+        setConfirmTarget(null);
         return;
       }
       setConfirmTarget(null);
@@ -708,20 +788,83 @@ export default function AdminPromotionsPage() {
                       className={inputClass}
                     />
                   </Field>
-                  <Field
-                    label="Mã khuyến mãi"
-                    className="sm:col-span-2"
-                    tooltip="Nếu cấu hình mã, khách hàng phải nhập đúng mã này mới áp dụng được khuyến mãi. Chương trình có mã sẽ không xuất hiện trong danh sách khuyến mãi công khai; khách chỉ có thể tìm thấy khi nhập mã."
-                  >
-                    <input
-                      value={form.code}
-                      onChange={(e) => updateForm("code", e.target.value.toUpperCase())}
-                      placeholder="VD: SUMMER50K (để trống nếu không cần mã)"
-                      className={inputClass}
-                      maxLength={500}
-                      title="Nhập nhiều mã cách nhau bằng dấu phẩy; dùng CODE:quota cho quota riêng từng mã."
-                    />
-                  </Field>
+                  <div className="space-y-2 sm:col-span-2">
+                    <p className="text-sm font-bold text-cas-on-surface">Mã khuyến mãi</p>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <Field label="Mã" className="min-w-36 flex-1">
+                        <input
+                          value={codeInput}
+                          onChange={(e) => {
+                            setCodeInput(e.target.value.toUpperCase());
+                            setCodeError(null);
+                          }}
+                          placeholder="VD: DG12345, RT42, DVG34DD"
+                          className={inputClass}
+                          maxLength={500}
+                        />
+                      </Field>
+                      <Field label="Số lượt" className="w-28">
+                        <input
+                          value={codeQuota}
+                          onChange={(e) => {
+                            setCodeQuota(e.target.value);
+                            setCodeError(null);
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Không giới hạn"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <CasButton
+                        type="button"
+                        onClick={addCodes}
+                        variant="outline-primary"
+                        size="sm"
+                      >
+                        Thêm mã
+                      </CasButton>
+                    </div>
+                    {codeError ? (
+                      <p role="alert" className="text-xs font-bold text-cas-error">
+                        {codeError}
+                      </p>
+                    ) : null}
+                    <ul aria-label="Danh sách mã khuyến mãi" className="flex flex-wrap gap-2">
+                      {form.code
+                        .split(",")
+                        .map((entry) => entry.trim())
+                        .filter(Boolean)
+                        .map((entry) => {
+                          const [code, quota] = entry.split(":");
+                          return (
+                            <li
+                              key={code}
+                              className="inline-flex items-center gap-2 rounded-lg bg-cas-primary/10 px-2 py-1 text-xs font-bold text-cas-primary"
+                            >
+                              {code} · {quota ? `${quota} lượt` : "Không giới hạn"}
+                              <button
+                                type="button"
+                                aria-label={`Xóa mã ${code}`}
+                                className="hover:text-cas-error"
+                                onClick={() =>
+                                  updateForm(
+                                    "code",
+                                    form.code
+                                      .split(",")
+                                      .map((item) => item.trim())
+                                      .filter((item) => item.split(":")[0] !== code)
+                                      .join(", "),
+                                  )
+                                }
+                              >
+                                <CasIcon name="close" className="size-3" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
                   <Field label="Loại promotion">
                     <select
                       value={form.promotionType}
@@ -802,7 +945,10 @@ export default function AdminPromotionsPage() {
                       placeholder="Không yêu cầu"
                     />
                   </Field>
-                  <Field label="Số lượt dùng tối đa">
+                  <Field
+                    label="Số lượt dùng tối đa"
+                    tooltip="Giới hạn tổng lượt cho cả chương trình, tính chung mọi mã và cả lượt đang giữ chỗ. Ví dụ: chương trình tối đa 100 lượt thì tất cả mã cộng lại dùng tối đa 100 lượt. Mỗi mã vẫn phải còn lượt riêng để được áp dụng. Để trống nếu không giới hạn."
+                  >
                     <OptionalNumberInput
                       value={form.maxRedemptions}
                       onChange={(v) => updateForm("maxRedemptions", v)}
@@ -1182,7 +1328,7 @@ export default function AdminPromotionsPage() {
 // ─── Shared UI helpers ────────────────────────────────────────────────────────
 
 const inputClass =
-  "w-full rounded-xl border border-cas-outline-variant/35 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary";
+  "w-full rounded-xl border border-cas-outline-variant/35 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:border-cas-primary focus-visible:outline-none";
 
 function Field({
   label,
@@ -1199,7 +1345,7 @@ function Field({
     <label className={`block ${className}`}>
       <span className="mb-1 flex items-center gap-1 text-[0.7rem] font-bold text-cas-on-surface-variant">
         {label}
-        {tooltip && <InfoTooltip text={tooltip} />}
+        {tooltip && <InfoTooltip text={tooltip} label={label} />}
       </span>
       {children}
     </label>
@@ -1219,18 +1365,18 @@ function FormTitle({
     <h4 className="flex items-center gap-2 text-sm font-black text-cas-on-surface">
       <CasIcon name={icon} className="size-4 text-cas-primary" />
       {title}
-      {tooltip && <InfoTooltip text={tooltip} />}
+      {tooltip && <InfoTooltip text={tooltip} label={title} />}
     </h4>
   );
 }
 
-function InfoTooltip({ text }: { text: string }) {
+function InfoTooltip({ text, label }: { text: string; label: string }) {
   return (
     <span className="group relative inline-flex">
       <button
         type="button"
         className="grid size-4 place-items-center rounded-full border border-cas-outline-variant/70 text-[0.65rem] font-black leading-none text-cas-on-surface-variant transition-colors hover:border-cas-primary hover:text-cas-primary focus:outline-none focus:ring-2 focus:ring-cas-primary"
-        aria-label="Giải thích phạm vi áp dụng"
+        aria-label={`Giải thích ${label}`}
       >
         !
       </button>

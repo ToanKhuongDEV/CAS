@@ -113,6 +113,26 @@ class PaymentServiceTest {
     }
 
     @Test
+    void rejectsUnavailablePromotionAndClearsSelectionBeforeCreatingPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var session = new SalesSessionLookup(10L, 20L, 3L, 5L, 9L, 1L, null, "session-1", "OPEN");
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session);
+        when(orders.currentBill("session-1")).thenReturn(new CustomerOrderingService.Bill(5L,
+                "OPEN", BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000), List.of()));
+        when(promotions.selectedForPayment(session)).thenReturn(null);
+
+        assertThatThrownBy(() -> serviceWithPromotions.create("session-1"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Khuyến mãi đã không còn khả dụng");
+        verify(promotions).clear("session-1");
+        verify(payments, never()).insert(any(), org.mockito.ArgumentMatchers.anyLong(), any(),
+                any());
+        verify(tables, never()).moveSessionToPaymentPending(10L);
+    }
+
+    @Test
     void shouldCompleteReservedPromotionWhenConfirmingPayment() {
         var promotions = mock(PromotionService.class);
         var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,

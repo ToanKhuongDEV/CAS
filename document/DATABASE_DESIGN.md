@@ -411,9 +411,15 @@ Lưu mã nhập tùy chọn của promotion. Một promotion có thể không c�
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu code |
 | `promotion_id` | `BIGINT UNSIGNED NOT NULL` | Promotion của code |
 | `code` | `VARCHAR(100) NOT NULL` | Mã khách nhập, unique trong store |
-| `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn redemption `COMPLETED` của riêng code; `NULL` là không giới hạn |
+| `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn lượt `RESERVED`, `COMPLETED` và `FORFEITED` của riêng code; `NULL` là không giới hạn |
+| `deleted_at` | `DATETIME(3) NULL` | Thời điểm xóa mềm; `NULL` là mã còn hiệu lực |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Mã được xóa mềm kể cả khi đã sử dụng; ID, tham chiếu và snapshot thanh toán được
+giữ lại. Mã đã xóa không được chọn hoặc áp dụng mới; có thể thêm lại vào chính
+promotion với cùng ID. Một promotion từng có mã không tự trở thành khuyến mãi
+công khai khi mọi mã bị xóa.
 
 #### `promotion_targets`
 

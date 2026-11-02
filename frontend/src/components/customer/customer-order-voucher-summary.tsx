@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import styles from "./customer-order-voucher-summary.module.css";
 import {
   clearCustomerPromotion,
   loadCustomerEligiblePromotions,
@@ -135,21 +136,25 @@ export function CustomerOrderVoucherSummary({
 
   return (
     <div className="border-t border-cas-outline-variant/40 pt-5">
-      <button
-        className="flex w-full items-center justify-between gap-4 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-3 text-left hover:bg-cas-primary/10"
-        onClick={() => setIsVoucherModalOpen(true)}
-        type="button"
-      >
-        <span>
-          <span className="block text-sm font-bold text-cas-on-surface">Voucher / khuyến mãi</span>
-          <span className="mt-0.5 block text-sm text-cas-on-surface-variant">
-            {selected ? (selectedCode ?? selected.name) : "Chọn hoặc nhập voucher"}
+      <div className={operatorSessionId ? undefined : styles.voucherBorder}>
+        <button
+          className="relative flex w-full items-center justify-between gap-4 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-3 text-left hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+          onClick={() => setIsVoucherModalOpen(true)}
+          type="button"
+        >
+          <span>
+            <span className="block text-sm font-bold text-cas-on-surface">
+              Voucher / khuyến mãi
+            </span>
+            <span className="mt-0.5 block text-sm text-cas-on-surface-variant">
+              {selected ? (selectedCode ?? selected.name) : "Chọn hoặc nhập voucher"}
+            </span>
           </span>
-        </span>
-        <span className="shrink-0 text-sm font-extrabold text-cas-primary">
-          {selected ? `Đã giảm ${formatMoney(discountAmount)}` : "Chọn"}
-        </span>
-      </button>
+          <span className="shrink-0 text-sm font-extrabold text-cas-primary">
+            {selected ? `Đã giảm ${formatMoney(discountAmount)}` : "Chọn"}
+          </span>
+        </button>
+      </div>
 
       {isVoucherModalOpen && (
         <div
@@ -247,11 +252,11 @@ export function CustomerOrderVoucherSummary({
               {unavailablePublicVouchers.length > 0 && (
                 <div className="mt-5 border-t border-cas-outline-variant/40 pt-5">
                   <p className="text-sm font-bold text-cas-on-surface-variant">Chưa thể áp dụng</p>
-                  <ul aria-label="Voucher chưa đủ điều kiện" className="mt-2 space-y-2">
+                  <ul aria-label="Voucher chưa thể áp dụng" className="mt-2 space-y-2">
                     {unavailablePublicVouchers.map((voucher) => (
                       <li key={voucher.promotionId}>
                         <button
-                          aria-label={`${voucher.name}: Chưa đủ điều kiện áp dụng`}
+                          aria-label={`${voucher.name}: ${voucher.unavailableReason === "Khuyến mãi đã hết lượt sử dụng." ? "Hết mã" : "Chưa đủ điều kiện áp dụng"}`}
                           className="w-full cursor-not-allowed rounded-xl border border-cas-outline-variant/40 p-3 text-left opacity-55"
                           disabled
                           type="button"
@@ -272,7 +277,9 @@ export function CustomerOrderVoucherSummary({
                               </p>
                             </div>
                             <span className="shrink-0 text-sm font-extrabold text-cas-on-surface-variant">
-                              Chưa đủ điều kiện
+                              {voucher.unavailableReason === "Khuyến mãi đã hết lượt sử dụng."
+                                ? "Hết mã"
+                                : "Chưa đủ điều kiện"}
                             </span>
                           </div>
                         </button>

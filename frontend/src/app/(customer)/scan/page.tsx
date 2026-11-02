@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import styles from "./scan.module.css";
 
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { CasButton } from "../../../components/ui/cas-button";
@@ -45,6 +46,7 @@ export default function ScanTableQrPage() {
   const isResolving = useRef(false);
   const { showToast } = useToast();
   const [message, setMessage] = useState("Đưa mã QR của bàn vào khung camera.");
+  const [scanMode, setScanMode] = useState(true);
   const [manualQrValue, setManualQrValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [stores, setStores] = useState<PublicStore[]>([]);
@@ -65,9 +67,8 @@ export default function ScanTableQrPage() {
 
       isResolving.current = true;
       setSubmitting(true);
-      const storeId = Number(params.get("storeId"));
       const resolution = await resolveCustomerSalesSession(token, {
-        ...(Number.isSafeInteger(storeId) && storeId > 0 ? { storeId } : {}),
+        ...(storeId ? { storeId } : {}),
       });
       window.sessionStorage.setItem("cas.tableQrToken", token);
       if (resolution.sessionStatus === "PAYMENT_PENDING") {
@@ -131,22 +132,26 @@ export default function ScanTableQrPage() {
   }
 
   useEffect(() => {
+    if (!scanMode) return;
     let stream: MediaStream | null = null;
     let timer = 0;
+    let active = true;
     const Detector = (
       window as typeof window & {
         BarcodeDetector?: new (options: { formats: string[] }) => BarcodeDetectorLike;
       }
     ).BarcodeDetector;
     if (!Detector) {
-      setMessage(
-        "Trình duyệt chưa hỗ trợ quét QR tự động. Hãy mở bằng Chrome hoặc nhập mã bên dưới.",
-      );
+      setMessage("");
       return;
     }
     void navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment" } })
       .then((next) => {
+        if (!active) {
+          next.getTracks().forEach((track) => track.stop());
+          return;
+        }
         stream = next;
         if (!video.current) return;
         video.current.srcObject = next;
@@ -160,10 +165,11 @@ export default function ScanTableQrPage() {
       })
       .catch(() => setMessage("Không thể mở camera. Hãy cho phép quyền camera hoặc nhập mã QR."));
     return () => {
+      active = false;
       window.clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [scanMode, storeId]);
 
   useEffect(() => {
     if (storeId || stores.length < 2 || !navigator.geolocation) return;
@@ -190,7 +196,9 @@ export default function ScanTableQrPage() {
     void loadPublicStores()
       .then((result) => {
         setStores(result);
-        if (result.length === 1) setStoreId(result[0].id);
+        const requestedStoreId = Number(params.get("storeId"));
+        if (result.some((store) => store.id === requestedStoreId)) setStoreId(requestedStoreId);
+        else if (result.length === 1) setStoreId(result[0].id);
       })
       .catch(() => undefined);
   }, []);
@@ -206,7 +214,7 @@ export default function ScanTableQrPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 text-center">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col px-5 pt-24 pb-8">
       <Link
         className="mb-6 inline-flex w-fit items-center gap-2 text-sm font-bold text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
         href={`/start?returnTo=${encodeURIComponent(params.get("returnTo") ?? "/menu")}`}
@@ -214,53 +222,68 @@ export default function ScanTableQrPage() {
         <CasIcon className="size-4 -scale-x-100" name="arrow" />
         Quay lại chọn loại đơn
       </Link>
-      <span className="mx-auto grid size-16 place-items-center rounded-3xl bg-cas-primary/10 text-cas-primary">
-        <CasIcon className="size-8" name="table" />
-      </span>
-      <h1 className="mt-5 text-2xl font-extrabold">Quét mã QR của bàn</h1>
-      <p className="mt-2 text-sm text-cas-on-surface-variant">{message}</p>
-      <video
-        autoPlay
-        className="mt-6 aspect-square w-full rounded-3xl bg-cas-surface-container object-cover"
-        muted
-        playsInline
-        ref={video}
-      />
-      <form
-        className="mt-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void open(manualQrValue);
-        }}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold">Xác nhận vị trí bàn</h1>
+        <span className="rounded-full bg-cas-primary/10 px-3 py-1 text-xs font-bold text-cas-primary">
+          Bước 2 / 2
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-cas-on-surface-variant">
+        Gọi món nhanh, phục vụ chu đáo tận bàn.
+      </p>
+      <nav
+        aria-label="Phương thức nhập bàn"
+        className="mt-6 grid grid-cols-2 gap-1 rounded-2xl bg-cas-surface-container p-1"
       >
-        <label className="text-left text-sm font-bold" htmlFor="manual-qr-token">
-          Nhập mã QR của bàn
-        </label>
-        <input
-          aria-describedby="manual-qr-help"
-          className="mt-2 w-full rounded-xl border border-cas-outline-variant bg-cas-surface p-3 font-normal"
-          id="manual-qr-token"
-          onChange={(event) => setManualQrValue(event.target.value)}
-          placeholder="Ví dụ: Q12345678 hoặc dán đường dẫn QR"
-          ref={input}
-          value={manualQrValue}
-        />
-        <p className="mt-2 text-left text-xs text-cas-on-surface-variant" id="manual-qr-help">
-          Mã sẽ được kiểm tra trước khi chuyển sang bước tiếp theo.
-        </p>
-        <CasButton
-          className="mt-3 min-h-12 w-full rounded-xl"
-          disabled={!manualQrValue.trim() || submitting}
-          type="submit"
+        <button
+          aria-pressed={scanMode}
+          className={`rounded-xl px-2 py-3 text-sm font-bold focus-visible:outline-3 focus-visible:outline-cas-focus-ring ${scanMode ? "bg-cas-surface text-cas-primary shadow-sm" : "text-cas-on-surface-variant"}`}
+          onClick={() => setScanMode(true)}
+          type="button"
         >
-          {submitting ? "Đang kiểm tra mã..." : "Tiếp tục"}
-        </CasButton>
-      </form>
-      <section className="mt-8 border-t border-cas-outline-variant pt-6 text-left">
-        <h2 className="text-lg font-extrabold">Hoặc chọn số bàn</h2>
-        <p className="mt-1 text-sm text-cas-on-surface-variant">
-          Chọn cơ sở rồi nhập số bàn nếu không thể quét QR.
-        </p>
+          Quét mã QR bàn
+        </button>
+        <button
+          aria-pressed={!scanMode}
+          className={`rounded-xl px-2 py-3 text-sm font-bold focus-visible:outline-3 focus-visible:outline-cas-focus-ring ${!scanMode ? "bg-cas-surface text-cas-primary shadow-sm" : "text-cas-on-surface-variant"}`}
+          onClick={() => setScanMode(false)}
+          type="button"
+        >
+          Nhập số bàn thủ công
+        </button>
+      </nav>
+      {scanMode ? (
+        <section className="mt-4">
+          <div className="relative aspect-square overflow-hidden rounded-3xl bg-cas-on-surface">
+            <video autoPlay className="size-full object-cover" muted playsInline ref={video} />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[20%] overflow-hidden text-cas-primary"
+            >
+              <span className="absolute top-0 left-0 size-8 rounded-tl-xl border-t-4 border-l-4" />
+              <span className="absolute top-0 right-0 size-8 rounded-tr-xl border-t-4 border-r-4" />
+              <span className="absolute bottom-0 left-0 size-8 rounded-bl-xl border-b-4 border-l-4" />
+              <span className="absolute right-0 bottom-0 size-8 rounded-br-xl border-r-4 border-b-4" />
+              <span
+                className={`${styles.scanLine} absolute inset-x-2 top-1/2 h-1 bg-linear-to-r from-transparent via-cas-primary to-transparent`}
+              />
+            </div>
+          </div>
+          <p className="mt-4 text-center text-sm leading-relaxed text-cas-on-surface-variant">
+            Căn chỉnh mã QR in trên bàn vào khung để tự động nhận diện.
+          </p>
+          {message ? (
+            <p className="mt-2 text-center text-sm text-cas-on-surface-variant">{message}</p>
+          ) : null}
+        </section>
+      ) : null}
+      <div className="mt-6 flex items-center gap-3 text-xs font-bold tracking-wider text-cas-on-surface-variant uppercase">
+        <span className="h-px flex-1 bg-cas-outline-variant" />
+        Hoặc nhập chi tiết
+        <span className="h-px flex-1 bg-cas-outline-variant" />
+      </div>
+      <section className="mt-4 rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container p-4 text-left">
+        <h2 className="text-sm font-bold">Chi nhánh phục vụ</h2>
         <div className="relative mt-4 w-full" ref={storeDropdownReference}>
           <button
             aria-expanded={isStoreDropdownOpen}
@@ -307,25 +330,55 @@ export default function ScanTableQrPage() {
         </div>
         {!tableResolution ? (
           <>
-            <label className="mt-4 block text-sm font-bold" htmlFor="table-code">
-              Số bàn
-            </label>
-            <input
-              className="mt-2 min-h-12 w-full rounded-xl border border-cas-outline-variant bg-cas-surface px-3"
-              id="table-code"
-              inputMode="numeric"
-              onChange={(event) => setTableCode(event.target.value.replace(/\D/g, ""))}
-              pattern="[0-9]*"
-              placeholder="Ví dụ: 1"
-              type="text"
-              value={tableCode}
-            />
+            <div className="grid grid-cols-5 gap-3">
+              <div className="col-span-2 min-w-0">
+                <label
+                  className="mt-4 flex min-h-10 items-end text-sm font-bold"
+                  htmlFor="table-code"
+                >
+                  Số bàn
+                </label>
+                <input
+                  className="mt-2 min-h-12 w-full rounded-xl border border-cas-outline-variant bg-cas-surface px-3"
+                  id="table-code"
+                  inputMode="numeric"
+                  onChange={(event) => setTableCode(event.target.value.replace(/\D/g, ""))}
+                  pattern="[0-9]*"
+                  placeholder="Ví dụ: 1"
+                  type="text"
+                  value={tableCode}
+                />
+              </div>
+              <div className="col-span-3 min-w-0">
+                <label
+                  className="mt-4 flex min-h-10 flex-wrap items-end gap-x-1 text-sm font-bold"
+                  htmlFor="manual-qr-token"
+                >
+                  Nhập mã QR của bàn{" "}
+                  <span className="font-normal text-cas-on-surface-variant">(nếu có)</span>
+                </label>
+                <input
+                  className="mt-2 min-h-12 w-full rounded-xl border border-cas-outline-variant bg-cas-surface px-3"
+                  id="manual-qr-token"
+                  onChange={(event) => setManualQrValue(event.target.value)}
+                  placeholder="Mã hoặc đường dẫn QR"
+                  ref={input}
+                  value={manualQrValue}
+                />
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-cas-on-surface-variant">
+              Chọn cơ sở và nhập số bàn hoặc mã QR để tiếp tục.
+            </p>
             <CasButton
               className="mt-3 min-h-12 w-full rounded-xl"
-              onClick={() => void resolveManualTable()}
+              onClick={() =>
+                manualQrValue.trim() ? void open(manualQrValue) : void resolveManualTable()
+              }
+              disabled={submitting}
               type="button"
             >
-              Tiếp tục với số bàn
+              {submitting ? "Đang kiểm tra mã..." : "Xác nhận vào bàn gọi món"}
             </CasButton>
           </>
         ) : null}
@@ -369,6 +422,19 @@ export default function ScanTableQrPage() {
           </div>
         ) : null}
       </section>
+      <p className="mt-5 text-center text-sm font-bold text-cas-primary">
+        {selectedStore?.phone ? (
+          <a
+            className="inline-flex items-center gap-2 underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+            href={`tel:${selectedStore.phone}`}
+          >
+            <CasIcon className="size-4" name="phone" />
+            Không tìm thấy mã bàn? Bấm gọi phục vụ ngay
+          </a>
+        ) : (
+          "Không tìm thấy mã bàn? Vui lòng liên hệ nhân viên phục vụ."
+        )}
+      </p>
       <Link className="mt-6 font-bold text-cas-primary underline" href="/">
         Trở về trang chủ
       </Link>

@@ -114,6 +114,8 @@ curl.exe -X PUT http://localhost:8080/api/v1/customer/promotions/selection -H "C
 curl.exe -X DELETE http://localhost:8080/api/v1/customer/promotions/selection -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/admin/promotions -H "Authorization: Bearer <firebase-id-token>"
 curl.exe -X POST http://localhost:8080/api/v1/admin/promotions -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"name\":\"Giảm 10% món nước\",\"promotionType\":\"ITEM_PERCENT_OFF\",\"discountValue\":10,\"maxDiscountAmount\":50000,\"minBillAmount\":100000,\"maxRedemptions\":100,\"maxRedemptionsPerCustomer\":1,\"status\":\"DRAFT\",\"startAt\":null,\"endAt\":null,\"codes\":[{\"value\":\"GIAM10\",\"maxRedemptions\":50}],\"targets\":[{\"type\":\"CATEGORY\",\"id\":1}]}"
+curl.exe -X PUT http://localhost:8080/api/v1/admin/promotions/<promotion-public-id> -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Giảm 10% món nước\",\"promotionType\":\"ITEM_PERCENT_OFF\",\"discountValue\":10,\"maxDiscountAmount\":50000,\"minBillAmount\":100000,\"maxRedemptions\":100,\"maxRedemptionsPerCustomer\":1,\"status\":\"ACTIVE\",\"startAt\":null,\"endAt\":null,\"codes\":[{\"value\":\"GIAM10\",\"maxRedemptions\":50}],\"targets\":[{\"type\":\"CATEGORY\",\"id\":1}]}"
+# Mã đã thuộc promotion khác trong cùng cơ sở, kể cả mã đã xóa mềm: trả 409 và nêu mã bị trùng.
 curl.exe "http://localhost:8080/api/v1/admin/promotions/<promotion-public-id>/redemptions?page=0&size=10" -H "Authorization: Bearer <firebase-id-token>"
 ```
 
@@ -147,6 +149,7 @@ Response payment trả `createdAt` để giao diện vận hành hiển thị đ
 
 ```powershell
 curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
+# Nếu khuyến mãi đã chọn không còn khả dụng, trả 409, bỏ lựa chọn cũ và không tạo payment; khách tải lại khuyến mãi rồi gửi lại.
 # Sau khi xác nhận, cookie phiên cũ vẫn lấy được payment PAID của chính phiên đã đóng.
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
