@@ -12,8 +12,14 @@ export type AdminDashboard = {
   };
   customers: {
     paidSessionCount: number;
+    sessionCount: number;
     averageWaitMinutes: number | null;
-    series: { date: string; paidSessionCount: number; averageWaitMinutes: number | null }[];
+    series: {
+      date: string;
+      paidSessionCount: number;
+      sessionCount: number;
+      averageWaitMinutes: number | null;
+    }[];
   };
   menu: {
     soldQuantity: number;

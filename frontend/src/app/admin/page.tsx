@@ -51,11 +51,11 @@ export default function AdminDashboardPage() {
   );
   const [startDate, setStartDate] = useState(initialFilter.from);
   const [endDate, setEndDate] = useState(initialFilter.to);
+  const [rangeError, setRangeError] = useState<string | null>(null);
   const [debouncedRange, setDebouncedRange] = useState({
     from: initialFilter.from,
     to: initialFilter.to,
   });
-  const rangeError = validateDateRange(startDate, endDate);
   const isDebouncing = debouncedRange.from !== startDate || debouncedRange.to !== endDate;
 
   useEffect(() => {
@@ -88,6 +88,7 @@ export default function AdminDashboardPage() {
   const error = rangeError ?? queryError?.message ?? null;
 
   function selectPeriod(next: Period) {
+    setRangeError(null);
     setShouldPersistFilter(true);
     setPeriod(next);
     if (next === "custom") return;
@@ -130,6 +131,9 @@ export default function AdminDashboardPage() {
           <DateInput
             label="Ngày bắt đầu"
             onChange={(value) => {
+              const error = validateDateRange(value, endDate);
+              setRangeError(error);
+              if (error) return;
               setShouldPersistFilter(true);
               setPeriod("custom");
               setStartDate(value);
@@ -140,6 +144,9 @@ export default function AdminDashboardPage() {
           <DateInput
             label="Ngày kết thúc"
             onChange={(value) => {
+              const error = validateDateRange(startDate, value);
+              setRangeError(error);
+              if (error) return;
               setShouldPersistFilter(true);
               setPeriod("custom");
               setEndDate(value);
@@ -167,10 +174,14 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
       ) : null}
       {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
-      {dashboard && activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
-      {dashboard && activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
-      {dashboard && activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
-      {dashboard && activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
+      {dashboard ? (
+        <>
+          {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
+          {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
+          {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
+          {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -187,18 +198,23 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
     <div className="space-y-6">
       <MetricGrid
         metrics={[
-          ["payment", "Doanh thu", money(dashboard.revenue.total), "Chỉ gồm phiên đã thanh toán"],
+          [
+            "payment",
+            "Doanh thu",
+            money(dashboard.revenue.total),
+            "Chỉ gồm phiên khách đã thanh toán",
+          ],
           [
             "users",
-            "Số session đã thanh toán",
+            "Số phiên khách đã thanh toán",
             `${dashboard.revenue.paidSessionCount} phiên`,
             "Bao gồm đơn mang về",
           ],
           [
             "bill",
-            "Giá trị session trung bình",
+            "Giá trị phiên khách trung bình",
             money(average),
-            "Doanh thu / session đã thanh toán",
+            "Doanh thu / phiên khách đã thanh toán",
           ],
         ]}
       />
@@ -242,7 +258,7 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
 function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
   const series = dashboard.customers.series.map((item) => ({
     label: shortDate(item.date),
-    sessions: item.paidSessionCount,
+    sessions: item.sessionCount,
     wait: item.averageWaitMinutes,
   }));
   return (
@@ -251,9 +267,9 @@ function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
         metrics={[
           [
             "users",
-            "Tổng số session",
-            `${dashboard.customers.paidSessionCount} phiên`,
-            "Chỉ tính session đã thanh toán",
+            "Tổng số phiên khách",
+            `${dashboard.customers.sessionCount} phiên`,
+            "Có order, theo ngày tạo phiên khách",
           ],
           [
             "clock",
@@ -263,7 +279,7 @@ function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
           ],
         ]}
       />
-      <ChartPanel title="Thời gian chờ và session theo ngày" subtitle="Phút / session">
+      <ChartPanel title="Thời gian chờ và phiên khách theo ngày" subtitle="Phút / phiên khách">
         <ResponsiveContainer height="100%" width="100%">
           <LineChart data={series} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
             <CartesianGrid
@@ -272,18 +288,22 @@ function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
               vertical={false}
             />
             <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
-            <YAxis axisLine={false} tick={axisTick} tickLine={false} width={35} />
-            <Tooltip {...tooltipProps} />
+            <YAxis axisLine={false} tick={axisTick} tickLine={false} width={100} />
+            <Tooltip
+              {...tooltipProps}
+              formatter={(value, name) => (name === "Chờ món" ? minutes(Number(value)) : value)}
+            />
             <Line
               dataKey="wait"
-              name="Chờ món (phút)"
+              connectNulls
+              name="Chờ món"
               stroke="var(--cas-tertiary)"
               strokeWidth={2}
               type="monotone"
             />
             <Line
               dataKey="sessions"
-              name="Session đã thanh toán"
+              name="Phiên khách"
               stroke="var(--cas-primary)"
               strokeWidth={2}
               type="monotone"
@@ -367,13 +387,13 @@ function PromotionReport({ dashboard }: { dashboard: AdminDashboard }) {
             "payment",
             "Tổng giá trị khuyến mãi",
             money(dashboard.promotions.totalDiscountAmount),
-            "Chỉ tính session đã thanh toán",
+            "Chỉ tính phiên khách đã thanh toán",
           ],
           [
             "bill",
             "Tỷ lệ sử dụng khuyến mãi",
             `${dashboard.promotions.usageRate}%`,
-            `${dashboard.promotions.discountedSessionCount} session có khuyến mãi`,
+            `${dashboard.promotions.discountedSessionCount} phiên khách có khuyến mãi`,
           ],
         ]}
       />
@@ -496,7 +516,7 @@ function shortDate(value: string) {
 function minutes(value: number | null) {
   return value == null
     ? "Chưa có dữ liệu"
-    : `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value)} phút`;
+    : `${new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} phút`;
 }
 const axisTick = { fill: "var(--cas-on-surface-variant)", fontSize: 11 };
 const tooltipProps = {

@@ -31,7 +31,7 @@ class AdminDashboardServiceTest {
                 .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.valueOf(120000), 2));
         when(dashboard.findRevenueSeries(eq(3L), any(), any())).thenReturn(List.of());
         when(dashboard.findCustomerSummary(eq(3L), any(), any()))
-                .thenReturn(new AdminDashboard.CustomerSummary(BigDecimal.valueOf(12.5)));
+                .thenReturn(new AdminDashboard.CustomerSummary(5, BigDecimal.valueOf(12.5)));
         when(dashboard.findCustomerSeries(eq(3L), any(), any())).thenReturn(List.of());
         when(dashboard.findMenuItems(eq(3L), any(), any())).thenReturn(List
                 .of(new AdminDashboard.MenuItem(1L, "Mì cay", 4, BigDecimal.valueOf(100000), 1)));
@@ -44,6 +44,7 @@ class AdminDashboardServiceTest {
 
         assertThat(result.range()).isEqualTo(new AdminDashboard.DateRange(from, to));
         assertThat(result.revenue().paidSessionCount()).isEqualTo(2);
+        assertThat(result.customers().sessionCount()).isEqualTo(5);
         assertThat(result.customers().averageWaitMinutes()).isEqualByComparingTo("12.5");
         assertThat(result.menu().soldQuantity()).isEqualTo(4);
         assertThat(result.menu().remadeQuantity()).isEqualTo(1);

@@ -52,6 +52,10 @@ Ngày cập nhật gần nhất: 2026-11-03
 
 ### Các api đã làm
 
+- [x] `GET /api/v1/admin/dashboard`: đếm sales session có order theo ngày tạo cho báo cáo khách hàng, không phụ thuộc thanh toán; giữ số phiên đã thanh toán hiện có.
+
+- [x] API `GET /api/v1/operator/preparation/pending-table-count` đếm phiên còn món chờ, gồm tại bàn và mang về, phục vụ badge Đơn gọi món.
+
 - [x] `GET /api/v1/operator/sales-sessions/{sessionId}/bill-adjustments`: xem các điều chỉnh đã lưu.
 - [x] `GET /api/v1/customer/bill-adjustments`: lấy điều chỉnh của phiên khách.
 - [x] `POST /api/v1/operator/payments/{id}/confirm`: nhận `billSnapshot` đang xem và các thay đổi điều chỉnh; lưu cùng xác nhận trong một transaction, từ chối khi snapshot đã đổi.
@@ -265,7 +269,11 @@ Ngày cập nhật gần nhất: 2026-11-03
 - [x] Danh sách khách hàng Admin dùng API tìm kiếm/phân trang theo server (`query`, `page`, `size`) và component `Pagination` dùng chung.
 - [x] Dashboard `/admin`: UI bốn nhóm Doanh thu, Khách hàng, Menu & Order, Khuyến mãi; dùng dữ liệu minh họa cục bộ và có ghi chú về giới hạn `served_at`.
 - [x] Bộ lọc ngày của dashboard Admin kiểm tra đủ ngày và thứ tự khoảng ngày ở frontend; chỉ tải lại báo cáo sau 250ms khi người dùng dừng chỉnh ngày, hủy request dashboard đang chạy khi khoảng ngày sai, giữ `period`, `from`, `to` trong URL và quay lại Dashboard từ menu vẫn dùng bộ lọc gần nhất trong phiên trình duyệt.
-- [x] Tab Khách hàng của dashboard Admin dùng biểu đồ đường hai chuỗi cho thời gian chờ và sử dụng dịch vụ theo giờ.
+- [x] Dashboard Admin và Super Admin báo lỗi và khôi phục ngày đã chọn trước đó khi khoảng ngày không hợp lệ; không gọi API cho khoảng sai.
+- [x] Tab Khách hàng của dashboard Admin dùng biểu đồ đường hai chuỗi cho thời gian chờ và số phiên theo ngày; khoảng lề và độ rộng trục dọc đồng nhất với biểu đồ doanh thu.
+- [x] Biểu đồ thời gian chờ nối các ngày có dữ liệu khi xen giữa là ngày không có món hoàn thành.
+- [x] Dashboard hiển thị thời gian chờ với một chữ số thập phân trong chỉ số tổng và tooltip biểu đồ.
+- [x] Dashboard Admin dùng nhãn “phiên khách” thay cho “session”.
 - [x] Chuẩn hóa thiết kế dùng token màu global, font `Inter` qua `next/font/google`, toast dùng chung và panel Admin `rounded-sm`.
 - [x] Nút `CasButton` primary dùng gradient theo theme: primary đến đen ở giao diện sáng và primary đến mint sáng hơn ở giao diện tối.
 - [x] CTA chuẩn trong các luồng Customer dùng `CasButton`; control số lượng, lựa chọn và action gắn với input vẫn giữ giao diện chuyên biệt.
@@ -316,3 +324,7 @@ Ngày cập nhật gần nhất: 2026-11-03
 - [Luồng nghiệp vụ](BUSINESS_FLOWS.md)
 - [Thiết kế database](DATABASE_DESIGN.md)
 - [Các trường hợp biên](EDGE_CASES.md)
+
+- 2026-11-03: Điều chỉnh dữ liệu mock MySQL dev cho 24 dòng món chờ quá 60 phút; đối chiếu thời gian hoàn tất, yêu cầu hủy và phiên liên quan. Sau điều chỉnh không còn dòng chờ âm hoặc quá 60 phút.
+
+- 2026-11-03: Điều chỉnh thời gian phục vụ mock ngày 30/10 cho phiên 24 và lần hoàn tất liên quan; các dòng món trong ngày không còn thời gian chờ âm hoặc quá 60 phút.

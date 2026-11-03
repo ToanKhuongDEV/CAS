@@ -30,7 +30,11 @@
     </select>
 
     <select id="findCustomerSummary" resultType="vn.cas.operation.model.AdminDashboard$CustomerSummary">
-        SELECT AVG(TIMESTAMPDIFF(SECOND, orders.created_at, order_items.served_at) / 60.0)
+        SELECT (SELECT COUNT(*) FROM sales_sessions sessions
+                WHERE sessions.store_id = #{storeId} AND sessions.created_at &gt;= #{from}
+                  AND sessions.created_at &lt; #{to}
+                  AND EXISTS (SELECT 1 FROM orders WHERE orders.sales_session_id = sessions.id)) AS sessionCount,
+               AVG(TIMESTAMPDIFF(SECOND, orders.created_at, order_items.served_at) / 60.0)
                    AS averageWaitMinutes
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
@@ -43,8 +47,15 @@
 
     <select id="findCustomerSeries" resultType="vn.cas.operation.model.AdminDashboard$CustomerPoint">
         SELECT dates.date, COALESCE(paid.paidSessionCount, 0) AS paidSessionCount,
+               COALESCE(sessions.sessionCount, 0) AS sessionCount,
                waits.averageWaitMinutes
         FROM (
+            SELECT DATE(sales_sessions.created_at) AS date
+            FROM sales_sessions
+            WHERE sales_sessions.store_id = #{storeId} AND sales_sessions.created_at &gt;= #{from}
+              AND sales_sessions.created_at &lt; #{to}
+              AND EXISTS (SELECT 1 FROM orders WHERE orders.sales_session_id = sales_sessions.id)
+            UNION
             SELECT DATE(payments.confirmed_at) AS date
             FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
             WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
@@ -56,6 +67,14 @@
             WHERE sales_sessions.store_id = #{storeId} AND orders.created_at &gt;= #{from}
               AND orders.created_at &lt; #{to} AND order_items.served_at IS NOT NULL
         ) dates
+        LEFT JOIN (
+            SELECT DATE(sales_sessions.created_at) AS date, COUNT(*) AS sessionCount
+            FROM sales_sessions
+            WHERE sales_sessions.store_id = #{storeId} AND sales_sessions.created_at &gt;= #{from}
+              AND sales_sessions.created_at &lt; #{to}
+              AND EXISTS (SELECT 1 FROM orders WHERE orders.sales_session_id = sales_sessions.id)
+            GROUP BY DATE(sales_sessions.created_at)
+        ) sessions ON sessions.date = dates.date
         LEFT JOIN (
             SELECT DATE(payments.confirmed_at) AS date, COUNT(*) AS paidSessionCount
             FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id

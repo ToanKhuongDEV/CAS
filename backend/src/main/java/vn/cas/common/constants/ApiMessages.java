@@ -36,7 +36,7 @@ public final class ApiMessages {
     public static final String OPERATOR_ORDER_CREATED = "Đã gửi món xuống bếp.";
     public static final String PREPARATION_LONG_WAIT_TABLES_RETRIEVED = "Đã lấy danh sách bàn chờ lâu.";
     public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";
-    public static final String PREPARATION_PENDING_TABLE_COUNT_RETRIEVED = "Đã lấy số bàn đang chờ món.";
+    public static final String PREPARATION_PENDING_TABLE_COUNT_RETRIEVED = "Đã lấy số phiên đang chờ món.";
     public static final String PREPARATION_BATCH_COMPLETED = "Đã ghi nhận hoàn thành món theo mẻ.";
     public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
     public static final String MENU_ITEM_SOLD_OUT = "Món \"%s\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";

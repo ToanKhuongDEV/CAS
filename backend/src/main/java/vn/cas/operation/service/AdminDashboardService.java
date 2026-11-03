@@ -31,13 +31,13 @@ public class AdminDashboardService {
         var menuItems = dashboard.findMenuItems(storeId, start, end);
         var customerSummary = dashboard.findCustomerSummary(storeId, start, end);
         if (customerSummary == null)
-            customerSummary = new AdminDashboard.CustomerSummary(null);
+            customerSummary = new AdminDashboard.CustomerSummary(0, null);
         var promotionSummary = dashboard.findPromotionSummary(storeId, start, end);
         return new AdminDashboard(new AdminDashboard.DateRange(from, to),
                 new AdminDashboard.Revenue(revenue.total(), revenue.paidSessionCount(),
                         dashboard.findRevenueSeries(storeId, start, end)),
                 new AdminDashboard.Customers(revenue.paidSessionCount(),
-                        customerSummary.averageWaitMinutes(),
+                        customerSummary.sessionCount(), customerSummary.averageWaitMinutes(),
                         dashboard.findCustomerSeries(storeId, start, end)),
                 new AdminDashboard.Menu(
                         menuItems.stream().mapToLong(AdminDashboard.MenuItem::soldQuantity).sum(),

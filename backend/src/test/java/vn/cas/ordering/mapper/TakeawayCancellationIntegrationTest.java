@@ -58,16 +58,22 @@ class TakeawayCancellationIntegrationTest {
     void reportsWaitByOrderDateWithoutPayment() {
         insertStore(1);
         insertOrder(1, 1);
+        insertOrder(2, 1);
+        jdbc.update("UPDATE orders SET sales_session_id = 1 WHERE id = 2");
         jdbc.update("UPDATE orders SET created_at = '2026-10-01 10:00:00' WHERE id = 1");
+        jdbc.update(
+                "UPDATE sales_sessions SET created_at = '2026-10-01 09:55:00' WHERE id IN (1, 2)");
         jdbc.update("UPDATE order_items SET served_at = '2026-10-01 10:20:00' WHERE id = 1");
         var start = LocalDate.of(2026, 10, 1).atStartOfDay();
         var end = start.plusDays(1);
 
         assertThat(adminDashboard.findCustomerSummary(1, start, end).averageWaitMinutes())
                 .isEqualByComparingTo("20");
+        assertThat(adminDashboard.findCustomerSummary(1, start, end).sessionCount()).isEqualTo(1);
         assertThat(adminDashboard.findCustomerSeries(1, start, end)).singleElement()
                 .satisfies(point -> {
                     assertThat(point.paidSessionCount()).isZero();
+                    assertThat(point.sessionCount()).isEqualTo(1);
                     assertThat(point.averageWaitMinutes()).isEqualByComparingTo("20");
                 });
     }
@@ -85,6 +91,27 @@ class TakeawayCancellationIntegrationTest {
         assertThat(mapper.findPreparationItems(1)).isEmpty();
         assertThat(mapper.findPendingPreparationItemsForUpdate(1, 1)).hasSize(2);
         assertThat(mapper.findPreparationItemsForUpdate(1, 1)).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    void countsPendingSessionsIncludingTakeawayOnlyOncePerSessionAndStore() {
+        insertStore(1);
+        insertStore(2);
+        for (int id = 1; id <= 5; id++) {
+            insertOrder(id, 1);
+        }
+        insertOrder(6, 2);
+        jdbc.update("INSERT INTO dining_tables (id, store_id, code) VALUES (1, 1, 1), (2, 1, 2)");
+        jdbc.update(
+                "UPDATE sales_sessions SET session_type = 'DINE_IN', table_id = id WHERE id IN (1, 2)");
+        jdbc.update("UPDATE orders SET sales_session_id = 1 WHERE id = 4");
+        jdbc.update("UPDATE order_items SET prepared_quantity = quantity WHERE id = 5");
+
+        assertThat(mapper.countPendingPreparationTables(1)).isEqualTo(3);
+        assertThat(mapper.countPendingPreparationTables(2)).isEqualTo(1);
+        jdbc.update("UPDATE order_items SET prepared_quantity = quantity WHERE id = 3");
+        assertThat(mapper.countPendingPreparationTables(1)).isEqualTo(2);
     }
 
     @Test

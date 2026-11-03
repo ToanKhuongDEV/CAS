@@ -100,7 +100,7 @@ export function OperatorTabNavigation({
                 <span
                   aria-label={`${tab.badge} ${
                     tab.href === "/operator/orders"
-                      ? "bàn đang chờ món"
+                      ? "phiên đang chờ món"
                       : tab.href === "/operator/cancellations"
                         ? "yêu cầu hủy món chờ xử lý"
                         : "yêu cầu thanh toán chờ xác nhận"

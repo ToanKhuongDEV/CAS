@@ -25,7 +25,7 @@ class AdminDashboardControllerTest {
         LocalDate to = LocalDate.of(2026, 10, 10);
         AdminDashboard expected = new AdminDashboard(new AdminDashboard.DateRange(from, to),
                 new AdminDashboard.Revenue(BigDecimal.ZERO, 0, List.of()),
-                new AdminDashboard.Customers(0, null, List.of()),
+                new AdminDashboard.Customers(0, 0, null, List.of()),
                 new AdminDashboard.Menu(0, 0, List.of()),
                 new AdminDashboard.Promotions(BigDecimal.ZERO, 0, BigDecimal.ZERO,
                         new AdminDashboard.PromotionStatusCounts(0, 0, 0, 0)));

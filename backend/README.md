@@ -182,6 +182,7 @@ curl.exe http://localhost:8080/api/v1/operator/preparation/long-wait-tables -H "
 curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # Allocation mang về có tableCode null và customerName; hoàn thành theo mẻ áp dụng FIFO cho cả hai loại đơn.
 # Món chưa hoàn thành vẫn xuất hiện và có thể hoàn thành khi phiên chờ thanh toán hoặc đã đóng.
+# Đếm các phiên tại bàn và mang về còn món chờ, mỗi phiên chỉ tính một lần.
 curl.exe http://localhost:8080/api/v1/operator/preparation/pending-table-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/groups/<group-key>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"quantity\":3}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/preparation/sessions/<session-public-id>/completions -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\"}"
@@ -217,6 +218,7 @@ curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/logout -b 
 curl.exe http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # SUPER_ADMIN chọn cơ sở cho API Admin/Operator bằng header này.
 # Thời gian chờ lấy các món đã làm xong theo ngày gọi món, không phụ thuộc thanh toán.
+# customers.sessionCount và series[].sessionCount đếm phiên có order theo ngày tạo, không phụ thuộc thanh toán.
 curl.exe "http://localhost:8080/api/v1/admin/dashboard?from=2026-10-01&to=2026-10-10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2"
 curl.exe -X POST http://localhost:8080/api/v1/admin/admins -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2" -H "Content-Type: application/json" -d "{\"email\":\"admin@example.com\",\"phone\":\"0901234567\",\"displayName\":\"Admin Two\"}"
 curl.exe http://localhost:8080/api/v1/admin/admins -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "X-CAS-Store-Id: 2"

@@ -50,7 +50,7 @@ describe("OperatorTabNavigation", () => {
       "aria-current",
       "page",
     );
-    expect(await screen.findByLabelText("4 bàn đang chờ món")).toBeInTheDocument();
+    expect(await screen.findByLabelText("4 phiên đang chờ món")).toBeInTheDocument();
     expect(await screen.findByLabelText("2 yêu cầu thanh toán chờ xác nhận")).toBeInTheDocument();
     expect(await screen.findByLabelText("3 yêu cầu hủy món chờ xử lý")).toBeInTheDocument();
   });
