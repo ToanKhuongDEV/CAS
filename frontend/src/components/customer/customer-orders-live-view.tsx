@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,7 +12,6 @@ import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
 
-const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 const customerSalesSessionRequiredMessage = "Vui lòng quét mã QR của bàn để tiếp tục.";
 
 function formatOrderTime(createdAt: string) {
@@ -163,7 +163,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                       <div className="mt-2 space-y-1 text-sm text-cas-on-surface-variant">
                         <p className="flex flex-wrap justify-between gap-x-4 gap-y-1">
                           <span>Giá món gốc</span>
-                          <span>{money.format(item.unitPrice)}</span>
+                          <span>{formatMoney(item.unitPrice)}</span>
                         </p>
                         {item.options.map((option) => (
                           <p
@@ -171,14 +171,14 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                             key={option.groupName + option.optionName}
                           >
                             <span>+ {option.optionName}</span>
-                            <span>+{money.format(option.unitPrice * option.quantityPerItem)}</span>
+                            <span>+{formatMoney(option.unitPrice * option.quantityPerItem)}</span>
                           </p>
                         ))}
                       </div>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <strong className="text-base text-cas-primary">
                           {item.cancelledQuantity > 0 ? "Tổng gốc: " : ""}
-                          {money.format(item.totalAmount)}
+                          {formatMoney(item.totalAmount)}
                         </strong>
                         {item.cancelledQuantity > 0 ? (
                           <span className="text-sm font-bold text-cas-on-surface-variant">
@@ -243,7 +243,7 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                 Tạm tính trước khi gửi yêu cầu
               </p>
             </div>
-            <strong className="text-xl text-cas-primary">{money.format(bill.payableAmount)}</strong>
+            <strong className="text-xl text-cas-primary">{formatMoney(bill.payableAmount)}</strong>
           </div>
         </div>
       </section>

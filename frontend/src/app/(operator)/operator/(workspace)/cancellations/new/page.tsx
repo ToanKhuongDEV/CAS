@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../../../../lib/format-money";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,8 +17,6 @@ type TableOrderItem = {
   quantity: number;
   options: { name: string; price: number }[];
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export default function IncidentCancellationPage() {
   const router = useRouter();

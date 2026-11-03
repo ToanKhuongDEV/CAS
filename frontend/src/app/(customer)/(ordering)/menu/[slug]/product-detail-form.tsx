@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../../../lib/format-money";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -17,8 +18,6 @@ type ProductDetailFormProps = {
   optionGroups: MenuOptionGroup[];
   productName: string;
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function ProductDetailForm({
   basePrice,

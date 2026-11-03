@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as money } from "../../lib/format-money";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -219,9 +220,9 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
             <YAxis
               axisLine={false}
               tick={axisTick}
-              tickFormatter={compactMoney}
+              tickFormatter={money}
               tickLine={false}
-              width={42}
+              width={100}
             />
             <Tooltip {...tooltipProps} formatter={(value) => [money(Number(value)), "Doanh thu"]} />
             <Area
@@ -492,20 +493,10 @@ function shortDate(value: string) {
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year.slice(2)}`;
 }
-function money(value: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 function minutes(value: number | null) {
   return value == null
     ? "Chưa có dữ liệu"
     : `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value)} phút`;
-}
-function compactMoney(value: number) {
-  return value >= 1_000_000 ? `${value / 1_000_000}tr` : `${value / 1_000}k`;
 }
 const axisTick = { fill: "var(--cas-on-surface-variant)", fontSize: 11 };
 const tooltipProps = {

@@ -1,11 +1,10 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import Link from "next/link";
 import { useOperatorOrderDetailQuery } from "../../lib/api/ordering/ordering.query";
 import { CasIcon } from "../ui/cas-icon";
 import { formatOrderDestination } from "../../lib/ordering/order-destination";
-
-const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 
 export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
   const { data: detail, error } = useOperatorOrderDetailQuery(orderId);
@@ -124,7 +123,7 @@ export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
                       <div className="mt-3 space-y-1.5 text-xs text-cas-on-surface-variant">
                         <p className="flex justify-between gap-3 font-medium">
                           <span>Giá món gốc</span>
-                          <span>{money.format(item.unitPrice)}</span>
+                          <span>{formatMoney(item.unitPrice)}</span>
                         </p>
                         {item.options.map((option) => (
                           <p
@@ -136,7 +135,7 @@ export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
                             </span>
                             <span className="font-semibold text-cas-on-surface">
                               {option.unitPrice > 0
-                                ? `+${money.format(option.unitPrice)}`
+                                ? `+${formatMoney(option.unitPrice)}`
                                 : "Miễn phí"}
                             </span>
                           </p>
@@ -147,7 +146,7 @@ export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
                       </div>
                     </div>
                     <strong className="shrink-0 text-base font-extrabold text-cas-primary">
-                      {money.format(item.totalAmount)}
+                      {formatMoney(item.totalAmount)}
                     </strong>
                   </div>
                   <div className="mt-4 border-t border-cas-outline-variant/15 pt-3">
@@ -209,12 +208,12 @@ export function OperatorOrderDetailView({ orderId }: { orderId: string }) {
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-cas-on-surface-variant">Tổng ban đầu</dt>
-                <dd className="font-bold">{money.format(order.originalAmount)}</dd>
+                <dd className="font-bold">{formatMoney(order.originalAmount)}</dd>
               </div>
               <div className="flex items-center justify-between gap-4 border-t border-cas-primary/15 pt-3">
                 <dt className="font-extrabold">Còn phải trả</dt>
                 <dd className="text-xl font-extrabold text-cas-primary">
-                  {money.format(order.payableAmount)}
+                  {formatMoney(order.payableAmount)}
                 </dd>
               </div>
             </dl>

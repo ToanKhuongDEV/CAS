@@ -156,7 +156,11 @@ curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-p
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
-curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Gửi snapshot đang xem và các điều chỉnh cùng lúc xác nhận; 409 nếu hóa đơn đã đổi.
+curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"billSnapshot\":\"<snapshot-json-da-escape>\",\"additions\":[{\"id\":\"<uuid>\",\"adjustmentType\":\"INCREASE\",\"amount\":40000,\"reason\":\"Đền đồ vỡ\"}],\"updates\":[],\"deletions\":[]}'
+# updates và deletions chỉ dành cho ADMIN/SUPER_ADMIN; id của additions là UUID mới.
+curl.exe http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/bill-adjustments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe http://localhost:8080/api/v1/customer/bill-adjustments -b customer-session-cookie.txt
 curl.exe "http://localhost:8080/api/v1/operator/unpaid-records?status=OPEN" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/operator/unpaid-records/eligible-sessions?minimumOpenMinutes=120" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/operator/unpaid-records -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"sessionId\":\"<session-public-id>\",\"reason\":\"Khách rời quán chưa thanh toán\"}"

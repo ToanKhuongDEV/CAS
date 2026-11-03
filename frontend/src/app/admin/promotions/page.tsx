@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatVnd } from "../../../lib/format-money";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
@@ -94,7 +95,7 @@ const emptyForm = (): PromotionForm => ({
 
 function formatMoney(value: number | null) {
   if (value === null) return "Không giới hạn";
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return formatVnd(value);
 }
 
 function formatValidity(startAt: string, endAt: string) {
@@ -784,7 +785,7 @@ export default function AdminPromotionsPage() {
                       required
                       value={form.name}
                       onChange={(e) => updateForm("name", e.target.value)}
-                      placeholder="VD: Mùa hè giảm 50.000đ"
+                      placeholder="VD: Mùa hè giảm 50.000 ₫"
                       className={inputClass}
                     />
                   </Field>
@@ -898,7 +899,7 @@ export default function AdminPromotionsPage() {
                   </Field>
                   <Field
                     label={typeUsesPercent ? "Tỷ lệ giảm (%)" : "Giá trị giảm (VNĐ)"}
-                    tooltip="Với ưu đãi giảm tiền, số tiền giảm thực tế không vượt quá tổng giá trị bill hoặc phần món được áp dụng. Ví dụ: bill 30.000đ, ưu đãi 50.000đ — hệ thống giảm 30.000đ, số tiền phải thanh toán là 0đ."
+                    tooltip="Với ưu đãi giảm tiền, số tiền giảm thực tế không vượt quá tổng giá trị bill hoặc phần món được áp dụng. Ví dụ: bill 30.000 ₫, ưu đãi 50.000 ₫ — hệ thống giảm 30.000 ₫, số tiền phải thanh toán là 0 ₫."
                   >
                     {typeUsesPercent ? (
                       <input
@@ -944,7 +945,7 @@ export default function AdminPromotionsPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field
                     label="Bill tối thiểu (VNĐ)"
-                    tooltip="Promotion chỉ áp dụng khi tổng bill đạt mức này. Ví dụ: đặt 100.000đ thì bill 80.000đ không được giảm."
+                    tooltip="Promotion chỉ áp dụng khi tổng bill đạt mức này. Ví dụ: đặt 100.000 ₫ thì bill 80.000 ₫ không được giảm."
                   >
                     <MoneyInput
                       value={form.minBillAmount}
@@ -1008,7 +1009,7 @@ export default function AdminPromotionsPage() {
                 <FormTitle
                   icon="menu"
                   title="Phạm vi áp dụng"
-                  tooltip="Giảm % hoặc giảm tiền chỉ tính trên món/danh mục đã chọn và không vượt tổng giá trị của chúng. Ví dụ: món 30.000đ, giảm 50.000đ thì chỉ giảm 30.000đ."
+                  tooltip="Giảm % hoặc giảm tiền chỉ tính trên món/danh mục đã chọn và không vượt tổng giá trị của chúng. Ví dụ: món 30.000 ₫, giảm 50.000 ₫ thì chỉ giảm 30.000 ₫."
                 />
                 <p className="text-[0.7rem] text-cas-on-surface-variant">
                   Chọn ít nhất một món hoặc danh mục để áp dụng promotion này.

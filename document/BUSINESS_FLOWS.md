@@ -592,7 +592,7 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 2. Hệ thống kiểm tra session đang `OPEN`.
 3. Hệ thống kiểm tra session có ít nhất một order cần thanh toán.
 4. Hệ thống kiểm tra không còn cancellation request `PENDING`.
-5. Backend tính `amount` bằng tổng `orders.payable_amount` của session và tạo `bill_snapshot` từ dữ liệu order đã chốt.
+5. Backend tính `amount` từ tổng `orders.payable_amount`, trừ khuyến mãi rồi cộng/trừ các điều chỉnh hóa đơn; tổng tối thiểu bằng 0. Backend tạo `bill_snapshot` từ dữ liệu đã chốt.
 6. Hệ thống tạo một payment trạng thái `PENDING`.
 7. Hệ thống chuyển session sang `PAYMENT_PENDING`, lưu `payment_requested_at` và thông báo cho giao diện vận hành.
 8. Giao diện thông báo khách bắt buộc ra gặp nhân viên để hoàn tất thanh toán.
@@ -602,8 +602,11 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 - Thanh toán áp dụng cho toàn bộ các order của phiên bàn.
 - Hệ thống chưa hỗ trợ tách hóa đơn.
 - Mỗi sales session chỉ có một payment.
-- `payments.amount` do backend tự tính và luôn bằng tổng `orders.payable_amount` tại thời điểm tạo payment; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè số tiền.
-- `bill_snapshot` được tạo cùng payment và không thay đổi trong vòng đời payment.
+- `payments.amount` do backend tự tính; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè tổng số tiền.
+- `bill_snapshot` được tạo cùng payment; khi payment còn `PENDING` và phiên chưa đóng, thay đổi điều chỉnh cập nhật snapshot và số tiền. Sau khi phiên đóng snapshot không thay đổi, trừ xử lý dữ liệu khuyến mãi cũ của khoản chưa thanh toán theo quy tắc hiện có.
+- `OPERATOR`, `ADMIN` và `SUPER_ADMIN` được thêm nhiều khoản tăng hoặc giảm kèm lý do trong giao diện xác nhận, và có thể xóa khoản mới nhập trước khi xác nhận. Chỉ `ADMIN` và `SUPER_ADMIN` được sửa hoặc xóa khoản đã lưu. Các thay đổi chỉ được lưu cùng giao dịch xác nhận thanh toán. Customer không được thay đổi. Điều chỉnh là bước cuối sau khuyến mãi và được hiển thị trước tổng thanh toán.
+- Chỉ lưu điều chỉnh khi xác nhận payment của phiên `PAYMENT_PENDING`; phiên đã đóng không được điều chỉnh. Không cho thêm hoặc sửa khoản giảm vượt số tiền còn phải trả; nếu bill hoặc khuyến mãi thay đổi khiến tổng âm, tổng được giữ ở 0.
+- Mọi thao tác điều chỉnh ghi audit log. Backend khóa phiên khi thay đổi hoặc xác nhận payment; xác nhận từ chối nếu snapshot mà nhân viên xem đã thay đổi.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Các món chưa làm xong vẫn được hiển thị và ghi nhận chế biến khi session `PAYMENT_PENDING` hoặc `CLOSED`; thanh toán không tự hoàn thành món và không cho hủy món sau thanh toán.
 - Khi session đã `PAYMENT_PENDING`, khách không thể gọi thêm món vào session đó.
@@ -654,7 +657,7 @@ Ghi nhận trường hợp cần đóng phiên bàn nhưng payment chưa đượ
 
 1. Nhân viên mở session có order nhưng chưa thanh toán.
 2. Nhân viên chọn ghi nhận chưa thanh toán và nhập lý do nếu cần.
-3. Nếu session chưa có payment, backend tạo payment `PENDING`; `amount` và `bill_snapshot` được lấy từ dữ liệu order đã chốt. Khi ghi nhận chưa thanh toán, backend bỏ mọi khuyến mãi khỏi payment đang chờ và dùng tổng bill gốc.
+3. Nếu session chưa có payment, backend tạo payment `PENDING`; `amount` và `bill_snapshot` được lấy từ dữ liệu order đã chốt. Khi ghi nhận chưa thanh toán, backend bỏ mọi khuyến mãi, giữ các điều chỉnh và tính lại tổng bill.
 4. Hệ thống tạo một `unpaid_records` trạng thái `OPEN`, liên kết duy nhất với session và sao chép `amount`, `bill_snapshot` từ payment.
 5. Hệ thống đóng session để giải phóng bàn và ghi audit log.
 

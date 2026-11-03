@@ -37,10 +37,12 @@ public class PaymentService {
     private final AuditLogService auditLogs;
     private final ObjectMapper json;
     private final PromotionService promotions;
+    private final BillAdjustmentService adjustments;
     @Autowired
     public PaymentService(PaymentMapper payments, SalesSessionService sessions,
             DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
-            AuditLogService auditLogs, ObjectMapper json, PromotionService promotions) {
+            AuditLogService auditLogs, ObjectMapper json, PromotionService promotions,
+            BillAdjustmentService adjustments) {
         this.payments = payments;
         this.sessions = sessions;
         this.tables = tables;
@@ -49,6 +51,12 @@ public class PaymentService {
         this.auditLogs = auditLogs;
         this.json = json;
         this.promotions = promotions;
+        this.adjustments = adjustments;
+    }
+    public PaymentService(PaymentMapper payments, SalesSessionService sessions,
+            DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
+            AuditLogService auditLogs, ObjectMapper json, PromotionService promotions) {
+        this(payments, sessions, tables, orders, ordering, auditLogs, json, promotions, null);
     }
     public PaymentService(PaymentMapper payments, SalesSessionService sessions,
             DiningTableMapper tables, CustomerOrderingService orders, OrderingMapper ordering,
@@ -73,12 +81,17 @@ public class PaymentService {
             throw new PromotionUnavailableException();
         }
         var amount = discount == null ? bill.payableAmount() : discount.payableAmount();
+        var billAdjustments = adjustments == null
+                ? java.util.List.<vn.cas.payment.model.BillAdjustment>of()
+                : adjustments.list(session.sessionId());
+        amount = BillAdjustmentService.total(amount, billAdjustments);
         if (amount.signum() < 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
         try {
             var snapshot = new LinkedHashMap<String, Object>();
             snapshot.put("bill", bill);
             snapshot.put("discount", discount);
+            snapshot.put("adjustments", billAdjustments);
             String snapshotValue = json.writeValueAsString(snapshot);
             payments.insert(UUID.randomUUID().toString(), session.sessionId(), amount,
                     snapshotValue);
@@ -190,13 +203,18 @@ public class PaymentService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Phiên bàn không thể ghi nhận chưa thanh toán.");
         var bill = orders.currentBill(sessionPublicId);
+        var billAdjustments = adjustments == null
+                ? java.util.List.<vn.cas.payment.model.BillAdjustment>of()
+                : adjustments.list(session.sessionId());
+        var amount = BillAdjustmentService.total(bill.payableAmount(), billAdjustments);
         if (bill.payableAmount().signum() < 0)
             throw new ApiException(HttpStatus.CONFLICT, "Bill có số tiền không hợp lệ.");
         try {
             var snapshot = new LinkedHashMap<String, Object>();
             snapshot.put("bill", bill);
             snapshot.put("discount", null);
-            payments.insert(UUID.randomUUID().toString(), session.sessionId(), bill.payableAmount(),
+            snapshot.put("adjustments", billAdjustments);
+            payments.insert(UUID.randomUUID().toString(), session.sessionId(), amount,
                     json.writeValueAsString(snapshot));
             tables.moveSessionToPaymentPending(session.sessionId());
             return payments.findBySessionId(session.sessionId());
@@ -205,33 +223,73 @@ public class PaymentService {
         }
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public PaymentView confirm(OperationalPrincipal p, String publicId) {
+        return confirm(p, publicId, null);
+    }
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PaymentView confirm(OperationalPrincipal p, String publicId, String expectedSnapshot) {
+        return confirm(p, publicId, expectedSnapshot, null, null, null);
+    }
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PaymentView confirm(OperationalPrincipal p, String publicId, String expectedSnapshot,
+            List<AdjustmentChange> additions, List<AdjustmentChange> updates,
+            List<UUID> deletions) {
         var v = payments.findByPublicId(p.storeId(), publicId);
         if (v == null)
             throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy payment.");
+        payments.lockSession(v.salesSessionId());
+        v = payments.findByPublicId(p.storeId(), publicId);
+        boolean hasChanges = (additions != null && !additions.isEmpty())
+                || (updates != null && !updates.isEmpty())
+                || (deletions != null && !deletions.isEmpty());
+        if (!"PENDING".equals(v.status()) && hasChanges)
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Payment đã được xác nhận. Vui lòng tải lại hóa đơn.");
         if ("PENDING".equals(v.status())) {
+            if (expectedSnapshot != null && !expectedSnapshot.equals(v.billSnapshot()))
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Hóa đơn đã thay đổi. Vui lòng tải lại trước khi xác nhận.");
+            if (hasChanges) {
+                String sessionId = adjustments.paymentSession(p, publicId);
+                if (deletions != null)
+                    for (var id : deletions)
+                        adjustments.delete(p, sessionId, id.toString());
+                if (updates != null)
+                    for (var item : updates)
+                        adjustments.edit(p, sessionId, item.id().toString(), item.adjustmentType(),
+                                item.amount(), item.reason());
+                if (additions != null)
+                    for (var item : additions)
+                        adjustments.add(p, sessionId, item.id(), item.adjustmentType(),
+                                item.amount(), item.reason());
+                v = payments.findByPublicId(p.storeId(), publicId);
+            }
             boolean collectingRecordedUnpaidPayment = payments
                     .hasOpenUnpaidRecord(v.salesSessionId());
             if (collectingRecordedUnpaidPayment)
                 v = removePromotionFromRecordedUnpaidPayment(v);
-            if (payments.confirm(v.id(), p.accountId(), p.displayName()) == 1) {
-                payments.resolveOpenUnpaidRecord(v.salesSessionId(), v.id());
-                if (promotions != null && !collectingRecordedUnpaidPayment
-                        && hasDiscount(v.billSnapshot()))
-                    promotions.complete(v.id());
-                tables.closePaymentSession(v.salesSessionId());
-                auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
-                        "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),
-                        p.displayName(), "Xác nhận payment thủ công."));
-            }
+            if (payments.confirm(v.id(), p.accountId(), p.displayName()) != 1)
+                throw new ApiException(HttpStatus.CONFLICT, "Không thể xác nhận payment.");
+            payments.resolveOpenUnpaidRecord(v.salesSessionId(), v.id());
+            if (promotions != null && !collectingRecordedUnpaidPayment
+                    && hasDiscount(v.billSnapshot()))
+                promotions.complete(v.id());
+            tables.closePaymentSession(v.salesSessionId());
+            auditLogs.record(new AuditLogCommand(p.storeId(), UUID.randomUUID(),
+                    "PAYMENT_CONFIRMED", "PAYMENT", v.id(), v.publicId(), "{}", p.accountId(),
+                    p.displayName(), "Xác nhận payment thủ công."));
         }
         return payments.findByPublicId(p.storeId(), publicId);
     }
     private EligibleUnpaidSession eligibleUnpaidSession(UnpaidSessionView session) {
         var payment = payments.findBySessionId(session.sessionId());
         BigDecimal amount = payment == null
-                ? orders.currentBill(session.sessionPublicId()).payableAmount()
+                ? BillAdjustmentService.total(
+                        orders.currentBill(session.sessionPublicId()).payableAmount(),
+                        adjustments == null
+                                ? java.util.List.of()
+                                : adjustments.list(session.sessionId()))
                 : payment.amount();
         return new EligibleUnpaidSession(session.sessionPublicId(), session.tableCode(), amount,
                 session.sessionStatus(), session.openedAt());
@@ -243,18 +301,22 @@ public class PaymentService {
             return payment;
         try {
             var bill = orders.currentBill(sessionPublicId);
+            var billAdjustments = adjustments == null
+                    ? java.util.List.<vn.cas.payment.model.BillAdjustment>of()
+                    : adjustments.list(payment.salesSessionId());
+            var amount = BillAdjustmentService.total(bill.payableAmount(), billAdjustments);
             var snapshot = new LinkedHashMap<String, Object>();
             snapshot.put("bill", bill);
             snapshot.put("discount", null);
+            snapshot.put("adjustments", billAdjustments);
             String snapshotValue = json.writeValueAsString(snapshot);
-            if (payments.removePendingPaymentDiscount(payment.id(), bill.payableAmount(),
-                    snapshotValue) != 1)
+            if (payments.removePendingPaymentDiscount(payment.id(), amount, snapshotValue) != 1)
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Không thể bỏ khuyến mãi khỏi khoản không thanh toán.");
             if (promotions != null)
                 promotions.forfeit(payment.id());
             return new PaymentView(payment.id(), payment.publicId(), payment.salesSessionId(),
-                    payment.tableCode(), bill.payableAmount(), snapshotValue, payment.status(),
+                    payment.tableCode(), amount, snapshotValue, payment.status(),
                     payment.confirmedByName(), payment.confirmedAt(), payment.createdAt());
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
@@ -271,6 +333,20 @@ public class PaymentService {
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Bill snapshot của khoản không thanh toán không hợp lệ.");
             BigDecimal amount = root.path("bill").path("payableAmount").decimalValue();
+            var items = root.path("adjustments");
+            if (items.isArray()) {
+                for (var item : items) {
+                    if (!item.path("amount").isNumber()
+                            || !("INCREASE".equals(item.path("adjustmentType").asText())
+                                    || "DECREASE".equals(item.path("adjustmentType").asText())))
+                        throw new ApiException(HttpStatus.CONFLICT, "Bill snapshot không hợp lệ.");
+                    var value = item.path("amount").decimalValue();
+                    amount = amount.add("INCREASE".equals(item.path("adjustmentType").asText())
+                            ? value
+                            : value.negate());
+                }
+                amount = amount.max(BigDecimal.ZERO);
+            }
             if (amount.signum() < 0)
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Bill snapshot của khoản không thanh toán không hợp lệ.");
@@ -306,5 +382,8 @@ public class PaymentService {
     }
     public record EligibleUnpaidSession(String sessionId, Long tableCode, BigDecimal amount,
             String sessionStatus, java.time.LocalDateTime openedAt) {
+    }
+    public record AdjustmentChange(UUID id, String adjustmentType, BigDecimal amount,
+            String reason) {
     }
 }

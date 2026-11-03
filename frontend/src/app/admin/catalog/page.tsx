@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../../lib/format-money";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../components/ui/cas-button";
@@ -554,7 +555,7 @@ export default function AdminCatalogPage() {
                     {item.displayOrder}
                   </td>
                   <td className="px-6 py-4 font-black text-cas-primary">
-                    {item.price.toLocaleString("vi-VN")} đ
+                    {formatMoney(item.price)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">

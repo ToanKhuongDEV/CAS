@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as money } from "../../lib/format-money";
 import { useEffect, useState } from "react";
 
 import {
@@ -26,8 +27,6 @@ import {
 } from "../../lib/api/promotion/promotion.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
-
-const money = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 type ActiveTable = { sessionId: string; tableCode: number | null; customerName: string };
 

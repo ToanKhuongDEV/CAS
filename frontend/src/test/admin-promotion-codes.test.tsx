@@ -42,7 +42,7 @@ it("keeps the form and identifies a code rejected as duplicate by the server", a
   vi.mocked(createPromotion).mockRejectedValue(new Error("Mã RT42 đã tồn tại trong cơ sở này."));
   render(<AdminPromotionsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
-  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000đ"), {
+  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
   });
   const codes = screen.getByPlaceholderText("VD: DG12345, RT42, DVG34DD");
@@ -59,13 +59,13 @@ it("keeps the form and identifies a code rejected as duplicate by the server", a
   expect(screen.getByRole("list", { name: "Danh sách mã khuyến mãi" })).toHaveTextContent(
     "RT42 · 5 lượt",
   );
-  expect(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000đ")).toHaveValue("Ưu đãi");
+  expect(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫")).toHaveValue("Ưu đãi");
 });
 
 it("keeps all inputs when one code is duplicated within the entered list", async () => {
   render(<AdminPromotionsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
-  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000đ"), {
+  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
   });
   const codes = screen.getByPlaceholderText("VD: DG12345, RT42, DVG34DD");
@@ -82,7 +82,7 @@ it("keeps all inputs when one code is duplicated within the entered list", async
 it("requires adding pending codes before saving", () => {
   render(<AdminPromotionsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
-  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000đ"), {
+  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
   });
   fireEvent.change(screen.getByLabelText("Mã"), { target: { value: "RT42" } });

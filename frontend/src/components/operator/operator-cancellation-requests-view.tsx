@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatCurrency } from "../../lib/format-money";
 import { useEffect, useState } from "react";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
@@ -73,10 +74,6 @@ const initialRequests: CancellationRequest[] = [
     status: "PENDING",
   },
 ];
-
-function formatCurrency(value: number) {
-  return `${value.toLocaleString("vi-VN")}đ`;
-}
 
 function CancellationItemDetails({
   request,

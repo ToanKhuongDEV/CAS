@@ -21,6 +21,7 @@ vi.mock("../lib/api/payment/payment.api", () => ({
   loadEligibleUnpaidSessions: vi.fn(),
   loadOperatorPaidTodayPayments: vi.fn(),
   loadOperatorPayments: vi.fn(),
+  loadBillAdjustments: vi.fn().mockResolvedValue([]),
   loadOperatorUnpaidRecords: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
   promotionUnavailableMessage: "Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi.",
@@ -86,6 +87,36 @@ const payment = {
 
 describe("OperatorPaymentsPage", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("shows the promotion discount in red with a minus sign", async () => {
+    const billSnapshot = JSON.parse(payment.billSnapshot) as Record<string, unknown>;
+    vi.mocked(loadOperatorPayments).mockResolvedValue([
+      {
+        ...payment,
+        billSnapshot: JSON.stringify({
+          ...billSnapshot,
+          discount: { name: "Ưu đãi", discountAmount: 10000, payableAmount: 160000 },
+        }),
+      },
+    ]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Operator",
+      role: "OPERATOR",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không thể tải cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận đã thanh toán" }));
+    expect(screen.getByText("-10.000 ₫")).toHaveClass("text-cas-error");
+  });
 
   it("returns to the open sessions after creating a payment request", async () => {
     vi.mocked(loadOperatorPayments).mockResolvedValue([]);
@@ -204,7 +235,11 @@ describe("OperatorPaymentsPage", () => {
     vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValue([
       { ...payment, confirmedAt: "2026-09-01T20:05:00+07:00", status: "PAID" },
     ]);
-    vi.mocked(confirmOperatorPayment).mockResolvedValue({ ...payment, status: "PAID" });
+    vi.mocked(confirmOperatorPayment).mockResolvedValue({
+      ...payment,
+      amount: 210000,
+      status: "PAID",
+    });
     vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
       accountId: 2,
       displayName: "Operator One",
@@ -250,6 +285,7 @@ describe("OperatorPaymentsPage", () => {
     fireEvent.click(confirmationButton);
 
     const dialog = screen.getByRole("dialog", { name: "Xác nhận thanh toán" });
+    expect(within(dialog).queryByText("Giảm giá")).not.toBeInTheDocument();
     expect(await within(dialog).findByText("Tiệm CAS")).toBeInTheDocument();
     expect(within(dialog).getByText("123 Đường Ăn Vặt")).toBeInTheDocument();
     expect(within(dialog).getByText("Người xác nhận: Operator One")).toBeInTheDocument();
@@ -260,13 +296,34 @@ describe("OperatorPaymentsPage", () => {
     expect(dialog).not.toHaveTextContent("801a5c7c-f5d9-4882-b0ec-c672ba3e1649");
     expect(
       within(dialog).getByText("Số tiền", { selector: "span" }).parentElement,
-    ).toHaveTextContent("170.000đ");
+    ).toHaveTextContent("170.000 ₫");
     expect(within(dialog).getByText(/chỉ xác nhận khi đã kiểm tra loa/i)).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Điều chỉnh hóa đơn" }));
+    fireEvent.change(within(dialog).getByLabelText("Số tiền"), { target: { value: "40000" } });
+    fireEvent.change(within(dialog).getByLabelText("Lý do"), { target: { value: "Vỡ đồ" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Thêm điều chỉnh" }));
+    expect(within(dialog).getAllByText("Vỡ đồ").length).toBeGreaterThan(0);
+    expect(
+      within(dialog)
+        .getAllByText("+40.000 ₫")
+        .some((element) => element.classList.contains("text-right")),
+    ).toBe(true);
+    expect(confirmOperatorPayment).not.toHaveBeenCalled();
+    expect(
+      within(dialog).getByText("Số tiền", { selector: "span" }).parentElement,
+    ).toHaveTextContent("210.000 ₫");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Xác nhận đã thanh toán" }));
 
-    expect(await screen.findByText("Đã xác nhận Bàn 05 thanh toán 170.000đ.")).toBeInTheDocument();
-    expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-05");
+    expect(await screen.findByText("Đã xác nhận Bàn 05 thanh toán 210.000 ₫.")).toBeInTheDocument();
+    expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-05", payment.billSnapshot, {
+      additions: [
+        { id: expect.any(String), adjustmentType: "INCREASE", amount: 40000, reason: "Vỡ đồ" },
+      ],
+      updates: [],
+      deletions: [],
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));
     expect(await screen.findByText(/Xác nhận lúc 20:05 01-09/)).toBeInTheDocument();

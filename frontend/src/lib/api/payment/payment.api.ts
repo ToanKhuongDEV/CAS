@@ -40,6 +40,25 @@ export type EligibleUnpaidSession = {
   openedAt: string;
 };
 
+export type BillAdjustment = {
+  publicId: string;
+  adjustmentType: "INCREASE" | "DECREASE";
+  amount: number;
+  reason: string;
+  createdAt: string;
+};
+export type BillAdjustmentInput = Pick<BillAdjustment, "adjustmentType" | "amount" | "reason">;
+export type BillAdjustmentChange = BillAdjustmentInput & { id: string };
+
+const adjustmentPath = (sessionId: string) =>
+  `/sales-sessions/${encodeURIComponent(sessionId)}/bill-adjustments`;
+export function loadBillAdjustments(sessionId: string) {
+  return operator<BillAdjustment[]>(adjustmentPath(sessionId));
+}
+export function loadCustomerBillAdjustments() {
+  return customer<BillAdjustment[]>("/bill-adjustments");
+}
+
 export function loadCustomerPayment() {
   return customer<Payment | null>("/payments");
 }
@@ -60,8 +79,20 @@ export function createOperatorPayment(sessionId: string) {
     method: "POST",
   });
 }
-export function confirmOperatorPayment(id: string) {
-  return operator<Payment>(`/payments/${encodeURIComponent(id)}/confirm`, { method: "POST" });
+export function confirmOperatorPayment(
+  id: string,
+  billSnapshot: string,
+  changes?: {
+    additions: BillAdjustmentChange[];
+    updates: BillAdjustmentChange[];
+    deletions: string[];
+  },
+) {
+  return operator<Payment>(`/payments/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ billSnapshot, ...changes }),
+  });
 }
 export function loadOperatorUnpaidRecords(status?: "OPEN" | "RESOLVED") {
   const query = status ? `?status=${status}` : "";

@@ -4,12 +4,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import vn.cas.payment.model.PaymentView;
 import vn.cas.payment.model.UnpaidRecordView;
 import vn.cas.payment.model.UnpaidSessionView;
 
 @Mapper
 public interface PaymentMapper {
+    @Select("SELECT id FROM sales_sessions WHERE id = #{sessionId} FOR UPDATE")
+    Long lockSession(@Param("sessionId") long sessionId);
+    @Select("SELECT sales_sessions.public_id FROM sales_sessions INNER JOIN payments ON payments.sales_session_id = sales_sessions.id WHERE payments.public_id = #{paymentId} AND sales_sessions.store_id = #{storeId}")
+    String findSessionPublicId(@Param("storeId") long storeId,
+            @Param("paymentId") String paymentId);
     PaymentView findBySessionId(@Param("sessionId") long sessionId);
     PaymentView findCustomerPayment(@Param("sessionPublicId") String sessionPublicId);
     PaymentView findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);

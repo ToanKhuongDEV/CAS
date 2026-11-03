@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -12,8 +13,6 @@ import {
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
-
-const money = new Intl.NumberFormat("vi-VN");
 
 export function OperatorCatalogAvailabilityView() {
   const { showToast } = useToast();
@@ -167,7 +166,7 @@ export function OperatorCatalogAvailabilityView() {
                       {item.displayOrder}
                     </td>
                     <td className="px-6 py-4 font-black text-cas-primary">
-                      {money.format(item.price)}đ
+                      {formatMoney(item.price)}
                     </td>
                     <td className="px-6 py-4">
                       <span

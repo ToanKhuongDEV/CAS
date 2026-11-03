@@ -171,7 +171,7 @@ describe("OperatorOrderCreationView", () => {
 
     // Verify item added to cart
     expect(screen.getAllByText("Gà rán giòn rụm").length).toBeGreaterThan(1);
-    expect(screen.getAllByText(/35\.000đ/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/35\.000 ₫/i).length).toBeGreaterThan(0);
 
     // Menu item with options: Mỳ cay đặc biệt 7 cấp độ
     const noodleCard = screen.getByText("Mỳ cay đặc biệt 7 cấp độ").closest("article");
@@ -183,7 +183,7 @@ describe("OperatorOrderCreationView", () => {
 
     // Option dialog should be open
     expect(screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i })).toBeInTheDocument();
-    expect(screen.getByText("+10.000đ")).toBeInTheDocument();
+    expect(screen.getByText("+10.000 ₫")).toBeInTheDocument();
 
     // Select spice level
     fireEvent.click(screen.getByRole("radio", { name: /Cấp 3/i }));

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../lib/format-money";
 import Image from "next/image";
 
 import { ItemQuantityControl } from "../../customer/item-quantity-control";
@@ -34,8 +35,6 @@ type OperatorCartPanelProps = {
   onSubmitOrder: () => void;
   onCloseMobileDrawer?: () => void;
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function OperatorCartPanel({
   selectedTable,

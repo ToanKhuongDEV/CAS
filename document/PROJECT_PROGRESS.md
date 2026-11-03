@@ -1,6 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-11-02
+Ngày cập nhật gần nhất: 2026-11-03
 
 ## Quy ước
 
@@ -50,6 +50,12 @@ Ngày cập nhật gần nhất: 2026-11-02
 - [x] Chuẩn hóa response/error, request ID, validation, logging an toàn, audit log và kiểm thử thủ công cURL/Postman.
 - [x] Xác thực Firebase, quản lý tài khoản vận hành và phân quyền theo store/role.
 
+### Các api đã làm
+
+- [x] `GET /api/v1/operator/sales-sessions/{sessionId}/bill-adjustments`: xem các điều chỉnh đã lưu.
+- [x] `GET /api/v1/customer/bill-adjustments`: lấy điều chỉnh của phiên khách.
+- [x] `POST /api/v1/operator/payments/{id}/confirm`: nhận `billSnapshot` đang xem và các thay đổi điều chỉnh; lưu cùng xác nhận trong một transaction, từ chối khi snapshot đã đổi.
+
 ### API và nghiệp vụ đã hoàn thành
 
 - [x] `POST /api/v1/customer/payments` và `POST /api/v1/operator/sales-sessions/{sessionId}/payments`: trả 409 và bỏ lựa chọn khuyến mãi không còn khả dụng trước khi tạo payment.
@@ -84,11 +90,13 @@ Ngày cập nhật gần nhất: 2026-11-02
 
 ### Chưa hoàn thành
 
-- [ ] Hoàn thiện điều chỉnh hóa đơn: chốt quy tắc nghiệp vụ cho phiên mở và payment chờ; xây dựng API lưu điều chỉnh và tính lại số tiền, cập nhật hóa đơn/thanh toán liên quan và kiểm thử.
+- Điều chỉnh hóa đơn: Operator được thêm nhiều khoản; Admin/Super Admin được sửa, xóa; điều chỉnh là bước cuối sau khuyến mãi. Không cho giảm vượt số phải trả; nếu thay đổi bill hoặc khuyến mãi khiến tổng âm, tổng được giữ tối thiểu 0 đồng. Luồng Operator tạo yêu cầu thanh toán hộ nằm tại màn hình Kiểm soát thanh toán.
+
+- [x] Điều chỉnh hóa đơn tạm thời khi xác nhận payment; tính tiền sau khuyến mãi, cập nhật snapshot payment, ghi audit và từ chối xác nhận với snapshot cũ.
 
 - [ ] Chạy integration test MySQL cho cập nhật hạn mức và xóa mềm mã voucher khi Docker sẵn sàng.
 
-- [ ] Điều chỉnh tăng/giảm thủ công trên bill: đã dự thảo migration V9; còn triển khai API, tính tiền, audit log, giao diện và kiểm thử MySQL.
+- [ ] Chạy integration test MySQL cho điều chỉnh tăng/giảm, snapshot payment và xác nhận hóa đơn đã thay đổi khi Docker sẵn sàng.
 
 - [x] Món chưa chế biến xong vẫn xuất hiện và có thể hoàn thành sau khi yêu cầu hoặc xác nhận thanh toán.
 - [x] Dashboard Admin dùng một API báo cáo theo khoảng ngày cho doanh thu, khách hàng, menu/order và khuyến mãi; discount lấy từ snapshot `bill_discounts` của payment `PAID`.
@@ -96,6 +104,20 @@ Ngày cập nhật gần nhất: 2026-11-02
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Căn số tiền điều chỉnh về cột phải của hóa đơn, đặt thao tác sửa/xóa cạnh lý do.
+
+- [x] Tự thu gọn form sau khi thêm điều chỉnh hóa đơn; bấm lại nút điều chỉnh để nhập thêm.
+
+- [x] Dùng helper định dạng tiền chung `10.000 ₫` cho các giá trị tiền hiển thị trên Customer, Operator và Admin.
+
+- [x] Đồng bộ định dạng tiền giảm giá trên màn thanh toán, không có khoảng trắng trước ký hiệu `đ`.
+
+- [x] Ẩn dòng giảm giá bằng 0 trên màn thanh toán Customer và hóa đơn Operator.
+
+- [x] Hiển thị số tiền promotion được giảm với dấu trừ và màu lỗi trên màn thanh toán.
+
+- [x] Căn cột tên món, số lượng × đơn giá, thành tiền và giá topping trên màn xác nhận thanh toán và bill in.
 
 - [x] Thêm khoảng cách phía trên chi tiết thanh toán trong form tạo yêu cầu thanh toán Operator.
 
@@ -159,7 +181,7 @@ Ngày cập nhật gần nhất: 2026-11-02
 
 - [x] Trang bắt đầu gọi món Customer hiển thị slogan thương hiệu từ dữ liệu cửa hàng như header Customer.
 
-- [ ] Kết nối giao diện điều chỉnh hóa đơn Operator với backend, kiểm tra dữ liệu nhập và cập nhật số tiền sau điều chỉnh; hiện các trường và thao tác đang bị khóa.
+- [x] Giao diện xác nhận payment giữ điều chỉnh tạm, cho xóa trước khi xác nhận và gửi toàn bộ thay đổi cùng request xác nhận; Customer thấy điều chỉnh đã lưu trước tổng thanh toán.
 
 - [x] Đồng bộ header Operator, Admin và Super Admin với logo, slogan và cơ sở tương ứng; không hiển thị số bàn.
 

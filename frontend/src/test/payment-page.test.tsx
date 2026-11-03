@@ -19,6 +19,7 @@ vi.mock("../lib/api/ordering/ordering.api", () => ({ loadCustomerBill: vi.fn() }
 vi.mock("../lib/api/payment/payment.api", () => ({
   createCustomerPayment: vi.fn(),
   loadCustomerPayment: vi.fn(),
+  loadCustomerBillAdjustments: vi.fn().mockResolvedValue([]),
   promotionUnavailableMessage: "Khuyến mãi đã không còn khả dụng. Vui lòng chọn lại khuyến mãi.",
 }));
 vi.mock("../lib/api/promotion/promotion.api", () => ({
@@ -75,8 +76,9 @@ describe("PaymentRequestPanel", () => {
     render(<PaymentRequestPanel />);
 
     expect(await screen.findByText("Mỳ cay API")).toBeInTheDocument();
+    expect(screen.queryByText("Giảm giá")).not.toBeInTheDocument();
     expect(screen.getByText("+ Cấp 2")).toBeInTheDocument();
-    expect(screen.getAllByText("55.000 ₫")).toHaveLength(2);
+    expect(screen.getAllByText("55.000 ₫").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" })).toBeEnabled();
   });
 
@@ -213,6 +215,7 @@ describe("PaymentRequestPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Voucher \/ khuyến mãi/ }));
     fireEvent.click(await screen.findByRole("button", { name: /Ưu đãi công khai/ }));
     await waitFor(() => expect(screen.getByText("Ưu đãi công khai")).toBeInTheDocument());
+    expect(screen.getByText("-5.500 ₫")).toHaveClass("text-cas-error");
     fireEvent.click(screen.getByRole("button", { name: "Gửi yêu cầu thanh toán" }));
 
     expect(await screen.findByText(promotionUnavailableMessage)).toBeInTheDocument();

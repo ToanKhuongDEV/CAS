@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../../../lib/format-money";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -9,8 +10,6 @@ import type { MenuOptionGroup } from "../../../../../components/customer/add-to-
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 import { loadCustomerCatalogItem } from "../../../../../lib/api/catalog/published-catalog.api";
 import { ProductDetailForm } from "./product-detail-form";
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export default function ProductDetailPage() {
   const params = useParams<{ slug: string }>();

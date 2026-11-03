@@ -6,6 +6,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Digits;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -17,8 +23,11 @@ import vn.cas.payment.service.PaymentService;
 @RestController
 public class PaymentController {
     private final PaymentService service;
-    public PaymentController(PaymentService s) {
+    private final vn.cas.payment.service.BillAdjustmentService adjustments;
+    public PaymentController(PaymentService s,
+            vn.cas.payment.service.BillAdjustmentService adjustments) {
         service = s;
+        this.adjustments = adjustments;
     }
     @PostMapping(ApiPaths.Payment.CUSTOMER)
     public ResponseEntity<?> create(
@@ -33,6 +42,13 @@ public class PaymentController {
             HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy trạng thái thanh toán.",
                 service.current(id), r);
+    }
+    @GetMapping(ApiPaths.API_CUSTOMER_PREFIX + "/bill-adjustments")
+    public ResponseEntity<?> customerAdjustments(
+            @CookieValue(name = "cas_customer_session", required = false) String sessionId,
+            HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy điều chỉnh hóa đơn.",
+                adjustments.listForCustomer(sessionId), request);
     }
     @GetMapping(ApiPaths.Payment.OPERATOR)
     public ResponseEntity<?> pending(@AuthenticationPrincipal OperationalPrincipal p,
@@ -64,9 +80,27 @@ public class PaymentController {
     }
     @PostMapping(ApiPaths.Payment.OPERATOR + "/{id}/confirm")
     public ResponseEntity<?> confirm(@AuthenticationPrincipal OperationalPrincipal p,
-            @PathVariable String id, HttpServletRequest r) {
+            @PathVariable String id, @Valid @RequestBody ConfirmPaymentRequest body,
+            HttpServletRequest r) {
         return ApiResponses.success(HttpStatus.OK, "Đã xác nhận thanh toán.",
-                service.confirm(p, id), r);
+                service.confirm(p, id, body.billSnapshot(), commands(body.additions()),
+                        commands(body.updates()), body.deletions()),
+                r);
+    }
+    private List<PaymentService.AdjustmentChange> commands(List<AdjustmentChange> values) {
+        return values == null
+                ? List.of()
+                : values.stream().map(value -> new PaymentService.AdjustmentChange(value.id(),
+                        value.adjustmentType(), value.amount(), value.reason())).toList();
+    }
+    public record ConfirmPaymentRequest(@NotBlank String billSnapshot,
+            List<@NotNull @Valid AdjustmentChange> additions,
+            List<@NotNull @Valid AdjustmentChange> updates, List<@NotNull UUID> deletions) {
+    }
+    public record AdjustmentChange(@NotNull UUID id,
+            @NotNull @Pattern(regexp = "INCREASE|DECREASE") String adjustmentType,
+            @NotNull @Positive @Digits(integer = 13, fraction = 2) BigDecimal amount,
+            @NotBlank @Size(max = 1000) String reason) {
     }
     @GetMapping(ApiPaths.UnpaidRecord.OPERATOR)
     public ResponseEntity<?> unpaidRecords(@AuthenticationPrincipal OperationalPrincipal p,

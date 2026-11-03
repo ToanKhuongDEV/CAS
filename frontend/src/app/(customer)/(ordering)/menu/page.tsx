@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../../../lib/format-money";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -106,7 +107,7 @@ export default function MenuPage() {
             },
           ];
         }),
-        price: `${new Intl.NumberFormat("vi-VN").format(item.price)}đ`,
+        price: formatMoney(item.price),
         quantity: 0,
       })),
     );

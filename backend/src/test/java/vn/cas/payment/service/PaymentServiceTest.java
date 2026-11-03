@@ -141,7 +141,8 @@ class PaymentServiceTest {
                 "OPERATOR");
         var pending = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(170_000),
                 "{\"discount\":{\"amount\":30000}}", "PENDING", null, null, LocalDateTime.now());
-        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, payment("PAID"));
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending,
+                payment("PAID"));
         when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
 
         serviceWithPromotions.confirm(principal, "payment-1");
@@ -158,7 +159,8 @@ class PaymentServiceTest {
                 "OPERATOR");
         var pending = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(123_000),
                 "{\"discount\": null}", "PENDING", null, null, LocalDateTime.now());
-        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, payment("PAID"));
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending,
+                payment("PAID"));
         when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
 
         serviceWithPromotions.confirm(principal, "payment-1");
@@ -172,7 +174,7 @@ class PaymentServiceTest {
         var confirmed = payment("PAID");
         var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
                 "OPERATOR");
-        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, confirmed);
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending, confirmed);
         when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
 
         service.confirm(principal, "payment-1");
@@ -196,6 +198,54 @@ class PaymentServiceTest {
     }
 
     @Test
+    void shouldRejectConfirmationWhenBillChanged() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(payment("PENDING"));
+        assertThatThrownBy(() -> service.confirm(principal, "payment-1", "outdated snapshot"))
+                .isInstanceOf(ApiException.class).hasMessageContaining("đã thay đổi");
+        verify(payments, never()).confirm(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void addsDraftOnlyDuringConfirmation() {
+        var adjustmentService = mock(BillAdjustmentService.class);
+        var serviceWithAdjustments = new PaymentService(payments, sessions, tables, orders,
+                ordering, auditLogs, new ObjectMapper(), mock(PromotionService.class),
+                adjustmentService);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var pending = payment("PENDING");
+        var id = java.util.UUID.randomUUID();
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending, pending,
+                payment("PAID"));
+        when(adjustmentService.paymentSession(principal, "payment-1")).thenReturn("session-1");
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+        var draft = new PaymentService.AdjustmentChange(id, "INCREASE", new BigDecimal("40000"),
+                "Vỡ đồ");
+
+        serviceWithAdjustments.confirm(principal, "payment-1", pending.billSnapshot(),
+                List.of(draft), List.of(), List.of());
+
+        verify(adjustmentService).add(principal, "session-1", id, "INCREASE",
+                new BigDecimal("40000"), "Vỡ đồ");
+        verify(payments).confirm(1L, 2L, "Operator One");
+    }
+
+    @Test
+    void rejectsDraftWhenAnotherOperatorAlreadyConfirmed() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(payment("PAID"));
+        var draft = new PaymentService.AdjustmentChange(java.util.UUID.randomUUID(), "INCREASE",
+                BigDecimal.ONE, "Lý do");
+        assertThatThrownBy(() -> service.confirm(principal, "payment-1", "{}", List.of(draft),
+                List.of(), List.of())).isInstanceOf(ApiException.class)
+                .hasMessageContaining("đã được xác nhận");
+        verify(payments, never()).confirm(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
     void shouldNotRedeemPromotionWhenCollectingRecordedUnpaidPayment() {
         var promotions = mock(PromotionService.class);
         var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
@@ -204,7 +254,8 @@ class PaymentServiceTest {
                 "OPERATOR");
         var unpaidPayment = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(200000),
                 "{\"discount\":null}", "PENDING", null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
-        when(payments.findByPublicId(3L, "payment-1")).thenReturn(unpaidPayment, payment("PAID"));
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(unpaidPayment, unpaidPayment,
+                payment("PAID"));
         when(payments.hasOpenUnpaidRecord(10L)).thenReturn(true);
         when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
 
@@ -225,7 +276,7 @@ class PaymentServiceTest {
                 "{\"bill\":{\"payableAmount\":200000},\"discount\":{\"amount\":30000}}", "PENDING",
                 null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
         when(payments.findByPublicId(3L, "payment-1")).thenReturn(discountedUnpaidPayment,
-                payment("PAID"));
+                discountedUnpaidPayment, payment("PAID"));
         when(payments.hasOpenUnpaidRecord(10L)).thenReturn(true);
         when(payments.removePendingPaymentDiscount(org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any(BigDecimal.class),

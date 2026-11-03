@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import { useState } from "react";
 import { type OperatorTableSession } from "../../lib/api/ordering/ordering.api";
 import {
@@ -165,10 +166,7 @@ export function OperatorMiniTableMap() {
                           ))}
                         </div>
                         <strong className="shrink-0 text-sm text-cas-primary">
-                          {new Intl.NumberFormat("vi-VN", {
-                            style: "currency",
-                            currency: "VND",
-                          }).format(item.totalAmount)}
+                          {formatMoney(item.totalAmount)}
                         </strong>
                       </li>
                     ))}
@@ -178,9 +176,7 @@ export function OperatorMiniTableMap() {
                     Tổng tạm tính
                   </span>
                   <strong className="text-lg text-cas-primary">
-                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                      bill.payableAmount,
-                    )}
+                    {formatMoney(bill.payableAmount)}
                   </strong>
                 </div>
               </>

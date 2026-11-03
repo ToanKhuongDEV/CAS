@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatCurrency } from "../../../../../lib/format-money";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -12,6 +13,7 @@ import { getCurrentOperationalAccount } from "../../../../../lib/auth/operationa
 import {
   confirmOperatorPayment,
   operatorPendingPaymentCountQueryKey,
+  type BillAdjustment,
   type Payment,
 } from "../../../../../lib/api/payment/payment.api";
 import {
@@ -39,6 +41,7 @@ type ReceiptOrder = {
 };
 
 type SnapshotBill = {
+  payableAmount?: number;
   orders?: Array<{
     createdAt?: string;
     items?: Array<{
@@ -58,9 +61,13 @@ type SnapshotBill = {
 type PaymentListMode = "PENDING" | "PAID";
 
 type OperatorPayment = {
+  billSnapshot: string;
+  adjustments: BillAdjustment[];
+  baseAmount: number;
   amount: string;
   discountLabel: string | null;
   discountAmount: string;
+  hasDiscount: boolean;
   id: string;
   orders: ReceiptOrder[];
   originalAmount: string;
@@ -70,7 +77,6 @@ type OperatorPayment = {
   table: string | null;
 };
 
-const currency = new Intl.NumberFormat("vi-VN");
 const defaultPaymentPollIntervalMs = 10_000;
 
 function formatRequestedAt(value: string) {
@@ -92,7 +98,13 @@ function formatTable(tableCode: number | null) {
 function toOperatorPayment(payment: Payment): OperatorPayment {
   let snapshot: SnapshotBill & {
     bill?: SnapshotBill;
-    discount?: { code?: string | null; name?: string; discountAmount?: number } | null;
+    discount?: {
+      code?: string | null;
+      name?: string;
+      discountAmount?: number;
+      payableAmount?: number;
+    } | null;
+    adjustments?: OperatorPayment["adjustments"];
   } = {};
   try {
     snapshot = JSON.parse(payment.billSnapshot) as typeof snapshot;
@@ -101,9 +113,12 @@ function toOperatorPayment(payment: Payment): OperatorPayment {
   }
   const bill = snapshot.bill ?? snapshot;
   const originalAmount = bill.originalAmount ?? payment.amount;
-  const discountAmount = Math.max(0, originalAmount - payment.amount);
-  const formatCurrency = (amount: number) => `${currency.format(amount)}đ`;
+  const discountAmount = snapshot.discount ? Math.max(0, originalAmount - payment.amount) : 0;
+  const promotionDiscount = snapshot.discount?.discountAmount ?? discountAmount;
   return {
+    billSnapshot: payment.billSnapshot,
+    adjustments: snapshot.adjustments ?? [],
+    baseAmount: snapshot.discount?.payableAmount ?? bill.payableAmount ?? payment.amount,
     id: payment.publicId,
     table: formatTable(payment.tableCode),
     amount: formatCurrency(payment.amount),
@@ -111,7 +126,8 @@ function toOperatorPayment(payment: Payment): OperatorPayment {
       payment.status === "PAID" ? (payment.confirmedAt ?? payment.createdAt) : payment.createdAt,
     ),
     originalAmount: formatCurrency(originalAmount),
-    discountAmount: formatCurrency(snapshot.discount?.discountAmount ?? discountAmount),
+    discountAmount: `${promotionDiscount > 0 ? "-" : ""}${formatCurrency(promotionDiscount)}`,
+    hasDiscount: promotionDiscount > 0,
     discountLabel: snapshot.discount
       ? (snapshot.discount.code ?? snapshot.discount.name ?? null)
       : null,
@@ -176,7 +192,18 @@ export function OperatorPaymentConfirmationList({
   }, []);
   const [selectedPayment, setSelectedPayment] = useState<OperatorPayment | null>(null);
   const [viewedPayment, setViewedPayment] = useState<OperatorPayment | null>(null);
+  const [draftAdjustments, setDraftAdjustments] = useState<BillAdjustment[]>([]);
   const activePayment = selectedPayment ?? viewedPayment;
+  const draftTotal = selectedPayment
+    ? Math.max(
+        0,
+        selectedPayment.baseAmount +
+          draftAdjustments.reduce(
+            (sum, item) => sum + (item.adjustmentType === "INCREASE" ? item.amount : -item.amount),
+            0,
+          ),
+      )
+    : null;
 
   useEffect(() => {
     if (!activePayment) {
@@ -206,7 +233,35 @@ export function OperatorPaymentConfirmationList({
     setConfirmError(null);
     setIsConfirming(true);
     try {
-      await confirmOperatorPayment(selectedPayment.id);
+      const original = selectedPayment.adjustments;
+      const asChange = (item: BillAdjustment) => ({
+        id: item.publicId,
+        adjustmentType: item.adjustmentType,
+        amount: item.amount,
+        reason: item.reason,
+      });
+      const additions = draftAdjustments
+        .filter((item) => !original.some((old) => old.publicId === item.publicId))
+        .map(asChange);
+      const updates = draftAdjustments
+        .filter((item) =>
+          original.some(
+            (old) =>
+              old.publicId === item.publicId &&
+              (old.amount !== item.amount ||
+                old.adjustmentType !== item.adjustmentType ||
+                old.reason !== item.reason),
+          ),
+        )
+        .map(asChange);
+      const deletions = original
+        .filter((old) => !draftAdjustments.some((item) => item.publicId === old.publicId))
+        .map((item) => item.publicId);
+      const confirmed = await confirmOperatorPayment(
+        selectedPayment.id,
+        selectedPayment.billSnapshot,
+        { additions, updates, deletions },
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey }),
         queryClient.invalidateQueries({ queryKey: operatorPaidTodayPaymentsQueryKey }),
@@ -216,8 +271,8 @@ export function OperatorPaymentConfirmationList({
       );
       showToast({
         message: selectedPayment.table
-          ? `Đã xác nhận ${selectedPayment.table} thanh toán ${selectedPayment.amount}.`
-          : `Đã xác nhận thanh toán ${selectedPayment.amount}.`,
+          ? `Đã xác nhận ${selectedPayment.table} thanh toán ${formatCurrency(confirmed.amount)}.`
+          : `Đã xác nhận thanh toán ${formatCurrency(confirmed.amount)}.`,
         type: "success",
       });
       setSelectedPayment(null);
@@ -230,6 +285,7 @@ export function OperatorPaymentConfirmationList({
 
   function openConfirmation(payment: OperatorPayment) {
     setConfirmError(null);
+    setDraftAdjustments(payment.adjustments);
     setSelectedPayment(payment);
     setViewedPayment(null);
   }
@@ -443,7 +499,7 @@ export function OperatorPaymentConfirmationList({
                 </div>
 
                 <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
-                <div className="print-bill__columns grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 text-xs font-bold text-cas-on-surface-variant">
+                <div className="print-bill__columns text-xs font-bold text-cas-on-surface-variant">
                   <span>MÓN / TOPPING</span>
                   <span>SL × Đ.GIÁ</span>
                   <span>THÀNH TIỀN</span>
@@ -464,23 +520,21 @@ export function OperatorPaymentConfirmationList({
                       <div className="mt-2 space-y-2">
                         {order.items.map((item, index) => (
                           <div className="print-bill__item" key={`${item.name}-${index}`}>
-                            <strong>{item.name}</strong>
-                            <div className="print-bill__item-price grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                              <span>
-                                {item.quantity} × {item.unitPrice}
-                              </span>
-                              <strong>{item.total}</strong>
-                            </div>
+                            <strong className="min-w-0 break-words">{item.name}</strong>
+                            <span className="print-bill__item-price">
+                              {item.quantity} × {item.unitPrice}
+                            </span>
+                            <strong className="print-bill__item-total">{item.total}</strong>
                             {item.options?.map((option) => (
                               <div
-                                className="print-bill__option grid grid-cols-[minmax(0,1fr)_auto] gap-2 pl-2 text-cas-on-surface-variant"
+                                className="print-bill__option pl-2 text-cas-on-surface-variant"
                                 key={`${option.groupName ?? ""}-${option.name}`}
                               >
                                 <span>
                                   + {option.groupName ? `${option.groupName}: ` : ""}
                                   {option.name}
                                 </span>
-                                <span>{option.price}</span>
+                                <span className="print-bill__option-price">{option.price}</span>
                               </div>
                             ))}
                           </div>
@@ -494,19 +548,42 @@ export function OperatorPaymentConfirmationList({
                 <div className="print-bill__total grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1">
                   <span>Tạm tính</span>
                   <strong>{activePayment.originalAmount}</strong>
-                  <span>
-                    {activePayment.discountLabel
-                      ? `Giảm giá (${activePayment.discountLabel})`
-                      : "Giảm giá"}
-                  </span>
-                  <strong>{activePayment.discountAmount}</strong>
-                  {activePayment.status === "PENDING" ? (
+                  {activePayment.hasDiscount && (
+                    <>
+                      <span>
+                        {activePayment.discountLabel
+                          ? `Giảm giá (${activePayment.discountLabel})`
+                          : "Giảm giá"}
+                      </span>
+                      <strong className="text-cas-error">{activePayment.discountAmount}</strong>
+                    </>
+                  )}
+                  {(selectedPayment ? draftAdjustments : activePayment.adjustments).map((item) => (
+                    <div
+                      className={`col-span-2 flex justify-between gap-2 ${selectedPayment ? "hidden print:flex" : ""}`}
+                      key={item.publicId}
+                    >
+                      <span>{item.reason}</span>
+                      <strong>
+                        {item.adjustmentType === "INCREASE" ? "+" : "−"}
+                        {formatCurrency(item.amount)}
+                      </strong>
+                    </div>
+                  ))}
+                  {selectedPayment ? (
                     <div className="col-span-2 print:hidden">
-                      <OperatorBillAdjustmentForm />
+                      <OperatorBillAdjustmentForm
+                        items={draftAdjustments}
+                        savedIds={selectedPayment.adjustments.map((item) => item.publicId)}
+                        onChange={setDraftAdjustments}
+                        disabled={isConfirming}
+                      />
                     </div>
                   ) : null}
                   <span>TỔNG THANH TOÁN</span>
-                  <strong className="print-bill__grand-total">{activePayment.payableAmount}</strong>
+                  <strong className="print-bill__grand-total">
+                    {draftTotal === null ? activePayment.payableAmount : formatCurrency(draftTotal)}
+                  </strong>
                 </div>
                 <div className="print-bill__divider border-t border-dashed border-cas-outline-variant/50" />
                 <footer className="text-center text-xs text-cas-on-surface-variant">
@@ -517,7 +594,9 @@ export function OperatorPaymentConfirmationList({
               <div className="mt-5 rounded-xl bg-cas-surface-container/70 p-4">
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm text-cas-on-surface-variant">Số tiền</span>
-                  <strong className="text-xl text-cas-primary">{activePayment.amount}</strong>
+                  <strong className="text-xl text-cas-primary">
+                    {draftTotal === null ? activePayment.amount : formatCurrency(draftTotal)}
+                  </strong>
                 </div>
                 {selectedPayment ? (
                   <p className="mt-4 border-t border-cas-outline-variant/25 pt-4 text-sm leading-6 text-cas-on-surface">
@@ -570,7 +649,32 @@ export function OperatorPaymentConfirmationList({
 
       <style jsx global>{`
         .print-bill {
-          display: none;
+          display: block;
+          --bill-columns: minmax(0, 1fr) 5.5rem 5.5rem;
+        }
+
+        .print-bill__columns,
+        .print-bill__item,
+        .print-bill__option {
+          display: grid;
+          grid-template-columns: var(--bill-columns);
+          column-gap: 0.5rem;
+        }
+
+        .print-bill__columns span:not(:first-child),
+        .print-bill__item-price,
+        .print-bill__item-total,
+        .print-bill__option-price {
+          text-align: right;
+          overflow-wrap: anywhere;
+        }
+
+        .print-bill__option {
+          grid-column: 1 / -1;
+        }
+
+        .print-bill__option-price {
+          grid-column: 3;
         }
 
         .payment-bill-dialog {
@@ -608,6 +712,7 @@ export function OperatorPaymentConfirmationList({
             position: absolute;
             top: 0;
             width: 72mm;
+            --bill-columns: minmax(0, 1fr) 20mm 20mm;
           }
 
           .print-bill__header,
@@ -639,12 +744,8 @@ export function OperatorPaymentConfirmationList({
             margin: 8px 0;
           }
 
-          .print-bill__columns,
-          .print-bill__item-price,
-          .print-bill__option,
           .print-bill__total {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto auto;
             gap: 8px;
           }
 
@@ -653,9 +754,6 @@ export function OperatorPaymentConfirmationList({
             font-weight: 700;
           }
 
-          .print-bill__columns span:last-child,
-          .print-bill__item-price strong,
-          .print-bill__option span:last-child,
           .print-bill__total strong {
             text-align: right;
           }
@@ -664,14 +762,12 @@ export function OperatorPaymentConfirmationList({
             margin-top: 8px;
           }
 
-          .print-bill__item-price,
           .print-bill__option {
             margin-top: 2px;
           }
 
           .print-bill__option {
             color: var(--cas-on-surface-variant);
-            grid-template-columns: minmax(0, 1fr) auto;
             padding-left: 8px;
           }
 

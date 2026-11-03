@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../lib/format-money";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -300,8 +301,6 @@ const unselectedTable: TableOption = {
   label: "Chọn bàn",
   status: "EMPTY",
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 type OrderSuccessData = {
   orderNumber: string;

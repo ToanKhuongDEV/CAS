@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../../lib/format-money";
 import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { Pagination } from "../../../components/ui/pagination";
@@ -16,14 +17,7 @@ const sessionStatusLabels: Record<string, string> = {
   PAYMENT_PENDING: "Chờ thanh toán",
 };
 
-const money = (value: number | null) =>
-  value === null
-    ? "—"
-    : new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-        maximumFractionDigits: 0,
-      }).format(value);
+const money = (value: number | null) => (value === null ? "—" : formatMoney(value));
 const date = (value: string | null) =>
   value
     ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(

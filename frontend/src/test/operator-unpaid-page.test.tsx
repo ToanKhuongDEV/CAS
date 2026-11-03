@@ -82,7 +82,9 @@ describe("OperatorUnpaidView", () => {
     expect(dialog).toHaveTextContent("Thao tác này không thể hoàn tác.");
     fireEvent.click(within(dialog).getByRole("button", { name: "Xác nhận đã thu" }));
 
-    await waitFor(() => expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-1"));
+    await waitFor(() =>
+      expect(confirmOperatorPayment).toHaveBeenCalledWith("payment-1", records[0].billSnapshot),
+    );
   });
 
   it("shows a success toast after recording an unpaid sales session", async () => {

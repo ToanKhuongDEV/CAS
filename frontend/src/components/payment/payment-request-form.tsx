@@ -1,12 +1,12 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
+import { useEffect, useState } from "react";
 import { CustomerOrderVoucherSummary } from "../customer/customer-order-voucher-summary";
-import { OperatorBillAdjustmentForm } from "../operator/operator-bill-adjustment-form";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import type { CustomerBill } from "../../lib/api/ordering/ordering.api";
-
-const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
+import { loadBillAdjustments, type BillAdjustment } from "../../lib/api/payment/payment.api";
 
 export function PaymentRequestForm({
   bill,
@@ -23,6 +23,26 @@ export function PaymentRequestForm({
   operatorSessionId?: string;
   voucherRefreshKey?: number;
 }) {
+  const [savedAdjustments, setSavedAdjustments] = useState<BillAdjustment[]>([]);
+  const [adjustmentLoading, setAdjustmentLoading] = useState(Boolean(operatorSessionId));
+  const [adjustmentError, setAdjustmentError] = useState(false);
+  useEffect(() => {
+    if (!operatorSessionId) return;
+    let active = true;
+    void loadBillAdjustments(operatorSessionId)
+      .then((items) => {
+        if (active) setSavedAdjustments(items);
+      })
+      .catch(() => {
+        if (active) setAdjustmentError(true);
+      })
+      .finally(() => {
+        if (active) setAdjustmentLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [operatorSessionId]);
   return (
     <>
       <section className="rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_10px_28px_var(--cas-shadow-color)] md:p-7">
@@ -53,7 +73,7 @@ export function PaymentRequestForm({
                   <div className="mt-2 space-y-1 text-sm text-cas-on-surface-variant">
                     <p className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                       <span>Giá món gốc</span>
-                      <span>{money.format(item.unitPrice)}</span>
+                      <span>{formatMoney(item.unitPrice)}</span>
                     </p>
                     {item.options.map((option) => (
                       <p
@@ -61,13 +81,13 @@ export function PaymentRequestForm({
                         key={`${item.orderItemId}-${option.optionName}`}
                       >
                         <span>+ {option.optionName}</span>
-                        <span>+{money.format(option.unitPrice)}</span>
+                        <span>+{formatMoney(option.unitPrice)}</span>
                       </p>
                     ))}
                   </div>
                 </div>
                 <strong className="ml-auto text-base text-cas-primary">
-                  {money.format(item.totalAmount)}
+                  {formatMoney(item.totalAmount)}
                 </strong>
               </li>
             ))}
@@ -75,7 +95,25 @@ export function PaymentRequestForm({
       </section>
       <div className="mt-4">
         <CustomerOrderVoucherSummary
-          beforePayable={operatorSessionId ? <OperatorBillAdjustmentForm /> : undefined}
+          adjustmentDelta={savedAdjustments.reduce(
+            (sum, item) => sum + (item.adjustmentType === "INCREASE" ? item.amount : -item.amount),
+            0,
+          )}
+          beforePayable={
+            savedAdjustments.length ? (
+              <div>
+                {savedAdjustments.map((item) => (
+                  <p className="flex justify-between gap-2" key={item.publicId}>
+                    <span>{item.reason}</span>
+                    <span>
+                      {item.adjustmentType === "INCREASE" ? "+" : "−"}
+                      {formatMoney(item.amount)}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            ) : undefined
+          }
           key={voucherRefreshKey}
           operatorSessionId={operatorSessionId}
           originalAmount={bill.payableAmount}
@@ -92,9 +130,14 @@ export function PaymentRequestForm({
         </div>
       </section>
       {error ? <p className="mt-3 text-sm text-cas-error">{error}</p> : null}
+      {adjustmentError && (
+        <p className="mt-3 text-sm text-cas-error" role="alert">
+          Không thể tải điều chỉnh hóa đơn. Vui lòng mở lại hóa đơn.
+        </p>
+      )}
       <CasButton
         className="mt-5 w-full"
-        disabled={isRequesting}
+        disabled={isRequesting || adjustmentLoading || adjustmentError}
         icon={isRequesting ? "clock" : "payment"}
         size="lg"
         onClick={onRequest}

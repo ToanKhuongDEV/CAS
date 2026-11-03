@@ -1,7 +1,12 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import { useEffect, useState, type ReactNode } from "react";
 import styles from "./customer-order-voucher-summary.module.css";
+import {
+  loadCustomerBillAdjustments,
+  type BillAdjustment,
+} from "../../lib/api/payment/payment.api";
 import {
   clearCustomerPromotion,
   loadCustomerEligiblePromotions,
@@ -22,9 +27,8 @@ export type VoucherSummary = {
   voucherCode?: string;
 };
 
-const formatMoney = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
-
 type Props = {
+  adjustmentDelta?: number;
   beforePayable?: ReactNode;
   onSummaryChange?: (summary: VoucherSummary) => void;
   originalAmount: number;
@@ -42,6 +46,7 @@ type VoucherDisplay = Pick<
 >;
 
 export function CustomerOrderVoucherSummary({
+  adjustmentDelta = 0,
   beforePayable,
   onSummaryChange,
   operatorSessionId,
@@ -52,6 +57,8 @@ export function CustomerOrderVoucherSummary({
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [adjustments, setAdjustments] = useState<BillAdjustment[]>([]);
+  const [adjustmentsUnavailable, setAdjustmentsUnavailable] = useState(true);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const availablePublicVouchers = publicVouchers.filter((voucher) => voucher.eligible);
   const unavailablePublicVouchers = publicVouchers.filter((voucher) => !voucher.eligible);
@@ -60,6 +67,29 @@ export function CustomerOrderVoucherSummary({
   const selectedCode = selected && "code" in selected ? selected.code : null;
   const discountAmount = selected?.discountAmount ?? 0;
   const payableAmount = selected?.payableAmount ?? originalAmount;
+
+  useEffect(() => {
+    if (operatorSessionId) return;
+    let active = true;
+    const refresh = () => {
+      void loadCustomerBillAdjustments()
+        .then((items) => {
+          if (active) {
+            setAdjustments(items);
+            setAdjustmentsUnavailable(false);
+          }
+        })
+        .catch(() => {
+          if (active) setAdjustmentsUnavailable(true);
+        });
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 10_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [operatorSessionId, originalAmount]);
 
   useEffect(() => {
     const request = operatorSessionId
@@ -311,22 +341,37 @@ export function CustomerOrderVoucherSummary({
           <dt>Giá gốc</dt>
           <dd>{formatMoney(originalAmount)}</dd>
         </div>
-        <div className="flex items-center justify-between gap-4 text-cas-on-surface-variant">
-          <dt className="flex items-center gap-2">
-            <span>{selected ? `Giảm giá (${selectedCode ?? selected.name})` : "Giảm giá"}</span>
-            {selected && (
-              <button
-                className="font-bold text-cas-primary hover:underline"
-                onClick={() => setIsVoucherModalOpen(true)}
-                type="button"
-              >
-                Thay đổi
-              </button>
-            )}
-          </dt>
-          <dd className="font-bold text-cas-secondary">-{formatMoney(discountAmount)}</dd>
-        </div>
+        {discountAmount > 0 && (
+          <div className="flex items-center justify-between gap-4 text-cas-on-surface-variant">
+            <dt className="flex items-center gap-2">
+              <span>{selected ? `Giảm giá (${selectedCode ?? selected.name})` : "Giảm giá"}</span>
+              {selected && (
+                <button
+                  className="font-bold text-cas-primary hover:underline"
+                  onClick={() => setIsVoucherModalOpen(true)}
+                  type="button"
+                >
+                  Thay đổi
+                </button>
+              )}
+            </dt>
+            <dd className="font-bold text-cas-error">-{formatMoney(discountAmount)}</dd>
+          </div>
+        )}
         {beforePayable && <div>{beforePayable}</div>}
+        {!operatorSessionId &&
+          adjustments.map((item) => (
+            <div
+              className="flex justify-between gap-4 text-cas-on-surface-variant"
+              key={item.publicId}
+            >
+              <dt>{item.reason}</dt>
+              <dd>
+                {item.adjustmentType === "INCREASE" ? "+" : "−"}
+                {formatMoney(item.amount)}
+              </dd>
+            </div>
+          ))}
         <div className="flex items-end justify-between gap-4 border-t border-cas-outline-variant/40 pt-4">
           <div>
             <dt className="text-sm font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
@@ -337,7 +382,20 @@ export function CustomerOrderVoucherSummary({
             </dd>
           </div>
           <dd className="text-xl font-extrabold text-cas-primary md:text-3xl">
-            {formatMoney(payableAmount)}
+            {adjustmentsUnavailable && !operatorSessionId
+              ? "Không thể tải số tiền"
+              : formatMoney(
+                  Math.max(
+                    0,
+                    payableAmount +
+                      adjustmentDelta +
+                      adjustments.reduce(
+                        (sum, item) =>
+                          sum + (item.adjustmentType === "INCREASE" ? item.amount : -item.amount),
+                        0,
+                      ),
+                  ),
+                )}
           </dd>
         </div>
       </dl>

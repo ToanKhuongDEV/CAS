@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../lib/format-money";
 import { useState } from "react";
 
 import { ItemQuantityControl } from "./item-quantity-control";
@@ -38,8 +39,6 @@ type AddToCartOptionDialogProps = {
   optionGroups?: MenuOptionGroup[];
   onAddToCart?: (payload: AddToCartPayload) => void;
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function AddToCartOptionDialog({
   basePrice,

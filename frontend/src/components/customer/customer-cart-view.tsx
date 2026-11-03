@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,12 +17,6 @@ import {
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
-
-const money = new Intl.NumberFormat("vi-VN");
-
-function formatMoney(amount: number) {
-  return money.format(amount) + "đ";
-}
 
 function lineUnitPrice(line: CustomerCartLine) {
   return (

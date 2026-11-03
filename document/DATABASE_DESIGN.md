@@ -776,7 +776,7 @@ Ghi nhận trường hợp sales session được đóng khi payment vẫn chưa
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, bỏ discount khuyến mãi khỏi payment và dùng tổng bill gốc, rồi tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` đó trước khi đóng sales session. Snapshot là bất biến.
+Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, bỏ discount khuyến mãi, giữ điều chỉnh và tính lại tổng, rồi tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` trước khi đóng sales session. Snapshot là bất biến, trừ xử lý dữ liệu khuyến mãi cũ theo quy tắc hiện có.
 
 Nếu payment được nhân viên xác nhận sau đó, hệ thống chuyển payment sang `PAID`, chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` bằng chính payment của session và lưu `resolved_at`. Payment đã được ghi nhận chưa thanh toán không tạo promotion redemption khi được thu lại. CAS chỉ lưu trạng thái nghiệp vụ; không lưu hoặc xác minh dữ liệu giao dịch tài chính.
 
@@ -798,7 +798,11 @@ Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của sales 
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm khách tạo yêu cầu thanh toán |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom toàn bộ các order của session tại thời điểm khách yêu cầu thanh toán và không thay đổi trong suốt vòng đời payment.
+`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom order, khuyến mãi và điều chỉnh; thay đổi điều chỉnh được lưu, cập nhật snapshot và số tiền trong cùng transaction xác nhận payment. Sau khi phiên đóng, snapshot được giữ lại, trừ xử lý dữ liệu khuyến mãi cũ của khoản chưa thanh toán.
+
+#### `bill_adjustments`
+
+Migration V9 lưu từng khoản điều chỉnh theo sales session: `public_id`, `adjustment_type` (`INCREASE`/`DECREASE`), `amount` (`DECIMAL(15,2)` dương), `reason`, `created_by` và `created_at`. Thao tác thêm, sửa, xóa được ghi audit log. Khi payment đang chờ, snapshot chứa danh sách điều chỉnh tại thời điểm cập nhật.
 
 Nội dung JSON cơ bản:
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../../lib/format-money";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -11,10 +12,30 @@ import {
   createCustomerPayment,
   loadCustomerPayment,
   promotionUnavailableMessage,
+  type BillAdjustment,
   type Payment,
 } from "../../../lib/api/payment/payment.api";
 
-const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
+function paymentAdjustments(payment: Payment): BillAdjustment[] {
+  try {
+    const snapshot: unknown = JSON.parse(payment.billSnapshot);
+    if (!snapshot || typeof snapshot !== "object" || !("adjustments" in snapshot)) return [];
+    const items = snapshot.adjustments;
+    return Array.isArray(items)
+      ? items.filter(
+          (item): item is BillAdjustment =>
+            item &&
+            typeof item === "object" &&
+            typeof item.publicId === "string" &&
+            typeof item.reason === "string" &&
+            typeof item.amount === "number" &&
+            (item.adjustmentType === "INCREASE" || item.adjustmentType === "DECREASE"),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function formatConfirmedAt(value: string | null) {
   if (!value) return "—";
@@ -148,8 +169,20 @@ export function PaymentRequestPanel({
           Vui lòng gặp nhân viên để hoàn tất thanh toán. Màn hình sẽ tự cập nhật khi thanh toán được
           xác nhận.
         </p>
+        {paymentAdjustments(payment).map((item) => (
+          <p
+            className="mt-2 flex justify-between gap-3 text-sm text-cas-on-surface-variant"
+            key={item.publicId}
+          >
+            <span>{item.reason}</span>
+            <span>
+              {item.adjustmentType === "INCREASE" ? "+" : "−"}
+              {formatMoney(item.amount)}
+            </span>
+          </p>
+        ))}
         <p className="mt-6 text-2xl font-extrabold text-cas-primary">
-          {money.format(payment.amount)}
+          {formatMoney(payment.amount)}
         </p>
       </section>
     );
@@ -181,10 +214,22 @@ export function PaymentRequestPanel({
                     : `Bàn ${String(payment.tableCode).padStart(2, "0")}`}
                 </dd>
               </div>
+              {paymentAdjustments(payment).map((item) => (
+                <div
+                  className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4"
+                  key={item.publicId}
+                >
+                  <dt className="text-sm text-cas-on-surface-variant">{item.reason}</dt>
+                  <dd>
+                    {item.adjustmentType === "INCREASE" ? "+" : "−"}
+                    {formatMoney(item.amount)}
+                  </dd>
+                </div>
+              ))}
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">
                 <dt className="text-sm text-cas-on-surface-variant">Tổng thanh toán</dt>
                 <dd className="text-lg font-extrabold text-cas-primary">
-                  {money.format(payment.amount)}
+                  {formatMoney(payment.amount)}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 px-5 py-4">

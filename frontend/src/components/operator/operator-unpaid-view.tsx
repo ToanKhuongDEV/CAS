@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney as money } from "../../lib/format-money";
 import { formatOrderDestination } from "../../lib/ordering/order-destination";
 
 import { useEffect, useState } from "react";
@@ -26,10 +27,6 @@ import { useToast } from "../ui/toast-provider";
 
 type UnpaidViewMode = "admin" | "operator";
 const storageKey = "cas.unpaid.minimum-open-minutes";
-
-function money(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
-}
 
 function date(value: string | null) {
   return value
@@ -114,7 +111,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
   async function confirm(record: UnpaidRecord) {
     setSaving(true);
     try {
-      await confirmOperatorPayment(record.paymentId);
+      await confirmOperatorPayment(record.paymentId, record.billSnapshot);
       showToast({
         type: "success",
         message: `Đã xác nhận thanh toán cho ${formatOrderDestination(record.tableCode, null, record.salesSessionId)}.`,

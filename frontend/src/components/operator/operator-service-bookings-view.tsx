@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "../../lib/format-money";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -332,7 +333,7 @@ export function OperatorServiceBookingsView({
             Tổng giá trị chưa hoàn tất
           </p>
           <p className="mt-2 text-2xl font-black text-cas-on-surface">
-            {outstandingAmount.toLocaleString("vi-VN")}đ
+            {formatMoney(outstandingAmount)}
           </p>
         </article>
       </section>
@@ -386,7 +387,7 @@ export function OperatorServiceBookingsView({
               </div>
               <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                 <p className="text-xl font-black text-cas-primary">
-                  {booking.agreedPrice.toLocaleString("vi-VN")}đ
+                  {formatMoney(booking.agreedPrice)}
                 </p>
                 {booking.paymentStatus !== "PAID" && booking.paymentStatus !== "CANCELLED" ? (
                   <button
@@ -686,7 +687,7 @@ export function OperatorServiceBookingsView({
               <div className="flex items-center justify-between gap-3 border-t border-cas-outline-variant/20 pt-2">
                 <span className="text-cas-on-surface-variant">Số tiền</span>
                 <strong className="text-lg text-cas-primary">
-                  {bookingToConfirm.agreedPrice.toLocaleString("vi-VN")}đ
+                  {formatMoney(bookingToConfirm.agreedPrice)}
                 </strong>
               </div>
             </div>
@@ -746,7 +747,7 @@ export function OperatorServiceBookingsView({
               <p className="font-extrabold text-cas-on-surface">{bookingToCancel.serviceName}</p>
               <p className="mt-1 text-cas-on-surface-variant">
                 {getClient(bookingToCancel.clientAccountId)?.name} ·{" "}
-                {bookingToCancel.agreedPrice.toLocaleString("vi-VN")}đ
+                {formatMoney(bookingToCancel.agreedPrice)}
               </p>
             </div>
 

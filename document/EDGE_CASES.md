@@ -332,7 +332,7 @@ Client không nhận được response và gửi lại yêu cầu thanh toán.
 
 - `payments.sales_session_id` là duy nhất nên mỗi session chỉ có một payment.
 - Request lặp trả lại payment hiện tại, không tạo bản ghi thứ hai.
-- Không tạo lại `bill_snapshot` hoặc thay đổi `amount` của payment đã tồn tại.
+- Request lặp không tạo lại `bill_snapshot` hoặc thay đổi `amount`; điều chỉnh hóa đơn hợp lệ trong lúc payment đang chờ là thao tác riêng và cập nhật cả hai.
 
 ## 20. Payment đã paid nhưng thao tác confirm bị bấm lại
 
