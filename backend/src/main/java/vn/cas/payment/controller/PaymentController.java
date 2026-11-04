@@ -10,9 +10,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Digits;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -62,6 +64,14 @@ public class PaymentController {
         return ApiResponses.success(HttpStatus.OK, "Đã lấy payment đã thanh toán trong ngày.",
                 service.paidToday(p), r);
     }
+    @GetMapping(ApiPaths.API_ADMIN_PREFIX + "/payments")
+    public ResponseEntity<?> paidByDate(@AuthenticationPrincipal OperationalPrincipal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            HttpServletRequest request) {
+        return ApiResponses.success(HttpStatus.OK, "Đã lấy thanh toán theo khoảng ngày.",
+                service.paidBetween(principal, from, to), request);
+    }
     @GetMapping(ApiPaths.Payment.OPERATOR_PENDING_COUNT)
     public ResponseEntity<?> pendingCount(@AuthenticationPrincipal OperationalPrincipal p,
             HttpServletRequest r) {
@@ -86,6 +96,20 @@ public class PaymentController {
                 service.confirm(p, id, body.billSnapshot(), commands(body.additions()),
                         commands(body.updates()), body.deletions()),
                 r);
+    }
+    @PutMapping(ApiPaths.API_ADMIN_PREFIX + "/payments/{id}/adjustments")
+    public ResponseEntity<?> updatePaidAdjustments(@AuthenticationPrincipal OperationalPrincipal p,
+            @PathVariable String id, @Valid @RequestBody PaidAdjustmentRequest body,
+            HttpServletRequest r) {
+        return ApiResponses.success(HttpStatus.OK, "Đã cập nhật điều chỉnh hóa đơn.",
+                adjustments.updatePaid(p, id, body.billSnapshot(), commands(body.additions()),
+                        commands(body.updates()),
+                        body.deletions() == null ? List.of() : body.deletions()),
+                r);
+    }
+    public record PaidAdjustmentRequest(@NotBlank String billSnapshot,
+            List<@NotNull @Valid AdjustmentChange> additions,
+            List<@NotNull @Valid AdjustmentChange> updates, List<@NotNull UUID> deletions) {
     }
     private List<PaymentService.AdjustmentChange> commands(List<AdjustmentChange> values) {
         return values == null

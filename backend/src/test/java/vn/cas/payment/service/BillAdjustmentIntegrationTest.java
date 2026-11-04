@@ -48,7 +48,7 @@ class BillAdjustmentIntegrationTest {
         jdbc.update(
                 "INSERT INTO client_accounts (id, store_id, display_name) VALUES (1, 1, 'Customer')");
         jdbc.update(
-                "INSERT INTO sales_sessions (id, public_id, store_id, session_type, client_account_id, opened_by_customer_name, status) VALUES (1, 'session-1', 1, 'TAKEAWAY', 1, 'Customer', 'PAYMENT_PENDING')");
+                "INSERT INTO sales_sessions (id, public_id, store_id, session_type, client_account_id, opened_by_customer_name, opened_by_customer_phone, status) VALUES (1, 'session-1', 1, 'TAKEAWAY', 1, 'Customer', '0123456787', 'PAYMENT_PENDING')");
         String snapshot = "{\"bill\":{\"payableAmount\":90000},\"discount\":null}";
         jdbc.update(
                 "INSERT INTO payments (id, public_id, sales_session_id, amount, bill_snapshot, status) VALUES (1, 'payment-1', 1, 90000, ?, 'PENDING')",
@@ -56,7 +56,10 @@ class BillAdjustmentIntegrationTest {
         var operator = new OperationalPrincipal(1, 1, "operator", "Operator", "OPERATOR");
         var item = new PaymentService.AdjustmentChange(UUID.randomUUID(), "INCREASE",
                 new BigDecimal("40000"), "Vỡ đồ");
-        String currentSnapshot = payments.pending(operator).getFirst().billSnapshot();
+        var pending = payments.pending(operator).getFirst();
+        assertThat(pending.customerName()).isEqualTo("Customer");
+        assertThat(pending.maskedCustomerPhone()).isEqualTo("012***787");
+        String currentSnapshot = pending.billSnapshot();
         assertThatThrownBy(() -> payments.confirm(operator, "payment-1", "outdated", List.of(item),
                 List.of(), List.of())).isInstanceOf(ApiException.class)
                 .hasMessageContaining("đã thay đổi");
@@ -91,11 +94,12 @@ class BillAdjustmentIntegrationTest {
         var snapshot = payments.pending(operator).getFirst().billSnapshot();
         var increase = new PaymentService.AdjustmentChange(UUID.randomUUID(), "INCREASE",
                 new BigDecimal("40000"), "Vỡ đồ");
-        var tooMuch = new PaymentService.AdjustmentChange(UUID.randomUUID(), "DECREASE",
+        var duplicate = new PaymentService.AdjustmentChange(increase.id(), "DECREASE",
                 new BigDecimal("999999"), "Giảm quá mức");
 
         assertThatThrownBy(() -> payments.confirm(operator, "payment-2", snapshot,
-                List.of(increase, tooMuch), List.of(), List.of())).isInstanceOf(ApiException.class);
+                List.of(increase, duplicate), List.of(), List.of()))
+                .isInstanceOf(ApiException.class);
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM bill_adjustments WHERE sales_session_id = 2", Integer.class))
                 .isZero();

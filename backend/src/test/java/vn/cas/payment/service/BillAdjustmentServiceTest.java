@@ -17,7 +17,6 @@ import vn.cas.payment.mapper.BillAdjustmentMapper;
 import vn.cas.payment.mapper.PaymentMapper;
 import vn.cas.payment.model.BillAdjustment;
 import vn.cas.promotion.service.PromotionService;
-import vn.cas.store.model.SalesSessionLookup;
 import vn.cas.store.service.SalesSessionService;
 
 class BillAdjustmentServiceTest {
@@ -43,17 +42,80 @@ class BillAdjustmentServiceTest {
     }
 
     @Test
-    void rejectsOperatorEditAndExcessiveDecrease() {
-        assertThatThrownBy(() -> service.delete(operator, "s", "a"))
-                .isInstanceOf(ApiException.class);
-        var session = new SalesSessionLookup(1L, 2L, 3, 4L, "s", "OPEN");
-        when(sessions.requireCurrentForUpdate("s")).thenReturn(session);
-        when(mapper.findBySessionId(1)).thenReturn(List.of());
-        when(orders.currentBill("s")).thenReturn(new CustomerOrderingService.Bill(4L, "OPEN",
-                new BigDecimal("90"), new BigDecimal("90"), List.of()));
-        assertThatThrownBy(() -> service.add(operator, "s", UUID.randomUUID(), "DECREASE",
-                new BigDecimal("91"), "Giảm")).isInstanceOf(ApiException.class)
-                .hasMessageContaining("vượt");
-        verify(mapper, never()).insert(any(), anyLong(), any(), any(), any(), anyLong());
+    void onlyAdminCanChangePaidAdjustmentsAndChangesAreAudited() {
+        assertThatThrownBy(() -> service.updatePaid(operator, "p", "snapshot", List.of(), List.of(),
+                List.of())).isInstanceOf(ApiException.class);
+        var admin = new OperationalPrincipal(2, 3, "admin", "Admin", "ADMIN");
+        var id = UUID.randomUUID();
+        var before = new BillAdjustment(id.toString(), "INCREASE", new BigDecimal("40"), "Cũ",
+                null);
+        var after = new BillAdjustment(id.toString(), "DECREASE", new BigDecimal("150"), "Mới",
+                null);
+        String snapshot = "{\"bill\":{\"payableAmount\":90},\"discount\":null}";
+        var payment = new vn.cas.payment.model.PaymentView(1, "p", 2, null, new BigDecimal("130"),
+                snapshot, "PAID", null, null, null);
+        when(payments.findByPublicId(3, "p")).thenReturn(payment);
+        when(mapper.findBySessionId(2)).thenReturn(List.of(before), List.of(after));
+        when(mapper.findId(2, id.toString())).thenReturn(5L);
+        when(payments.updatePaidAdjustment(eq(1L), eq(BigDecimal.ZERO), anyString())).thenReturn(1);
+        service.updatePaid(admin, "p", snapshot, List.of(), List.of(
+                new PaymentService.AdjustmentChange(id, "DECREASE", new BigDecimal("150"), "Mới")),
+                List.of());
+        verify(payments).updatePaidAdjustment(eq(1L), eq(BigDecimal.ZERO), anyString());
+        var command = org.mockito.ArgumentCaptor
+                .forClass(vn.cas.operation.dto.AuditLogCommand.class);
+        verify(audit).record(command.capture());
+        assertThat(command.getValue().changeData()).contains("before", "after", "Cũ", "Mới");
+        assertThatThrownBy(
+                () -> service.updatePaid(admin, "p", "stale", List.of(), List.of(), List.of()))
+                .isInstanceOf(ApiException.class).hasMessageContaining("đã thay đổi");
+    }
+
+    @Test
+    void superAdminCanDeletePaidAdjustmentAndAuditKeepsPreviousValue() {
+        var admin = new OperationalPrincipal(2, 3, "admin", "Admin", "SUPER_ADMIN");
+        var id = UUID.randomUUID();
+        var before = new BillAdjustment(id.toString(), "INCREASE", new BigDecimal("40"), "Phí",
+                null);
+        String snapshot = "{\"bill\":{\"payableAmount\":90},\"discount\":null}";
+        var payment = new vn.cas.payment.model.PaymentView(1, "p", 2, null, new BigDecimal("130"),
+                snapshot, "PAID", null, null, null);
+        when(payments.findByPublicId(3, "p")).thenReturn(payment);
+        when(mapper.findBySessionId(2)).thenReturn(List.of(before), List.of());
+        when(mapper.findId(2, id.toString())).thenReturn(5L);
+        when(payments.updatePaidAdjustment(eq(1L), eq(new BigDecimal("90")), anyString()))
+                .thenReturn(1);
+        service.updatePaid(admin, "p", snapshot, List.of(), List.of(), List.of(id));
+        verify(mapper).delete(2, id.toString());
+        var command = org.mockito.ArgumentCaptor
+                .forClass(vn.cas.operation.dto.AuditLogCommand.class);
+        verify(audit).record(command.capture());
+        assertThat(command.getValue().action()).isEqualTo("BILL_ADJUSTMENT_DELETED");
+        assertThat(command.getValue().changeData()).contains("Phí", "\"after\":null");
+    }
+
+    @Test
+    void adminCanAddAdjustmentToPaidBillAndAuditIt() {
+        var admin = new OperationalPrincipal(2, 3, "admin", "Admin", "ADMIN");
+        var id = UUID.randomUUID();
+        var added = new BillAdjustment(id.toString(), "INCREASE", new BigDecimal("40"), "Phí",
+                null);
+        String snapshot = "{\"bill\":{\"payableAmount\":90},\"discount\":null}";
+        var payment = new vn.cas.payment.model.PaymentView(1, "p", 2, null, new BigDecimal("90"),
+                snapshot, "PAID", null, null, null);
+        when(payments.findByPublicId(3, "p")).thenReturn(payment);
+        when(mapper.findBySessionId(2)).thenReturn(List.of(), List.of(added));
+        when(mapper.findId(2, id.toString())).thenReturn(5L);
+        when(payments.updatePaidAdjustment(eq(1L), eq(new BigDecimal("130")), anyString()))
+                .thenReturn(1);
+        service.updatePaid(admin, "p", snapshot, List.of(
+                new PaymentService.AdjustmentChange(id, "INCREASE", new BigDecimal("40"), "Phí")),
+                List.of(), List.of());
+        verify(mapper).insert(id.toString(), 2L, "INCREASE", new BigDecimal("40"), "Phí", 2L);
+        var command = org.mockito.ArgumentCaptor
+                .forClass(vn.cas.operation.dto.AuditLogCommand.class);
+        verify(audit).record(command.capture());
+        assertThat(command.getValue().action()).isEqualTo("BILL_ADJUSTMENT_ADDED");
+        assertThat(command.getValue().changeData()).contains("\"before\":null", "Phí");
     }
 }

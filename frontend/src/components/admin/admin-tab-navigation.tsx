@@ -47,9 +47,12 @@ const adminNavSchema: MenuItemGroup[] = [
     items: [
       { href: "/admin/operators", label: "Tài khoản Nhân viên" },
       { href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
-      { href: "/admin/payments", label: "Thanh toán" },
       { href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
     ],
+  },
+  {
+    href: "/admin/payments",
+    label: "Thanh toán",
   },
   {
     href: "/admin/reports",

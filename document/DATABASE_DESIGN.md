@@ -798,7 +798,7 @@ Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của sales 
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm khách tạo yêu cầu thanh toán |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom order, khuyến mãi và điều chỉnh; thay đổi điều chỉnh được lưu, cập nhật snapshot và số tiền trong cùng transaction xác nhận payment. Sau khi phiên đóng, snapshot được giữ lại, trừ xử lý dữ liệu khuyến mãi cũ của khoản chưa thanh toán.
+`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom order, khuyến mãi và điều chỉnh; thay đổi điều chỉnh được lưu, cập nhật snapshot và số tiền trong cùng transaction xác nhận payment. Sau khi thanh toán, Admin hoặc Super Admin được thêm, sửa hoặc xóa điều chỉnh; snapshot, số tiền và audit trước/sau được cập nhật trong cùng transaction.
 
 #### `bill_adjustments`
 

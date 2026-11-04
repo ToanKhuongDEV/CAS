@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorPaymentsPage from "../app/(operator)/operator/(workspace)/payments/page";
+import AdminPaymentsPage from "../app/admin/payments/page";
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
@@ -11,6 +12,8 @@ import {
   createOperatorPayment,
   loadOperatorPaidTodayPayments,
   loadOperatorPayments,
+  loadAdminPaidPayments,
+  updatePaidBillAdjustments,
 } from "../lib/api/payment/payment.api";
 import { loadPublicStore } from "../lib/api/store/public-store.api";
 import { loadOperatorBill, loadOperatorSessionListing } from "../lib/api/ordering/ordering.api";
@@ -21,6 +24,8 @@ vi.mock("../lib/api/payment/payment.api", () => ({
   loadEligibleUnpaidSessions: vi.fn(),
   loadOperatorPaidTodayPayments: vi.fn(),
   loadOperatorPayments: vi.fn(),
+  loadAdminPaidPayments: vi.fn(),
+  updatePaidBillAdjustments: vi.fn(),
   loadBillAdjustments: vi.fn().mockResolvedValue([]),
   loadOperatorUnpaidRecords: vi.fn(),
   operatorPendingPaymentCountQueryKey: ["operator", "payments", "pending-count"],
@@ -30,7 +35,10 @@ vi.mock("../lib/api/payment/payment.api", () => ({
 vi.mock("../lib/auth/firebase", () => ({
   getFirebaseAuth: () => ({ currentUser: { uid: "operator-1" } }),
 }));
-vi.mock("../lib/auth/operational-auth", () => ({ getCurrentOperationalAccount: vi.fn() }));
+vi.mock("../lib/auth/operational-auth", () => ({
+  getCurrentOperationalAccount: vi.fn(),
+  getSelectedAdminStoreId: vi.fn().mockReturnValue(2),
+}));
 vi.mock("../lib/api/store/public-store.api", () => ({ loadPublicStore: vi.fn() }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({
   loadOperatorBill: vi.fn(),
@@ -86,7 +94,197 @@ const payment = {
 };
 
 describe("OperatorPaymentsPage", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("loads a valid date range and rejects an inverted range", async () => {
+    vi.mocked(loadAdminPaidPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <AdminPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2025-12-01" } });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2025-12-31" } });
+    await waitFor(() =>
+      expect(loadAdminPaidPayments).toHaveBeenCalledWith("2025-12-01", "2025-12-31"),
+    );
+    expect(new URLSearchParams(window.location.search).get("from")).toBe("2025-12-01");
+    expect(new URLSearchParams(window.location.search).get("to")).toBe("2025-12-31");
+    expect(
+      await screen.findByText("Chưa có thanh toán trong khoảng ngày đã chọn"),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2026-01-01" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("khoảng ngày hợp lệ");
+    expect(loadAdminPaidPayments).not.toHaveBeenCalledWith("2026-01-01", "2025-12-31");
+  });
+
+  it("restores the date range from the URL and updates it for a preset", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/admin/payments?from=2025-12-01&to=2025-12-31&period=custom",
+    );
+    vi.mocked(loadAdminPaidPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <AdminPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2025-12-01");
+    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2025-12-31");
+    await waitFor(() =>
+      expect(loadAdminPaidPayments).toHaveBeenCalledWith("2025-12-01", "2025-12-31"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "3 ngày" }));
+    await waitFor(() =>
+      expect(new URLSearchParams(window.location.search).get("period")).toBe("threeDays"),
+    );
+    expect(new URLSearchParams(window.location.search).get("from")).toBe(
+      (screen.getByLabelText("Từ ngày") as HTMLInputElement).value,
+    );
+  });
+
+  it("shows masked customer details beside both table and takeaway labels", async () => {
+    const paid = {
+      ...payment,
+      status: "PAID" as const,
+      customerName: "An",
+      maskedCustomerPhone: "012***787",
+    };
+    vi.mocked(loadAdminPaidPayments).mockResolvedValue([
+      paid,
+      {
+        ...paid,
+        publicId: "takeaway",
+        tableCode: null,
+        customerName: "Bình",
+        maskedCustomerPhone: null,
+      },
+    ]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <AdminPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    const table = (await screen.findByText("Bàn 05")).closest("li")!;
+    expect(within(table).getByText("An (012***787)")).toBeInTheDocument();
+    const takeawayLabel = screen.getByText("Mang về");
+    expect(takeawayLabel).toHaveClass("text-cas-secondary");
+    const takeaway = takeawayLabel.closest("li")!;
+    expect(within(takeaway).getByText("Bình")).toBeInTheDocument();
+    expect(takeaway.querySelector(".bg-cas-secondary-container")).toBeInTheDocument();
+  });
+
+  it("lets an admin remove a saved adjustment from a paid bill", async () => {
+    const id = "d24c50e8-2799-468a-96c8-c3c41567c243";
+    const paid = {
+      ...payment,
+      status: "PAID" as const,
+      billSnapshot: JSON.stringify({
+        bill: { payableAmount: 170000 },
+        adjustments: [
+          { publicId: id, adjustmentType: "INCREASE", amount: 10000, reason: "Phí", createdAt: "" },
+        ],
+      }),
+    };
+    vi.mocked(loadOperatorPayments).mockResolvedValue([]);
+    vi.mocked(loadOperatorPaidTodayPayments).mockResolvedValue([paid]);
+    vi.mocked(updatePaidBillAdjustments).mockResolvedValue(paid);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán hôm nay" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Điều chỉnh hóa đơn" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Xóa điều chỉnh Phí" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lưu điều chỉnh" }));
+    await waitFor(() =>
+      expect(updatePaidBillAdjustments).toHaveBeenCalledWith(
+        paid.publicId,
+        paid.billSnapshot,
+        [],
+        [],
+        [id],
+      ),
+    );
+  });
+
+  it("lets a super admin add an adjustment to a paid bill without existing adjustments", async () => {
+    const paid = { ...payment, status: "PAID" as const };
+    vi.mocked(loadAdminPaidPayments).mockResolvedValue([paid]);
+    vi.mocked(updatePaidBillAdjustments).mockResolvedValue(paid);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Super Admin",
+      role: "SUPER_ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <AdminPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Điều chỉnh hóa đơn" }));
+    expect(loadPublicStore).toHaveBeenCalledWith(2);
+    const dialog = screen.getByRole("dialog", { name: "Điều chỉnh hóa đơn" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Điều chỉnh hóa đơn" }));
+    fireEvent.change(within(dialog).getByLabelText("Số tiền"), { target: { value: "40000" } });
+    fireEvent.change(within(dialog).getByLabelText("Lý do"), { target: { value: "Vỡ đồ" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Thêm điều chỉnh" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Lưu điều chỉnh" }));
+    await waitFor(() =>
+      expect(updatePaidBillAdjustments).toHaveBeenCalledWith(
+        paid.publicId,
+        paid.billSnapshot,
+        [{ id: expect.any(String), adjustmentType: "INCREASE", amount: 40000, reason: "Vỡ đồ" }],
+        [],
+        [],
+      ),
+    );
+  });
 
   it("shows the promotion discount in red with a minus sign", async () => {
     const billSnapshot = JSON.parse(payment.billSnapshot) as Record<string, unknown>;
@@ -248,6 +446,8 @@ describe("OperatorPaymentsPage", () => {
     });
     vi.mocked(loadPublicStore).mockResolvedValue({
       address: "123 Đường Ăn Vặt",
+      brandName: "Bambu Garden",
+      branchName: "123 Bến Thành",
       closeTime: "22:00",
       email: "contact@example.com",
       googleMapsLocation: null,
@@ -286,7 +486,15 @@ describe("OperatorPaymentsPage", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Xác nhận thanh toán" });
     expect(within(dialog).queryByText("Giảm giá")).not.toBeInTheDocument();
-    expect(await within(dialog).findByText("Tiệm CAS")).toBeInTheDocument();
+    expect(await within(dialog).findByText("BAMBU GARDEN cơ sở 123 Bến Thành")).toHaveClass(
+      "text-base",
+      "font-extrabold",
+    );
+    expect(within(dialog).getByText("Bàn số 05")).toHaveClass(
+      "text-center",
+      "text-base",
+      "font-extrabold",
+    );
     expect(within(dialog).getByText("123 Đường Ăn Vặt")).toBeInTheDocument();
     expect(within(dialog).getByText("Người xác nhận: Operator One")).toBeInTheDocument();
     expect(within(dialog).getByText("Bàn 05", { selector: "p" })).toBeInTheDocument();

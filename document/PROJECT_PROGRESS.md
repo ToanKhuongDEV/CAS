@@ -1,6 +1,9 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-11-03
+Ngày cập nhật gần nhất: 2026-11-04
+
+- 2026-11-04: Rà soát tài liệu tiến độ, các mục chưa hoàn thành và quyết định nghiệp vụ còn cần chốt; ghi nhận cần đối chiếu các mô tả dashboard và hạ tầng chưa đồng bộ giữa các tài liệu.
+- 2026-11-04: Cho phép Admin/Super Admin chọn ngày thanh toán, sửa hoặc xóa điều chỉnh sau thanh toán, ghi audit trước/sau và giữ tổng tối thiểu 0. Unit test backend và frontend đạt; integration test MySQL bị bỏ qua do không có Docker.
 
 ## Quy ước
 
@@ -52,6 +55,12 @@ Ngày cập nhật gần nhất: 2026-11-03
 
 ### Các api đã làm
 
+- [x] Danh sách payment Operator và Admin trả tên khách mở phiên và số điện thoại đã che theo snapshot của phiên.
+
+- [x] `GET /api/v1/admin/payments?from=YYYY-MM-DD&to=YYYY-MM-DD`: Admin/Super Admin xem payment đã thanh toán theo khoảng ngày xác nhận và cơ sở đang chọn; Operator chỉ xem ngày hiện tại qua API riêng.
+
+- [x] `PUT /api/v1/admin/payments/{id}/adjustments`: Admin/Super Admin thêm, sửa hoặc xóa điều chỉnh của payment đã thanh toán; cập nhật tổng, snapshot và audit trước/sau trong cùng transaction.
+
 - [x] `GET /api/v1/admin/dashboard`: đếm sales session có order theo ngày tạo cho báo cáo khách hàng, không phụ thuộc thanh toán; giữ số phiên đã thanh toán hiện có.
 
 - [x] API `GET /api/v1/operator/preparation/pending-table-count` đếm phiên còn món chờ, gồm tại bàn và mang về, phục vụ badge Đơn gọi món.
@@ -94,7 +103,7 @@ Ngày cập nhật gần nhất: 2026-11-03
 
 ### Chưa hoàn thành
 
-- Điều chỉnh hóa đơn: Operator được thêm nhiều khoản; Admin/Super Admin được sửa, xóa; điều chỉnh là bước cuối sau khuyến mãi. Không cho giảm vượt số phải trả; nếu thay đổi bill hoặc khuyến mãi khiến tổng âm, tổng được giữ tối thiểu 0 đồng. Luồng Operator tạo yêu cầu thanh toán hộ nằm tại màn hình Kiểm soát thanh toán.
+- Điều chỉnh hóa đơn: Operator được thêm nhiều khoản trước khi xác nhận; Admin/Super Admin được thêm, sửa, xóa điều chỉnh sau thanh toán. Điều chỉnh là bước cuối sau khuyến mãi, tổng được giữ tối thiểu 0 đồng. Luồng Operator tạo yêu cầu thanh toán hộ nằm tại màn hình Kiểm soát thanh toán.
 
 - [x] Điều chỉnh hóa đơn tạm thời khi xác nhận payment; tính tiền sau khuyến mãi, cập nhật snapshot payment, ghi audit và từ chối xác nhận với snapshot cũ.
 
@@ -108,6 +117,28 @@ Ngày cập nhật gần nhất: 2026-11-03
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Đồng bộ màu nút đổi giao diện và tài khoản ở header Admin với mẫu Stitch bằng token màu hiện có.
+
+- [x] Bộ lọc ngày màn Thanh toán Admin có lựa chọn nhanh như Dashboard và lưu khoảng ngày trên URL.
+
+- [x] Card payment hiển thị tên và số điện thoại đã che cạnh nhãn bàn hoặc mang về; đơn mang về dùng màu secondary.
+
+- [x] Làm mới nội dung màn Thanh toán Admin theo Stitch: nhóm bộ lọc, khoảng ngày và thẻ payment; giữ header, menu và các thao tác hiện có.
+
+- [x] Dòng thương hiệu, cơ sở và số bàn trên hóa đơn dùng cỡ chữ, độ đậm như tiêu đề hóa đơn.
+
+- [x] Hóa đơn in tên thương hiệu viết hoa cùng tên cơ sở; số bàn căn giữa và in đậm.
+
+- [x] Hóa đơn thanh toán hiển thị tên thương hiệu và chi nhánh từ thông tin cửa hàng.
+
+- [x] Nút Sửa điều chỉnh hóa đơn đóng form khi bấm lại; mở form thêm mới không giữ dữ liệu sửa trước đó.
+
+- [x] Admin/Super Admin có thể thêm điều chỉnh cho payment đã thanh toán, kể cả khi hóa đơn chưa có điều chỉnh.
+
+- [x] Màn Thanh toán Admin/Super Admin chọn khoảng ngày để xem và điều chỉnh payment đã thanh toán.
+
+- [x] Đưa Thanh toán thành tab riêng trên menu ngang của Admin và Super Admin.
 
 - [x] Căn số tiền điều chỉnh về cột phải của hóa đơn, đặt thao tác sửa/xóa cạnh lý do.
 

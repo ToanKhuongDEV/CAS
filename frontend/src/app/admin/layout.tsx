@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
               <div className="flex items-center gap-3">
                 <AdminStoreSelector />
-                <ThemeToggle />
+                <ThemeToggle inHeader />
 
                 <OperationalAccountMenu
                   area="ADMIN"

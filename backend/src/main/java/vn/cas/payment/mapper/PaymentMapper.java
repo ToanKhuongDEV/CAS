@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import vn.cas.payment.model.PaymentView;
+import vn.cas.payment.model.PaymentListView;
 import vn.cas.payment.model.UnpaidRecordView;
 import vn.cas.payment.model.UnpaidSessionView;
 
@@ -19,8 +20,8 @@ public interface PaymentMapper {
     PaymentView findBySessionId(@Param("sessionId") long sessionId);
     PaymentView findCustomerPayment(@Param("sessionPublicId") String sessionPublicId);
     PaymentView findByPublicId(@Param("storeId") long storeId, @Param("publicId") String publicId);
-    List<PaymentView> findPending(@Param("storeId") long storeId);
-    List<PaymentView> findPaidBetween(@Param("storeId") long storeId,
+    List<PaymentListView> findPending(@Param("storeId") long storeId);
+    List<PaymentListView> findPaidBetween(@Param("storeId") long storeId,
             @Param("confirmedAtStart") LocalDateTime confirmedAtStart,
             @Param("confirmedAtEnd") LocalDateTime confirmedAtEnd);
     long countPending(@Param("storeId") long storeId);
@@ -29,6 +30,9 @@ public interface PaymentMapper {
     long lastInsertId();
     int confirm(@Param("id") long id, @Param("accountId") long accountId,
             @Param("name") String name);
+
+    int updatePaidAdjustment(@Param("id") long id, @Param("amount") java.math.BigDecimal amount,
+            @Param("snapshot") String snapshot);
 
     int removePendingPaymentDiscount(@Param("id") long id,
             @Param("amount") java.math.BigDecimal amount, @Param("snapshot") String snapshot);

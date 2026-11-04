@@ -321,6 +321,24 @@ class PaymentServiceTest {
     }
 
     @Test
+    void shouldFindPaidPaymentsForSelectedRangeAndStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "uid", "Admin", "ADMIN");
+        var from = java.time.LocalDate.of(2025, 12, 31);
+        var to = java.time.LocalDate.of(2026, 1, 2);
+        service.paidBetween(principal, from, to);
+        verify(payments).findPaidBetween(3L, from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+        assertThatThrownBy(() -> service.paidBetween(principal, to, from))
+                .isInstanceOf(ApiException.class);
+        var operator = new OperationalPrincipal(1L, 3L, "uid", "Operator", "OPERATOR");
+        assertThatThrownBy(() -> service.paidBetween(operator, from, to))
+                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.status())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        var superAdmin = new OperationalPrincipal(3L, 4L, "uid", "Super Admin", "SUPER_ADMIN");
+        service.paidBetween(superAdmin, from, to);
+        verify(payments).findPaidBetween(4L, from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+    }
+
+    @Test
     void shouldRecordUnpaidUsingExistingPendingPaymentCloseSessionAndAudit() {
         var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
                 "OPERATOR");

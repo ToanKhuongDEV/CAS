@@ -9,17 +9,23 @@ import { useToast } from "../../../../../components/ui/toast-provider";
 import { OperatorPaymentControlView } from "../../../../../components/operator/operator-payment-control-view";
 import { OperatorBillAdjustmentForm } from "../../../../../components/operator/operator-bill-adjustment-form";
 import { getFirebaseAuth } from "../../../../../lib/auth/firebase";
-import { getCurrentOperationalAccount } from "../../../../../lib/auth/operational-auth";
+import {
+  getCurrentOperationalAccount,
+  getSelectedAdminStoreId,
+} from "../../../../../lib/auth/operational-auth";
 import {
   confirmOperatorPayment,
+  updatePaidBillAdjustments,
   operatorPendingPaymentCountQueryKey,
   type BillAdjustment,
   type Payment,
 } from "../../../../../lib/api/payment/payment.api";
 import {
+  adminPaidPaymentsQueryKey,
   operatorPaidTodayPaymentsQueryKey,
   operatorPaymentsQueryKey,
   useOperatorPaidTodayPaymentsQuery,
+  useAdminPaidPaymentsQuery,
   useOperatorPaymentsQuery,
 } from "../../../../../lib/api/payment/payment.query";
 import { loadPublicStore } from "../../../../../lib/api/store/public-store.api";
@@ -61,6 +67,8 @@ type SnapshotBill = {
 type PaymentListMode = "PENDING" | "PAID";
 
 type OperatorPayment = {
+  customerName: string | null;
+  maskedCustomerPhone: string | null;
   billSnapshot: string;
   adjustments: BillAdjustment[];
   baseAmount: number;
@@ -78,6 +86,39 @@ type OperatorPayment = {
 };
 
 const defaultPaymentPollIntervalMs = 10_000;
+type PaymentPeriod = "threeDays" | "oneWeek" | "oneMonth" | "custom";
+const paymentPeriods: { value: Exclude<PaymentPeriod, "custom">; label: string; days: number }[] = [
+  { value: "threeDays", label: "3 ngày", days: 3 },
+  { value: "oneWeek", label: "1 tuần", days: 7 },
+  { value: "oneMonth", label: "1 tháng", days: 30 },
+];
+
+function paymentDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isPaymentDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime()) && paymentDate(date) === value;
+}
+
+function paymentFilterFromUrl() {
+  const today = paymentDate(new Date());
+  const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+  const from = params.get("from") ?? "";
+  const to = params.get("to") ?? "";
+  const period = params.get("period");
+  if (isPaymentDate(from) && isPaymentDate(to) && from <= to) {
+    return {
+      from,
+      to,
+      period:
+        paymentPeriods.find((item) => item.value === period)?.value ?? ("custom" as PaymentPeriod),
+    };
+  }
+  return { from: today, to: today, period: "custom" as PaymentPeriod };
+}
 
 function formatRequestedAt(value: string) {
   const date = new Date(value);
@@ -116,6 +157,8 @@ function toOperatorPayment(payment: Payment): OperatorPayment {
   const discountAmount = snapshot.discount ? Math.max(0, originalAmount - payment.amount) : 0;
   const promotionDiscount = snapshot.discount?.discountAmount ?? discountAmount;
   return {
+    customerName: payment.customerName ?? null,
+    maskedCustomerPhone: payment.maskedCustomerPhone ?? null,
     billSnapshot: payment.billSnapshot,
     adjustments: snapshot.adjustments ?? [],
     baseAmount: snapshot.discount?.payableAmount ?? bill.payableAmount ?? payment.amount,
@@ -154,23 +197,67 @@ function toOperatorPayment(payment: Payment): OperatorPayment {
 
 export function OperatorPaymentConfirmationList({
   pollIntervalMs = defaultPaymentPollIntervalMs,
+  adminView = false,
 }: {
   pollIntervalMs?: number;
+  adminView?: boolean;
 }) {
   const { showToast } = useToast();
-  const [mode, setMode] = useState<PaymentListMode>("PENDING");
+  const [mode, setMode] = useState<PaymentListMode>(adminView ? "PAID" : "PENDING");
+  const [initialFilter] = useState(paymentFilterFromUrl);
+  const [from, setFrom] = useState(initialFilter.from);
+  const [to, setTo] = useState(initialFilter.to);
+  const [period, setPeriod] = useState<PaymentPeriod>(initialFilter.period);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [showPaymentControl, setShowPaymentControl] = useState(false);
   const queryClient = useQueryClient();
   const pendingPayments = useOperatorPaymentsQuery(pollIntervalMs, mode === "PENDING");
-  const paidPayments = useOperatorPaidTodayPaymentsQuery(mode === "PAID");
-  const activePaymentQuery = mode === "PENDING" ? pendingPayments : paidPayments;
+  const paidPayments = useOperatorPaidTodayPaymentsQuery(mode === "PAID" && !adminView);
+  const adminPayments = useAdminPaidPaymentsQuery(from, to, mode === "PAID" && adminView);
+  const activePaymentQuery =
+    mode === "PENDING" ? pendingPayments : adminView ? adminPayments : paidPayments;
   const payments = (activePaymentQuery.data ?? []).map(toOperatorPayment);
   const isLoading = activePaymentQuery.isLoading;
-  const loadError = activePaymentQuery.error?.message ?? null;
+  const loadError =
+    adminView && mode === "PAID" && (!from || !to || from > to)
+      ? "Vui lòng chọn khoảng ngày hợp lệ."
+      : (activePaymentQuery.error?.message ?? null);
+
+  useEffect(() => {
+    if (!adminView || !from || !to || from > to) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("period", period);
+    url.searchParams.set("from", from);
+    url.searchParams.set("to", to);
+    window.history.replaceState(window.history.state, "", url);
+  }, [adminView, from, to, period]);
+
+  useEffect(() => {
+    if (!adminView) return;
+    const restore = () => {
+      const filter = paymentFilterFromUrl();
+      setFrom(filter.from);
+      setTo(filter.to);
+      setPeriod(filter.period);
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [adminView]);
+
+  function selectPeriod(value: PaymentPeriod) {
+    setPeriod(value);
+    const preset = paymentPeriods.find((item) => item.value === value);
+    if (!preset) return;
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - preset.days + 1);
+    setFrom(paymentDate(start));
+    setTo(paymentDate(end));
+  }
 
   useEffect(() => {
     let isActive = true;
@@ -179,7 +266,12 @@ export function OperatorPaymentConfirmationList({
 
     void getCurrentOperationalAccount(user)
       .then(async (account) => {
-        const storeSettings = await loadPublicStore(account.storeId);
+        if (isActive) setIsAdmin(account.role === "ADMIN" || account.role === "SUPER_ADMIN");
+        const storeId =
+          account.role === "SUPER_ADMIN"
+            ? (getSelectedAdminStoreId() ?? account.storeId)
+            : account.storeId;
+        const storeSettings = await loadPublicStore(storeId);
         if (!isActive) return;
         setOperatorName(account.displayName);
         setStore(storeSettings);
@@ -257,22 +349,37 @@ export function OperatorPaymentConfirmationList({
       const deletions = original
         .filter((old) => !draftAdjustments.some((item) => item.publicId === old.publicId))
         .map((item) => item.publicId);
-      const confirmed = await confirmOperatorPayment(
-        selectedPayment.id,
-        selectedPayment.billSnapshot,
-        { additions, updates, deletions },
-      );
+      const confirmed =
+        selectedPayment.status === "PAID"
+          ? await updatePaidBillAdjustments(
+              selectedPayment.id,
+              selectedPayment.billSnapshot,
+              additions,
+              updates,
+              deletions,
+            )
+          : await confirmOperatorPayment(selectedPayment.id, selectedPayment.billSnapshot, {
+              additions,
+              updates,
+              deletions,
+            });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: operatorPaymentsQueryKey }),
         queryClient.invalidateQueries({ queryKey: operatorPaidTodayPaymentsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: adminPaidPaymentsQueryKey }),
       ]);
-      queryClient.setQueryData<number>(operatorPendingPaymentCountQueryKey, (currentCount) =>
-        Math.max(0, (currentCount ?? 1) - 1),
-      );
+      if (selectedPayment.status === "PENDING") {
+        queryClient.setQueryData<number>(operatorPendingPaymentCountQueryKey, (currentCount) =>
+          Math.max(0, (currentCount ?? 1) - 1),
+        );
+      }
       showToast({
-        message: selectedPayment.table
-          ? `Đã xác nhận ${selectedPayment.table} thanh toán ${formatCurrency(confirmed.amount)}.`
-          : `Đã xác nhận thanh toán ${formatCurrency(confirmed.amount)}.`,
+        message:
+          selectedPayment.status === "PAID"
+            ? "Đã cập nhật điều chỉnh hóa đơn."
+            : selectedPayment.table
+              ? `Đã xác nhận ${selectedPayment.table} thanh toán ${formatCurrency(confirmed.amount)}.`
+              : `Đã xác nhận thanh toán ${formatCurrency(confirmed.amount)}.`,
         type: "success",
       });
       setSelectedPayment(null);
@@ -330,51 +437,116 @@ export function OperatorPaymentConfirmationList({
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div
-          aria-label="Bộ lọc trạng thái thanh toán"
-          className="inline-flex rounded-xl border border-cas-outline-variant/35 bg-cas-surface-container/50 p-1"
-        >
+      <section
+        className={
+          adminView
+            ? "rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-4 shadow-sm sm:p-5"
+            : ""
+        }
+      >
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            aria-label="Bộ lọc trạng thái thanh toán"
+            className={
+              adminView
+                ? "flex flex-wrap items-center gap-2"
+                : "inline-flex rounded-xl border border-cas-outline-variant/35 bg-cas-surface-container/50 p-1"
+            }
+          >
+            <button
+              aria-pressed={mode === "PENDING"}
+              className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+                mode === "PENDING"
+                  ? "bg-cas-primary text-cas-on-primary"
+                  : adminView
+                    ? "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-primary/10"
+                    : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
+              }`}
+              onClick={() => {
+                setMode("PENDING");
+                closePaymentDialog();
+              }}
+              type="button"
+            >
+              Chờ xác nhận
+            </button>
+            <button
+              aria-pressed={mode === "PAID"}
+              className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+                mode === "PAID"
+                  ? "bg-cas-primary text-cas-on-primary"
+                  : adminView
+                    ? "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-primary/10"
+                    : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
+              }`}
+              onClick={() => {
+                setMode("PAID");
+                closePaymentDialog();
+              }}
+              type="button"
+            >
+              {adminView ? "Đã thanh toán" : "Đã thanh toán hôm nay"}
+            </button>
+          </div>
           <button
-            aria-pressed={mode === "PENDING"}
-            className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
-              mode === "PENDING"
-                ? "bg-cas-primary text-cas-on-primary"
-                : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
-            }`}
-            onClick={() => {
-              setMode("PENDING");
-              closePaymentDialog();
-            }}
+            className="inline-flex items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10"
+            onClick={() => setShowPaymentControl(true)}
             type="button"
           >
-            Chờ xác nhận
+            <CasIcon className="size-4" name="clock" />
+            Kiểm soát thanh toán
           </button>
-          <button
-            aria-pressed={mode === "PAID"}
-            className={`rounded-lg px-4 py-2 text-sm font-extrabold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
-              mode === "PAID"
-                ? "bg-cas-primary text-cas-on-primary"
-                : "text-cas-on-surface-variant hover:bg-cas-primary/10 hover:text-cas-on-surface"
-            }`}
-            onClick={() => {
-              setMode("PAID");
-              closePaymentDialog();
-            }}
-            type="button"
-          >
-            Đã thanh toán hôm nay
-          </button>
-        </div>
-        <button
-          className="inline-flex items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10"
-          onClick={() => setShowPaymentControl(true)}
-          type="button"
-        >
-          <CasIcon className="size-4" name="clock" />
-          Kiểm soát thanh toán
-        </button>
-      </header>
+        </header>
+
+        {adminView && mode === "PAID" && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-cas-outline-variant/25 pt-4 text-sm font-bold text-cas-on-surface">
+            <div className="flex overflow-hidden rounded-sm border border-cas-outline-variant/60 bg-cas-surface">
+              {paymentPeriods.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => selectPeriod(item.value)}
+                  className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${period === item.value ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => selectPeriod("custom")}
+                className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${period === "custom" ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
+              >
+                Tùy chỉnh
+              </button>
+            </div>
+            <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
+              <span className="sr-only">Từ ngày</span>
+              <input
+                type="date"
+                value={from}
+                onChange={(event) => {
+                  setPeriod("custom");
+                  setFrom(event.target.value);
+                }}
+                className="min-w-30 bg-transparent outline-none"
+              />
+            </label>
+            <span className="text-xs font-bold text-cas-on-surface-variant">đến</span>
+            <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
+              <span className="sr-only">Đến ngày</span>
+              <input
+                type="date"
+                value={to}
+                onChange={(event) => {
+                  setPeriod("custom");
+                  setTo(event.target.value);
+                }}
+                className="min-w-30 bg-transparent outline-none"
+              />
+            </label>
+          </div>
+        )}
+      </section>
 
       {loadError ? (
         <div
@@ -387,23 +559,82 @@ export function OperatorPaymentConfirmationList({
         <p className="mt-7 text-sm text-cas-on-surface-variant">Đang tải payment chờ xác nhận...</p>
       ) : payments.length > 0 ? (
         <ul
-          className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
+          className={
+            adminView
+              ? "mt-6 grid gap-4"
+              : "mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass shadow-[0_5px_18px_var(--cas-shadow-color)]"
+          }
           aria-label={
             mode === "PENDING"
               ? "Danh sách thanh toán chờ xác nhận"
-              : "Danh sách thanh toán đã xác nhận trong ngày"
+              : adminView
+                ? "Danh sách thanh toán theo khoảng ngày"
+                : "Danh sách thanh toán đã xác nhận trong ngày"
           }
         >
           {payments.map((payment) => (
             <li
-              className="grid gap-3 border-b border-cas-outline-variant/25 p-5 last:border-b-0 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"
+              className={
+                adminView
+                  ? "grid gap-4 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-4 shadow-sm sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center"
+                  : "grid gap-3 border-b border-cas-outline-variant/25 p-5 last:border-b-0 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"
+              }
               key={payment.id}
             >
-              {payment.table ? <p className="font-extrabold">{payment.table}</p> : <span />}
-              <p className="text-sm text-cas-on-surface-variant">
-                {mode === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"} {payment.requestedAt}
-              </p>
-              <p className="font-extrabold text-cas-primary">{payment.amount}</p>
+              {adminView ? (
+                <div className="flex min-w-0 items-center gap-4">
+                  <span
+                    className={`grid size-12 shrink-0 place-items-center rounded-xl border ${payment.table === "Mang về" ? "border-cas-secondary/20 bg-cas-secondary-container text-cas-secondary" : "border-cas-primary/20 bg-cas-primary-container text-cas-primary"}`}
+                  >
+                    <CasIcon
+                      className="size-6"
+                      name={payment.table === "Mang về" ? "basket" : "table"}
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <p
+                        className={`text-lg font-extrabold ${payment.table === "Mang về" ? "text-cas-secondary" : "text-cas-on-surface"}`}
+                      >
+                        {payment.table}
+                      </p>
+                      {payment.customerName && (
+                        <span className="text-sm font-bold text-cas-on-surface-variant">
+                          {payment.customerName}
+                          {payment.maskedCustomerPhone ? ` (${payment.maskedCustomerPhone})` : ""}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-cas-on-surface-variant">
+                      <CasIcon className="size-4" name="clock" />
+                      {mode === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"} {payment.requestedAt}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {payment.table ? <p className="font-extrabold">{payment.table}</p> : <span />}
+                  <p className="text-sm text-cas-on-surface-variant">
+                    {mode === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"} {payment.requestedAt}
+                  </p>
+                </>
+              )}
+              <div>
+                <p
+                  className={
+                    adminView
+                      ? "text-xl font-extrabold text-cas-primary"
+                      : "font-extrabold text-cas-primary"
+                  }
+                >
+                  {payment.amount}
+                </p>
+                {adminView && (
+                  <span className="mt-1 inline-block rounded-full bg-cas-primary-container px-2.5 py-1 text-xs font-bold text-cas-primary">
+                    {mode === "PENDING" ? "Chờ xác nhận" : "Đã thanh toán"}
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   className="inline-flex w-fit items-center gap-2 rounded-xl border border-cas-primary/35 px-4 py-2 text-sm font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
@@ -413,6 +644,16 @@ export function OperatorPaymentConfirmationList({
                   <CasIcon className="size-4" name="bill" />
                   In bill
                 </button>
+                {mode === "PAID" && isAdmin && (
+                  <button
+                    className="w-fit rounded-xl border border-cas-primary px-4 py-2 text-sm font-extrabold text-cas-primary"
+                    onClick={() => openConfirmation(payment)}
+                    type="button"
+                  >
+                    <CasIcon className="mr-1 inline size-4" name="edit" />
+                    Điều chỉnh hóa đơn
+                  </button>
+                )}
                 <button
                   className={`w-fit rounded-xl bg-cas-primary px-4 py-2 text-sm font-extrabold text-cas-on-primary transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${mode === "PENDING" ? "" : "hidden"}`}
                   disabled={mode !== "PENDING"}
@@ -431,12 +672,16 @@ export function OperatorPaymentConfirmationList({
             <h2 className="text-lg font-extrabold">
               {mode === "PENDING"
                 ? "Không còn thanh toán chờ xác nhận"
-                : "Chưa có thanh toán đã xác nhận hôm nay"}
+                : adminView
+                  ? "Chưa có thanh toán trong khoảng ngày đã chọn"
+                  : "Chưa có thanh toán đã xác nhận hôm nay"}
             </h2>
             <p className="mt-1 text-sm text-cas-on-surface-variant">
               {mode === "PENDING"
                 ? "Tất cả yêu cầu thanh toán đã được xử lý."
-                : "Các hóa đơn được xác nhận hôm nay sẽ hiển thị tại đây."}
+                : adminView
+                  ? "Chọn khoảng ngày khác để xem thanh toán."
+                  : "Các hóa đơn được xác nhận hôm nay sẽ hiển thị tại đây."}
             </p>
           </div>
         </div>
@@ -465,7 +710,11 @@ export function OperatorPaymentConfirmationList({
                   </p>
                 ) : null}
                 <h2 className="mt-1 text-xl font-extrabold" id="payment-dialog-title">
-                  {selectedPayment ? "Xác nhận thanh toán" : "Xem hóa đơn"}
+                  {selectedPayment?.status === "PAID"
+                    ? "Điều chỉnh hóa đơn"
+                    : selectedPayment
+                      ? "Xác nhận thanh toán"
+                      : "Xem hóa đơn"}
                 </h2>
               </div>
               <button
@@ -483,14 +732,28 @@ export function OperatorPaymentConfirmationList({
             <div className="mt-5">
               <section aria-label="Bản in bill" className="print-bill !block space-y-3 text-sm">
                 <header className="print-bill__header grid gap-1 text-center text-xs text-cas-on-surface-variant">
-                  <strong>{store?.name ?? "Thông tin cửa hàng"}</strong>
+                  <strong className="text-base font-extrabold text-cas-on-surface">
+                    {store?.brandName?.toLocaleUpperCase("vi-VN") ??
+                      store?.branchName ??
+                      store?.name ??
+                      "Thông tin cửa hàng"}
+                    {store?.brandName && (store.branchName ?? store.name) && (
+                      <> cơ sở {store.branchName ?? store.name}</>
+                    )}
+                  </strong>
                   <span>{store?.address ?? "—"}</span>
                   <span>Hotline: {store?.phone ?? "—"}</span>
                 </header>
 
                 <h1 className="text-center text-base font-extrabold">HÓA ĐƠN THANH TOÁN</h1>
                 <div className="print-bill__meta grid gap-1 text-xs text-cas-on-surface-variant">
-                  {activePayment.table ? <span>{activePayment.table}</span> : null}
+                  {activePayment.table ? (
+                    <strong className="print-bill__table text-center text-base font-extrabold text-cas-on-surface">
+                      {activePayment.table.startsWith("Bàn ")
+                        ? activePayment.table.replace("Bàn ", "Bàn số ")
+                        : activePayment.table}
+                    </strong>
+                  ) : null}
                   <span>
                     {activePayment.status === "PENDING" ? "Yêu cầu lúc" : "Xác nhận lúc"}:{" "}
                     {activePayment.requestedAt}
@@ -598,7 +861,7 @@ export function OperatorPaymentConfirmationList({
                     {draftTotal === null ? activePayment.amount : formatCurrency(draftTotal)}
                   </strong>
                 </div>
-                {selectedPayment ? (
+                {selectedPayment?.status === "PENDING" ? (
                   <p className="mt-4 border-t border-cas-outline-variant/25 pt-4 text-sm leading-6 text-cas-on-surface">
                     Bạn chỉ xác nhận khi đã kiểm tra loa bên ngoài báo giao dịch thành công.
                   </p>
@@ -629,7 +892,11 @@ export function OperatorPaymentConfirmationList({
                   onClick={handleConfirmPayment}
                   type="button"
                 >
-                  {isConfirming ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
+                  {isConfirming
+                    ? "Đang lưu..."
+                    : selectedPayment.status === "PAID"
+                      ? "Lưu điều chỉnh"
+                      : "Xác nhận đã thanh toán"}
                 </button>
               ) : activePayment.status === "PENDING" ? (
                 <button
@@ -723,14 +990,18 @@ export function OperatorPaymentConfirmationList({
             text-align: center;
           }
 
-          .print-bill__header strong,
-          .print-bill h1,
           .print-bill__grand-total {
             font-size: 12px;
           }
 
+          .print-bill__header strong,
+          .print-bill__table,
           .print-bill h1 {
             font-size: 13px;
+            font-weight: 800;
+          }
+
+          .print-bill h1 {
             margin: 12px 0 8px;
           }
 

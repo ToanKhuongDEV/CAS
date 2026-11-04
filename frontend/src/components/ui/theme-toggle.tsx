@@ -21,7 +21,7 @@ function applyTheme(theme: ColorTheme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ inHeader = false }: { inHeader?: boolean }) {
   useEffect(() => {
     applyTheme(getInitialTheme());
   }, []);
@@ -36,7 +36,7 @@ export function ThemeToggle() {
 
   return (
     <button
-      className="grid size-10 cursor-pointer place-items-center rounded-full border border-cas-outline-variant bg-cas-surface-container p-0 text-cas-on-surface transition duration-200 hover:-translate-y-px hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+      className={`grid size-10 cursor-pointer place-items-center border p-0 transition duration-200 hover:-translate-y-px focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${inHeader ? "rounded-xl border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary hover:bg-cas-on-primary/20" : "rounded-full border-cas-outline-variant bg-cas-surface-container text-cas-on-surface hover:text-cas-primary"}`}
       type="button"
       onClick={handleThemeToggle}
       aria-label="Chuyển đổi giao diện sáng hoặc tối"

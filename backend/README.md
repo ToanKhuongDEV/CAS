@@ -154,11 +154,16 @@ curl.exe -X POST http://localhost:8080/api/v1/customer/payments -b customer-sess
 curl.exe http://localhost:8080/api/v1/customer/payments -b customer-session-cookie.txt
 curl.exe -X POST http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Danh sách payment trả customerName và maskedCustomerPhone; số điện thoại được che từ backend.
 curl.exe http://localhost:8080/api/v1/operator/payments/paid-today -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# ADMIN/SUPER_ADMIN xem payment theo khoảng ngày xác nhận, tính cả hai ngày (YYYY-MM-DD).
+curl.exe "http://localhost:8080/api/v1/admin/payments?from=2026-11-01&to=2026-11-04" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/payments/pending-count -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # Gửi snapshot đang xem và các điều chỉnh cùng lúc xác nhận; 409 nếu hóa đơn đã đổi.
 curl.exe -X POST http://localhost:8080/api/v1/operator/payments/<payment-public-id>/confirm -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"billSnapshot\":\"<snapshot-json-da-escape>\",\"additions\":[{\"id\":\"<uuid>\",\"adjustmentType\":\"INCREASE\",\"amount\":40000,\"reason\":\"Đền đồ vỡ\"}],\"updates\":[],\"deletions\":[]}'
 # updates và deletions chỉ dành cho ADMIN/SUPER_ADMIN; id của additions là UUID mới.
+# ADMIN/SUPER_ADMIN thêm, sửa hoặc xóa điều chỉnh của payment PAID; snapshot phải khớp hóa đơn đang xem.
+curl.exe -X PUT http://localhost:8080/api/v1/admin/payments/<payment-public-id>/adjustments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"billSnapshot\":\"<snapshot-json-da-escape>\",\"additions\":[{\"id\":\"<uuid-moi>\",\"adjustmentType\":\"INCREASE\",\"amount\":10000,\"reason\":\"Điều chỉnh\"}],\"updates\":[],\"deletions\":[]}'
 curl.exe http://localhost:8080/api/v1/operator/sales-sessions/<session-public-id>/bill-adjustments -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/customer/bill-adjustments -b customer-session-cookie.txt
 curl.exe "http://localhost:8080/api/v1/operator/unpaid-records?status=OPEN" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"

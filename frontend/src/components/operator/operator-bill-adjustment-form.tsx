@@ -44,6 +44,7 @@ export function OperatorBillAdjustmentForm({
     setReason("");
     setType("INCREASE");
     setEditing(null);
+    setError(null);
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -74,7 +75,10 @@ export function OperatorBillAdjustmentForm({
       <button
         aria-expanded={open}
         className="text-sm font-bold text-cas-primary hover:underline"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          clear();
+          setOpen(!open);
+        }}
         type="button"
       >
         Điều chỉnh hóa đơn
@@ -96,6 +100,12 @@ export function OperatorBillAdjustmentForm({
                         type="button"
                         disabled={disabled}
                         onClick={() => {
+                          if (open && editing === item.publicId) {
+                            clear();
+                            setOpen(false);
+                            return;
+                          }
+                          setError(null);
                           setOpen(true);
                           setEditing(item.publicId);
                           setType(item.adjustmentType);
@@ -173,7 +183,13 @@ export function OperatorBillAdjustmentForm({
             {editing ? "Lưu điều chỉnh" : "Thêm điều chỉnh"}
           </button>
           {editing && (
-            <button type="button" onClick={clear}>
+            <button
+              type="button"
+              onClick={() => {
+                clear();
+                setOpen(false);
+              }}
+            >
               Hủy sửa
             </button>
           )}

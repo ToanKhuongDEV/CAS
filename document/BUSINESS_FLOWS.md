@@ -603,9 +603,9 @@ Khách hàng hoặc `OPERATOR` có thể tạo yêu cầu thanh toán cho toàn 
 - Hệ thống chưa hỗ trợ tách hóa đơn.
 - Mỗi sales session chỉ có một payment.
 - `payments.amount` do backend tự tính; Customer hoặc `OPERATOR` không được cung cấp hoặc ghi đè tổng số tiền.
-- `bill_snapshot` được tạo cùng payment; khi payment còn `PENDING` và phiên chưa đóng, thay đổi điều chỉnh cập nhật snapshot và số tiền. Sau khi phiên đóng snapshot không thay đổi, trừ xử lý dữ liệu khuyến mãi cũ của khoản chưa thanh toán theo quy tắc hiện có.
-- `OPERATOR`, `ADMIN` và `SUPER_ADMIN` được thêm nhiều khoản tăng hoặc giảm kèm lý do trong giao diện xác nhận, và có thể xóa khoản mới nhập trước khi xác nhận. Chỉ `ADMIN` và `SUPER_ADMIN` được sửa hoặc xóa khoản đã lưu. Các thay đổi chỉ được lưu cùng giao dịch xác nhận thanh toán. Customer không được thay đổi. Điều chỉnh là bước cuối sau khuyến mãi và được hiển thị trước tổng thanh toán.
-- Chỉ lưu điều chỉnh khi xác nhận payment của phiên `PAYMENT_PENDING`; phiên đã đóng không được điều chỉnh. Không cho thêm hoặc sửa khoản giảm vượt số tiền còn phải trả; nếu bill hoặc khuyến mãi thay đổi khiến tổng âm, tổng được giữ ở 0.
+- `bill_snapshot` được tạo cùng payment. Sau khi thanh toán, Admin hoặc Super Admin có thể thêm, sửa, xóa điều chỉnh; snapshot và số tiền được cập nhật cùng audit log. Các xử lý khuyến mãi cũ của khoản chưa thanh toán giữ quy tắc hiện có.
+- `OPERATOR`, `ADMIN` và `SUPER_ADMIN` được thêm nhiều khoản tăng hoặc giảm kèm lý do trong giao diện xác nhận, và có thể xóa khoản mới nhập trước khi xác nhận. Chỉ `ADMIN` và `SUPER_ADMIN` được sửa hoặc xóa khoản đã lưu, kể cả sau khi thanh toán. Customer không được thay đổi. Điều chỉnh là bước cuối sau khuyến mãi và được hiển thị trước tổng thanh toán.
+- Điều chỉnh mới được lưu khi xác nhận payment; sau khi thanh toán, chỉ `ADMIN` và `SUPER_ADMIN` được thêm, sửa hoặc xóa điều chỉnh, cập nhật payment và snapshot cùng audit trước/sau. Tổng sau điều chỉnh tối thiểu bằng 0.
 - Mọi thao tác điều chỉnh ghi audit log. Backend khóa phiên khi thay đổi hoặc xác nhận payment; xác nhận từ chối nếu snapshot mà nhân viên xem đã thay đổi.
 - Khi session đã `PAYMENT_PENDING`, order, option và cancellation của session không được thay đổi.
 - Các món chưa làm xong vẫn được hiển thị và ghi nhận chế biến khi session `PAYMENT_PENDING` hoặc `CLOSED`; thanh toán không tự hoàn thành món và không cho hủy món sau thanh toán.

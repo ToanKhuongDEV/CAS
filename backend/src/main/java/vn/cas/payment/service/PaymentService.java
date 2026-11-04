@@ -21,6 +21,7 @@ import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.service.CustomerOrderingService;
 import vn.cas.payment.mapper.PaymentMapper;
 import vn.cas.payment.model.PaymentView;
+import vn.cas.payment.model.PaymentListView;
 import vn.cas.payment.model.UnpaidRecordView;
 import vn.cas.payment.model.UnpaidSessionView;
 import vn.cas.promotion.service.PromotionService;
@@ -140,14 +141,24 @@ public class PaymentService {
         return null;
     }
     @Transactional(readOnly = true)
-    public List<PaymentView> pending(OperationalPrincipal p) {
+    public List<PaymentListView> pending(OperationalPrincipal p) {
         return payments.findPending(p.storeId());
     }
     @Transactional(readOnly = true)
-    public List<PaymentView> paidToday(OperationalPrincipal p) {
+    public List<PaymentListView> paidToday(OperationalPrincipal p) {
         var today = LocalDate.now();
         return payments.findPaidBetween(p.storeId(), today.atStartOfDay(),
                 today.plusDays(1).atStartOfDay());
+    }
+    @Transactional(readOnly = true)
+    public List<PaymentListView> paidBetween(OperationalPrincipal p, LocalDate from, LocalDate to) {
+        if (!"ADMIN".equals(p.role()) && !"SUPER_ADMIN".equals(p.role()))
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Không có quyền xem thanh toán theo khoảng ngày.");
+        if (from.isAfter(to))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Khoảng ngày không hợp lệ.");
+        return payments.findPaidBetween(p.storeId(), from.atStartOfDay(),
+                to.plusDays(1).atStartOfDay());
     }
     @Transactional(readOnly = true)
     public long pendingCount(OperationalPrincipal p) {

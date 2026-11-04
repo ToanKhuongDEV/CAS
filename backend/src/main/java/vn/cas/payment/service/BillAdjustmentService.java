@@ -90,8 +90,6 @@ public class BillAdjustmentService {
                 throw new ApiException(HttpStatus.CONFLICT, "Mã yêu cầu đã được sử dụng.");
             return list(session.sessionId());
         }
-        if ("DECREASE".equals(type) && amount.compareTo(currentAmount(session)) > 0)
-            throw new ApiException(HttpStatus.CONFLICT, "Số tiền giảm vượt số tiền phải trả.");
         adjustments.insert(id.toString(), session.sessionId(), type, amount, reason.trim(),
                 principal.accountId());
         record(principal, session, id.toString(), "BILL_ADJUSTMENT_ADDED", type, amount, reason);
@@ -107,9 +105,6 @@ public class BillAdjustmentService {
         var existing = list(session.sessionId());
         if (existing.stream().noneMatch(item -> item.publicId().equals(id)))
             throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy điều chỉnh.");
-        var remaining = existing.stream().filter(item -> !item.publicId().equals(id)).toList();
-        if ("DECREASE".equals(type) && amount.compareTo(total(baseAmount(session), remaining)) > 0)
-            throw new ApiException(HttpStatus.CONFLICT, "Số tiền giảm vượt số tiền phải trả.");
         adjustments.update(session.sessionId(), id, type, amount, reason.trim());
         record(principal, session, id, "BILL_ADJUSTMENT_UPDATED", type, amount, reason);
         updatePendingPayment(session);
@@ -132,6 +127,89 @@ public class BillAdjustmentService {
         return list(session.sessionId());
     }
 
+    @Transactional
+    public vn.cas.payment.model.PaymentView updatePaid(OperationalPrincipal principal,
+            String paymentId, String expectedSnapshot,
+            List<PaymentService.AdjustmentChange> additions,
+            List<PaymentService.AdjustmentChange> updates, List<UUID> deletions) {
+        requireAdmin(principal);
+        var payment = payments.findByPublicId(principal.storeId(), paymentId);
+        if (payment == null)
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy payment.");
+        payments.lockSession(payment.salesSessionId());
+        payment = payments.findByPublicId(principal.storeId(), paymentId);
+        if (!"PAID".equals(payment.status()) || !expectedSnapshot.equals(payment.billSnapshot()))
+            throw new ApiException(HttpStatus.CONFLICT, "Hóa đơn đã thay đổi. Vui lòng tải lại.");
+        var items = list(payment.salesSessionId());
+        var ids = new java.util.HashSet<String>();
+        for (var addition : additions) {
+            String id = addition.id().toString();
+            if (!ids.add(id) || items.stream().anyMatch(item -> item.publicId().equals(id)))
+                throw new ApiException(HttpStatus.CONFLICT, "Điều chỉnh bị lặp.");
+            adjustments.insert(id, payment.salesSessionId(), addition.adjustmentType(),
+                    addition.amount(), addition.reason().trim(), principal.accountId());
+            long rowId = adjustments.findId(payment.salesSessionId(), id);
+            recordPaid(principal, rowId, id, "BILL_ADJUSTMENT_ADDED", null, new BillAdjustment(id,
+                    addition.adjustmentType(), addition.amount(), addition.reason().trim(), null));
+        }
+        for (var update : updates) {
+            String id = update.id().toString();
+            var before = items.stream().filter(item -> item.publicId().equals(id)).findFirst()
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                            "Không tìm thấy điều chỉnh."));
+            if (!ids.add(id))
+                throw new ApiException(HttpStatus.CONFLICT, "Điều chỉnh bị lặp.");
+            long rowId = adjustments.findId(payment.salesSessionId(), id);
+            adjustments.update(payment.salesSessionId(), id, update.adjustmentType(),
+                    update.amount(), update.reason().trim());
+            recordPaid(principal, rowId, id, "BILL_ADJUSTMENT_UPDATED", before,
+                    new BillAdjustment(id, update.adjustmentType(), update.amount(),
+                            update.reason().trim(), before.createdAt()));
+        }
+        for (var idValue : deletions) {
+            String id = idValue.toString();
+            var before = items.stream().filter(item -> item.publicId().equals(id)).findFirst()
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                            "Không tìm thấy điều chỉnh."));
+            if (!ids.add(id))
+                throw new ApiException(HttpStatus.CONFLICT, "Điều chỉnh bị lặp.");
+            long rowId = adjustments.findId(payment.salesSessionId(), id);
+            adjustments.delete(payment.salesSessionId(), id);
+            recordPaid(principal, rowId, id, "BILL_ADJUSTMENT_DELETED", before, null);
+        }
+        try {
+            var root = (ObjectNode) json.readTree(payment.billSnapshot());
+            var base = root.path("discount").isObject()
+                    ? root.path("discount").path("payableAmount")
+                    : root.path("bill").path("payableAmount");
+            if (!base.isNumber())
+                throw new ApiException(HttpStatus.CONFLICT, "Bill snapshot không hợp lệ.");
+            var updated = list(payment.salesSessionId());
+            root.set("adjustments", json.valueToTree(updated));
+            if (payments.updatePaidAdjustment(payment.id(), total(base.decimalValue(), updated),
+                    json.writeValueAsString(root)) != 1)
+                throw new ApiException(HttpStatus.CONFLICT, "Không thể cập nhật payment.");
+            return payments.findByPublicId(principal.storeId(), paymentId);
+        } catch (JsonProcessingException e) {
+            throw new ApiException(HttpStatus.CONFLICT, "Bill snapshot không hợp lệ.");
+        }
+    }
+
+    private void recordPaid(OperationalPrincipal principal, long rowId, String id, String action,
+            BillAdjustment before, BillAdjustment after) {
+        try {
+            var change = json.createObjectNode();
+            change.set("before", json.valueToTree(before));
+            change.set("after", json.valueToTree(after));
+            audit.record(new AuditLogCommand(principal.storeId(), UUID.randomUUID(), action,
+                    "BILL_ADJUSTMENT", rowId, id, json.writeValueAsString(change),
+                    principal.accountId(), principal.displayName(),
+                    "Điều chỉnh hóa đơn đã thanh toán."));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private SalesSessionLookup locked(OperationalPrincipal principal, String sessionId) {
         var session = sessions.requireCurrentForUpdate(sessionId);
         checkStore(principal, session);
@@ -146,10 +224,6 @@ public class BillAdjustmentService {
     private void requireAdmin(OperationalPrincipal principal) {
         if (!"ADMIN".equals(principal.role()) && !"SUPER_ADMIN".equals(principal.role()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Không có quyền sửa điều chỉnh.");
-    }
-
-    private BigDecimal currentAmount(SalesSessionLookup session) {
-        return total(baseAmount(session), list(session.sessionId()));
     }
 
     private BigDecimal baseAmount(SalesSessionLookup session) {

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   loadCustomerPayment,
+  loadAdminPaidPayments,
   loadEligibleUnpaidSessions,
   loadOperatorPaidTodayPayments,
   loadOperatorPayments,
@@ -13,6 +14,7 @@ import {
 export const customerPaymentQueryKey = ["customer", "payment"] as const;
 export const operatorPaymentsQueryKey = ["operator", "payments"] as const;
 export const operatorPaidTodayPaymentsQueryKey = ["operator", "payments", "paid-today"] as const;
+export const adminPaidPaymentsQueryKey = ["admin", "payments"] as const;
 export const operatorUnpaidRecordsQueryKey = (status?: "OPEN" | "RESOLVED") =>
   ["operator", "unpaid-records", status ?? "all"] as const;
 export const eligibleUnpaidSessionsQueryKey = (minimumOpenMinutes: number) =>
@@ -41,6 +43,14 @@ export function useOperatorPaidTodayPaymentsQuery(enabled = true) {
     queryKey: operatorPaidTodayPaymentsQueryKey,
     queryFn: loadOperatorPaidTodayPayments,
     enabled,
+  });
+}
+
+export function useAdminPaidPaymentsQuery(from: string, to: string, enabled = true) {
+  return useQuery({
+    queryKey: [...adminPaidPaymentsQueryKey, from, to],
+    queryFn: () => loadAdminPaidPayments(from, to),
+    enabled: enabled && Boolean(from && to && from <= to),
   });
 }
 

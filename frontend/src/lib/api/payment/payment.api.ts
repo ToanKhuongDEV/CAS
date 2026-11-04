@@ -18,6 +18,8 @@ export type Payment = {
   confirmedAt: string | null;
   createdAt: string;
   billSnapshot: string;
+  customerName?: string | null;
+  maskedCustomerPhone?: string | null;
 };
 export type UnpaidRecord = {
   publicId: string;
@@ -71,6 +73,13 @@ export function loadOperatorPayments() {
 export function loadOperatorPaidTodayPayments() {
   return operator<Payment[]>("/payments/paid-today");
 }
+export async function loadAdminPaidPayments(from: string, to: string) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
+  return request<Payment[]>(`/api/v1/admin/payments?${new URLSearchParams({ from, to })}`, {
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+  });
+}
 export function loadOperatorPendingPaymentCount() {
   return operator<number>("/payments/pending-count");
 }
@@ -92,6 +101,24 @@ export function confirmOperatorPayment(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ billSnapshot, ...changes }),
+  });
+}
+export async function updatePaidBillAdjustments(
+  id: string,
+  billSnapshot: string,
+  additions: BillAdjustmentChange[],
+  updates: BillAdjustmentChange[],
+  deletions: string[],
+) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Phiên đăng nhập đã hết hạn.");
+  return request<Payment>(`/api/v1/admin/payments/${encodeURIComponent(id)}/adjustments`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${await user.getIdToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ billSnapshot, additions, updates, deletions }),
   });
 }
 export function loadOperatorUnpaidRecords(status?: "OPEN" | "RESOLVED") {
