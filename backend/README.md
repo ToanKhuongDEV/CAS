@@ -64,6 +64,8 @@ curl.exe http://localhost:8080/api/v1/customer/catalog/items
 # with browser location to select the nearest branch. A counter QR may link to `/start?storeId=<store-id>`.
 curl.exe http://localhost:8080/api/v1/public/stores
 curl.exe http://localhost:8080/api/v1/operator/catalog/option-groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Tên option trùng trong cùng nhóm trả 409 cùng tên bị trùng.
+curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/option-groups/1/values -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Trân châu\",\"extraPrice\":5000,\"isDefault\":false,\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/catalog/option-values/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"Size L\",\"extraPrice\":10000,\"isDefault\":false,\"displayOrder\":1,\"status\":\"ACTIVE\"}"
 curl.exe -X POST http://localhost:8080/api/v1/admin/images/upload-signature -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"purpose\":\"MENU_ITEM\"}"
 curl.exe -X PUT http://localhost:8080/api/v1/admin/store/settings -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"name\":\"CAS Mì Cay - Cơ sở Quận 5\",\"address\":\"123 Đường Ẩm Thực\",\"phone\":\"0900000000\",\"email\":\"hello@cas.local\",\"googleMapsLocation\":\"https://maps.google.com/?q=10.7769,106.7009\",\"openTime\":\"09:00:00\",\"closeTime\":\"22:00:00\",\"status\":\"ACTIVE\"}"
@@ -97,15 +99,17 @@ curl.exe http://localhost:8080/api/v1/customer/orders -b customer-session-cookie
 curl.exe http://localhost:8080/api/v1/customer/orders/<order-public-id> -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/orders/bill -b customer-session-cookie.txt
 # Với phiên mang về, tableCode trong bill là null.
-# Mỗi món trong bill có latestCancellationStatus (PENDING, APPROVED, REJECTED hoặc null).
+# Mỗi món trong bill có latestCancellationStatus (PENDING, APPROVED, REJECTED hoặc null) và latestCancellationIsRemade (true/false hoặc null khi chưa có yêu cầu).
 curl.exe -X POST http://localhost:8080/api/v1/customer/orders/items/<order-item-public-id>/cancellation-requests -H "Content-Type: application/json" -b customer-session-cookie.txt -d "{\"idempotencyKey\":\"<uuid-moi-cho-moi-lan-gui>\",\"requestedQuantity\":1,\"reason\":\"Gọi nhầm món\"}"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests -H "Authorization: Bearer <firebase-id-token>"
 # Đơn mang về có tableCode null; response trả customerName và orderId để phân biệt đơn.
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/pending-count -H "Authorization: Bearer <firebase-id-token>"
 curl.exe http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id> -H "Authorization: Bearer <firebase-id-token>"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"decision\":\"APPROVE\",\"isRemade\":false,\"targetOrderItemId\":\"<order-item-public-id-ban-nhan>\",\"transferQuantity\":1}"
+curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"decision\":\"APPROVE\",\"isRemade\":true,\"transferQuantity\":0}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/<cancellation-request-id>/resolution -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"decision\":\"REJECT\",\"rejectionReason\":\"Món đã được chế biến\"}"
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Đổ món khi phục vụ\",\"isRemade\":false}"
+# Có thể chọn món đã làm xong trong phiên OPEN; số lượng đang chờ hủy không thể hủy lại.
 curl.exe -X POST http://localhost:8080/api/v1/operator/cancellation-requests/incidents -H "Authorization: Bearer <firebase-id-token>" -H "Content-Type: application/json" -d "{\"orderItemId\":\"<order-item-public-id>\",\"requestedQuantity\":1,\"reason\":\"Bếp làm sai\",\"isRemade\":true}"
 curl.exe http://localhost:8080/api/v1/customer/promotions/eligible -b customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/customer/promotions -b customer-session-cookie.txt

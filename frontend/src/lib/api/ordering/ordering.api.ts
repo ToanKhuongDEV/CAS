@@ -14,6 +14,7 @@ export type CustomerOrderItem = {
   cancelledQuantity: number;
   pendingCancellationQuantity: number;
   latestCancellationStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
+  latestCancellationIsRemade?: boolean | null;
   totalAmount: number;
   options: { groupName: string; optionName: string; unitPrice: number; quantityPerItem: number }[];
 };

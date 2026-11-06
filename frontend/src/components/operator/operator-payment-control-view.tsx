@@ -27,6 +27,7 @@ import {
 } from "../../lib/api/promotion/promotion.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 
 type ActiveTable = { sessionId: string; tableCode: number | null; customerName: string };
 
@@ -35,6 +36,7 @@ export function OperatorPaymentControlView({
 }: {
   onPaymentRequested: () => void;
 }) {
+  const { showToast } = useToast();
   const [tables, setTables] = useState<ActiveTable[]>([]);
   const [selected, setSelected] = useState<ActiveTable | null>(null);
   const [bill, setBill] = useState<CustomerBill | null>(null);
@@ -105,7 +107,10 @@ export function OperatorPaymentControlView({
       setSelectedVoucher(voucher);
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể áp dụng voucher.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể áp dụng voucher.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -124,7 +129,10 @@ export function OperatorPaymentControlView({
     } catch (cause) {
       if (cause instanceof Error && cause.message === promotionUnavailableMessage)
         setVoucherRefreshKey((value) => value + 1);
-      setError(cause instanceof Error ? cause.message : "Không thể tạo yêu cầu thanh toán.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo yêu cầu thanh toán.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -138,7 +146,10 @@ export function OperatorPaymentControlView({
       setUnpaidTable(null);
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể ghi nhận chưa thanh toán.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể ghi nhận chưa thanh toán.",
+      });
     } finally {
       setIsSaving(false);
     }

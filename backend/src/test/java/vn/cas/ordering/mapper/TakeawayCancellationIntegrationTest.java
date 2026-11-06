@@ -164,6 +164,12 @@ class TakeawayCancellationIntegrationTest {
                 .isEqualTo("REJECTED");
         assertThat(mapper.findOrderItemsBySessionId(2).getFirst().latestCancellationStatus())
                 .isEqualTo("APPROVED");
+        assertThat(mapper.findOrderItemsBySessionId(2).getFirst().latestCancellationIsRemade())
+                .isFalse();
+        jdbc.update(
+                "UPDATE order_item_cancellation_requests SET is_remade = TRUE WHERE public_id = 'request-2'");
+        assertThat(mapper.findOrderItemsBySessionId(2).getFirst().latestCancellationIsRemade())
+                .isTrue();
         assertThat(mapper.countPendingCancellationRequests(1)).isZero();
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM system_notification_recipients WHERE sales_session_id IN (1, 2)",

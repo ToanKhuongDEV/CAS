@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CasIcon } from "../../../../../../components/ui/cas-icon";
 import { CasButton } from "../../../../../../components/ui/cas-button";
+import { useToast } from "../../../../../../components/ui/toast-provider";
 import { createOperatorIncidentCancellation } from "../../../../../../lib/api/ordering/cancellation.api";
-import { useOperatorPreparationGroupsQuery } from "../../../../../../lib/api/ordering/preparation.query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { loadOperatorSessionListing } from "../../../../../../lib/api/ordering/ordering.api";
+import { useOperatorBillQuery } from "../../../../../../lib/api/ordering/ordering.query";
 import { formatOrderDestination } from "../../../../../../lib/ordering/order-destination";
 
 type TableOrderItem = {
@@ -20,47 +23,68 @@ type TableOrderItem = {
 
 export default function IncidentCancellationPage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
   const [cancelQuantities, setCancelQuantities] = useState<Record<string, number>>({});
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [reason, setReason] = useState("Đổ/bể trong lúc phục vụ");
-  const [validationError, setValidationError] = useState<string | null>(null);
   const {
-    data: groups = [],
-    error: preparationError,
-    isLoading: isLoadingOrders,
-  } = useOperatorPreparationGroupsQuery();
-  const tableOrders = useMemo(() => {
-    const next: Record<string, TableOrderItem[]> = {};
-    for (const group of groups) {
-      for (const allocation of group.allocations) {
-        const table = formatOrderDestination(
-          allocation.tableCode,
-          allocation.customerName,
-          allocation.orderId,
-        );
-        next[table] ??= [];
-        next[table].push({
-          id: allocation.orderItemId,
-          name: group.itemName,
-          unitPrice: 0,
-          quantity: allocation.remainingQuantity,
-          options: group.options.map((option) => ({
-            name: `${option.groupName}: ${option.optionName}`,
-            price: 0,
+    data: listing,
+    error: listingError,
+    isLoading: isLoadingSessions,
+  } = useQuery({
+    queryKey: ["operator", "sales-sessions", "listing"],
+    queryFn: loadOperatorSessionListing,
+  });
+  const sessions = useMemo(
+    () => [
+      ...(listing?.tables ?? []).flatMap((table) =>
+        table.sessions
+          .filter((session) => session.status === "OPEN")
+          .map((session) => ({
+            id: session.sessionId,
+            label: formatOrderDestination(table.tableCode),
           })),
-        });
-      }
-    }
-    return next;
-  }, [groups]);
-  const loadError = preparationError?.message ?? null;
+      ),
+      ...(listing?.takeawaySessions ?? [])
+        .filter((session) => session.status === "OPEN")
+        .map((session) => ({
+          id: session.sessionId,
+          label: formatOrderDestination(null, session.customerName, session.sessionId),
+        })),
+    ],
+    [listing],
+  );
+  const {
+    data: bill,
+    error: billError,
+    isLoading: isLoadingBill,
+  } = useOperatorBillQuery(selectedTable || null);
+  const currentItems: TableOrderItem[] = (bill?.orders ?? []).flatMap((order) =>
+    order.items
+      .map((item) => ({
+        id: item.orderItemId,
+        name: item.itemName,
+        unitPrice: item.unitPrice,
+        quantity: Math.max(
+          0,
+          item.quantity - item.cancelledQuantity - item.pendingCancellationQuantity,
+        ),
+        options: item.options.map((option) => ({
+          name: `${option.groupName}: ${option.optionName}`,
+          price: option.unitPrice * option.quantityPerItem,
+        })),
+      }))
+      .filter((item) => item.quantity > 0),
+  );
+  const isLoadingOrders = isLoadingSessions || (Boolean(selectedTable) && isLoadingBill);
+  const loadError = listingError?.message ?? billError?.message ?? null;
 
   const handleTableChange = (tableName: string) => {
     setSelectedTable(tableName);
     setCancelQuantities({});
-    setValidationError(null);
   };
 
   const updateCancelQty = (itemId: string, newQty: number) => {
@@ -68,25 +92,28 @@ export default function IncidentCancellationPage() {
       ...prev,
       [itemId]: newQty,
     }));
-    setValidationError(null);
   };
-
-  const currentItems = selectedTable ? (tableOrders[selectedTable] ?? []) : [];
 
   const totalCancelCount = Object.values(cancelQuantities).reduce((acc, qty) => acc + qty, 0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedTable) {
-      setValidationError("Vui lòng chọn bàn hoặc đơn mang về.");
+      showToast({ type: "error", message: "Vui lòng chọn bàn hoặc đơn mang về." });
       return;
     }
     if (totalCancelCount === 0) {
-      setValidationError("Vui lòng dùng nút trừ/cộng để chọn số lượng món cần hủy.");
+      showToast({
+        type: "error",
+        message: "Vui lòng dùng nút trừ/cộng để chọn số lượng món cần hủy.",
+      });
       return;
     }
     if (isRemade === null) {
-      setValidationError("Vui lòng chọn Có hoặc Không cho mục 'Làm lại món bù'.");
+      showToast({
+        type: "error",
+        message: "Vui lòng chọn Có hoặc Không cho mục 'Làm lại món bù'.",
+      });
       return;
     }
 
@@ -104,9 +131,13 @@ export default function IncidentCancellationPage() {
             }),
           ),
       );
+      await queryClient.invalidateQueries({ queryKey: ["operator"] });
       router.push("/operator/cancellations");
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : "Không thể hủy món.");
+      showToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Không thể hủy món.",
+      });
       setIsSubmitting(false);
     }
   };
@@ -150,9 +181,9 @@ export default function IncidentCancellationPage() {
               <option value="" disabled>
                 --- Chọn bàn hoặc đơn mang về ---
               </option>
-              {Object.keys(tableOrders).map((table) => (
-                <option key={table} value={table}>
-                  {table}
+              {sessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.label}
                 </option>
               ))}
             </select>
@@ -162,7 +193,7 @@ export default function IncidentCancellationPage() {
             <p className="text-sm text-cas-on-surface-variant">Đang tải món đã gọi...</p>
           ) : null}
           {loadError ? <p className="text-sm font-bold text-cas-error">{loadError}</p> : null}
-          {!isLoadingOrders && !loadError && Object.keys(tableOrders).length === 0 ? (
+          {!isLoadingOrders && !loadError && sessions.length === 0 ? (
             <p className="text-sm text-cas-on-surface-variant">
               Chưa có món nào có thể hủy do sự cố.
             </p>
@@ -277,12 +308,6 @@ export default function IncidentCancellationPage() {
           )}
         </section>
 
-        {validationError ? (
-          <div className="rounded-xl bg-cas-error-container/20 border border-cas-error/30 p-3 text-xs font-bold text-cas-error">
-            {validationError}
-          </div>
-        ) : null}
-
         <section className="space-y-5 border-t border-cas-outline-variant/25 pt-8">
           <div className="flex items-center gap-2">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-cas-primary/15 text-xs font-extrabold text-cas-primary">
@@ -312,7 +337,6 @@ export default function IncidentCancellationPage() {
                 type="button"
                 onClick={() => {
                   setIsRemade(true);
-                  setValidationError(null);
                 }}
                 className={`flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all ${isRemade === true ? "border-cas-secondary bg-cas-secondary-container/20 text-cas-secondary shadow-xs" : "border-cas-outline-variant/30 bg-cas-surface hover:border-cas-outline-variant/60"}`}
               >
@@ -333,7 +357,6 @@ export default function IncidentCancellationPage() {
                 type="button"
                 onClick={() => {
                   setIsRemade(false);
-                  setValidationError(null);
                 }}
                 className={`flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all ${isRemade === false ? "border-cas-primary bg-cas-primary/10 text-cas-primary shadow-xs" : "border-cas-outline-variant/30 bg-cas-surface hover:border-cas-outline-variant/60"}`}
               >

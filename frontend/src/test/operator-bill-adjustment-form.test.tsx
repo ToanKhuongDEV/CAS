@@ -4,6 +4,8 @@ import { expect, it, vi } from "vitest";
 import { OperatorBillAdjustmentForm } from "../components/operator/operator-bill-adjustment-form";
 import type { BillAdjustment } from "../lib/api/payment/payment.api";
 
+vi.mock("../components/ui/toast-provider", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
 vi.mock("../lib/auth/firebase", () => ({ getFirebaseAuth: () => ({ currentUser: {} }) }));
 vi.mock("../lib/auth/operational-auth", () => ({
   getCurrentOperationalAccount: vi.fn().mockResolvedValue({ role: "ADMIN" }),

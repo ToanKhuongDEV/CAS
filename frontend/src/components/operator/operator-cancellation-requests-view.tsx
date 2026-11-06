@@ -4,6 +4,7 @@ import { formatMoney as formatCurrency } from "../../lib/format-money";
 import { useEffect, useState } from "react";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
+import { useToast } from "../ui/toast-provider";
 import { formatOrderDestination } from "../../lib/ordering/order-destination";
 import {
   loadOperatorCancellationRequest,
@@ -156,10 +157,9 @@ export function OperatorCancellationRequestsView() {
   } | null>(null);
 
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
-  const [modalError, setModalError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [transferCandidates, setTransferCandidates] = useState<CancellationTransferCandidate[]>([]);
   const [activeDetail, setActiveDetail] = useState<CancellationRequestDetail | null>(null);
   const [targetOrderItemId, setTargetOrderItemId] = useState("");
@@ -208,7 +208,6 @@ export function OperatorCancellationRequestsView() {
 
   const openApproveModal = (request: CancellationRequest) => {
     setIsRemade(null);
-    setModalError(null);
     setActiveDetail(null);
     setTransferCandidates([]);
     setTargetOrderItemId("");
@@ -219,23 +218,24 @@ export function OperatorCancellationRequestsView() {
         setActiveDetail(detail);
         setTransferCandidates(detail.candidates);
       })
-      .catch(() => setModalError("Không thể tải các bàn có thể nhận món."));
+      .catch(() => showToast({ type: "error", message: "Không thể tải các bàn có thể nhận món." }));
   };
 
   const openRejectModal = (request: CancellationRequest) => {
-    setModalError(null);
     setRejectionReason("");
     setActiveDetail(null);
     setActiveModal({ type: "REJECT", request });
     void loadOperatorCancellationRequest(request.id)
       .then(setActiveDetail)
-      .catch(() => setModalError("Không thể tải chi tiết món yêu cầu hủy."));
+      .catch(() =>
+        showToast({ type: "error", message: "Không thể tải chi tiết món yêu cầu hủy." }),
+      );
   };
 
   const handleConfirmApprove = () => {
     if (!activeModal) return;
     if (isRemade === null) {
-      setModalError("Vui lòng chọn Có hoặc Không cho mục Làm lại món bù.");
+      showToast({ type: "error", message: "Vui lòng chọn Có hoặc Không cho mục Làm lại món bù." });
       return;
     }
     const req = activeModal.request;
@@ -248,11 +248,17 @@ export function OperatorCancellationRequestsView() {
     })
       .then(() => {
         setRequests((prev) => prev.filter((item) => item.id !== req.id));
-        setFeedbackMessage(`Đã đồng ý hủy món "${req.item}" của ${req.table}.`);
+        showToast({
+          type: "success",
+          message: `Đã đồng ý hủy món "${req.item}" của ${req.table}.`,
+        });
         setActiveModal(null);
       })
       .catch((error: unknown) =>
-        setModalError(error instanceof Error ? error.message : "Không thể xử lý yêu cầu."),
+        showToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Không thể xử lý yêu cầu.",
+        }),
       );
   };
 
@@ -260,7 +266,7 @@ export function OperatorCancellationRequestsView() {
     if (!activeModal || isRejecting) return;
     const reason = rejectionReason.trim();
     if (!reason) {
-      setModalError("Vui lòng nhập lý do từ chối.");
+      showToast({ type: "error", message: "Vui lòng nhập lý do từ chối." });
       return;
     }
     const req = activeModal.request;
@@ -269,11 +275,14 @@ export function OperatorCancellationRequestsView() {
     void resolveOperatorCancellationRequest(req.id, { decision: "REJECT", rejectionReason: reason })
       .then(() => {
         setRequests((prev) => prev.filter((item) => item.id !== req.id));
-        setFeedbackMessage(`Đã từ chối yêu cầu hủy món của ${req.table}.`);
+        showToast({ type: "success", message: `Đã từ chối yêu cầu hủy món của ${req.table}.` });
         setActiveModal(null);
       })
       .catch((error: unknown) =>
-        setModalError(error instanceof Error ? error.message : "Không thể xử lý yêu cầu."),
+        showToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Không thể xử lý yêu cầu.",
+        }),
       )
       .finally(() => setIsRejecting(false));
   };
@@ -291,23 +300,6 @@ export function OperatorCancellationRequestsView() {
           Hủy món do sự cố
         </CasButton>
       </div>
-
-      {feedbackMessage ? (
-        <div
-          className="mt-6 flex items-start gap-3 rounded-2xl border border-cas-secondary/25 bg-cas-secondary-container/20 p-4 text-sm font-bold text-cas-secondary"
-          role="status"
-        >
-          <CasIcon className="mt-0.5 size-5 shrink-0" name="check" />
-          <p className="flex-1 leading-relaxed">{feedbackMessage}</p>
-          <button
-            onClick={() => setFeedbackMessage(null)}
-            className="text-xs opacity-75 hover:opacity-100"
-            type="button"
-          >
-            ✕
-          </button>
-        </div>
-      ) : null}
 
       {pendingRequests.length > 0 ? (
         <ul className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -420,7 +412,6 @@ export function OperatorCancellationRequestsView() {
                     type="button"
                     onClick={() => {
                       setIsRemade(true);
-                      setModalError(null);
                     }}
                     className={`flex flex-col rounded-xl border p-3 text-left transition ${isRemade === true ? "border-cas-secondary bg-cas-secondary-container/20 font-bold text-cas-secondary" : "border-cas-outline-variant/30 bg-cas-surface text-cas-on-surface-variant"}`}
                   >
@@ -433,7 +424,6 @@ export function OperatorCancellationRequestsView() {
                     type="button"
                     onClick={() => {
                       setIsRemade(false);
-                      setModalError(null);
                     }}
                     className={`flex flex-col rounded-xl border p-3 text-left transition ${isRemade === false ? "border-cas-primary bg-cas-primary/10 font-bold text-cas-primary" : "border-cas-outline-variant/30 bg-cas-surface text-cas-on-surface-variant"}`}
                   >
@@ -443,9 +433,6 @@ export function OperatorCancellationRequestsView() {
                     </span>
                   </button>
                 </div>
-                {modalError ? (
-                  <p className="mt-1.5 text-xs font-bold text-cas-error">{modalError}</p>
-                ) : null}
               </div>
 
               {transferCandidates.length > 0 ? (
@@ -546,15 +533,9 @@ export function OperatorCancellationRequestsView() {
               value={rejectionReason}
               onChange={(event) => {
                 setRejectionReason(event.target.value);
-                setModalError(null);
               }}
               required
             />
-            {modalError ? (
-              <p role="alert" className="mt-2 text-xs font-bold text-cas-error">
-                {modalError}
-              </p>
-            ) : null}
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <CasButton variant="outline" size="sm" onClick={() => setActiveModal(null)}>

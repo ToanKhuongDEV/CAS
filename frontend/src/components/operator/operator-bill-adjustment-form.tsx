@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { getCurrentOperationalAccount } from "../../lib/auth/operational-auth";
 import type { BillAdjustment, BillAdjustmentInput } from "../../lib/api/payment/payment.api";
+import { useToast } from "../ui/toast-provider";
 
 export function OperatorBillAdjustmentForm({
   items,
@@ -23,7 +24,7 @@ export function OperatorBillAdjustmentForm({
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -44,13 +45,12 @@ export function OperatorBillAdjustmentForm({
     setReason("");
     setType("INCREASE");
     setEditing(null);
-    setError(null);
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0 || !reason.trim()) {
-      setError("Nhập số tiền hợp lệ và lý do điều chỉnh.");
+      showToast({ type: "error", message: "Nhập số tiền hợp lệ và lý do điều chỉnh." });
       return;
     }
     const id = editing ?? crypto.randomUUID();
@@ -66,7 +66,6 @@ export function OperatorBillAdjustmentForm({
         ? items.map((current) => (current.publicId === id ? item : current))
         : [...items, item],
     );
-    setError(null);
     if (!editing) setOpen(false);
     clear();
   }
@@ -105,7 +104,6 @@ export function OperatorBillAdjustmentForm({
                             setOpen(false);
                             return;
                           }
-                          setError(null);
                           setOpen(true);
                           setEditing(item.publicId);
                           setType(item.adjustmentType);
@@ -194,11 +192,6 @@ export function OperatorBillAdjustmentForm({
             </button>
           )}
         </form>
-      )}
-      {error && (
-        <p className="mt-2 text-sm text-cas-error" role="alert">
-          {error}
-        </p>
       )}
     </div>
   );

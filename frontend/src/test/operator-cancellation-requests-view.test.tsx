@@ -13,6 +13,8 @@ vi.mock("../lib/api/ordering/cancellation.api", () => ({
   loadOperatorCancellationRequests: vi.fn(),
   resolveOperatorCancellationRequest: vi.fn(),
 }));
+const showToast = vi.fn();
+vi.mock("../components/ui/toast-provider", () => ({ useToast: () => ({ showToast }) }));
 
 const request = {
   cancellationRequestId: "request-1",
@@ -75,6 +77,10 @@ describe("OperatorCancellationRequestsView", () => {
         transferQuantity: 0,
       }),
     );
+    expect(showToast).toHaveBeenCalledWith({
+      type: "success",
+      message: 'Đã đồng ý hủy món "Mì cay đặc biệt 7 cấp độ" của Bàn 08.',
+    });
   });
 
   it("rejects a request through the API", async () => {
@@ -84,7 +90,10 @@ describe("OperatorCancellationRequestsView", () => {
     expect(screen.getByRole("heading", { name: "Từ chối hủy món?" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận từ chối" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Vui lòng nhập lý do từ chối.");
+    expect(showToast).toHaveBeenCalledWith({
+      type: "error",
+      message: "Vui lòng nhập lý do từ chối.",
+    });
     expect(resolveOperatorCancellationRequest).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Lý do từ chối"), {
       target: { value: "  Món đã chế biến  " },

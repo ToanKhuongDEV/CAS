@@ -131,4 +131,29 @@ describe("CustomerHeader", () => {
     expect(markCustomerNotificationRead).toHaveBeenCalledWith(1);
     expect(markAllCustomerNotificationsRead).not.toHaveBeenCalled();
   });
+
+  it("clears stale notifications when the customer session expires", async () => {
+    render(<CustomerHeader />);
+    const bell = screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" });
+    fireEvent.click(bell);
+    expect(await screen.findByText("Ưu đãi hôm nay")).toBeInTheDocument();
+    fireEvent.click(bell);
+    vi.mocked(loadCustomerNotifications).mockRejectedValueOnce(
+      Object.assign(new Error("Phiên đã kết thúc"), { status: 401 }),
+    );
+    fireEvent.click(bell);
+    await vi.waitFor(() => expect(screen.queryByText("Ưu đãi hôm nay")).not.toBeInTheDocument());
+  });
+
+  it("clears a stale notification if the session expires while marking it read", async () => {
+    vi.mocked(markCustomerNotificationRead).mockRejectedValueOnce(
+      Object.assign(new Error("Phiên đã kết thúc"), { status: 401 }),
+    );
+    render(<CustomerHeader />);
+    fireEvent.click(screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Đánh dấu thông báo Ưu đãi hôm nay là đã đọc" }),
+    );
+    await vi.waitFor(() => expect(screen.queryByText("Ưu đãi hôm nay")).not.toBeInTheDocument());
+  });
 });

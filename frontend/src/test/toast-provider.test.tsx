@@ -80,4 +80,45 @@ it("shows the Backend error message for every failed CAS API response", async ()
   await waitFor(() =>
     expect(screen.getByRole("alert")).toHaveTextContent("Khuyến mãi này không còn hiệu lực."),
   );
+  expect(screen.getByRole("alert")).not.toHaveTextContent("Có lỗi xảy ra");
+});
+
+it("shows only the error message in the operator area", async () => {
+  window.history.pushState({}, "", "/operator/orders");
+  try {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ message: "Có lỗi" }), { status: 409 })),
+    );
+    render(
+      <ToastProvider>
+        <span />
+      </ToastProvider>,
+    );
+    await fetch("http://localhost:8080/api/v1/operator/orders");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Có lỗi");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Có lỗi xảy ra");
+  } finally {
+    window.history.pushState({}, "", "/");
+  }
+});
+
+it("does not toast for an expired session when marking a customer notification read", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: "Phiên đã kết thúc" }), { status: 401 }),
+      ),
+  );
+  render(
+    <ToastProvider>
+      <span />
+    </ToastProvider>,
+  );
+  await fetch("http://localhost:8080/api/v1/customer/notifications/1/read", { method: "PATCH" });
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
 });

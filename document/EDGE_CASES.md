@@ -412,7 +412,7 @@ chưa được xác định.
 
 ## 21.3. Hai order có cùng thời điểm trong hàng ưu tiên lên món
 
-**Trạng thái:** Đã chốt một phần
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
@@ -430,11 +430,7 @@ chính xác millisecond.
 - Không cần khóa sắp xếp phụ chỉ để phân định các order có cùng `created_at`.
 - CAS chỉ hiển thị thứ tự ưu tiên cho nhân viên; chưa theo dõi trạng thái chế
   biến dạng enum; số lượng đã làm xong nằm ở `order_items.prepared_quantity`.
-
-### Nội dung cần chốt
-
-- Có cho phép nhân viên ưu tiên ngoại lệ hay không và trường hợp nào được phép.
-- Nếu có ngoại lệ, hệ thống có cần ghi audit log cho việc đổi thứ tự hay không.
+- Không hỗ trợ nhân viên thay đổi thứ tự ưu tiên ngoại lệ; áp dụng FIFO.
 
 ## 21.4. Hoàn thành món theo mẻ đồng thời với hủy món
 
@@ -452,6 +448,7 @@ cầu hủy của một dòng món thuộc cùng nhóm chế biến.
 - Backend luôn tính lại số lượng hiệu lực và số lượng còn cần làm trước khi ghi.
 - Không cho `prepared_quantity` vượt số lượng hiệu lực.
 - Retry thao tác hoàn thành không được cộng số lượng hai lần.
+- Khóa idempotency và kết quả hoàn thành được lưu bền vững trong database theo cách triển khai hiện tại.
 - Nếu dữ liệu đã thay đổi, backend từ chối thao tác không còn hợp lệ và trả dữ
   liệu mới nhất để nhân viên kiểm tra lại.
 
@@ -459,11 +456,10 @@ cầu hủy của một dòng món thuộc cùng nhóm chế biến.
 
 - Có cho duyệt hủy khi một phần hoặc toàn bộ số lượng yêu cầu hủy đã được ghi
   nhận làm xong hay không.
-- Cơ chế lưu idempotency bền vững cho thao tác hoàn thành theo mẻ.
 
 ## 21.5. Nhân viên tạo order hộ khách
 
-**Trạng thái:** Đã chốt một phần
+**Trạng thái:** Đã chốt
 
 ### Tình huống
 
@@ -487,10 +483,9 @@ Khách gọi món trực tiếp với nhân viên thay vì tự thao tác trên 
 - Nếu Customer và nhân viên đồng thời gửi hai order hợp lệ, hệ thống tạo hai
   order riêng; thứ tự FIFO dựa trên `created_at`.
 
-### Nội dung cần chốt
+### Quyết định giữ nguyên
 
-- Có cần hiển thị nguồn “Khách tự gọi” hoặc “Nhân viên tạo hộ” trong lịch sử hay
-  không; nếu cần truy vấn trực tiếp thì phải chốt thay đổi mô hình dữ liệu.
+- Giữ cách thể hiện nguồn order hiện tại, không bổ sung nhãn nguồn trong lịch sử.
 
 ## 21.1. Khách yêu cầu đổi bàn hoặc gộp bàn
 

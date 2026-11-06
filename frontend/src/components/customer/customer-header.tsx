@@ -32,6 +32,13 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  const clearExpiredNotifications = (error: unknown) => {
+    if (error && typeof error === "object" && "status" in error && error.status === 401) {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  };
+
   useEffect(() => {
     function clearCustomerHeader() {
       setNotifications([]);
@@ -45,25 +52,37 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   }, []);
 
   const loadNotifications = async () => {
-    const result = await loadCustomerNotifications();
-    setNotifications(result.notifications);
-    setUnreadCount(result.unreadCount);
+    try {
+      const result = await loadCustomerNotifications();
+      setNotifications(result.notifications);
+      setUnreadCount(result.unreadCount);
+    } catch (error) {
+      clearExpiredNotifications(error);
+    }
   };
 
   const markAllRead = async () => {
-    await markAllCustomerNotificationsRead();
-    await loadNotifications();
+    try {
+      await markAllCustomerNotificationsRead();
+      await loadNotifications();
+    } catch (error) {
+      clearExpiredNotifications(error);
+    }
   };
 
   const markNotificationRead = async (notificationId: number) => {
     const notification = notifications.find((item) => item.id === notificationId);
     if (!notification || notification.status === "READ") return;
 
-    await markCustomerNotificationRead(notificationId);
-    setNotifications((current) =>
-      current.map((item) => (item.id === notificationId ? { ...item, status: "READ" } : item)),
-    );
-    setUnreadCount((current) => Math.max(0, current - 1));
+    try {
+      await markCustomerNotificationRead(notificationId);
+      setNotifications((current) =>
+        current.map((item) => (item.id === notificationId ? { ...item, status: "READ" } : item)),
+      );
+      setUnreadCount((current) => Math.max(0, current - 1));
+    } catch (error) {
+      clearExpiredNotifications(error);
+    }
   };
 
   useEffect(() => {

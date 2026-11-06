@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
+import { useToast } from "../../../../components/ui/toast-provider";
 import {
   createCatalogOptionGroup,
   createCatalogOptionValue,
@@ -21,6 +22,7 @@ import {
 
 export default function AdminOptionsPage() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { data: catalog, error: queryError } = useAdminCatalogQuery();
   const groups = catalog?.optionGroups ?? [];
   const [showAddForm, setShowAddForm] = useState(false);
@@ -42,27 +44,23 @@ export default function AdminOptionsPage() {
   const [valueInput, setValueInput] = useState<Record<number, string>>({});
   const [valuePriceInput, setValuePriceInput] = useState<Record<number, string>>({});
   const [editingValue, setEditingValue] = useState<CatalogOptionValue | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const displayedError = error ?? queryError?.message ?? null;
+  const displayedError = queryError?.message ?? null;
 
   const addGroup = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    if (
-      (selectionType === "SINGLE" && (minSelect > 1 || (maxSelect !== null && maxSelect > 1))) ||
-      (maxSelect !== null && minSelect > maxSelect)
-    ) {
-      setError("Giới hạn số lựa chọn không hợp lệ.");
+    if (selectionType === "MULTIPLE" && maxSelect !== null && minSelect > maxSelect) {
+      showToast({ type: "error", message: "Giới hạn số lựa chọn không hợp lệ." });
       return;
     }
     setIsSaving(true);
     try {
       await createCatalogOptionGroup({
         displayOrder,
-        maxSelect,
-        minSelect,
+        maxSelect: selectionType === "SINGLE" ? 1 : maxSelect,
+        minSelect: selectionType === "SINGLE" ? 0 : minSelect,
         name: name.trim(),
         selectionType,
         status,
@@ -76,7 +74,10 @@ export default function AdminOptionsPage() {
       setStatus("ACTIVE");
       setShowAddForm(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to create option group.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo nhóm option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -90,7 +91,7 @@ export default function AdminOptionsPage() {
         (editMinSelect > 1 || (editMaxSelect !== null && editMaxSelect > 1))) ||
       (editMaxSelect !== null && editMinSelect > editMaxSelect)
     ) {
-      setError("Giới hạn số lựa chọn không hợp lệ.");
+      showToast({ type: "error", message: "Giới hạn số lựa chọn không hợp lệ." });
       return;
     }
     setIsSaving(true);
@@ -107,7 +108,10 @@ export default function AdminOptionsPage() {
       setEditingGroup(null);
       setEditName("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to update option group.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể sửa nhóm option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -121,7 +125,10 @@ export default function AdminOptionsPage() {
       await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setDeleteGroupTarget(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to delete option group.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể xóa nhóm option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -144,7 +151,10 @@ export default function AdminOptionsPage() {
       setValueInput((current) => ({ ...current, [groupId]: "" }));
       setValuePriceInput((current) => ({ ...current, [groupId]: "" }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to create option value.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo giá trị option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -165,7 +175,10 @@ export default function AdminOptionsPage() {
       await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
       setEditingValue(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to update option value.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể sửa giá trị option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -177,7 +190,10 @@ export default function AdminOptionsPage() {
       await deleteCatalogOptionValue(valueId);
       await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to delete option value.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể xóa giá trị option.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -326,7 +342,7 @@ export default function AdminOptionsPage() {
                   Tên nhóm option:
                 </label>
                 <input
-                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 font-bold text-cas-on-surface focus:outline-none focus:border-cas-primary"
                   onChange={(event) => setName(event.target.value)}
                   placeholder="VD: Mức giá / Độ ngọt / Topping..."
                   required
@@ -337,7 +353,7 @@ export default function AdminOptionsPage() {
               <label className="block font-bold text-cas-on-surface-variant">
                 Kiểu chọn
                 <select
-                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:border-cas-primary"
                   onChange={(event) =>
                     setSelectionType(event.target.value as CatalogOptionGroup["selectionType"])
                   }
@@ -347,36 +363,38 @@ export default function AdminOptionsPage() {
                   <option value="MULTIPLE">Chọn nhiều</option>
                 </select>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block font-bold text-cas-on-surface-variant">
-                  Chọn tối thiểu
-                  <input
-                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
-                    min="0"
-                    onChange={(event) => setMinSelect(Number(event.target.value))}
-                    type="number"
-                    value={minSelect}
-                  />
-                </label>
-                <label className="block font-bold text-cas-on-surface-variant">
-                  Chọn tối đa
-                  <input
-                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
-                    min="0"
-                    onChange={(event) =>
-                      setMaxSelect(event.target.value === "" ? null : Number(event.target.value))
-                    }
-                    placeholder="Không giới hạn"
-                    type="number"
-                    value={maxSelect ?? ""}
-                  />
-                </label>
-              </div>
+              {selectionType === "MULTIPLE" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block font-bold text-cas-on-surface-variant">
+                    Chọn tối thiểu
+                    <input
+                      className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:border-cas-primary"
+                      min="0"
+                      onChange={(event) => setMinSelect(Number(event.target.value))}
+                      type="number"
+                      value={minSelect}
+                    />
+                  </label>
+                  <label className="block font-bold text-cas-on-surface-variant">
+                    Chọn tối đa
+                    <input
+                      className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:border-cas-primary"
+                      min="0"
+                      onChange={(event) =>
+                        setMaxSelect(event.target.value === "" ? null : Number(event.target.value))
+                      }
+                      placeholder="Không giới hạn"
+                      type="number"
+                      value={maxSelect ?? ""}
+                    />
+                  </label>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <label className="block font-bold text-cas-on-surface-variant">
                   Thứ tự hiển thị
                   <input
-                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:border-cas-primary"
                     min="0"
                     onChange={(event) => setDisplayOrder(Number(event.target.value))}
                     type="number"
@@ -386,7 +404,7 @@ export default function AdminOptionsPage() {
                 <label className="block font-bold text-cas-on-surface-variant">
                   Trạng thái
                   <select
-                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                    className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:border-cas-primary"
                     onChange={(event) =>
                       setStatus(event.target.value as CatalogOptionGroup["status"])
                     }
@@ -648,7 +666,7 @@ export default function AdminOptionsPage() {
               onSubmit={(event) => addOptionValue(group.id, event)}
             >
               <input
-                className="min-w-0 flex-1 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                className="min-w-0 flex-1 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:border-cas-primary"
                 onChange={(event) =>
                   setValueInput((current) => ({ ...current, [group.id]: event.target.value }))
                 }
@@ -656,7 +674,7 @@ export default function AdminOptionsPage() {
                 value={valueInput[group.id] ?? ""}
               />
               <input
-                className="w-28 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                className="w-28 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:outline-none focus:border-cas-primary"
                 min="0"
                 onChange={(event) =>
                   setValuePriceInput((current) => ({ ...current, [group.id]: event.target.value }))

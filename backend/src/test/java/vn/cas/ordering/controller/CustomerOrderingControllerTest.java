@@ -48,7 +48,7 @@ class CustomerOrderingControllerTest {
                         LocalDateTime.now(),
                         List.of(new CustomerOrderingService.OrderItemDetail("item-1", "Mỳ cay",
                                 new BigDecimal("55000.00"), BigDecimal.ZERO, 1, 0, 0, 1,
-                                new BigDecimal("55000.00"), "PENDING", List.of()))))));
+                                new BigDecimal("55000.00"), "PENDING", false, List.of()))))));
         var request = new MockHttpServletRequest();
         request.setAttribute(RequestId.ATTRIBUTE_NAME, UUID.randomUUID());
 
@@ -59,5 +59,7 @@ class CustomerOrderingControllerTest {
                 .pendingCancellationQuantity()).isEqualTo(1);
         assertThat(response.getBody().data().orders().getFirst().items().getFirst()
                 .latestCancellationStatus()).isEqualTo("PENDING");
+        assertThat(response.getBody().data().orders().getFirst().items().getFirst()
+                .latestCancellationIsRemade()).isFalse();
     }
 }

@@ -188,7 +188,9 @@ export function CustomerOrdersLiveView({ pollIntervalMs = 10_000 }: { pollInterv
                         {item.pendingCancellationQuantity === 0 &&
                         item.latestCancellationStatus === "APPROVED" ? (
                           <span className="text-sm font-bold text-cas-secondary">
-                            Yêu cầu hủy đã được đồng ý
+                            {item.latestCancellationIsRemade
+                              ? "Đồng ý hủy, món đang được làm lại"
+                              : "Yêu cầu hủy đã được đồng ý"}
                           </span>
                         ) : null}
                         {item.pendingCancellationQuantity > 0 ? (

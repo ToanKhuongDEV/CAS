@@ -208,7 +208,6 @@ export function OperatorPaymentConfirmationList({
   const [from, setFrom] = useState(initialFilter.from);
   const [to, setTo] = useState(initialFilter.to);
   const [period, setPeriod] = useState<PaymentPeriod>(initialFilter.period);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [store, setStore] = useState<StoreSettings | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -322,7 +321,6 @@ export function OperatorPaymentConfirmationList({
       return;
     }
 
-    setConfirmError(null);
     setIsConfirming(true);
     try {
       const original = selectedPayment.adjustments;
@@ -384,21 +382,22 @@ export function OperatorPaymentConfirmationList({
       });
       setSelectedPayment(null);
     } catch (error) {
-      setConfirmError(error instanceof Error ? error.message : "Không thể xác nhận thanh toán.");
+      showToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Không thể xác nhận thanh toán.",
+      });
     } finally {
       setIsConfirming(false);
     }
   }
 
   function openConfirmation(payment: OperatorPayment) {
-    setConfirmError(null);
     setDraftAdjustments(payment.adjustments);
     setSelectedPayment(payment);
     setViewedPayment(null);
   }
 
   function closePaymentDialog() {
-    setConfirmError(null);
     setSelectedPayment(null);
     setViewedPayment(null);
   }
@@ -867,12 +866,6 @@ export function OperatorPaymentConfirmationList({
                   </p>
                 ) : null}
               </div>
-
-              {selectedPayment && confirmError ? (
-                <p className="mt-4 text-sm font-bold text-cas-error" role="alert">
-                  {confirmError}
-                </p>
-              ) : null}
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">

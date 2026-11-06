@@ -44,7 +44,6 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
   const [reason, setReason] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<UnpaidRecord | null>(null);
   const [recordToConfirm, setRecordToConfirm] = useState<UnpaidRecord | null>(null);
 
@@ -61,7 +60,7 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
     isLoading: sessionsLoading,
   } = useEligibleUnpaidSessionsQuery(minimumMinutes);
   const loading = recordsLoading || sessionsLoading;
-  const displayedError = error ?? recordsError?.message ?? sessionsError?.message ?? null;
+  const displayedError = recordsError?.message ?? sessionsError?.message ?? null;
 
   useEffect(() => {
     const storedValue = window.sessionStorage.getItem(storageKey);
@@ -100,9 +99,11 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
         queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey }),
       ]);
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Không thể ghi nhận khoản chưa thanh toán.",
-      );
+      showToast({
+        type: "error",
+        message:
+          cause instanceof Error ? cause.message : "Không thể ghi nhận khoản chưa thanh toán.",
+      });
     } finally {
       setSaving(false);
     }
@@ -122,7 +123,10 @@ export function OperatorUnpaidView({ mode = "operator" }: { mode?: UnpaidViewMod
         queryClient.invalidateQueries({ queryKey: operatorPaidTodayPaymentsQueryKey }),
       ]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể xác nhận thanh toán.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể xác nhận thanh toán.",
+      });
     } finally {
       setSaving(false);
     }

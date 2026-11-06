@@ -144,12 +144,14 @@ public class CustomerOrderingController {
     public record BillItemResponse(String orderItemId, String itemName, BigDecimal unitPrice,
             BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
             int pendingCancellationQuantity, BigDecimal totalAmount,
-            String latestCancellationStatus, List<OrderOptionResponse> options) {
+            String latestCancellationStatus, Boolean latestCancellationIsRemade,
+            List<OrderOptionResponse> options) {
         static BillItemResponse from(CustomerOrderingService.OrderItemDetail item) {
             return new BillItemResponse(item.orderItemId(), item.itemName(), item.unitPrice(),
                     item.optionsAmount(), item.quantity(), item.preparedQuantity(),
                     item.cancelledQuantity(), item.pendingCancellationQuantity(),
                     item.totalAmount(), item.latestCancellationStatus(),
+                    item.latestCancellationIsRemade(),
                     item.options().stream().map(OrderOptionResponse::from).toList());
         }
     }

@@ -1,7 +1,20 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-11-04
+Ngày cập nhật gần nhất: 2026-11-06
 
+- 2026-11-06: Ô nhập giá trị option và giá thêm dùng một viền khi focus.
+- 2026-11-06: Lỗi thao tác tạo, sửa và xóa nhóm/giá trị option Admin dùng toast; không chèn lỗi trùng tên vào trang.
+- 2026-11-06: Đồng bộ toast lỗi Admin/Operator với Customer; chuyển lỗi thao tác hủy món, thanh toán, điều chỉnh hóa đơn và báo cáo sự cố Operator sang toast.
+- 2026-11-06: Báo rõ tên option bị trùng trong cùng nhóm khi Admin tạo hoặc sửa giá trị option.
+- 2026-11-06: Toast lỗi Customer chỉ hiển thị nội dung lỗi, bỏ dòng tiêu đề “Có lỗi xảy ra”.
+- 2026-11-06: Xóa thông báo cũ trên header Customer khi phiên bàn không còn hợp lệ; tránh toast yêu cầu đăng nhập khi đánh dấu thông báo của phiên đã kết thúc.
+- 2026-11-06: Form tạo nhóm option chỉ hiển thị giới hạn tối thiểu và tối đa khi chọn nhiều; chọn một dùng giới hạn mặc định 0–1.
+- 2026-11-06: Đổi thông báo kết quả hủy có làm lại trên màn Customer thành “Đồng ý hủy, món đang được làm lại”.
+- 2026-11-06: Bill Customer cho biết yêu cầu hủy gần nhất có làm lại; màn order hiển thị rõ kết quả làm lại. Form tạo nhóm option dùng một viền khi focus.
+- 2026-11-06: Chuyển phản hồi duyệt/từ chối hủy món Operator sang toast; thông báo Customer nêu rõ khi món được làm lại. Trạng thái trên dòng món Customer chưa phân biệt làm lại.
+- 2026-11-05: Cho phép Operator ghi nhận hủy hoặc làm lại món đã chế biến do sự cố trong phiên OPEN; số lượng đang chờ hủy không thể hủy trùng.
+- 2026-11-05: Chốt không hỗ trợ đổi ưu tiên chế biến, giữ cách hiển thị nguồn order và chấp nhận cơ chế idempotency hiện tại; vận hành theo ca chưa triển khai. Các loại report vẫn chờ quyết định.
+- 2026-11-05: Đối chiếu các nghiệp vụ còn cần chốt với mã: màn Báo cáo dùng dữ liệu mẫu; chế biến có FIFO và lưu idempotency trong database; duyệt yêu cầu hủy cho phép xử lý phần đã làm, còn hủy sự cố chỉ cho số lượng chưa làm. Chưa thấy chức năng đổi ưu tiên hoặc vận hành theo ca; chi tiết order chưa hiển thị nguồn tạo.
 - 2026-11-04: Rà soát tài liệu tiến độ, các mục chưa hoàn thành và quyết định nghiệp vụ còn cần chốt; ghi nhận cần đối chiếu các mô tả dashboard và hạ tầng chưa đồng bộ giữa các tài liệu.
 - 2026-11-04: Cho phép Admin/Super Admin chọn ngày thanh toán, sửa hoặc xóa điều chỉnh sau thanh toán, ghi audit trước/sau và giữ tổng tối thiểu 0. Unit test backend và frontend đạt; integration test MySQL bị bỏ qua do không có Docker.
 
@@ -55,6 +68,9 @@ Ngày cập nhật gần nhất: 2026-11-04
 
 ### Các api đã làm
 
+- [x] `POST /api/v1/admin/catalog/option-groups/{id}/values` và `PUT /api/v1/admin/catalog/option-values/{id}`: trả 409 kèm tên option khi trùng trong cùng nhóm.
+- [x] `GET /api/v1/customer/orders/bill`: mỗi món trả thêm `latestCancellationIsRemade` của yêu cầu hủy gần nhất.
+- [x] `POST /api/v1/operator/cancellation-requests/incidents`: hỗ trợ món đã chế biến trong phiên OPEN và kiểm tra số lượng đã hủy hoặc đang chờ hủy.
 - [x] Danh sách payment Operator và Admin trả tên khách mở phiên và số điện thoại đã che theo snapshot của phiên.
 
 - [x] `GET /api/v1/admin/payments?from=YYYY-MM-DD&to=YYYY-MM-DD`: Admin/Super Admin xem payment đã thanh toán theo khoảng ngày xác nhận và cơ sở đang chọn; Operator chỉ xem ngày hiện tại qua API riêng.

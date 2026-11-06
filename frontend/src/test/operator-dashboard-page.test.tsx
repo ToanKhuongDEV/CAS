@@ -9,6 +9,7 @@ import { loadLongWaitTables } from "../lib/api/ordering/preparation.api";
 import { loadOperatorBill, loadOperatorTables } from "../lib/api/ordering/ordering.api";
 
 vi.mock("../lib/api/ordering/preparation.api", () => ({ loadLongWaitTables: vi.fn() }));
+vi.mock("../components/ui/toast-provider", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("../lib/api/ordering/ordering.api", () => ({
   loadOperatorBill: vi.fn(),
   loadOperatorTables: vi.fn(),

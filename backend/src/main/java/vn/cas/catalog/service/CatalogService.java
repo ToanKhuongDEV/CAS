@@ -3,6 +3,7 @@ package vn.cas.catalog.service;
 import java.math.BigDecimal;
 import java.util.*;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -133,14 +134,24 @@ public class CatalogService {
             boolean def, int o, String s, UUID r) {
         if (mapper.findOptionGroup(p.storeId(), groupId) == null)
             throw notFound();
-        mapper.insertOptionValue(groupId, n, price, def, o, s, p.accountId());
+        try {
+            mapper.insertOptionValue(groupId, n, price, def, o, s, p.accountId());
+        } catch (DuplicateKeyException e) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Tên option \"" + n + "\" đã tồn tại trong nhóm này.");
+        }
         log(p, r, "CREATE", "OPTION_VALUE", n);
     }
 
     @Transactional
     public void updateValue(OperationalPrincipal p, long id, String n, BigDecimal price,
             boolean def, int o, String s, UUID r) {
-        required(mapper.updateOptionValue(p.storeId(), id, n, price, def, o, s, p.accountId()));
+        try {
+            required(mapper.updateOptionValue(p.storeId(), id, n, price, def, o, s, p.accountId()));
+        } catch (DuplicateKeyException e) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Tên option \"" + n + "\" đã tồn tại trong nhóm này.");
+        }
         log(p, r, "UPDATE", "OPTION_VALUE", n);
     }
 

@@ -24,6 +24,7 @@ type ToastInput = {
 type Toast = ToastInput & {
   id: string;
   type: ToastType;
+  hideTitle: boolean;
 };
 
 type ToastContextValue = {
@@ -72,7 +73,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if ((recentlyShown.current.get(key) ?? 0) > now - 500) return;
       recentlyShown.current.set(key, now);
       const id = crypto.randomUUID();
-      setToasts((currentToasts) => [...currentToasts, { id, message, title, type }]);
+      const hideTitle = type === "error";
+      setToasts((currentToasts) => [...currentToasts, { id, message, title, type, hideTitle }]);
       window.setTimeout(() => dismissToast(id), 5000);
     },
     [dismissToast],
@@ -85,6 +87,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (
         !response.ok &&
         isBackendRequest(input) &&
+        !(response.status === 401 && isCustomerNotificationReadRequest(input, init)) &&
         !isOptionalCustomerContextRequest(input, init)
       ) {
         const body: unknown = await response
@@ -123,7 +126,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <CasIcon className="size-4.5" name={style.icon} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold">{toast.title ?? style.title}</p>
+                {!toast.hideTitle && (
+                  <p className="text-sm font-extrabold">{toast.title ?? style.title}</p>
+                )}
                 <p className="mt-0.5 text-xs leading-relaxed">{toast.message}</p>
               </div>
               <button
@@ -141,6 +146,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         })}
       </div>
     </ToastContext.Provider>
+  );
+}
+
+function isCustomerNotificationReadRequest(input: RequestInfo | URL, init?: RequestInit) {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+  return (
+    method.toUpperCase() === "PATCH" &&
+    /^\/api\/v1\/customer\/notifications\/(?:\d+\/)?read$/.test(
+      new URL(url, window.location.origin).pathname,
+    )
   );
 }
 

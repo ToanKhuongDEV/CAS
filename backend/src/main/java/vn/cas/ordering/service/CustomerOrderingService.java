@@ -190,6 +190,7 @@ public class CustomerOrderingService {
                                         item.preparedQuantity(), item.cancelledQuantity(),
                                         item.pendingCancellationQuantity(), item.totalAmount(),
                                         item.latestCancellationStatus(),
+                                        item.latestCancellationIsRemade(),
                                         optionsByItem.getOrDefault(item.id(), List.of()).stream()
                                                 .map(option -> new OrderOptionDetail(
                                                         option.groupName(), option.optionName(),
@@ -327,6 +328,7 @@ public class CustomerOrderingService {
             BigDecimal optionsAmount, int quantity, int preparedQuantity, int cancelledQuantity,
             int pendingCancellationQuantity, BigDecimal totalAmount,
             @com.fasterxml.jackson.annotation.JsonIgnore String latestCancellationStatus,
+            @com.fasterxml.jackson.annotation.JsonIgnore Boolean latestCancellationIsRemade,
             List<OrderOptionDetail> options) {
     }
 

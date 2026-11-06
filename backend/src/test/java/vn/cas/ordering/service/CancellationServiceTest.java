@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +21,8 @@ import vn.cas.ordering.mapper.OrderingMapper;
 import vn.cas.ordering.model.OperatorCancellationRequestRow;
 import vn.cas.ordering.model.OperatorOrderSession;
 import vn.cas.ordering.model.PreparationItemRow;
+import vn.cas.ordering.model.CancellableOrderItem;
+import vn.cas.ordering.model.OrderItemRemakeSnapshot;
 
 class CancellationServiceTest {
 
@@ -30,6 +33,28 @@ class CancellationServiceTest {
             notifications);
     private final OperationalPrincipal operator = new OperationalPrincipal(3L, 2L, "firebase",
             "Operator One", "OPERATOR");
+
+    @Test
+    void incidentCanRemakePreparedItemButCannotCancelReservedQuantity() {
+        var item = new PreparationItemRow(51L, "item-1", 41L, "order-1", "session-1", 10L, 12,
+                "Khách", 9L, "Bún bò", 2, 2, 0, LocalDateTime.now());
+        var snapshot = new OrderItemRemakeSnapshot(7L, 9L, "Bún bò", BigDecimal.TEN,
+                BigDecimal.ZERO);
+        when(mapper.findPreparationItems(2L)).thenReturn(java.util.List.of(item));
+        when(mapper.findPreparationItemsForUpdate(2L, 9L)).thenReturn(java.util.List.of(item));
+        when(mapper.findOrderItemRemakeSnapshot(51L)).thenReturn(snapshot);
+        when(mapper.findCancellableOrderItemForUpdate(7L, "item-1"))
+                .thenReturn(new CancellableOrderItem(51L, 2, 1, "OPEN"));
+
+        var result = service.incident(operator, "item-1", 1, "Đổ món", true, UUID.randomUUID());
+
+        assertThat(result.remakeOrderId()).isNotNull();
+        verify(mapper).setPreparedQuantity(51L, 1);
+        verify(mapper).recalculateOrderPayableAmount(41L);
+        assertThatThrownBy(
+                () -> service.incident(operator, "item-1", 2, "Đổ món", true, UUID.randomUUID()))
+                .isInstanceOf(vn.cas.common.exception.ApiException.class);
+    }
 
     @Test
     void shouldReturnPendingCountForOperatorStore() {
@@ -84,6 +109,25 @@ class CancellationServiceTest {
         service.resolve(operator, "request-1", "APPROVE", false, null, 0, null, UUID.randomUUID());
         verify(notifications).createForCustomerSession(operator, 7L,
                 "Yêu cầu hủy món đã được đồng ý", "Yêu cầu hủy 1 phần Bún bò đã được đồng ý.");
+    }
+
+    @Test
+    void tellsCustomerWhenApprovedItemWillBeRemade() {
+        when(mapper.findOperatorCancellationRequestForUpdate(2L, "request-1"))
+                .thenReturn(cancellationRequest());
+        when(mapper.findSessionByOrderPublicIdAndStoreId(2L, "order-1"))
+                .thenReturn(new OperatorOrderSession(7L, 12L, "Khách", null));
+        when(mapper.findPreparationItemsForUpdate(2L, 9L)).thenReturn(
+                java.util.List.of(new PreparationItemRow(51L, "item-1", 41L, "order-1", "session-1",
+                        10L, 12, "Khách", 9L, "Bún bò", 2, 0, 0, LocalDateTime.now())));
+        when(mapper.findOrderItemRemakeSnapshot(51L)).thenReturn(
+                new OrderItemRemakeSnapshot(7L, 9L, "Bún bò", BigDecimal.TEN, BigDecimal.ZERO));
+
+        service.resolve(operator, "request-1", "APPROVE", true, null, 0, null, UUID.randomUUID());
+
+        verify(notifications).createForCustomerSession(operator, 7L,
+                "Yêu cầu hủy món đã được đồng ý",
+                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý và món sẽ được làm lại.");
     }
 
     @Test

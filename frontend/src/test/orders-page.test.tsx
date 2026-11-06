@@ -319,6 +319,33 @@ describe("OrdersPage", () => {
     );
   });
 
+  it("shows when an approved cancellation will be remade", async () => {
+    vi.mocked(loadCustomerBill).mockResolvedValue({
+      ...bill,
+      orders: [
+        {
+          ...bill.orders[0],
+          items: [
+            {
+              ...bill.orders[0].items[0],
+              cancelledQuantity: 1,
+              latestCancellationStatus: "APPROVED",
+              latestCancellationIsRemade: true,
+            },
+          ],
+        },
+      ],
+    });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    expect(await screen.findByText("Đồng ý hủy, món đang được làm lại")).toBeInTheDocument();
+  });
+
   it("shows a fully cancelled item without allowing another cancellation", async () => {
     vi.mocked(loadCustomerBill).mockResolvedValue({
       ...bill,

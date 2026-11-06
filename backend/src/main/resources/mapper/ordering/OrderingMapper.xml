@@ -190,7 +190,10 @@
             order_items.total_amount AS totalAmount,
             (SELECT latest.status FROM order_item_cancellation_requests latest
              WHERE latest.order_item_id = order_items.id
-             ORDER BY latest.id DESC LIMIT 1) AS latestCancellationStatus
+             ORDER BY latest.id DESC LIMIT 1) AS latestCancellationStatus,
+            (SELECT latest.is_remade FROM order_item_cancellation_requests latest
+             WHERE latest.order_item_id = order_items.id
+             ORDER BY latest.id DESC LIMIT 1) AS latestCancellationIsRemade
         FROM order_items
         INNER JOIN orders ON orders.id = order_items.order_id
         LEFT JOIN order_item_cancellation_requests

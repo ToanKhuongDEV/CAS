@@ -5,25 +5,25 @@ import { useState, type FormEvent } from "react";
 import { createOperationalIncident } from "../../lib/api/operation/operational-incidents.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 
 export function OperatorIncidentsPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [reporterName, setReporterName] = useState("Nhân viên ca trực");
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenModal = () => {
     setDescription("");
-    setError(null);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!description.trim()) {
-      setError("Vui lòng nhập nội dung mô tả sự cố.");
+      showToast({ type: "error", message: "Vui lòng nhập nội dung mô tả sự cố." });
       return;
     }
 
@@ -37,7 +37,10 @@ export function OperatorIncidentsPanel() {
       setFeedback("Đã ghi nhận báo cáo sự cố thành công.");
       setTimeout(() => setFeedback(null), 4000);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể gửi báo cáo sự cố.");
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể gửi báo cáo sự cố.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -120,14 +123,10 @@ export function OperatorIncidentsPanel() {
                   id="incident-description-input"
                   rows={4}
                   value={description}
-                  onChange={(event) => {
-                    setDescription(event.target.value);
-                    if (error) setError(null);
-                  }}
+                  onChange={(event) => setDescription(event.target.value)}
                   placeholder="Nhập nội dung sự cố phát sinh trong ca..."
                   className="w-full resize-none rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/60 px-3.5 py-2.5 text-sm font-medium focus:border-cas-primary focus:outline-none"
                 />
-                {error ? <p className="mt-1.5 text-xs font-bold text-cas-error">{error}</p> : null}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

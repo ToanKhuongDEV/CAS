@@ -81,7 +81,8 @@ async function request<T>(path: string, init: RequestInit) {
     headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
   });
   const body: unknown = await response.json().catch(() => undefined);
-  if (!response.ok || !isApiResponse<T>(body)) throw new Error(message(body));
+  if (!response.ok || !isApiResponse<T>(body))
+    throw Object.assign(new Error(message(body)), { status: response.status });
   return body.data;
 }
 function isApiResponse<T>(value: unknown): value is ApiResponse<T> {

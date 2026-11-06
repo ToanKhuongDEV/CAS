@@ -65,7 +65,7 @@ public class CancellationService {
         if ("REJECT".equals(decision)) {
             mapper.resolveCancellationRequest(request.id(), "REJECTED", false,
                     principal.accountId(), principal.displayName());
-            notifyCustomer(principal, request, false, rejectionReason.trim());
+            notifyCustomer(principal, request, false, false, rejectionReason.trim());
             auditLogs.record(new AuditLogCommand(principal.storeId(), requestId,
                     "CANCELLATION_REQUEST_RESOLVED", "ORDER_ITEM_CANCELLATION_REQUEST",
                     request.id(), request.publicId(), "{\"decision\":\"REJECT\"}",
@@ -117,7 +117,7 @@ public class CancellationService {
                     new PreparedItemTransfer(request.id(), source.orderItemId(),
                             target.orderItemId(), transferQuantity, principal.accountId()));
         }
-        notifyCustomer(principal, request, true, null);
+        notifyCustomer(principal, request, true, isRemade, null);
         auditLogs.record(
                 new AuditLogCommand(principal.storeId(), requestId, "CANCELLATION_REQUEST_RESOLVED",
                         "ORDER_ITEM_CANCELLATION_REQUEST", request.id(), request.publicId(),
@@ -129,7 +129,8 @@ public class CancellationService {
     }
 
     private void notifyCustomer(OperationalPrincipal principal,
-            OperatorCancellationRequestRow request, boolean approved, String rejectionReason) {
+            OperatorCancellationRequestRow request, boolean approved, boolean isRemade,
+            String rejectionReason) {
         var session = mapper.findSessionByOrderPublicIdAndStoreId(principal.storeId(),
                 request.orderPublicId());
         if (session == null)
@@ -137,7 +138,11 @@ public class CancellationService {
         String title = approved ? "Yêu cầu hủy món đã được đồng ý" : "Yêu cầu hủy món bị từ chối";
         String content = "Yêu cầu hủy " + request.requestedQuantity() + " phần "
                 + request.itemName()
-                + (approved ? " đã được đồng ý." : " đã bị từ chối. Lý do: " + rejectionReason);
+                + (approved
+                        ? (isRemade
+                                ? " đã được đồng ý và món sẽ được làm lại."
+                                : " đã được đồng ý.")
+                        : " đã bị từ chối. Lý do: " + rejectionReason);
         notifications.createForCustomerSession(principal, session.sessionId(), title, content);
     }
 
@@ -152,7 +157,14 @@ public class CancellationService {
         var source = items.stream().filter(item -> item.orderItemId() == current.orderItemId())
                 .findFirst().orElseThrow(
                         () -> new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST));
-        if (requestedQuantity > remaining(source))
+        var snapshot = mapper.findOrderItemRemakeSnapshot(source.orderItemId());
+        if (snapshot == null)
+            throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
+        var cancellable = mapper.findCancellableOrderItemForUpdate(snapshot.salesSessionId(),
+                orderItemPublicId);
+        if (cancellable == null || !"OPEN".equals(cancellable.sessionStatus())
+                || requestedQuantity > cancellable.quantity()
+                        - cancellable.reservedCancellationQuantity())
             throw new ApiException(HttpStatus.CONFLICT, ApiMessages.INVALID_REQUEST);
         String publicId = UUID.randomUUID().toString();
         mapper.insertApprovedOperatorCancellationRequest(publicId, source.orderItemId(),
