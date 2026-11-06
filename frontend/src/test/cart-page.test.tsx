@@ -1,33 +1,276 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CartPage from "../app/(customer)/(ordering)/cart/page";
 import OrderingLayout from "../app/(customer)/(ordering)/layout";
+import { QueryProvider } from "../components/providers/query-provider";
+import { ToastProvider } from "../components/ui/toast-provider";
+import { loadCustomerCatalog } from "../lib/api/catalog/published-catalog.api";
+import { createCustomerOrder } from "../lib/api/ordering/ordering.api";
+import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
+
+const push = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/cart",
+  useRouter: () => ({ push }),
+}));
+
+vi.mock("../lib/customer/sales-session", () => ({
+  getCurrentCustomerSalesSession: vi.fn(),
+}));
+
+vi.mock("../lib/api/ordering/ordering.api", () => ({
+  createCustomerOrder: vi.fn(),
+}));
+
+vi.mock("../lib/api/catalog/published-catalog.api", () => ({
+  loadCustomerCatalog: vi.fn(),
+}));
 
 describe("CartPage", () => {
-  it("renders the selected items and shared order note", () => {
+  beforeEach(() => {
+    push.mockClear();
+    vi.mocked(createCustomerOrder).mockReset();
+    window.sessionStorage.clear();
+    window.sessionStorage.setItem(
+      "cas.customerCart",
+      JSON.stringify([
+        {
+          itemName: "Món từ giỏ hàng",
+          menuItemId: 10,
+          optionValueIds: [21],
+          quantity: 2,
+        },
+      ]),
+    );
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
+      customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
+      sessionStatus: "OPEN",
+      tableCode: 5,
+    });
+    vi.mocked(createCustomerOrder).mockResolvedValue({
+      orderId: "order-1",
+      payableAmount: 100_000,
+    });
+    vi.mocked(loadCustomerCatalog).mockResolvedValue({
+      categories: [],
+      items: [
+        {
+          availabilityStatus: "ACTIVE",
+          categoryId: 1,
+          description: null,
+          displayOrder: 1,
+          id: 10,
+          imageStorageKey: null,
+          imageUrl: "/images/welcome/spicy-noodles.jpg",
+          name: "Món từ giỏ hàng",
+          optionGroups: [],
+          price: 50_000,
+          tags: [],
+        },
+      ],
+      optionGroups: [
+        {
+          displayOrder: 1,
+          id: 2,
+          maxSelect: 1,
+          minSelect: 0,
+          name: "Topping",
+          selectionType: "SINGLE",
+          status: "ACTIVE",
+          values: [
+            {
+              displayOrder: 1,
+              extraPrice: 10_000,
+              id: 21,
+              isDefault: false,
+              name: "Phô mai",
+              status: "ACTIVE",
+            },
+          ],
+        },
+      ],
+      tags: [],
+    });
+  });
+
+  it("hydrates legacy cart data with image, price, and selected options", async () => {
     render(
-      <OrderingLayout>
-        <CartPage />
-      </OrderingLayout>,
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
     );
 
     expect(screen.getByRole("heading", { name: "Giỏ hàng của bạn" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Mỳ cay đặc biệt 7 cấp độ" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Gà rán giòn rụm" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "Trà sữa Trân châu Đường đen",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: /ghi chú chung/i })).toBeInTheDocument();
-    expect(screen.getByText("Tạm tính (4 món)")).toBeInTheDocument();
-    expect(screen.getByText("170.000đ")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Chọn thêm món" })).toHaveAttribute("href", "/menu");
-    expect(screen.getByRole("link", { name: "Gửi món xuống bếp" })).toHaveAttribute(
-      "href",
-      "/orders",
+    expect(screen.getByText("Món từ giỏ hàng")).toBeInTheDocument();
+    expect(screen.getByText("×2").parentElement).toHaveTextContent("Món từ giỏ hàng");
+    expect(await screen.findByAltText("Món từ giỏ hàng")).toHaveAttribute(
+      "src",
+      expect.stringContaining("spicy-noodles.jpg"),
     );
+    expect(screen.getByRole("textbox", { name: /ghi chú chung/i })).toBeInTheDocument();
+    expect(await screen.findByText("+ Phô mai")).toBeInTheDocument();
+    expect(screen.getByText("Giá món gốc")).toBeInTheDocument();
+    expect(screen.getByText("Tạm tính (2 món)")).toBeInTheDocument();
+    expect(screen.getAllByText("120.000 ₫")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Xóa tất cả" })).toBeInTheDocument();
+    const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
+    expect(submitButton).toBeInTheDocument();
+    expect(submitButton.parentElement?.parentElement).toHaveClass("bottom-20", "md:bottom-0");
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
+  });
+
+  it("removes cart items that are absent from the current store catalog", async () => {
+    vi.mocked(loadCustomerCatalog).mockResolvedValueOnce({
+      categories: [],
+      items: [],
+      optionGroups: [],
+      tags: [],
+    });
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText("Giỏ hàng đang trống.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Giỏ hàng đã bỏ các món không còn thuộc thực đơn của cơ sở này."),
+    ).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("cas.customerCart")).toBe("[]");
+  });
+
+  it("requires confirmation before clearing the cart", async () => {
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Xóa tất cả" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Xóa tất cả món?" });
+    expect(
+      within(dialog).getByText("Toàn bộ món đang chọn sẽ bị xóa khỏi giỏ hàng."),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Món từ giỏ hàng")).toBeInTheDocument();
+  });
+
+  it("submits an already validated cart without another QR check", async () => {
+    window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
+    vi.mocked(getCurrentCustomerSalesSession).mockRejectedValue(new Error("Session not found"));
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
+
+    await vi.waitFor(() => expect(createCustomerOrder).toHaveBeenCalledTimes(1));
+    expect(createCustomerOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    );
+    expect(await screen.findByText("Đã gửi món xuống bếp.")).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/orders");
+  });
+
+  it("submits only once when the customer clicks send repeatedly", async () => {
+    let resolveOrder: (value: { orderId: string; payableAmount: number }) => void;
+    vi.mocked(createCustomerOrder).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOrder = resolve;
+        }),
+    );
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    expect(createCustomerOrder).toHaveBeenCalledTimes(1);
+    resolveOrder!({ orderId: "order-1", payableAmount: 100_000 });
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/orders"));
+  });
+
+  it("submits the order when this device has an active sales session", async () => {
+    window.sessionStorage.setItem("cas.tableQrToken", "qr-ban-05");
+    vi.mocked(getCurrentCustomerSalesSession).mockResolvedValue({
+      customerInformationRequired: false,
+      joinSessionRequired: false,
+      joinableSessions: [],
+      sessionStatus: "OPEN",
+      tableCode: 5,
+    });
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/orders"));
+  });
+
+  it("shows the sold-out message as a toast and preserves the cart", async () => {
+    vi.mocked(createCustomerOrder).mockRejectedValueOnce(
+      new Error(
+        'Món "Món từ giỏ hàng" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.',
+      ),
+    );
+    render(
+      <ToastProvider>
+        <QueryProvider>
+          <OrderingLayout>
+            <CartPage />
+          </OrderingLayout>
+        </QueryProvider>
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi món xuống bếp" }));
+
+    expect(
+      await screen.findByText(
+        'Món "Món từ giỏ hàng" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Món từ giỏ hàng")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
   });
 });

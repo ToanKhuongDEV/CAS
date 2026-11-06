@@ -1,85 +1,163 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OperatorDashboardPage from "../app/(operator)/operator/(workspace)/dashboard/page";
+import { QueryProvider } from "../components/providers/query-provider";
+import { loadOperatorDashboardSummary } from "../lib/api/operation/operator-dashboard.api";
+import { createOperationalIncident } from "../lib/api/operation/operational-incidents.api";
+import { loadLongWaitTables } from "../lib/api/ordering/preparation.api";
+import { loadOperatorBill, loadOperatorTables } from "../lib/api/ordering/ordering.api";
+
+vi.mock("../lib/api/ordering/preparation.api", () => ({ loadLongWaitTables: vi.fn() }));
+vi.mock("../components/ui/toast-provider", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+vi.mock("../lib/api/ordering/ordering.api", () => ({
+  loadOperatorBill: vi.fn(),
+  loadOperatorTables: vi.fn(),
+}));
+vi.mock("../lib/api/operation/operational-incidents.api", () => ({
+  createOperationalIncident: vi.fn(),
+}));
+vi.mock("../lib/api/operation/operator-dashboard.api", () => ({
+  loadOperatorDashboardSummary: vi.fn(),
+}));
 
 describe("OperatorDashboardPage", () => {
-  it("renders the operator work queues", () => {
-    render(<OperatorDashboardPage />);
-
-    expect(screen.getByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
-    expect(screen.getByText("Lượt gọi món hôm nay")).toBeInTheDocument();
-    expect(screen.getByText("Bàn đang phục vụ")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Cảnh báo bàn chờ lâu" })).toBeInTheDocument();
-    expect(screen.getByText(/Thời gian được tính từ lúc bàn bắt đầu chờ món/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ngưỡng cảnh báo hiện tại:/)).toHaveTextContent("25 phút");
-    expect(screen.getByText("Đã chờ 25 phút")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Khiếu nại" })).toBeInTheDocument();
-    expect(screen.getByText("3 phản ánh")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mở đơn của Bàn 05" })).toHaveAttribute(
-      "href",
-      "/operator/orders/ORD-0821",
-    );
-    expect(screen.getByText("Bàn 02").closest("a")).toBeNull();
-    expect(screen.getAllByText("Đang hoạt động")).toHaveLength(2);
-    expect(screen.getAllByText("Trống")).toHaveLength(2);
-    expect(screen.getByText("● Đang hoạt động")).toBeInTheDocument();
-    expect(screen.getByText("○ Trống")).toBeInTheDocument();
-    expect(screen.queryByText("Cần chú ý")).not.toBeInTheDocument();
-    expect(screen.queryByText(/ORD-/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/FIFO/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/lâu nhất/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Hoạt động gần đây" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Sơ đồ bàn mini" })).toBeInTheDocument();
-    expect(screen.getAllByText("Bàn 05").length).toBeGreaterThan(0);
-
-    const complaintButton = screen.getByRole("button", {
-      name: "Xem khiếu nại của Bàn 12",
+  beforeEach(() => {
+    vi.mocked(loadLongWaitTables).mockResolvedValue([
+      {
+        tableId: 5,
+        tableCode: 5,
+        orderId: "order-1",
+        oldestPendingOrderCreatedAt: "2026-08-30T19:05:00",
+        waitingMinutes: 37,
+        thresholdMinutes: 25,
+      },
+    ]);
+    vi.mocked(loadOperatorTables).mockResolvedValue([
+      {
+        tableId: 5,
+        tableCode: 5,
+        sessions: [{ customerName: "Khách bàn 5", sessionId: "session-5", status: "OPEN" }],
+      },
+      { tableId: 2, tableCode: 2, sessions: [] },
+    ]);
+    vi.mocked(loadOperatorBill).mockResolvedValue({
+      tableCode: 5,
+      sessionStatus: "OPEN",
+      originalAmount: 60000,
+      payableAmount: 60000,
+      orders: [
+        {
+          orderId: "order-1",
+          orderNumber: "1",
+          originalAmount: 60000,
+          payableAmount: 60000,
+          note: null,
+          createdAt: "2026-09-15T09:00:00",
+          items: [
+            {
+              orderItemId: "item-1",
+              itemName: "Cà phê sữa",
+              unitPrice: 30000,
+              optionsAmount: 0,
+              quantity: 2,
+              preparedQuantity: 0,
+              cancelledQuantity: 0,
+              pendingCancellationQuantity: 0,
+              totalAmount: 60000,
+              options: [],
+            },
+          ],
+        },
+      ],
     });
-    expect(within(complaintButton).getByText(/Khách phản ánh món mang ra còn thiếu/)).toHaveClass(
-      "line-clamp-2",
-    );
-
-    fireEvent.click(complaintButton);
-
-    const complaintDialog = screen.getByRole("dialog", {
-      name: "Chi tiết khiếu nại",
+    vi.mocked(createOperationalIncident).mockResolvedValue({
+      publicId: "incident-1",
+      reporterName: "Nhân viên ca trực",
+      description: "Bếp hết gia vị sốt cay đột xuất",
+      createdAt: "2026-09-11T10:00:00",
     });
-    expect(
-      within(complaintDialog).getByText(/muốn nhân viên kiểm tra lại toàn bộ món trên bàn/i),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      within(complaintDialog).getByRole("button", {
-        name: "Đóng chi tiết khiếu nại",
-      }),
-    );
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Dữ liệu hiện tại là dữ liệu mẫu/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/tiền mặt/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/đợi món quá lâu/i)).not.toBeInTheDocument();
+    vi.mocked(loadOperatorDashboardSummary).mockResolvedValue({
+      activeTableCount: 12,
+      ordersToday: 8,
+      pendingPaymentCount: 3,
+      totalTableCount: 20,
+    });
   });
 
-  it("allows reporting operational incidents from the dashboard", () => {
-    render(<OperatorDashboardPage />);
+  it("renders the operator work queues", async () => {
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
 
-    expect(screen.getByRole("heading", { name: "Sự cố phát sinh" })).toBeInTheDocument();
-    expect(screen.getByText("2 sự cố")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tổng quan" })).toBeInTheDocument();
+    expect(await screen.findByText("Lượt gọi món hôm nay")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Bàn đang phục vụ").parentElement).toHaveTextContent("12/20"),
+    );
+    expect(screen.getByRole("heading", { name: "Cảnh báo bàn chờ lâu" })).toBeInTheDocument();
+    expect(screen.getByText(/Thời gian được tính từ order cũ nhất/i)).toBeInTheDocument();
+    expect(await screen.findByText("Đã chờ 37 phút")).toBeInTheDocument();
+    expect(screen.getByText(/Ngưỡng cảnh báo hiện tại:/)).toHaveTextContent("25 phút");
+    fireEvent.click(await screen.findByRole("button", { name: "Mở thao tác cho bàn 5" }));
+    const dialog = await screen.findByRole("dialog", { name: "Món đã gọi" });
+    expect(await within(dialog).findByText("2× Cà phê sữa")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /Gọi thêm món hộ/i })).toHaveAttribute(
+      "href",
+      "/operator/orders/new?table=5",
+    );
+    expect(within(dialog).getByRole("link", { name: /Kiểm soát thanh toán/i })).toHaveAttribute(
+      "href",
+      "/operator/payments",
+    );
+  });
 
-    const reportButton = screen.getByRole("button", { name: "Báo cáo sự cố" });
-    fireEvent.click(reportButton);
-
+  it("sends operational incidents to the API from the dashboard", async () => {
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Báo cáo sự cố" }));
     const dialog = screen.getByRole("dialog", { name: "Báo cáo sự cố phát sinh" });
-    expect(dialog).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("Nhập nội dung sự cố phát sinh trong ca..."), {
+      target: { value: "Bếp hết gia vị sốt cay đột xuất" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Gửi báo cáo" }));
+    expect(await screen.findByText("Đã ghi nhận báo cáo sự cố thành công.")).toBeInTheDocument();
+    expect(createOperationalIncident).toHaveBeenCalledWith({
+      reporterName: "Nhân viên ca trực",
+      description: "Bếp hết gia vị sốt cay đột xuất",
+    });
+  });
 
-    const textarea = screen.getByPlaceholderText("Nhập nội dung sự cố phát sinh trong ca...");
-    fireEvent.change(textarea, { target: { value: "Bếp hết gia vị sốt cay đột xuất" } });
+  it("shows the payment confirmation action for a table waiting for payment", async () => {
+    vi.mocked(loadOperatorTables).mockResolvedValue([
+      {
+        tableId: 5,
+        tableCode: 5,
+        sessions: [
+          { customerName: "Khách bàn 5", sessionId: "session-5", status: "PAYMENT_PENDING" },
+        ],
+      },
+    ]);
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
 
-    const submitBtn = screen.getByRole("button", { name: "Gửi báo cáo" });
-    fireEvent.click(submitBtn);
+    fireEvent.click(await screen.findByRole("button", { name: "Mở thao tác cho bàn 5" }));
 
-    expect(screen.getByText("Đã ghi nhận báo cáo sự cố thành công.")).toBeInTheDocument();
-    expect(screen.getByText("Bếp hết gia vị sốt cay đột xuất")).toBeInTheDocument();
-    expect(screen.getByText("3 sự cố")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Món đã gọi" });
+    expect(within(dialog).getByRole("link", { name: /Xác nhận thanh toán/i })).toHaveAttribute(
+      "href",
+      "/operator/payments",
+    );
+    expect(
+      within(dialog).queryByRole("link", { name: /Gọi thêm món hộ/i }),
+    ).not.toBeInTheDocument();
   });
 });

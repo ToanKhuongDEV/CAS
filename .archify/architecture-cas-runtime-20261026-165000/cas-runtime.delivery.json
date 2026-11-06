@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "42f50205-e754-4060-a18c-1abb3b4bd754",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+  "output": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+  "specification": {
+    "sha256": "29f71a3425a28733e4f1309c69efcac3f21b9e85810a53bc92c0cbcf5e35ec37",
+    "bytes": 11730
+  },
+  "artifact": {
+    "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+    "bytes": 888982
+  }
+}

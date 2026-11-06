@@ -1,0 +1,445 @@
+package vn.cas.payment.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.operation.service.AuditLogService;
+import vn.cas.ordering.mapper.OrderingMapper;
+import vn.cas.ordering.service.CustomerOrderingService;
+import vn.cas.payment.mapper.PaymentMapper;
+import vn.cas.payment.model.PaymentView;
+import vn.cas.payment.model.UnpaidRecordView;
+import vn.cas.promotion.service.PromotionService;
+import vn.cas.store.mapper.DiningTableMapper;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
+
+class PaymentServiceTest {
+
+    private final PaymentMapper payments = mock(PaymentMapper.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
+    private final DiningTableMapper tables = mock(DiningTableMapper.class);
+    private final CustomerOrderingService orders = mock(CustomerOrderingService.class);
+    private final OrderingMapper ordering = mock(OrderingMapper.class);
+    private final AuditLogService auditLogs = mock(AuditLogService.class);
+    private final PaymentService service = new PaymentService(payments, sessions, tables, orders,
+            ordering, auditLogs, new ObjectMapper());
+
+    @Test
+    void returnsPaidPaymentForItsClosedSession() {
+        var paid = payment("PAID");
+        when(payments.findCustomerPayment("session-1")).thenReturn(paid);
+
+        assertThat(service.current("session-1")).isEqualTo(paid);
+        verify(sessions, never()).requireCurrent(any());
+    }
+
+    @Test
+    void rejectsMissingOrClosedSessionWithoutPaidPayment() {
+        when(sessions.requireCurrent("session-1")).thenThrow(
+                new ApiException(org.springframework.http.HttpStatus.UNAUTHORIZED, "closed"));
+
+        assertThatThrownBy(() -> service.current("session-1")).isInstanceOf(ApiException.class);
+        assertThat(service.current("active-session")).isNull();
+        verify(sessions).requireCurrent("active-session");
+    }
+
+    @Test
+    void shouldRejectPaymentForSessionThatIsNotOpen() {
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("PAYMENT_PENDING"));
+
+        assertThatThrownBy(() -> service.create("session-1")).isInstanceOf(ApiException.class);
+
+        verify(orders, never()).currentBill(any());
+    }
+
+    @Test
+    void shouldRejectPaymentWhileCancellationIsPending() {
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(ordering.hasPendingCancellationRequests(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create("session-1")).isInstanceOf(ApiException.class);
+
+        verify(orders, never()).currentBill(any());
+    }
+
+    @Test
+    void shouldCreatePendingPaymentForZeroAmountBill() {
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(orders.currentBill("session-1")).thenReturn(new CustomerOrderingService.Bill(5L,
+                "OPEN", BigDecimal.valueOf(100_000), BigDecimal.ZERO, List.of()));
+
+        service.create("session-1");
+
+        verify(payments).insert(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.ZERO), any());
+        verify(tables).moveSessionToPaymentPending(10L);
+    }
+
+    @Test
+    void shouldReservePromotionQuotaWhenCreatingPaymentRequest() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var discount = new PromotionService.Eligible("promotion-1", "Giảm giá", "PERCENT_OFF", null,
+                null, BigDecimal.TEN, null, null, "Toàn bill", BigDecimal.valueOf(30_000),
+                BigDecimal.valueOf(170_000));
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(orders.currentBill("session-1")).thenReturn(new CustomerOrderingService.Bill(5L,
+                "OPEN", BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000), List.of()));
+        when(promotions.selectedForPayment(session("OPEN"))).thenReturn(discount);
+        when(payments.lastInsertId()).thenReturn(1L);
+
+        serviceWithPromotions.create("session-1");
+
+        verify(promotions).snapshot(org.mockito.ArgumentMatchers.eq(session("OPEN")),
+                org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(discount),
+                any());
+        verify(promotions).reserve(1L);
+        verify(payments).lastInsertId();
+    }
+
+    @Test
+    void rejectsUnavailablePromotionAndClearsSelectionBeforeCreatingPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var session = new SalesSessionLookup(10L, 20L, 3L, 5L, 9L, 1L, null, "session-1", "OPEN");
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session);
+        when(orders.currentBill("session-1")).thenReturn(new CustomerOrderingService.Bill(5L,
+                "OPEN", BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000), List.of()));
+        when(promotions.selectedForPayment(session)).thenReturn(null);
+
+        assertThatThrownBy(() -> serviceWithPromotions.create("session-1"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Khuyến mãi đã không còn khả dụng");
+        verify(promotions).clear("session-1");
+        verify(payments, never()).insert(any(), org.mockito.ArgumentMatchers.anyLong(), any(),
+                any());
+        verify(tables, never()).moveSessionToPaymentPending(10L);
+    }
+
+    @Test
+    void shouldCompleteReservedPromotionWhenConfirmingPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var pending = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(170_000),
+                "{\"discount\":{\"amount\":30000}}", "PENDING", null, null, LocalDateTime.now());
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending,
+                payment("PAID"));
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        serviceWithPromotions.confirm(principal, "payment-1");
+
+        verify(promotions).complete(1L);
+    }
+
+    @Test
+    void shouldNotCompletePromotionForSpacedNullDiscountSnapshot() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var pending = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(123_000),
+                "{\"discount\": null}", "PENDING", null, null, LocalDateTime.now());
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending,
+                payment("PAID"));
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        serviceWithPromotions.confirm(principal, "payment-1");
+
+        verify(promotions, never()).complete(1L);
+    }
+
+    @Test
+    void shouldResolveUnpaidRecordCloseSessionAndAuditWhenConfirming() {
+        var pending = payment("PENDING");
+        var confirmed = payment("PAID");
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending, confirmed);
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        service.confirm(principal, "payment-1");
+
+        verify(payments).resolveOpenUnpaidRecord(10L, 1L);
+        verify(tables).closePaymentSession(10L);
+        verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldNotRepeatSideEffectsWhenPaymentIsAlreadyPaid() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(payment("PAID"));
+
+        service.confirm(principal, "payment-1");
+
+        verify(payments, never()).confirm(any(Long.class), any(Long.class), any());
+        verify(tables, never()).closePaymentSession(any(Long.class));
+        verify(auditLogs, never()).record(any());
+    }
+
+    @Test
+    void shouldRejectConfirmationWhenBillChanged() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(payment("PENDING"));
+        assertThatThrownBy(() -> service.confirm(principal, "payment-1", "outdated snapshot"))
+                .isInstanceOf(ApiException.class).hasMessageContaining("đã thay đổi");
+        verify(payments, never()).confirm(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void addsDraftOnlyDuringConfirmation() {
+        var adjustmentService = mock(BillAdjustmentService.class);
+        var serviceWithAdjustments = new PaymentService(payments, sessions, tables, orders,
+                ordering, auditLogs, new ObjectMapper(), mock(PromotionService.class),
+                adjustmentService);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var pending = payment("PENDING");
+        var id = java.util.UUID.randomUUID();
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(pending, pending, pending,
+                payment("PAID"));
+        when(adjustmentService.paymentSession(principal, "payment-1")).thenReturn("session-1");
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+        var draft = new PaymentService.AdjustmentChange(id, "INCREASE", new BigDecimal("40000"),
+                "Vỡ đồ");
+
+        serviceWithAdjustments.confirm(principal, "payment-1", pending.billSnapshot(),
+                List.of(draft), List.of(), List.of());
+
+        verify(adjustmentService).add(principal, "session-1", id, "INCREASE",
+                new BigDecimal("40000"), "Vỡ đồ");
+        verify(payments).confirm(1L, 2L, "Operator One");
+    }
+
+    @Test
+    void rejectsDraftWhenAnotherOperatorAlreadyConfirmed() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(payment("PAID"));
+        var draft = new PaymentService.AdjustmentChange(java.util.UUID.randomUUID(), "INCREASE",
+                BigDecimal.ONE, "Lý do");
+        assertThatThrownBy(() -> service.confirm(principal, "payment-1", "{}", List.of(draft),
+                List.of(), List.of())).isInstanceOf(ApiException.class)
+                .hasMessageContaining("đã được xác nhận");
+        verify(payments, never()).confirm(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void shouldNotRedeemPromotionWhenCollectingRecordedUnpaidPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var unpaidPayment = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(200000),
+                "{\"discount\":null}", "PENDING", null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(unpaidPayment, unpaidPayment,
+                payment("PAID"));
+        when(payments.hasOpenUnpaidRecord(10L)).thenReturn(true);
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        serviceWithPromotions.confirm(principal, "payment-1");
+
+        verify(promotions, never()).complete(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void shouldRemovePromotionFromLegacyRecordedUnpaidPaymentBeforeCollecting() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var discountedUnpaidPayment = new PaymentView(1L, "payment-1", 10L, 5L,
+                BigDecimal.valueOf(170000),
+                "{\"bill\":{\"payableAmount\":200000},\"discount\":{\"amount\":30000}}", "PENDING",
+                null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
+        when(payments.findByPublicId(3L, "payment-1")).thenReturn(discountedUnpaidPayment,
+                discountedUnpaidPayment, payment("PAID"));
+        when(payments.hasOpenUnpaidRecord(10L)).thenReturn(true);
+        when(payments.removePendingPaymentDiscount(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(BigDecimal.class),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(1);
+        when(payments.removeOpenUnpaidRecordDiscount(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(BigDecimal.class),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(1);
+        when(payments.confirm(1L, 2L, "Operator One")).thenReturn(1);
+
+        serviceWithPromotions.confirm(principal, "payment-1");
+
+        verify(payments).removePendingPaymentDiscount(org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"));
+        verify(payments).removeOpenUnpaidRecordDiscount(org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"));
+        verify(promotions).forfeit(1L);
+    }
+
+    @Test
+    void shouldCountOnlyPendingPaymentsForOperatorsStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        when(payments.countPending(3L)).thenReturn(2L);
+
+        assertThat(service.pendingCount(principal)).isEqualTo(2L);
+
+        verify(payments).countPending(3L);
+    }
+
+    @Test
+    void shouldFindOnlyTodaysPaidPaymentsForOperatorsStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+
+        service.paidToday(principal);
+
+        verify(payments).findPaidBetween(org.mockito.ArgumentMatchers.eq(3L),
+                argThat(start -> start.toLocalDate().equals(java.time.LocalDate.now())),
+                argThat(end -> end.toLocalDate().equals(java.time.LocalDate.now().plusDays(1))));
+    }
+
+    @Test
+    void shouldFindPaidPaymentsForSelectedRangeAndStore() {
+        var principal = new OperationalPrincipal(2L, 3L, "uid", "Admin", "ADMIN");
+        var from = java.time.LocalDate.of(2025, 12, 31);
+        var to = java.time.LocalDate.of(2026, 1, 2);
+        service.paidBetween(principal, from, to);
+        verify(payments).findPaidBetween(3L, from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+        assertThatThrownBy(() -> service.paidBetween(principal, to, from))
+                .isInstanceOf(ApiException.class);
+        var operator = new OperationalPrincipal(1L, 3L, "uid", "Operator", "OPERATOR");
+        assertThatThrownBy(() -> service.paidBetween(operator, from, to))
+                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.status())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        var superAdmin = new OperationalPrincipal(3L, 4L, "uid", "Super Admin", "SUPER_ADMIN");
+        service.paidBetween(superAdmin, from, to);
+        verify(payments).findPaidBetween(4L, from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+    }
+
+    @Test
+    void shouldRecordUnpaidUsingExistingPendingPaymentCloseSessionAndAudit() {
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var recorded = new UnpaidRecordView("unpaid-1", "session-1", 5L, BigDecimal.valueOf(170000),
+                "{}", "OPEN", "Customer left", "Operator One", "payment-1", null,
+                LocalDateTime.now());
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(tables.hasOrders(10L)).thenReturn(true);
+        when(ordering.hasPendingCancellationRequests(10L)).thenReturn(false);
+        when(payments.findBySessionId(10L)).thenReturn(payment("PENDING"));
+        when(payments.insertUnpaidRecord(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(170000)),
+                org.mockito.ArgumentMatchers.eq("{}"),
+                org.mockito.ArgumentMatchers.eq("Customer left"),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.eq("Operator One"))).thenReturn(1);
+        when(tables.closePaymentSession(10L)).thenReturn(1);
+        when(payments.findUnpaidRecordByPublicId(org.mockito.ArgumentMatchers.eq(3L), any()))
+                .thenReturn(recorded);
+
+        var result = service.recordUnpaid(principal, "session-1", " Customer left ");
+
+        assertThat(result).isEqualTo(recorded);
+        verify(tables).closePaymentSession(10L);
+        verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldCreateBaseBillWithoutPromotionWhenRecordingUnpaidWithoutPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var bill = new CustomerOrderingService.Bill(5L, "OPEN", BigDecimal.valueOf(200000),
+                BigDecimal.valueOf(200000), List.of());
+        var unpaidPayment = new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(200000),
+                "{\"discount\":null}", "PENDING", null, null, LocalDateTime.now());
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(tables.hasOrders(10L)).thenReturn(true);
+        when(ordering.hasPendingCancellationRequests(10L)).thenReturn(false);
+        when(payments.findBySessionId(10L)).thenReturn(null, unpaidPayment);
+        when(orders.currentBill("session-1")).thenReturn(bill);
+        when(payments.insertUnpaidRecord(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"), any(),
+                org.mockito.ArgumentMatchers.anyLong(), any())).thenReturn(1);
+        when(tables.closePaymentSession(10L)).thenReturn(1);
+
+        serviceWithPromotions.recordUnpaid(principal, "session-1", null);
+
+        verify(payments).insert(any(), org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"));
+        verify(promotions, never()).selectedForPayment(any());
+        verify(promotions, never()).reserve(org.mockito.ArgumentMatchers.anyLong());
+        verify(promotions, never()).forfeit(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void shouldRemovePromotionBeforeRecordingUnpaidPayment() {
+        var promotions = mock(PromotionService.class);
+        var serviceWithPromotions = new PaymentService(payments, sessions, tables, orders, ordering,
+                auditLogs, new ObjectMapper(), promotions);
+        var principal = new OperationalPrincipal(2L, 3L, "firebase-uid", "Operator One",
+                "OPERATOR");
+        var discountedPayment = new PaymentView(1L, "payment-1", 10L, 5L,
+                BigDecimal.valueOf(170000), "{\"discount\":{\"amount\":30000}}", "PENDING", null,
+                null, LocalDateTime.of(2026, 9, 4, 15, 0));
+        var bill = new CustomerOrderingService.Bill(5L, "OPEN", BigDecimal.valueOf(200000),
+                BigDecimal.valueOf(200000), List.of());
+        when(sessions.requireCurrentForUpdate("session-1")).thenReturn(session("OPEN"));
+        when(tables.hasOrders(10L)).thenReturn(true);
+        when(ordering.hasPendingCancellationRequests(10L)).thenReturn(false);
+        when(payments.findBySessionId(10L)).thenReturn(discountedPayment);
+        when(orders.currentBill("session-1")).thenReturn(bill);
+        when(payments.removePendingPaymentDiscount(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(BigDecimal.class),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(1);
+        when(payments.insertUnpaidRecord(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(BigDecimal.class),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(1);
+        when(tables.closePaymentSession(10L)).thenReturn(1);
+
+        serviceWithPromotions.recordUnpaid(principal, "session-1", null);
+
+        verify(payments).removePendingPaymentDiscount(org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq(BigDecimal.valueOf(200000)),
+                org.mockito.ArgumentMatchers.contains("\"discount\":null"));
+        verify(promotions).forfeit(1L);
+    }
+
+    private static SalesSessionLookup session(String status) {
+        return new SalesSessionLookup(10L, 20L, 3L, 5L, "session-1", status);
+    }
+
+    private static PaymentView payment(String status) {
+        return new PaymentView(1L, "payment-1", 10L, 5L, BigDecimal.valueOf(170000), "{}", status,
+                null, null, LocalDateTime.of(2026, 9, 4, 15, 0));
+    }
+}

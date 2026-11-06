@@ -1,4 +1,10 @@
+
 spring:
+  config:
+    import: optional:file:.env[.properties]
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   application:
     name: cas-backend
   datasource:
@@ -13,7 +19,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      timeout: 2s
+      timeout: 5s
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -26,6 +32,7 @@ mybatis:
     map-underscore-to-camel-case: true
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: vn.cas
+  type-handlers-package: vn.cas.common.persistence
 
 server:
   port: ${SERVER_PORT:8080}
@@ -42,5 +49,13 @@ management:
         enabled: true
 
 cas:
+  firebase:
+    service-account-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
   web:
     frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+    upload-preset: ${CLOUDINARY_UPLOAD_PRESET:}
+    root-folder: ${CLOUDINARY_ROOT_FOLDER:cas/menu}

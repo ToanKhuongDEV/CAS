@@ -1,49 +1,118 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CasButton } from "../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../components/ui/cas-icon";
-
-type Category = { id: number; name: string; visible: boolean };
-const initialCategories: Category[] = [
-  { id: 1, name: "Mỳ Cay", visible: true },
-  { id: 2, name: "Gà Rán", visible: true },
-  { id: 3, name: "Đồ Ăn Vặt", visible: true },
-  { id: 4, name: "Đồ Uống", visible: true },
-];
+import {
+  createCatalogCategory,
+  deleteCatalogCategory,
+  updateCatalogCategory,
+  type CatalogCategory,
+} from "../../../../lib/api/catalog/catalog.api";
+import {
+  adminCatalogQueryKey,
+  useAdminCatalogQuery,
+} from "../../../../lib/api/catalog/catalog.query";
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState(initialCategories);
+  const queryClient = useQueryClient();
+  const { data: catalog, error: queryError } = useAdminCatalogQuery();
+  const categories = (catalog?.categories ?? []).filter(
+    (category) => category.categoryType === "REGULAR",
+  );
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CatalogCategory | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CatalogCategory | null>(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [status, setStatus] = useState<CatalogCategory["status"]>("ACTIVE");
   const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDisplayOrder, setEditDisplayOrder] = useState(0);
+  const [editStatus, setEditStatus] = useState<CatalogCategory["status"]>("ACTIVE");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const addCategory = (event: React.FormEvent) => {
+  const displayedError = error ?? queryError?.message ?? null;
+
+  const addCategory = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    setCategories((current) => [...current, { id: Date.now(), name: name.trim(), visible: true }]);
-    setName("");
-    setShowAddForm(false);
+    setIsSaving(true);
+    try {
+      await createCatalogCategory({
+        categoryType: "REGULAR",
+        description: description.trim(),
+        displayOrder,
+        name: name.trim(),
+        status,
+      });
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
+      setName("");
+      setDescription("");
+      setDisplayOrder(categories.length + 1);
+      setStatus("ACTIVE");
+      setShowAddForm(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const updateCategoryName = (event: React.FormEvent) => {
+  const updateCategoryName = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingCategory || !editName.trim()) return;
-    setCategories((current) =>
-      current.map((cat) =>
-        cat.id === editingCategory.id ? { ...cat, name: editName.trim() } : cat,
-      ),
-    );
-    setEditingCategory(null);
-    setEditName("");
+    setIsSaving(true);
+    try {
+      await updateCatalogCategory(editingCategory.id, {
+        ...editingCategory,
+        description: editDescription.trim(),
+        displayOrder: editDisplayOrder,
+        name: editName.trim(),
+        status: editStatus,
+      });
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
+      setEditingCategory(null);
+      setEditName("");
+      setEditDescription("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const removeCategory = () => {
+  const removeCategory = async () => {
     if (!deleteTarget) return;
-    setCategories((current) => current.filter((cat) => cat.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    setIsSaving(true);
+    try {
+      await deleteCatalogCategory(deleteTarget.id);
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
+      setDeleteTarget(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to delete category.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleCategoryStatus = async (category: CatalogCategory) => {
+    setIsSaving(true);
+    try {
+      await updateCatalogCategory(category.id, {
+        ...category,
+        description: category.description ?? "",
+        status: category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      });
+      await queryClient.invalidateQueries({ queryKey: adminCatalogQueryKey });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to update category.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -51,25 +120,25 @@ export default function AdminCategoriesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Danh mục món</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Tạo, chỉnh sửa, ẩn hoặc hiển thị danh mục trên thực đơn khách.
-          </p>
         </div>
         <CasButton icon="plus" onClick={() => setShowAddForm(true)} size="md" variant="primary">
           Thêm danh mục mới
         </CasButton>
       </div>
+      {displayedError ? (
+        <p className="text-sm font-semibold text-cas-error">{displayedError}</p>
+      ) : null}
 
       {/* Modal Tạo danh mục mới */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddForm(false);
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={addCategory}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -97,6 +166,35 @@ export default function AdminCategoriesPage() {
                   value={name}
                 />
               </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Mô tả
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setDescription(event.target.value)}
+                  value={description}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Thứ tự hiển thị
+                <input
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  min="0"
+                  onChange={(event) => setDisplayOrder(Number(event.target.value))}
+                  type="number"
+                  value={displayOrder}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Trạng thái
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setStatus(event.target.value as CatalogCategory["status"])}
+                  value={status}
+                >
+                  <option value="ACTIVE">Hiển thị</option>
+                  <option value="INACTIVE">Ẩn</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -116,16 +214,16 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
-      {/* Modal Sửa tên danh mục */}
+      {/* Modal chỉnh sửa danh mục */}
       {editingCategory && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setEditingCategory(null);
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={updateCategoryName}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -152,6 +250,37 @@ export default function AdminCategoriesPage() {
                   value={editName}
                 />
               </div>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Mô tả
+                <textarea
+                  className="mt-1 min-h-20 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) => setEditDescription(event.target.value)}
+                  value={editDescription}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Thứ tự hiển thị
+                <input
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  min="0"
+                  onChange={(event) => setEditDisplayOrder(Number(event.target.value))}
+                  type="number"
+                  value={editDisplayOrder}
+                />
+              </label>
+              <label className="block font-bold text-cas-on-surface-variant">
+                Trạng thái
+                <select
+                  className="mt-1 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+                  onChange={(event) =>
+                    setEditStatus(event.target.value as CatalogCategory["status"])
+                  }
+                  value={editStatus}
+                >
+                  <option value="ACTIVE">Hiển thị</option>
+                  <option value="INACTIVE">Ẩn</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -174,12 +303,12 @@ export default function AdminCategoriesPage() {
       {/* Modal Xác nhận Xóa danh mục */}
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setDeleteTarget(null);
           }}
         >
-          <div className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+          <div className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <h3 className="text-base font-black text-cas-on-surface">
               Xóa Danh Mục &quot;{deleteTarget.name}&quot;?
             </h3>
@@ -196,7 +325,13 @@ export default function AdminCategoriesPage() {
               >
                 Hủy
               </CasButton>
-              <CasButton onClick={removeCategory} size="sm" type="button" variant="primary">
+              <CasButton
+                disabled={isSaving}
+                onClick={removeCategory}
+                size="sm"
+                type="button"
+                variant="primary"
+              >
                 Xác nhận Xóa
               </CasButton>
             </div>
@@ -215,29 +350,27 @@ export default function AdminCategoriesPage() {
                 {index + 1}. {category.name}
               </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
-                {category.visible ? "Đang hiển thị trên menu" : "Đang ẩn trên menu"}
+                {category.status === "ACTIVE" ? "Đang hiển thị trên menu" : "Đang ẩn trên menu"}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <CasButton
-                onClick={() =>
-                  setCategories((current) =>
-                    current.map((item) =>
-                      item.id === category.id ? { ...item, visible: !item.visible } : item,
-                    ),
-                  )
-                }
+                disabled={isSaving}
+                onClick={() => void toggleCategoryStatus(category)}
                 size="sm"
-                variant={category.visible ? "outline" : "outline-primary"}
+                variant={category.status === "ACTIVE" ? "outline" : "outline-primary"}
               >
-                {category.visible ? "Ẩn danh mục" : "Hiển thị"}
+                {category.status === "ACTIVE" ? "Ẩn danh mục" : "Hiển thị"}
               </CasButton>
               <button
                 className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-cas-surface-container hover:text-cas-primary"
                 onClick={() => {
                   setEditingCategory(category);
                   setEditName(category.name);
+                  setEditDescription(category.description ?? "");
+                  setEditDisplayOrder(category.displayOrder);
+                  setEditStatus(category.status);
                 }}
                 title="Sửa tên danh mục"
                 type="button"
@@ -245,7 +378,7 @@ export default function AdminCategoriesPage() {
                 <CasIcon className="size-4" name="edit" />
               </button>
               <button
-                className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-rose-500/10 hover:text-rose-600"
+                className="cursor-pointer rounded-lg p-2 text-cas-on-surface-variant transition hover:bg-cas-error/10 hover:text-cas-error"
                 onClick={() => setDeleteTarget(category)}
                 title="Xóa danh mục"
                 type="button"

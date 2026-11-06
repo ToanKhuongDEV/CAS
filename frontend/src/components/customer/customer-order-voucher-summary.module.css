@@ -1,0 +1,31 @@
+.voucherBorder {
+  position: relative;
+  overflow: hidden;
+  padding: 2px;
+  border-radius: 0.875rem;
+}
+
+.voucherBorder::before {
+  content: "";
+  position: absolute;
+  inset: -200%;
+  background: conic-gradient(transparent 0deg, var(--cas-error) 45deg, transparent 90deg);
+  animation: voucher-border-spin 4s linear infinite;
+}
+
+.voucherBorder:focus-within {
+  outline: 3px solid var(--cas-focus-ring);
+  outline-offset: 2px;
+}
+
+@keyframes voucher-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voucherBorder::before {
+    animation: none;
+  }
+}

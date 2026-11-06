@@ -1,638 +1,530 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { formatMoney as money } from "../../lib/format-money";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
+import {
+  adminDashboardFilterStorageKey,
+  adminDashboardFilterUpdatedEvent,
+} from "../../lib/admin/dashboard-filter";
+import type { AdminDashboard } from "../../lib/api/operation/admin-dashboard.api";
+import { useAdminDashboardQuery } from "../../lib/api/operation/operation.query";
 
-type FilterMode = "date" | "month" | "year" | "range";
-type RevenueChartPeriod = "today" | "sevenDays" | "thirtyDays" | "thisMonth";
+type Period = "threeDays" | "oneWeek" | "oneMonth" | "custom";
+type ReportTab = "revenue" | "customers" | "menu" | "promotions";
+type IconName = "bill" | "cart" | "payment" | "users" | "clock" | "fire" | "sparkle" | "close";
 
-const revenueChartData: Record<RevenueChartPeriod, { label: string; value: number }[]> = {
-  today: [
-    { label: "09h", value: 1.2 },
-    { label: "10h", value: 2.4 },
-    { label: "11h", value: 4.8 },
-    { label: "12h", value: 7.2 },
-    { label: "13h", value: 5.5 },
-    { label: "14h", value: 2.8 },
-    { label: "15h", value: 1.9 },
-    { label: "16h", value: 3.4 },
-    { label: "17h", value: 6.8 },
-    { label: "18h", value: 8 },
-    { label: "19h", value: 7.6 },
-    { label: "20h", value: 4.2 },
-    { label: "21h", value: 2.9 },
-    { label: "22h", value: 1.4 },
-  ],
-  sevenDays: [
-    { label: "03/08", value: 31.2 },
-    { label: "04/08", value: 36.8 },
-    { label: "05/08", value: 29.4 },
-    { label: "06/08", value: 42.1 },
-    { label: "07/08", value: 38.6 },
-    { label: "08/08", value: 45.2 },
-    { label: "09/08", value: 42.85 },
-  ],
-  thirtyDays: [
-    { label: "11/07", value: 28.6 },
-    { label: "16/07", value: 34.2 },
-    { label: "21/07", value: 39.5 },
-    { label: "26/07", value: 31.8 },
-    { label: "31/07", value: 43.1 },
-    { label: "05/08", value: 36.4 },
-    { label: "09/08", value: 42.85 },
-  ],
-  thisMonth: [
-    { label: "Tuần 1", value: 245.6 },
-    { label: "Tuần 2", value: 281.4 },
-    { label: "Tuần 3", value: 268.2 },
-    { label: "Tuần 4", value: 314.7 },
-  ],
+const periodLabels: Record<Exclude<Period, "custom">, string> = {
+  threeDays: "3 ngày",
+  oneWeek: "1 tuần",
+  oneMonth: "1 tháng",
 };
-
-const revenueChartPeriodLabels: Record<RevenueChartPeriod, string> = {
-  today: "Hôm nay",
-  sevenDays: "7 ngày",
-  thirtyDays: "30 ngày",
-  thisMonth: "Tháng này",
-};
+const reportTabs: { id: ReportTab; label: string }[] = [
+  { id: "revenue", label: "Doanh thu" },
+  { id: "customers", label: "Khách hàng" },
+  { id: "menu", label: "Menu & Order" },
+  { id: "promotions", label: "Khuyến mãi" },
+];
 
 export default function AdminDashboardPage() {
-  // State quản lý chế độ và thời gian chọn
-  const [filterMode, setFilterMode] = useState<FilterMode>("date");
-  const [selectedDate, setSelectedDate] = useState("2026-08-09");
-  const [selectedMonth, setSelectedMonth] = useState("2026-08");
-  const [selectedYear, setSelectedYear] = useState("2026");
-  const [startDate, setStartDate] = useState("2026-08-01");
-  const [endDate, setEndDate] = useState("2026-08-09");
-  const [revenueChartPeriod, setRevenueChartPeriod] = useState<RevenueChartPeriod>("today");
-
-  // Đưa ra nhãn mô tả khoảng thời gian đang lọc
-  const getDisplayLabel = () => {
-    switch (filterMode) {
-      case "date":
-        return `Ngày ${selectedDate.split("-").reverse().join("/")}`;
-      case "month": {
-        const [year, month] = selectedMonth.split("-");
-        return `Tháng ${month}/${year}`;
-      }
-      case "year":
-        return `Năm ${selectedYear}`;
-      case "range":
-        return `Từ ${startDate.split("-").reverse().join("/")} đến ${endDate.split("-").reverse().join("/")}`;
-    }
-  };
-
-  // Tính toán dữ liệu chỉ số mock theo chế độ thời gian được chọn
-  const getMetricsByFilter = () => {
-    switch (filterMode) {
-      case "month":
-        return {
-          revenue: "1.250.000.000 đ",
-          orders: "5.480 đơn",
-          remade: "85 món (16.500.000 đ)",
-          openTables: "12 / 20 bàn",
-          pendingPayments: "3 bàn",
-          unpaidRecords: "8 khoản",
-          cancellations: "92 yêu cầu",
-        };
-      case "year":
-        return {
-          revenue: "14.800.000.000 đ",
-          orders: "64.200 đơn",
-          remade: "980 món (185.000.000 đ)",
-          openTables: "12 / 20 bàn",
-          pendingPayments: "3 bàn",
-          unpaidRecords: "24 khoản",
-          cancellations: "410 yêu cầu",
-        };
-      case "range":
-        return {
-          revenue: "385.200.000 đ",
-          orders: "1.650 đơn",
-          remade: "28 món (5.400.000 đ)",
-          openTables: "12 / 20 bàn",
-          pendingPayments: "3 bàn",
-          unpaidRecords: "4 khoản",
-          cancellations: "24 yêu cầu",
-        };
-      case "date":
-      default:
-        return {
-          revenue: "42.850.000 đ",
-          orders: "186 đơn",
-          remade: "4 món (850.000 đ)",
-          openTables: "12 / 20 bàn",
-          pendingPayments: "3 bàn",
-          unpaidRecords: "1 khoản",
-          cancellations: "2 yêu cầu",
-        };
-    }
-  };
-
-  const currentMetrics = getMetricsByFilter();
-  const chartData = revenueChartData[revenueChartPeriod];
-  const chartWidth = 680;
-  const chartHeight = 250;
-  const chartPadding = { top: 18, right: 16, bottom: 38, left: 42 };
-  const chartMax = Math.ceil(Math.max(...chartData.map((item) => item.value)) / 2) * 2;
-  const chartDrawableWidth = chartWidth - chartPadding.left - chartPadding.right;
-  const chartDrawableHeight = chartHeight - chartPadding.top - chartPadding.bottom;
-  const chartPoints = chartData.map((item, index) => {
-    const x = chartPadding.left + (index / Math.max(chartData.length - 1, 1)) * chartDrawableWidth;
-    const y = chartPadding.top + (1 - item.value / chartMax) * chartDrawableHeight;
-    return { ...item, x, y };
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const [initialFilter] = useState(() => filterFromSearchParams(searchParams));
+  const [period, setPeriod] = useState<Period>(initialFilter.period);
+  const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
+  const [shouldPersistFilter, setShouldPersistFilter] = useState(() =>
+    ["from", "period", "to"].some((key) => searchParams.has(key)),
+  );
+  const [startDate, setStartDate] = useState(initialFilter.from);
+  const [endDate, setEndDate] = useState(initialFilter.to);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  const [debouncedRange, setDebouncedRange] = useState({
+    from: initialFilter.from,
+    to: initialFilter.to,
   });
-  const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
-  const areaPoints = `${chartPadding.left},${chartHeight - chartPadding.bottom} ${linePoints} ${chartWidth - chartPadding.right},${chartHeight - chartPadding.bottom}`;
+  const isDebouncing = debouncedRange.from !== startDate || debouncedRange.to !== endDate;
+
+  useEffect(() => {
+    if (rangeError || !shouldPersistFilter) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("period", period);
+    params.set("from", startDate);
+    params.set("to", endDate);
+    const query = params.toString();
+    window.sessionStorage.setItem(adminDashboardFilterStorageKey, query);
+    window.dispatchEvent(new Event(adminDashboardFilterUpdatedEvent));
+    if (query !== searchParams.toString()) router.replace(`/admin?${query}`, { scroll: false });
+  }, [endDate, period, rangeError, router, searchParams, shouldPersistFilter, startDate]);
+
+  useEffect(() => {
+    if (rangeError) return;
+    const timer = window.setTimeout(() => setDebouncedRange({ from: startDate, to: endDate }), 250);
+    return () => window.clearTimeout(timer);
+  }, [endDate, rangeError, startDate]);
+
+  useEffect(() => {
+    if (rangeError) void queryClient.cancelQueries({ queryKey: ["admin", "dashboard"] });
+  }, [queryClient, rangeError]);
+
+  const {
+    data: dashboard,
+    error: queryError,
+    isLoading,
+  } = useAdminDashboardQuery(debouncedRange.from, debouncedRange.to, !rangeError && !isDebouncing);
+  const error = rangeError ?? queryError?.message ?? null;
+
+  function selectPeriod(next: Period) {
+    setRangeError(null);
+    setShouldPersistFilter(true);
+    setPeriod(next);
+    if (next === "custom") return;
+    const range = rangeFor(next === "threeDays" ? 3 : next === "oneWeek" ? 7 : 30);
+    setStartDate(range.from);
+    setEndDate(range.to);
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-cas-on-surface">Bảng điều khiển Quản trị CAS</h1>
-        </div>
-      </div>
-
-      {/* Ô chọn điều kiện lọc ở đầu (Hỗ trợ chọn theo ngày, theo tháng, theo năm, theo khoảng ngày) */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* Nhóm bộ lọc lựa chọn */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-cas-on-surface-variant">Lọc theo:</span>
-            <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value as FilterMode)}
-              className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1.5 text-xs font-bold text-cas-on-surface shadow-2xs focus:outline-hidden"
-            >
-              <option value="date">Theo ngày</option>
-              <option value="month">Theo tháng</option>
-              <option value="year">Theo năm</option>
-              <option value="range">Theo khoảng ngày</option>
-            </select>
-          </div>
-
-          {/* Ô chọn ngày */}
-          {filterMode === "date" && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-cas-on-surface-variant">Chọn ngày:</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-              />
-            </div>
-          )}
-
-          {/* Ô chọn tháng */}
-          {filterMode === "month" && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-cas-on-surface-variant">Chọn tháng:</span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-              />
-            </div>
-          )}
-
-          {/* Ô chọn năm */}
-          {filterMode === "year" && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-cas-on-surface-variant">Chọn năm:</span>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-              >
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-              </select>
-            </div>
-          )}
-
-          {/* Ô chọn khoảng ngày (Từ ngày - Đến ngày) */}
-          {filterMode === "range" && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-cas-on-surface-variant">Từ:</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-2.5 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-              />
-              <span className="text-xs font-bold text-cas-on-surface-variant">Đến:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-2.5 py-1 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-              />
-            </div>
-          )}
-        </div>
-
-        <span className="text-xs font-semibold text-cas-on-surface-variant">
-          Đang hiển thị dữ liệu: <strong className="text-cas-primary">{getDisplayLabel()}</strong>
+    <div className="space-y-7">
+      <header className="flex items-center gap-3">
+        <span className="grid size-7 place-items-center text-cas-primary">
+          <CasIcon className="size-5" name="sparkle" />
         </span>
-      </div>
-
-      {/* Bảng biểu diễn 7 giá trị chỉ số theo bộ lọc */}
-      <div className="overflow-hidden rounded-2xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs">
-        <table className="w-full text-left text-xs">
-          <thead className="border-b border-cas-outline-variant/20 bg-cas-surface-container/50 font-bold text-cas-on-surface">
-            <tr>
-              <th className="px-4 py-3">Chỉ số thống kê</th>
-              <th className="px-4 py-3">Giá trị ({getDisplayLabel()})</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-cas-outline-variant/15 text-cas-on-surface">
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">1. Doanh thu</td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.revenue}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">2. Tổng đơn hàng</td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.orders}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                3. Món hỏng / Bù tiền (is_remade)
-              </td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.remade}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">4. Bàn đang mở</td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.openTables}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                5. Bàn chờ thanh toán
-              </td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.pendingPayments}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                6. Khoản chưa thanh toán
-              </td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.unpaidRecords}
-              </td>
-            </tr>
-            <tr className="transition hover:bg-cas-surface-container/30">
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                7. Yêu cầu hủy món
-              </td>
-              <td className="px-4 py-3 text-xs font-bold text-cas-on-surface">
-                {currentMetrics.cancellations}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Nội dung chính 2 cột */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Cột trái (7 columns): Biểu đồ Doanh thu & Báo cáo Sự cố ca trực */}
-        <div className="space-y-8 lg:col-span-7">
-          {/* Biểu đồ doanh thu theo thời gian */}
-          <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
-            <div className="flex flex-col gap-4 border-b border-cas-outline-variant/20 pb-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-lg font-black text-cas-on-surface">Doanh thu theo thời gian</h2>
-              </div>
-              <select
-                aria-label="Khoảng thời gian biểu đồ doanh thu"
-                className="cursor-pointer rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container px-3 py-1.5 text-xs font-bold text-cas-on-surface focus:outline-hidden"
-                onChange={(event) =>
-                  setRevenueChartPeriod(event.target.value as RevenueChartPeriod)
-                }
-                value={revenueChartPeriod}
+        <h1 className="text-xl font-black tracking-tight text-cas-on-surface sm:text-2xl">
+          Báo cáo hoạt động
+        </h1>
+      </header>
+      <section className="border-b border-cas-outline-variant/70 pb-5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex overflow-hidden rounded-sm border border-cas-outline-variant/60 bg-cas-surface">
+            {(Object.keys(periodLabels) as Exclude<Period, "custom">[]).map((item) => (
+              <button
+                className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${period === item ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
+                key={item}
+                onClick={() => selectPeriod(item)}
+                type="button"
               >
-                {(Object.keys(revenueChartPeriodLabels) as RevenueChartPeriod[]).map((period) => (
-                  <option key={period} value={period}>
-                    {revenueChartPeriodLabels[period]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-6">
-              <svg
-                aria-label={`Biểu đồ doanh thu ${revenueChartPeriodLabels[revenueChartPeriod].toLowerCase()}`}
-                className="h-auto w-full overflow-visible"
-                role="img"
-                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              >
-                <defs>
-                  <linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity="0.24" />
-                    <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                  const y = chartPadding.top + ratio * chartDrawableHeight;
-                  const value = Math.round(chartMax * (1 - ratio));
-                  return (
-                    <g key={ratio}>
-                      <line
-                        x1={chartPadding.left}
-                        x2={chartWidth - chartPadding.right}
-                        y1={y}
-                        y2={y}
-                        className="stroke-cas-outline-variant/45"
-                        strokeDasharray={ratio === 1 ? "0" : "4 4"}
-                      />
-                      <text
-                        x={chartPadding.left - 8}
-                        y={y + 4}
-                        textAnchor="end"
-                        className="fill-cas-on-surface-variant text-[11px] font-medium"
-                      >
-                        {value}
-                      </text>
-                    </g>
-                  );
-                })}
-                <polygon fill="url(#revenue-area)" points={areaPoints} />
-                <polyline
-                  fill="none"
-                  points={linePoints}
-                  className="stroke-cas-primary"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="3"
-                />
-                {chartPoints.map((point) => (
-                  <g key={point.label} className="group">
-                    <title>{`${point.label}: ${point.value} triệu đồng`}</title>
-                    <circle
-                      cx={point.x}
-                      cy={point.y}
-                      r="4"
-                      className="fill-cas-surface stroke-cas-primary"
-                      strokeWidth="2.5"
-                    />
-                    <text
-                      x={point.x}
-                      y={chartHeight - 14}
-                      textAnchor="middle"
-                      className="fill-cas-on-surface-variant text-[11px] font-bold"
-                    >
-                      {point.label}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-              <div className="mt-3 flex items-center justify-between text-xs font-medium text-cas-on-surface-variant">
-                <span>Đơn vị: triệu VNĐ</span>
-                <span className="font-bold text-cas-primary">
-                  {revenueChartPeriod === "today" ? "Doanh thu theo giờ" : "Xu hướng doanh thu"}
-                </span>
-              </div>
-            </div>
+                {periodLabels[item]}
+              </button>
+            ))}
+            <button
+              className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${period === "custom" ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
+              onClick={() => selectPeriod("custom")}
+              type="button"
+            >
+              Tùy chỉnh
+            </button>
           </div>
-
-          {/* Báo cáo Sự cố ca trực mới nhất */}
-          <div className="rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                  <CasIcon className="size-5" name="info" />
-                </span>
-                <div>
-                  <h2 className="text-lg font-black text-cas-on-surface">
-                    Báo cáo Sự cố ca trực mới nhất
-                  </h2>
-                  <p className="text-xs font-medium text-cas-on-surface-variant">
-                    Sự cố phát sinh do nhân viên OPERATOR ghi nhận trong ca
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/admin/incidents"
-                className="text-xs font-extrabold text-cas-primary hover:underline"
-              >
-                Xem tất cả ➔
-              </Link>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {[
-                {
-                  id: 1,
-                  author: "Nhân viên Nguyễn Văn A",
-                  time: "17:35 hôm nay",
-                  table: "Bàn 08",
-                  title: "Khách chê Mỳ cay quá mặn, đã làm lại",
-                  content: "Đã cho bếp nấu lại tô mới có cờ is_remade = TRUE, khách hài lòng.",
-                  status: "Chưa duyệt",
-                },
-                {
-                  id: 2,
-                  author: "Nhân viên Trần Thị B",
-                  time: "15:20 hôm nay",
-                  table: "Bàn 03",
-                  title: "Vỡ 1 ly nước ngọt khi bưng đồ",
-                  content: "Ghi nhận hao hụt ly thủy tinh và bù 1 lon Coca mới cho khách.",
-                  status: "Đã tiếp nhận",
-                },
-              ].map((incident) => (
-                <div
-                  key={incident.id}
-                  className="rounded-2xl border border-cas-outline-variant/20 bg-cas-surface-container/50 p-4 transition hover:bg-cas-surface-container"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-cas-primary/10 px-2 py-0.5 text-xs font-black text-cas-primary">
-                        {incident.table}
-                      </span>
-                      <span className="text-xs font-extrabold text-cas-on-surface">
-                        {incident.author}
-                      </span>
-                      <span className="text-[0.7rem] text-cas-on-surface-variant">
-                        • {incident.time}
-                      </span>
-                    </div>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[0.68rem] font-black ${incident.status === "Chưa duyệt" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"}`}
-                    >
-                      {incident.status}
-                    </span>
-                  </div>
-                  <h4 className="mt-2 text-sm font-black text-cas-on-surface">{incident.title}</h4>
-                  <p className="mt-1 text-xs text-cas-on-surface-variant">{incident.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DateInput
+            label="Ngày bắt đầu"
+            onChange={(value) => {
+              const error = validateDateRange(value, endDate);
+              setRangeError(error);
+              if (error) return;
+              setShouldPersistFilter(true);
+              setPeriod("custom");
+              setStartDate(value);
+            }}
+            value={startDate}
+          />
+          <span className="text-xs font-bold text-cas-on-surface-variant">đến</span>
+          <DateInput
+            label="Ngày kết thúc"
+            onChange={(value) => {
+              const error = validateDateRange(startDate, value);
+              setRangeError(error);
+              if (error) return;
+              setShouldPersistFilter(true);
+              setPeriod("custom");
+              setEndDate(value);
+            }}
+            value={endDate}
+          />
         </div>
-
-        {/* Cột phải (5 columns): Top Món bán chạy & Món tạm hết hàng */}
-        <div className="space-y-8 lg:col-span-5">
-          {/* Top món bán chạy trong ngày */}
-          <div className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-cas-secondary/15 text-cas-secondary">
-                  <CasIcon className="size-5" name="fire" />
-                </span>
-                <div>
-                  <h2 className="text-base font-black text-cas-on-surface">
-                    Top Món bán chạy Hôm nay
-                  </h2>
-                  <p className="text-xs font-medium text-cas-on-surface-variant">
-                    Xếp hạng theo tổng số phần đã gọi
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                {
-                  rank: 1,
-                  name: "Cà phê sữa đá",
-                  category: "Cà phê",
-                  count: 68,
-                  total: "2.380.000 đ",
-                },
-                {
-                  rank: 2,
-                  name: "Bạc xỉu Sài Gòn",
-                  category: "Cà phê",
-                  count: 45,
-                  total: "1.800.000 đ",
-                },
-                {
-                  rank: 3,
-                  name: "Mỳ cay hải sản",
-                  category: "Món ăn chính",
-                  count: 32,
-                  total: "2.240.000 đ",
-                },
-                {
-                  rank: 4,
-                  name: "Trà đào cam sả",
-                  category: "Trà trái cây",
-                  count: 29,
-                  total: "1.305.000 đ",
-                },
-              ].map((item) => (
-                <div
-                  key={item.rank}
-                  className="flex items-center justify-between rounded-2xl border border-cas-outline-variant/15 bg-cas-surface-container/40 p-3 transition hover:bg-cas-surface-container/80"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`grid size-7 place-items-center rounded-xl text-xs font-black ${
-                        item.rank === 1
-                          ? "bg-amber-500 text-white shadow-xs"
-                          : item.rank === 2
-                            ? "bg-slate-300 text-slate-800"
-                            : item.rank === 3
-                              ? "bg-amber-700/30 text-amber-800 dark:text-amber-200"
-                              : "bg-cas-outline-variant/30 text-cas-on-surface-variant"
-                      }`}
-                    >
-                      #{item.rank}
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-black text-cas-on-surface">{item.name}</h4>
-                      <p className="text-[0.68rem] font-medium text-cas-on-surface-variant">
-                        {item.category}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-black text-cas-primary">{item.count} phần</span>
-                    <p className="text-[0.68rem] font-semibold text-cas-on-surface-variant">
-                      {item.total}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Món đang tạm hết hàng (SOLD_OUT) */}
-          <div className="space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                  <CasIcon className="size-5" name="info" />
-                </span>
-                <div>
-                  <h2 className="text-base font-black text-cas-on-surface">
-                    Món đang tạm hết hàng
-                  </h2>
-                  <p className="text-xs font-medium text-cas-on-surface-variant">
-                    Trạng thái SOLD_OUT trên thực đơn
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/admin/catalog"
-                className="text-xs font-extrabold text-cas-primary hover:underline"
-              >
-                Quản lý menu ➔
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                {
-                  name: "Sinh tố Bơ sáp",
-                  category: "Sinh tố",
-                  price: "45.000 đ",
-                  time: "Bật lúc 14:10",
-                },
-                {
-                  name: "Bánh Tiramisu",
-                  category: "Tráng miệng",
-                  price: "38.000 đ",
-                  time: "Bật lúc 16:30",
-                },
-              ].map((soldOutItem, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="rounded-lg bg-rose-500/15 px-2 py-0.5 text-[0.65rem] font-black uppercase text-rose-600 dark:text-rose-400">
-                      SOLD OUT
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-black text-cas-on-surface">{soldOutItem.name}</h4>
-                      <p className="text-[0.68rem] font-medium text-cas-on-surface-variant">
-                        {soldOutItem.category} • {soldOutItem.price}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[0.68rem] font-semibold text-cas-on-surface-variant">
-                    {soldOutItem.time}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
+      <nav
+        aria-label="Nhóm báo cáo"
+        className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
+      >
+        {reportTabs.map((tab) => (
+          <button
+            className={`cursor-pointer border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+      {isLoading ? (
+        <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
+      ) : null}
+      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+      {dashboard ? (
+        <>
+          {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
+          {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
+          {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
+          {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
+        </>
+      ) : null}
     </div>
   );
 }
+
+function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const average = dashboard.revenue.paidSessionCount
+    ? dashboard.revenue.total / dashboard.revenue.paidSessionCount
+    : 0;
+  const trend = dashboard.revenue.series.map((item) => ({
+    label: shortDate(item.date),
+    value: item.revenue,
+  }));
+  return (
+    <div className="space-y-6">
+      <MetricGrid
+        metrics={[
+          [
+            "payment",
+            "Doanh thu",
+            money(dashboard.revenue.total),
+            "Chỉ gồm phiên khách đã thanh toán",
+          ],
+          [
+            "users",
+            "Số phiên khách đã thanh toán",
+            `${dashboard.revenue.paidSessionCount} phiên`,
+            "Bao gồm đơn mang về",
+          ],
+          [
+            "bill",
+            "Giá trị phiên khách trung bình",
+            money(average),
+            "Doanh thu / phiên khách đã thanh toán",
+          ],
+        ]}
+      />
+      <ChartPanel title="Xu hướng doanh thu" subtitle="Đơn vị: đồng">
+        <ResponsiveContainer height="100%" width="100%">
+          <AreaChart data={trend} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+            <defs>
+              <linearGradient id="admin-revenue-area" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--cas-primary)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--cas-primary)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              stroke="var(--cas-outline-variant)"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+            <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
+            <YAxis
+              axisLine={false}
+              tick={axisTick}
+              tickFormatter={money}
+              tickLine={false}
+              width={100}
+            />
+            <Tooltip {...tooltipProps} formatter={(value) => [money(Number(value)), "Doanh thu"]} />
+            <Area
+              dataKey="value"
+              fill="url(#admin-revenue-area)"
+              stroke="var(--cas-primary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartPanel>
+    </div>
+  );
+}
+
+function CustomerReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const series = dashboard.customers.series.map((item) => ({
+    label: shortDate(item.date),
+    sessions: item.sessionCount,
+    wait: item.averageWaitMinutes,
+  }));
+  return (
+    <div className="space-y-6">
+      <MetricGrid
+        metrics={[
+          [
+            "users",
+            "Tổng số phiên khách",
+            `${dashboard.customers.sessionCount} phiên`,
+            "Có order, theo ngày tạo phiên khách",
+          ],
+          [
+            "clock",
+            "Thời gian chờ trung bình",
+            minutes(dashboard.customers.averageWaitMinutes),
+            "Từ gọi món đến phục vụ",
+          ],
+        ]}
+      />
+      <ChartPanel title="Thời gian chờ và phiên khách theo ngày" subtitle="Phút / phiên khách">
+        <ResponsiveContainer height="100%" width="100%">
+          <LineChart data={series} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid
+              stroke="var(--cas-outline-variant)"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+            <XAxis axisLine={false} dataKey="label" tick={axisTick} tickLine={false} />
+            <YAxis axisLine={false} tick={axisTick} tickLine={false} width={100} />
+            <Tooltip
+              {...tooltipProps}
+              formatter={(value, name) => (name === "Chờ món" ? minutes(Number(value)) : value)}
+            />
+            <Line
+              dataKey="wait"
+              connectNulls
+              name="Chờ món"
+              stroke="var(--cas-tertiary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+            <Line
+              dataKey="sessions"
+              name="Phiên khách"
+              stroke="var(--cas-primary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartPanel>
+    </div>
+  );
+}
+
+function MenuReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const topItem = dashboard.menu.topItems[0];
+  return (
+    <div className="space-y-6">
+      <MetricGrid
+        metrics={[
+          [
+            "cart",
+            "Tổng số phần đã bán",
+            `${dashboard.menu.soldQuantity} phần`,
+            "Không tính món làm lại",
+          ],
+          [
+            "fire",
+            "Món bán nhiều nhất",
+            topItem?.name ?? "Chưa có dữ liệu",
+            topItem ? `${topItem.soldQuantity} phần` : "",
+          ],
+          [
+            "close",
+            "Hao hụt làm lại",
+            `${dashboard.menu.remadeQuantity} phần`,
+            "Món có cờ làm lại",
+          ],
+        ]}
+      />
+      <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
+        <SectionHeading icon="cart" title="Chi tiết Menu & Order" />
+        <div className="mt-4 overflow-x-auto border-t border-cas-outline-variant/50">
+          <table className="w-full min-w-150 text-left text-xs">
+            <thead className="border-b border-cas-outline-variant/50 text-cas-on-surface-variant">
+              <tr>
+                <th className="px-3 py-3">Món</th>
+                <th className="px-3 py-3">Số phần bán</th>
+                <th className="px-3 py-3">Doanh thu</th>
+                <th className="px-3 py-3">Làm lại</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cas-outline-variant/40 text-cas-on-surface">
+              {dashboard.menu.topItems.map((item, index) => (
+                <tr key={item.menuItemId}>
+                  <td className="px-3 py-3 font-black">
+                    {index + 1}. {item.name}
+                  </td>
+                  <td className="px-3 py-3">{item.soldQuantity}</td>
+                  <td className="px-3 py-3 font-bold text-cas-primary">{money(item.revenue)}</td>
+                  <td className="px-3 py-3">{item.remadeQuantity}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PromotionReport({ dashboard }: { dashboard: AdminDashboard }) {
+  const statuses = [
+    ["Đang hoạt động", dashboard.promotions.statusCounts.active, "text-cas-primary"],
+    ["Sắp diễn ra", dashboard.promotions.statusCounts.upcoming, "text-cas-secondary"],
+    ["Hết hạn", dashboard.promotions.statusCounts.expired, "text-cas-on-surface-variant"],
+    ["Tạm dừng", dashboard.promotions.statusCounts.inactive, "text-cas-tertiary"],
+  ] as const;
+  return (
+    <div className="space-y-6">
+      <MetricGrid
+        metrics={[
+          [
+            "payment",
+            "Tổng giá trị khuyến mãi",
+            money(dashboard.promotions.totalDiscountAmount),
+            "Chỉ tính phiên khách đã thanh toán",
+          ],
+          [
+            "bill",
+            "Tỷ lệ sử dụng khuyến mãi",
+            `${dashboard.promotions.usageRate}%`,
+            `${dashboard.promotions.discountedSessionCount} phiên khách có khuyến mãi`,
+          ],
+        ]}
+      />
+      <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
+        <SectionHeading icon="sparkle" title="Tình trạng chương trình khuyến mãi" />
+        <div className="mt-5 grid gap-3 sm:grid-cols-4">
+          {statuses.map(([label, value, valueClassName]) => (
+            <div className="rounded-sm border border-cas-outline-variant/60 p-4" key={label}>
+              <p className="text-xs text-cas-on-surface-variant">{label}</p>
+              <strong className={`mt-2 block text-2xl font-black ${valueClassName}`}>
+                {value}
+              </strong>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+function MetricGrid({ metrics }: { metrics: [IconName, string, string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {metrics.map(([icon, label, value, hint]) => (
+        <article
+          className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-4 shadow-xs"
+          key={label}
+        >
+          <div className="flex items-center gap-2 text-cas-on-surface-variant">
+            <CasIcon className="size-4 text-cas-primary" name={icon} />
+            <span className="text-xs font-bold">{label}</span>
+          </div>
+          <strong className="mt-3 block text-xl font-black text-cas-on-surface">{value}</strong>
+          <p className="mt-1 text-[0.68rem] leading-4 text-cas-on-surface-variant">{hint}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+function ChartPanel({
+  children,
+  subtitle,
+  title,
+}: {
+  children: React.ReactNode;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <section className="rounded-sm border border-cas-outline-variant/70 bg-cas-surface p-5 shadow-xs">
+      <div className="flex items-center justify-between gap-3">
+        <SectionHeading icon="sparkle" title={title} />
+        <span className="text-[0.68rem] text-cas-on-surface-variant">{subtitle}</span>
+      </div>
+      <div className="mt-4 h-78">{children}</div>
+    </section>
+  );
+}
+function SectionHeading({ icon, title }: { icon: IconName; title: string }) {
+  return (
+    <div className="flex items-center gap-2 text-cas-on-surface">
+      <CasIcon className="size-4 text-cas-primary" name={icon} />
+      <h2 className="text-sm font-black">{title}</h2>
+    </div>
+  );
+}
+function DateInput({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
+      <span className="sr-only">{label}</span>
+      <input
+        className="min-w-30 bg-transparent outline-none"
+        onChange={(event) => onChange(event.target.value)}
+        type="date"
+        value={value}
+      />
+    </label>
+  );
+}
+function rangeFor(days: number) {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - days + 1);
+  return { from: dateInputValue(from), to: dateInputValue(to) };
+}
+function dateInputValue(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+function validateDateRange(from: string, to: string) {
+  if (!from || !to) return "Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc.";
+  return from > to ? "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." : null;
+}
+function filterFromSearchParams(searchParams: Pick<URLSearchParams, "get">) {
+  const from = searchParams.get("from") ?? "";
+  const to = searchParams.get("to") ?? "";
+  const hasValidRange = !validateDateRange(from, to);
+  const period = searchParams.get("period");
+  if (hasValidRange)
+    return {
+      from,
+      to,
+      period: period && isPeriod(period) ? period : "custom",
+    };
+  return { ...rangeFor(7), period: "oneWeek" as const };
+}
+function isPeriod(value: string): value is Period {
+  return value === "threeDays" || value === "oneWeek" || value === "oneMonth" || value === "custom";
+}
+function shortDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year.slice(2)}`;
+}
+function minutes(value: number | null) {
+  return value == null
+    ? "Chưa có dữ liệu"
+    : `${new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} phút`;
+}
+const axisTick = { fill: "var(--cas-on-surface-variant)", fontSize: 11 };
+const tooltipProps = {
+  contentStyle: {
+    backgroundColor: "var(--cas-surface)",
+    border: "1px solid var(--cas-outline-variant)",
+    borderRadius: "0.125rem",
+    color: "var(--cas-on-surface)",
+    fontSize: "0.75rem",
+  },
+};

@@ -1,7 +1,9 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../lib/format-money";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
 import {
@@ -13,8 +15,20 @@ import {
   type AddToCartPayload,
   type MenuOptionGroup,
 } from "../../customer/add-to-cart-option-dialog";
-import type { VoucherSummary } from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
+import { CasButton } from "../../ui/cas-button";
+import { useToast } from "../../ui/toast-provider";
+import { useOperatorCatalogQuery } from "../../../lib/api/catalog/catalog.query";
+import {
+  cancelOperatorSalesSession,
+  createOperatorOrder,
+  loadOperatorSessionListing,
+  openOperatorSalesSession,
+} from "../../../lib/api/ordering/ordering.api";
+import {
+  operatorTablesQueryKey,
+  useOperatorTablesQuery,
+} from "../../../lib/api/ordering/ordering.query";
 import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
 import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
 
@@ -69,7 +83,8 @@ const drinkOptionGroups: MenuOptionGroup[] = [
 ];
 
 type MenuItemData = {
-  id: string;
+  availabilityStatus?: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
+  id: number | string;
   categoryId: string;
   name: string;
   description: string;
@@ -279,60 +294,13 @@ const menuItems: MenuItemData[] = [
   },
 ];
 
-const mockActiveTables: TableOption[] = [
-  {
-    id: "table-01",
-    code: "01",
-    label: "Bàn 01",
-    status: "OPEN",
-    customerName: "Minh Anh",
-    customerPhone: "0912***456",
-    activeOrdersCount: 1,
-    openedAt: "18:30",
-  },
-  {
-    id: "table-02",
-    code: "02",
-    label: "Bàn 02",
-    status: "OPEN",
-    customerName: "Hoàng Nam",
-    customerPhone: "0988***123",
-    activeOrdersCount: 2,
-    openedAt: "18:45",
-  },
-  {
-    id: "table-05",
-    code: "05",
-    label: "Bàn 05",
-    status: "OPEN",
-    customerName: "Khách lẻ",
-    customerPhone: "0905***789",
-    activeOrdersCount: 0,
-    openedAt: "19:00",
-  },
-  {
-    id: "table-07",
-    code: "07",
-    label: "Bàn 07",
-    status: "OPEN",
-    customerName: "Thu Hà",
-    customerPhone: "0934***678",
-    activeOrdersCount: 1,
-    openedAt: "19:15",
-  },
-  {
-    id: "table-09",
-    code: "09",
-    label: "Bàn 09",
-    status: "OPEN",
-    customerName: "Văn Hùng",
-    customerPhone: "0971***999",
-    activeOrdersCount: 3,
-    openedAt: "19:20",
-  },
-];
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+const unselectedTable: TableOption = {
+  activeOrdersCount: 0,
+  code: "--",
+  id: "",
+  label: "Chọn bàn",
+  status: "EMPTY",
+};
 
 type OrderSuccessData = {
   orderNumber: string;
@@ -344,7 +312,6 @@ type OrderSuccessData = {
   orderNote?: string;
   createdAt: string;
   items: CartItem[];
-  voucherCode?: string;
 };
 
 type OperatorOrderCreationViewProps = {
@@ -354,12 +321,86 @@ type OperatorOrderCreationViewProps = {
 export function OperatorOrderCreationView({
   defaultTableId = "table-05",
 }: OperatorOrderCreationViewProps) {
-  const [selectedTable, setSelectedTable] = useState<TableOption>(() => {
-    const found = mockActiveTables.find((t) => t.id === defaultTableId);
-    return found ?? mockActiveTables[2];
-  });
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: catalog, error: catalogQueryError } = useOperatorCatalogQuery();
+  const { data: tables = [] } = useOperatorTablesQuery();
+  const catalogError = catalogQueryError?.message ?? null;
+  const catalogCategories = useMemo(
+    () =>
+      (catalog?.categories ?? []).map((category) => ({
+        id: String(category.id),
+        label: category.name,
+      })),
+    [catalog],
+  );
+  const catalogItems = useMemo(() => {
+    const optionGroupsById = new Map(
+      (catalog?.optionGroups ?? []).map((group) => [group.id, group]),
+    );
+    return (catalog?.items ?? []).map((item) => ({
+      availabilityStatus: item.availabilityStatus,
+      badges: (item.tags ?? []).map((tag) => tag.name),
+      basePrice: item.price,
+      categoryId: String(item.categoryId),
+      description: item.description ?? "",
+      id: item.id,
+      imageAlt: item.name,
+      imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+      name: item.name,
+      optionGroups: (item.optionGroups ?? []).map((group) => {
+        const optionGroup = optionGroupsById.get(group.id);
+        return {
+          id: String(group.id),
+          label: group.name,
+          maxSelect: optionGroup?.maxSelect,
+          minSelect: optionGroup?.minSelect,
+          options: (optionGroup?.values ?? []).map((value) => ({
+            id: String(value.id),
+            isDefault: value.isDefault,
+            label: value.name,
+            priceDelta: value.extraPrice,
+          })),
+          selectionType: optionGroup?.selectionType ?? "SINGLE",
+        };
+      }),
+      price: formatPrice(item.price),
+    }));
+  }, [catalog]);
+  const operatorTables = useMemo<TableOption[]>(
+    () =>
+      tables.map((table) => ({
+        activeOrdersCount: 0,
+        code: String(table.tableCode).padStart(2, "0"),
+        id: String(table.tableId),
+        label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
+        sessions: table.sessions,
+        status: table.sessions.some((session) => session.status === "OPEN")
+          ? "OPEN"
+          : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
+            ? "PAYMENT_PENDING"
+            : "EMPTY",
+      })),
+    [tables],
+  );
+  const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
 
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const { data: sessionListing } = useQuery({
+    queryKey: ["operator", "sales-sessions", "takeaway"],
+    queryFn: loadOperatorSessionListing,
+    enabled: isTableModalOpen,
+  });
+  const takeawayTables: TableOption[] = (sessionListing?.takeawaySessions ?? []).map((session) => ({
+    id: `takeaway:${session.sessionId}`,
+    code: "MV",
+    label: `Mang về · ${session.customerName} · ${session.sessionId.slice(0, 8)}`,
+    customerName: session.customerName,
+    sessionPublicId: session.sessionId,
+    activeOrdersCount: 0,
+    status: session.status,
+  }));
+  const [sessionSelectionTable, setSessionSelectionTable] = useState<TableOption | null>(null);
   const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
   const [isCustomerInformationFormOpen, setIsCustomerInformationFormOpen] = useState(false);
   const [newlyOpenedTableIds, setNewlyOpenedTableIds] = useState<string[]>([]);
@@ -368,20 +409,38 @@ export function OperatorOrderCreationView({
   const [orderNote, setOrderNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<MenuItemData | null>(null);
   const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
-  const [voucherSummary, setVoucherSummary] = useState<VoucherSummary>({
-    discountAmount: 0,
-    originalAmount: 0,
-    payableAmount: 0,
-  });
+  const [isCancelSessionDialogOpen, setIsCancelSessionDialogOpen] = useState(false);
+  const [isCancellingSession, setIsCancellingSession] = useState(false);
+
+  useEffect(() => {
+    const selected =
+      operatorTables.find((table) => table.id === defaultTableId) ??
+      operatorTables.find((table) => table.status === "OPEN") ??
+      operatorTables[0];
+    const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
+    setSelectedTable((current) => {
+      if (current.id.startsWith("takeaway:")) return current;
+      if (selected && selectedSession)
+        return {
+          ...selected,
+          customerName: selectedSession.customerName,
+          label: `${selected.label} · ${selectedSession.customerName}`,
+          sessionPublicId: selectedSession.sessionId,
+          status: selectedSession.status,
+        };
+      return selected ?? current;
+    });
+  }, [defaultTableId, operatorTables]);
 
   const filteredMenuItems = useMemo(() => {
-    if (!searchQuery.trim()) return menuItems;
+    if (!searchQuery.trim()) return catalogItems;
     const q = searchQuery.toLowerCase().trim();
-    return menuItems.filter(
+    return catalogItems.filter(
       (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
     );
-  }, [searchQuery]);
+  }, [catalogItems, searchQuery]);
 
   const totalCartCount = useMemo(
     () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
@@ -406,6 +465,8 @@ export function OperatorOrderCreationView({
         ...prev,
         {
           cartItemId,
+          menuItemId: Number(item.id),
+          optionValueIds: Object.values(payload.selectedOptionIds).flat().map(Number),
           name: item.name,
           imageSrc: item.imageSrc,
           imageAlt: item.imageAlt,
@@ -447,72 +508,122 @@ export function OperatorOrderCreationView({
 
   const handleSubmitOrder = async () => {
     if (cartItems.length === 0 || isSubmitting) return;
-
-    const appliedVoucherSummary =
-      voucherSummary.originalAmount === totalCartAmount
-        ? voucherSummary
-        : { discountAmount: 0, originalAmount: totalCartAmount, payableAmount: totalCartAmount };
-
+    if (!selectedTable.sessionPublicId) {
+      showToast({
+        type: "error",
+        message: "Vui lòng chọn phiên đang phục vụ trước khi gửi món.",
+      });
+      return;
+    }
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const created = await createOperatorOrder(selectedTable.sessionPublicId, {
+        note: orderNote.trim() || null,
+        items: cartItems.map(({ menuItemId, optionValueIds, quantity }) => ({
+          menuItemId,
+          optionValueIds,
+          quantity,
+        })),
+      });
+      const now = new Date();
+      setSuccessOrderData({
+        orderNumber: created.orderId,
+        tableLabel: selectedTable.label,
+        itemCount: totalCartCount,
+        totalAmount: created.payableAmount,
+        originalAmount: totalCartAmount,
+        discountAmount: 0,
+        orderNote: orderNote.trim() || undefined,
+        createdAt: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+        items: cartItems,
+      });
+      setCartItems([]);
+      setOrderNote("");
+      setIsMobileDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+      showToast({ type: "success", message: "Đã gửi món xuống bếp." });
+    } catch (cause) {
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo order.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-    const newOrderNumber = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    setSuccessOrderData({
-      orderNumber: newOrderNumber,
-      tableLabel: selectedTable.label,
-      itemCount: totalCartCount,
-      totalAmount: appliedVoucherSummary.payableAmount,
-      originalAmount: appliedVoucherSummary.originalAmount,
-      discountAmount: appliedVoucherSummary.discountAmount,
-      orderNote: orderNote.trim() || undefined,
-      createdAt: timeStr,
-      items: cartItems,
-      voucherCode: appliedVoucherSummary.voucherCode,
-    });
-
-    setIsSubmitting(false);
-    setCartItems([]);
-    setOrderNote("");
-    setIsMobileDrawerOpen(false);
+  const handleCancelSalesSession = async () => {
+    if (!selectedTable.sessionPublicId || isCancellingSession) return;
+    setIsCancellingSession(true);
+    try {
+      await cancelOperatorSalesSession(selectedTable.sessionPublicId);
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+      setSelectedTable(unselectedTable);
+      setCartItems([]);
+      setOrderNote("");
+      setIsCancelSessionDialogOpen(false);
+      showToast({ type: "success", message: "Đã hủy phiên." });
+    } catch (cause) {
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể hủy phiên.",
+      });
+    } finally {
+      setIsCancellingSession(false);
+    }
   };
 
   return (
     <div className="relative pb-24 lg:pb-0">
-      {/* Top Header - No Breadcrumbs, Clean Context & Table Switch */}
-      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
-            Tạo order hộ tại bàn
-          </h1>
-        </div>
-
-        {/* Selected Table Context Card */}
-        <div className="flex items-center gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-2.5 shadow-sm sm:p-3">
-          <span className="grid size-9 place-items-center rounded-xl bg-cas-secondary text-xs font-black text-cas-on-primary">
-            {selectedTable.code}
-          </span>
-          <div className="pr-2">
-            <p className="text-xs font-extrabold text-cas-on-surface">
-              {selectedTable.label}
-              {selectedTable.customerName ? ` (${selectedTable.customerName})` : ""}
-            </p>
-            <p className="text-[0.68rem] font-semibold text-emerald-600 dark:text-emerald-400">
-              Phiên bàn đang mở
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsTableModalOpen(true)}
-            className="rounded-xl bg-cas-secondary-container/30 px-3 py-1.5 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/50 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
-          >
-            Chọn bàn khác
-          </button>
-        </div>
+      <header className="mb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
+          Tạo order hộ
+        </h1>
       </header>
+      {isCancelSessionDialogOpen ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isCancellingSession) {
+              setIsCancelSessionDialogOpen(false);
+            }
+          }}
+          role="presentation"
+        >
+          <section
+            aria-labelledby="operator-cancel-session-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl"
+            role="dialog"
+          >
+            <h2 className="text-xl font-extrabold" id="operator-cancel-session-title">
+              Hủy phiên {selectedTable.label}?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
+              Chỉ có thể hủy khi phiên chưa gửi món nào xuống bếp. Hệ thống sẽ kiểm tra lại điều
+              kiện này trước khi đóng phiên.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => setIsCancelSessionDialogOpen(false)}
+                type="button"
+                variant="outline"
+              >
+                Quay lại
+              </CasButton>
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => void handleCancelSalesSession()}
+                type="button"
+                variant="danger"
+              >
+                {isCancellingSession ? "Đang hủy..." : "Xác nhận hủy phiên"}
+              </CasButton>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {/* Main Content Layout (2 Columns on Desktop) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -536,14 +647,18 @@ export function OperatorOrderCreationView({
 
           {/* Sticky Category Navigation with Drag & Scroll-spy - Constrained in left column */}
           <CategoryNavigation
-            categories={categories}
+            categories={catalogCategories}
             className="w-full max-w-full rounded-2xl border border-cas-outline-variant/30 px-2 py-2.5 mt-2 mx-0 shadow-sm"
             stickyTopClass="top-36"
           />
 
           {/* Continuous Long Menu List divided by Categories */}
           <div className="mt-2" id="menu-list">
-            {categories.map((category) => {
+            {catalogError ? <p className="py-8 text-sm text-cas-error">{catalogError}</p> : null}
+            {!catalogError && catalogCategories.length === 0 ? (
+              <p className="py-8 text-sm text-cas-on-surface-variant">Đang tải thực đơn…</p>
+            ) : null}
+            {catalogCategories.map((category) => {
               const categoryItems = filteredMenuItems.filter(
                 (item) => item.categoryId === category.id,
               );
@@ -572,7 +687,7 @@ export function OperatorOrderCreationView({
                         className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:p-4"
                         key={item.id}
                       >
-                        <div className="relative min-h-32 overflow-hidden rounded-2xl md:aspect-[4/3] md:min-h-0">
+                        <div className="relative min-h-32 overflow-hidden rounded-2xl md:h-full md:min-h-0">
                           <Image
                             className="object-cover transition-transform duration-500 hover:scale-105"
                             src={item.imageSrc}
@@ -587,7 +702,7 @@ export function OperatorOrderCreationView({
                             <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
                               {item.badges.map((badge, index) => (
                                 <span
-                                  className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold text-white ${index === 0 ? "bg-cas-primary" : "bg-rose-600"}`}
+                                  className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold ${index === 0 ? "bg-cas-primary text-cas-on-primary" : "bg-cas-error text-cas-on-error"}`}
                                   key={badge}
                                 >
                                   {badge}
@@ -598,8 +713,14 @@ export function OperatorOrderCreationView({
                         </div>
 
                         <div className="flex min-w-0 flex-col">
-                          <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
-                            {item.name}
+                          <h3>
+                            <button
+                              className="line-clamp-2 text-left text-sm leading-snug font-extrabold transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring md:text-base"
+                              type="button"
+                              onClick={() => setDetailItem(item)}
+                            >
+                              {item.name}
+                            </button>
                           </h3>
                           <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
                             {item.description}
@@ -610,6 +731,7 @@ export function OperatorOrderCreationView({
                             </strong>
                             <AddToCartOptionDialog
                               basePrice={item.basePrice}
+                              disabled={item.availabilityStatus === "SOLD_OUT"}
                               itemName={item.name}
                               optionGroups={item.optionGroups}
                               onAddToCart={(payload) => handleAddItemToCart(item, payload)}
@@ -630,7 +752,7 @@ export function OperatorOrderCreationView({
             >
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h2 className="text-xl font-extrabold" id="additional-services-title">
-                  Khác
+                  Dịch vụ thêm
                 </h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -663,20 +785,19 @@ export function OperatorOrderCreationView({
 
         {/* Right Column: Persistent Cart Panel on Desktop */}
         <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
-          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start">
+          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start lg:-mt-22">
             <OperatorCartPanel
               selectedTable={selectedTable}
               cartItems={cartItems}
               orderNote={orderNote}
               isSubmitting={isSubmitting}
               onChangeTableClick={() => setIsTableModalOpen(true)}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
-              onVoucherSummaryChange={setVoucherSummary}
-              voucherSummary={voucherSummary}
             />
           </div>
         </aside>
@@ -690,7 +811,7 @@ export function OperatorOrderCreationView({
           className="flex min-h-15 w-full items-center justify-between rounded-2xl bg-cas-primary px-5 text-left text-cas-on-primary shadow-[0_12px_30px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
         >
           <span className="inline-flex items-center gap-3 font-extrabold">
-            <span className="grid size-9 place-items-center rounded-full bg-white/15">
+            <span className="grid size-9 place-items-center rounded-full bg-cas-on-scrim/15">
               <CasIcon className="size-5" name="basket" />
             </span>
             Xem món đã chọn
@@ -715,13 +836,12 @@ export function OperatorOrderCreationView({
                 setIsMobileDrawerOpen(false);
                 setIsTableModalOpen(true);
               }}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
               onClearCart={handleClearCart}
               onOrderNoteChange={setOrderNote}
               onSubmitOrder={handleSubmitOrder}
-              onVoucherSummaryChange={setVoucherSummary}
-              voucherSummary={voucherSummary}
               onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
             />
           </div>
@@ -731,6 +851,7 @@ export function OperatorOrderCreationView({
       {/* Table Selector Modal */}
       <OperatorTableSelectModal
         isOpen={isTableModalOpen}
+        tables={[...operatorTables, ...takeawayTables]}
         newlyOpenedTableIds={newlyOpenedTableIds}
         selectedTableId={selectedTable.id}
         onClose={() => setIsTableModalOpen(false)}
@@ -739,17 +860,84 @@ export function OperatorOrderCreationView({
           setIsTableModalOpen(false);
         }}
         onSelectTable={(table) => {
-          setSelectedTable(table);
+          if (table.sessionPublicId) {
+            setSelectedTable(table);
+            setIsTableModalOpen(false);
+            return;
+          }
+          setSessionSelectionTable(table);
           setIsTableModalOpen(false);
         }}
       />
+
+      {sessionSelectionTable ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-session-selection-title"
+        >
+          <section className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl">
+            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              {sessionSelectionTable.label}
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold" id="operator-session-selection-title">
+              Chọn khách cần gọi món
+            </h2>
+            <div className="mt-5 space-y-2">
+              {(sessionSelectionTable.sessions ?? []).map((session) => (
+                <button
+                  className="flex w-full items-center justify-between rounded-xl border border-cas-outline-variant/35 p-4 text-left transition hover:border-cas-primary disabled:cursor-not-allowed disabled:opacity-55"
+                  disabled={session.status !== "OPEN"}
+                  key={session.sessionId}
+                  onClick={() => {
+                    setSelectedTable({
+                      ...sessionSelectionTable,
+                      customerName: session.customerName,
+                      label: `${sessionSelectionTable.label} · ${session.customerName}`,
+                      sessionPublicId: session.sessionId,
+                      status: session.status,
+                    });
+                    setSessionSelectionTable(null);
+                  }}
+                  type="button"
+                >
+                  <span className="font-extrabold">{session.customerName}</span>
+                  <span className="text-xs text-cas-on-surface-variant">
+                    {session.status === "OPEN" ? "Đang mở" : "Chờ thanh toán"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <CasButton
+              className="mt-4 w-full"
+              onClick={() => {
+                setPendingSessionTable(sessionSelectionTable);
+                setSessionSelectionTable(null);
+              }}
+              type="button"
+              variant="outline"
+            >
+              Không chung bàn · tạo phiên mới
+            </CasButton>
+            <CasButton
+              className="mt-3 w-full"
+              onClick={() => setSessionSelectionTable(null)}
+              type="button"
+              variant="ghost"
+            >
+              Đóng
+            </CasButton>
+          </section>
+        </div>
+      ) : null}
 
       {pendingSessionTable && !isCustomerInformationFormOpen && (
         <div
           className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="new-table-session-title"
+          aria-labelledby="new-sales-session-title"
         >
           <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
             <span className="grid size-12 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
@@ -758,7 +946,10 @@ export function OperatorOrderCreationView({
             <p className="mt-4 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
               Phiên bàn mới
             </p>
-            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="new-table-session-title">
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="new-sales-session-title"
+            >
               Tạo phiên mới cho {pendingSessionTable.label}?
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
@@ -797,7 +988,10 @@ export function OperatorOrderCreationView({
             <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
               Tạo phiên bàn mới
             </p>
-            <h2 className="mt-1 text-xl font-extrabold text-cas-on-surface" id="operator-customer-information-title">
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="operator-customer-information-title"
+            >
               Thông tin khách tại {pendingSessionTable.label}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
@@ -808,15 +1002,35 @@ export function OperatorOrderCreationView({
                 idPrefix="operator-customer"
                 submitLabel="Tạo phiên bàn và chọn món"
                 onSubmitCustomerInfo={(information: CustomerInformation) => {
-                  setSelectedTable({
-                    ...pendingSessionTable,
-                    customerName: information.customerName,
-                    customerPhone: information.customerPhone,
-                    status: "OPEN",
-                  });
-                  setNewlyOpenedTableIds((current) => [...current, pendingSessionTable.id]);
-                  setIsCustomerInformationFormOpen(false);
-                  setPendingSessionTable(null);
+                  void openOperatorSalesSession(Number(pendingSessionTable.id), information)
+                    .then((session) => {
+                      const openedTable = {
+                        ...pendingSessionTable,
+                        customerName: information.customerName,
+                        customerPhone: information.customerPhone,
+                        sessionPublicId: session.sessionId,
+                        sessions: [
+                          ...(pendingSessionTable.sessions ?? []),
+                          {
+                            customerName: information.customerName,
+                            sessionId: session.sessionId,
+                            status: "OPEN" as const,
+                          },
+                        ],
+                        status: "OPEN" as const,
+                      };
+                      setSelectedTable(openedTable);
+                      void queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+                      setNewlyOpenedTableIds((current) => [...current, openedTable.id]);
+                      setIsCustomerInformationFormOpen(false);
+                      setPendingSessionTable(null);
+                    })
+                    .catch((cause) =>
+                      showToast({
+                        type: "error",
+                        message: cause instanceof Error ? cause.message : "Không thể mở phiên bàn.",
+                      }),
+                    );
                 }}
               />
             </div>
@@ -827,6 +1041,74 @@ export function OperatorOrderCreationView({
             >
               Quay lại
             </button>
+          </div>
+        </div>
+      )}
+
+      {detailItem && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-menu-item-detail-title"
+        >
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.6rem] bg-cas-surface shadow-2xl">
+            <div className="relative aspect-[16/9] overflow-hidden bg-cas-surface-container">
+              <Image
+                className="object-cover"
+                src={detailItem.imageSrc}
+                alt={detailItem.imageAlt}
+                fill
+                sizes="(max-width: 767px) calc(100vw - 2rem), 42rem"
+              />
+              <button
+                className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-cas-glass text-cas-on-surface shadow-lg backdrop-blur-xl focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                type="button"
+                aria-label="Đóng chi tiết món"
+                onClick={() => setDetailItem(null)}
+              >
+                <CasIcon className="size-5" name="close" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                    Chi tiết món
+                  </p>
+                  <h2
+                    className="mt-2 text-2xl leading-tight font-extrabold tracking-tight text-cas-on-surface"
+                    id="operator-menu-item-detail-title"
+                  >
+                    {detailItem.name}
+                  </h2>
+                </div>
+                <strong className="shrink-0 text-xl text-cas-primary">{detailItem.price}</strong>
+              </div>
+
+              {detailItem.description ? (
+                <p className="mt-4 text-sm leading-relaxed text-cas-on-surface-variant">
+                  {detailItem.description}
+                </p>
+              ) : null}
+
+              <div className="mt-6 border-t border-cas-outline-variant/45 pt-5">
+                {detailItem.availabilityStatus === "SOLD_OUT" ? (
+                  <p className="text-sm font-bold text-cas-error">Món này hiện đã hết hàng.</p>
+                ) : (
+                  <AddToCartOptionDialog
+                    basePrice={detailItem.basePrice}
+                    itemName={detailItem.name}
+                    optionGroups={detailItem.optionGroups}
+                    onAddToCart={(payload) => {
+                      handleAddItemToCart(detailItem, payload);
+                      setDetailItem(null);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -844,7 +1126,10 @@ export function OperatorOrderCreationView({
               <span className="grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
                 <CasIcon className="size-8" name="check" />
               </span>
-              <h3 className="mt-4 text-xl font-extrabold text-cas-on-surface" id="operator-order-success-title">
+              <h3
+                className="mt-4 text-xl font-extrabold text-cas-on-surface"
+                id="operator-order-success-title"
+              >
                 Tạo order thành công!
               </h3>
               <p className="mt-1 text-xs text-cas-on-surface-variant">
@@ -856,7 +1141,7 @@ export function OperatorOrderCreationView({
               <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
                 <CasIcon className="size-6 text-cas-secondary" name="table" />
                 <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
-                  Bàn phục vụ
+                  Phiên phục vụ
                 </p>
                 <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
                   {successOrderData.tableLabel}
@@ -875,7 +1160,9 @@ export function OperatorOrderCreationView({
 
             <article className="mt-4 rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-3">
-                <h4 className="text-base font-extrabold text-cas-on-surface">Chi tiết món đã gọi</h4>
+                <h4 className="text-base font-extrabold text-cas-on-surface">
+                  Chi tiết món đã gọi
+                </h4>
                 <span className="rounded-full bg-cas-secondary-container/30 px-3 py-1 text-xs font-extrabold text-cas-secondary">
                   {successOrderData.itemCount} món
                 </span>
@@ -884,7 +1171,9 @@ export function OperatorOrderCreationView({
                 {successOrderData.items.map((item) => (
                   <li className="flex items-start justify-between gap-4 py-3" key={item.cartItemId}>
                     <div className="min-w-0">
-                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">{item.name}</p>
+                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">
+                        {item.name}
+                      </p>
                       <p className="mt-1 text-xs text-cas-on-surface-variant">
                         x{item.quantity} · {item.optionsSummary}
                       </p>
@@ -905,7 +1194,7 @@ export function OperatorOrderCreationView({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cas-on-surface-variant">Bàn phục vụ:</span>
+                <span className="text-cas-on-surface-variant">Phiên phục vụ:</span>
                 <span className="font-bold text-cas-on-surface">{successOrderData.tableLabel}</span>
               </div>
               <div className="flex justify-between">
@@ -926,16 +1215,8 @@ export function OperatorOrderCreationView({
                   </span>
                 </div>
               )}
-              {successOrderData.discountAmount > 0 && (
-                <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-cas-on-surface-variant">
-                  <span>Giảm giá{successOrderData.voucherCode ? ` (${successOrderData.voucherCode})` : ""}:</span>
-                  <span className="font-bold text-cas-secondary">
-                    -{formatPrice(successOrderData.discountAmount)}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-sm font-extrabold">
-                <span>{successOrderData.discountAmount > 0 ? "Cần thanh toán:" : "Tổng tiền:"}</span>
+                <span>Tổng tiền:</span>
                 <span className="text-cas-primary">
                   {formatPrice(successOrderData.totalAmount)}
                 </span>

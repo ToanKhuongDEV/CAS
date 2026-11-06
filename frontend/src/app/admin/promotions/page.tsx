@@ -1,8 +1,18 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { formatMoney as formatVnd } from "../../../lib/format-money";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { loadAdminCatalog } from "../../../lib/api/catalog/catalog.api";
+import {
+  createPromotion,
+  loadAdminPromotions,
+  loadPromotionRedemptions,
+  type PromotionRedemption as PromotionRedemptionResponse,
+  updatePromotion,
+  updatePromotionStatus,
+} from "../../../lib/api/promotion/promotion.api";
 
 type PromotionStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 type PromotionType = "PERCENT_OFF" | "FIXED_AMOUNT_OFF" | "ITEM_PERCENT_OFF" | "ITEM_FIXED_OFF";
@@ -14,12 +24,12 @@ type PromotionTarget = {
   targetId: string;
 };
 
-type PromotionRedemption = {
+type PromotionRedemptionPreview = {
   id: string;
   customerName: string;
   amount: number;
   paidAt: string;
-  status: "COMPLETED" | "REVERSED";
+  status: "RESERVED" | "COMPLETED" | "FORFEITED" | "REVERSED";
 };
 
 type Promotion = {
@@ -36,10 +46,11 @@ type Promotion = {
   startAt: string;
   endAt: string;
   targets: PromotionTarget[];
-  redemptions: PromotionRedemption[];
+  completedRedemptionCount: number;
+  redemptions: PromotionRedemptionPreview[];
 };
 
-type PromotionForm = Omit<Promotion, "id" | "redemptions">;
+export type PromotionForm = Omit<Promotion, "id" | "redemptions" | "completedRedemptionCount">;
 
 const menuItems = [
   { id: "mi-1", name: "Mỳ cay hải sản", category: "Mỳ cay" },
@@ -52,96 +63,6 @@ const categories = [
   { id: "cat-1", name: "Mỳ cay" },
   { id: "cat-2", name: "Đồ ăn vặt" },
   { id: "cat-3", name: "Đồ uống" },
-];
-
-const mockPromotions: Promotion[] = [
-  {
-    id: "promo-1",
-    name: "Mùa hè giảm 50.000đ",
-    code: "SUMMER50K",
-    promotionType: "FIXED_AMOUNT_OFF",
-    discountValue: 50000,
-    maxDiscountAmount: null,
-    minBillAmount: 200000,
-    maxRedemptions: 100,
-    maxRedemptionsPerCustomer: 1,
-    status: "ACTIVE",
-    startAt: "2026-08-01",
-    endAt: "2026-08-31",
-    targets: [],
-    redemptions: [
-      {
-        id: "red-1",
-        customerName: "Nguyễn Minh Anh",
-        amount: 50000,
-        paidAt: "10/08/2026 19:20",
-        status: "COMPLETED",
-      },
-      {
-        id: "red-2",
-        customerName: "Trần Quốc Bảo",
-        amount: 50000,
-        paidAt: "09/08/2026 18:42",
-        status: "COMPLETED",
-      },
-    ],
-  },
-  {
-    id: "promo-2",
-    name: "Ưu đãi đồ uống buổi chiều",
-    code: "",
-    promotionType: "ITEM_PERCENT_OFF",
-    discountValue: 15,
-    maxDiscountAmount: 100000,
-    minBillAmount: null,
-    maxRedemptions: 50,
-    maxRedemptionsPerCustomer: 2,
-    status: "ACTIVE",
-    startAt: "2026-08-01",
-    endAt: "2026-09-30",
-    targets: [{ id: "target-1", targetType: "CATEGORY", targetId: "cat-3" }],
-    redemptions: [
-      {
-        id: "red-3",
-        customerName: "Lê Thu Hà",
-        amount: 24000,
-        paidAt: "10/08/2026 15:10",
-        status: "COMPLETED",
-      },
-    ],
-  },
-  {
-    id: "promo-3",
-    name: "Kích hoạt khách mới",
-    code: "WELCOME10K",
-    promotionType: "FIXED_AMOUNT_OFF",
-    discountValue: 10000,
-    maxDiscountAmount: null,
-    minBillAmount: 50000,
-    maxRedemptions: null,
-    maxRedemptionsPerCustomer: 1,
-    status: "DRAFT",
-    startAt: "",
-    endAt: "",
-    targets: [],
-    redemptions: [],
-  },
-  {
-    id: "promo-4",
-    name: "Tri ân khách hàng thân thiết",
-    code: "VIPMEMBER",
-    promotionType: "PERCENT_OFF",
-    discountValue: 10,
-    maxDiscountAmount: 50000,
-    minBillAmount: 100000,
-    maxRedemptions: null,
-    maxRedemptionsPerCustomer: null,
-    status: "ACTIVE",
-    startAt: "2026-08-01",
-    endAt: "",
-    targets: [],
-    redemptions: [],
-  },
 ];
 
 const typeLabels: Record<PromotionType, string> = {
@@ -174,7 +95,7 @@ const emptyForm = (): PromotionForm => ({
 
 function formatMoney(value: number | null) {
   if (value === null) return "Không giới hạn";
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return formatVnd(value);
 }
 
 function formatValidity(startAt: string, endAt: string) {
@@ -184,20 +105,78 @@ function formatValidity(startAt: string, endAt: string) {
   return `${startAt} → ${endAt}`;
 }
 
-function getTargetLabel(target: PromotionTarget) {
-  const source = target.targetType === "MENU_ITEM" ? menuItems : categories;
-  return source.find((item) => item.id === target.targetId)?.name ?? "Đã ngừng áp dụng";
+export function validatePromotionForm(form: PromotionForm): string[] {
+  const errors: string[] = [];
+  const isItemPromotion = form.promotionType.startsWith("ITEM_");
+
+  if (!form.name.trim()) errors.push("Vui lòng nhập tên chương trình.");
+  else if (form.name.trim().length > 150) errors.push("Tên chương trình tối đa 150 ký tự.");
+
+  if (!Number.isFinite(form.discountValue) || form.discountValue <= 0) {
+    errors.push("Giá trị giảm phải lớn hơn 0.");
+  } else if (form.promotionType.includes("PERCENT") && form.discountValue > 100) {
+    errors.push("Tỷ lệ giảm không được vượt quá 100%.");
+  }
+
+  if (
+    form.maxDiscountAmount !== null &&
+    (!Number.isFinite(form.maxDiscountAmount) || form.maxDiscountAmount < 0)
+  ) {
+    errors.push("Mức giảm tối đa không được nhỏ hơn 0.");
+  }
+  if (
+    form.minBillAmount !== null &&
+    (!Number.isFinite(form.minBillAmount) || form.minBillAmount < 0)
+  ) {
+    errors.push("Bill tối thiểu không được nhỏ hơn 0.");
+  }
+
+  const quotaFields: Array<[number | null, string]> = [
+    [form.maxRedemptions, "Số lượt dùng tối đa"],
+    [form.maxRedemptionsPerCustomer, "Số lượt dùng tối đa mỗi khách"],
+  ];
+  quotaFields.forEach(([value, label]) => {
+    if (value !== null && (!Number.isInteger(value) || value <= 0)) {
+      errors.push(`${label} phải là số nguyên lớn hơn 0.`);
+    }
+  });
+
+  if (form.startAt && form.endAt && new Date(form.endAt) < new Date(form.startAt)) {
+    errors.push("Thời điểm kết thúc phải sau hoặc bằng thời điểm bắt đầu.");
+  }
+  if (isItemPromotion && form.targets.length === 0) {
+    errors.push("Khuyến mãi theo món hoặc danh mục cần chọn ít nhất một phạm vi áp dụng.");
+  }
+  if (!isItemPromotion && form.targets.length > 0) {
+    errors.push("Khuyến mãi toàn bill không được chọn phạm vi món hoặc danh mục.");
+  }
+  if (form.code.trim()) {
+    const entries = form.code.split(",").map((value) => value.trim());
+    if (entries.some((value) => !/^[A-Z0-9]+(?::[1-9]\d*)?$/.test(value))) {
+      errors.push(
+        "Mã chỉ gồm chữ in hoa không dấu và số, ngăn cách bằng dấu phẩy. Ví dụ: DG12345, RT42, DVG34DD. Giới hạn riêng: DG12345:50.",
+      );
+    } else {
+      const codes = entries.map((entry) => entry.split(":")[0]);
+      const duplicate = codes.find((code, index) => codes.indexOf(code) !== index);
+      if (duplicate) errors.push(`Mã ${duplicate} bị trùng trong danh sách nhập.`);
+    }
+  }
+
+  return errors;
 }
 
 function getCompletedRedemptions(promotion: Promotion) {
-  return promotion.redemptions.filter((r) => r.status === "COMPLETED").length;
+  return promotion.completedRedemptionCount;
 }
 
 export default function AdminPromotionsPage() {
-  const [promotions, setPromotions] = useState<Promotion[]>(mockPromotions);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<"ALL" | PromotionStatus>("ALL");
   const [typeFilter, setTypeFilter] = useState<"ALL" | PromotionType>("ALL");
   const [search, setSearch] = useState("");
@@ -207,9 +186,74 @@ export default function AdminPromotionsPage() {
     promotionName?: string;
     nextStatus?: PromotionStatus;
   } | null>(null);
-  const [selectedRedemptionPromo, setSelectedRedemptionPromo] = useState<Promotion | null>(null);
-  const [targetType, setTargetType] = useState<TargetType>("MENU_ITEM");
-  const [targetId, setTargetId] = useState(menuItems[0].id);
+  const [redemptionHistory, setRedemptionHistory] = useState<{
+    promotion: Promotion;
+    items: PromotionRedemptionResponse[];
+    total: number;
+    page: number;
+    size: number;
+    loading: boolean;
+  } | null>(null);
+  const [targetType, setTargetType] = useState<TargetType | "">("");
+  const [targetId, setTargetId] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [codeQuota, setCodeQuota] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [catalogMenuItems, setCatalogMenuItems] = useState(menuItems);
+  const [catalogCategories, setCatalogCategories] = useState(categories);
+
+  useEffect(() => {
+    void loadAdminPromotions()
+      .then((items) => {
+        setPromotions(
+          items.map((item) => ({
+            ...item.promotion,
+            id: item.promotion.publicId,
+            code: item.codes
+              .map(
+                (code) =>
+                  `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+              )
+              .join(", "),
+            startAt: item.promotion.startAt?.slice(0, 16) ?? "",
+            endAt: item.promotion.endAt?.slice(0, 16) ?? "",
+            targets: item.targets.map((target) => ({
+              id: String(target.id),
+              targetType: target.targetType,
+              targetId: String(target.targetId),
+            })),
+            completedRedemptionCount: item.completedRedemptionCount,
+            redemptions: [],
+          })),
+        );
+        setApiError(null);
+      })
+      .catch((cause) =>
+        setApiError(cause instanceof Error ? cause.message : "Không thể tải khuyến mãi."),
+      );
+  }, []);
+
+  useEffect(() => {
+    void loadAdminCatalog()
+      .then((catalog) => {
+        const nextItems = catalog.items.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          category: "",
+        }));
+        const nextCategories = catalog.categories.map((category) => ({
+          id: String(category.id),
+          name: category.name,
+        }));
+        setCatalogMenuItems(nextItems);
+        setCatalogCategories(nextCategories);
+      })
+      .catch((cause) =>
+        setApiError(
+          cause instanceof Error ? cause.message : "Không thể tải danh mục để chọn phạm vi.",
+        ),
+      );
+  }, []);
 
   const filteredPromotions = useMemo(
     () =>
@@ -227,14 +271,19 @@ export default function AdminPromotionsPage() {
   );
 
   const updateForm = <K extends keyof PromotionForm>(key: K, value: PromotionForm[K]) => {
+    setFormErrors([]);
     setForm((current) => ({ ...current, [key]: value }));
   };
 
   const openCreateForm = () => {
     setEditingId(null);
     setForm(emptyForm());
-    setTargetType("MENU_ITEM");
-    setTargetId(menuItems[0].id);
+    setTargetType("");
+    setTargetId("");
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
+    setFormErrors([]);
     setShowForm(true);
   };
 
@@ -245,7 +294,9 @@ export default function AdminPromotionsPage() {
       code: promotion.code,
       promotionType: promotion.promotionType,
       discountValue: promotion.discountValue,
-      maxDiscountAmount: promotion.maxDiscountAmount,
+      maxDiscountAmount: promotion.promotionType.includes("PERCENT")
+        ? promotion.maxDiscountAmount
+        : null,
       minBillAmount: promotion.minBillAmount,
       maxRedemptions: promotion.maxRedemptions,
       maxRedemptionsPerCustomer: promotion.maxRedemptionsPerCustomer,
@@ -254,9 +305,32 @@ export default function AdminPromotionsPage() {
       endAt: promotion.endAt,
       targets: promotion.targets.map((t) => ({ ...t })),
     });
-    setTargetType("MENU_ITEM");
-    setTargetId(menuItems[0].id);
+    setTargetType("");
+    setTargetId("");
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
+    setFormErrors([]);
     setShowForm(true);
+  };
+
+  const loadRedemptionHistory = async (promotion: Promotion, page = 0) => {
+    setRedemptionHistory((current) => ({
+      promotion,
+      items: current?.promotion.id === promotion.id ? current.items : [],
+      total: current?.promotion.id === promotion.id ? current.total : 0,
+      page,
+      size: 10,
+      loading: true,
+    }));
+    try {
+      const result = await loadPromotionRedemptions(promotion.id, page);
+      setRedemptionHistory({ promotion, ...result, loading: false });
+      setApiError(null);
+    } catch (cause) {
+      setRedemptionHistory(null);
+      setApiError(cause instanceof Error ? cause.message : "Không thể tải lịch sử sử dụng.");
+    }
   };
 
   const closeForm = () => {
@@ -265,17 +339,92 @@ export default function AdminPromotionsPage() {
   };
 
   const addTarget = () => {
+    if (!targetType || !targetId) return;
     const exists = form.targets.some((t) => t.targetType === targetType && t.targetId === targetId);
     if (exists) return;
     setForm((current) => ({
       ...current,
       targets: [...current.targets, { id: `target-${Date.now()}`, targetType, targetId }],
     }));
+    setFormErrors([]);
+  };
+
+  const addCodes = () => {
+    const entries = codeInput.split(",").map((code) => code.trim());
+    if (!codeInput.trim() || entries.some((code) => !/^[A-Z0-9]{1,100}$/.test(code))) {
+      setCodeError(
+        "Mã chỉ gồm chữ in hoa không dấu và số, cách nhau bằng dấu phẩy. Ví dụ: DG12345, RT42, DVG34DD.",
+      );
+      return;
+    }
+    if (codeQuota && (!/^[1-9]\d*$/.test(codeQuota) || Number(codeQuota) > 2147483647)) {
+      setCodeError(
+        "Số lượt phải là số nguyên từ 1 đến 2147483647, hoặc để trống nếu không giới hạn.",
+      );
+      return;
+    }
+    const added = form.code
+      .split(",")
+      .map((entry) => entry.trim().split(":")[0])
+      .filter(Boolean);
+    const duplicate = entries.find(
+      (code, index) => entries.indexOf(code) !== index || added.includes(code),
+    );
+    if (duplicate) {
+      setCodeError(`Mã ${duplicate} bị trùng trong danh sách nhập.`);
+      return;
+    }
+    const existing = entries.find((code) =>
+      promotions.some(
+        (promotion) =>
+          promotion.id !== editingId &&
+          promotion.code.split(",").some((entry) => entry.trim().split(":")[0] === code),
+      ),
+    );
+    if (existing) {
+      setCodeError(`Mã ${existing} đã tồn tại trong cơ sở này.`);
+      return;
+    }
+    const next = entries.map((code) => (codeQuota ? `${code}:${codeQuota}` : code));
+    updateForm(
+      "code",
+      [
+        ...form.code
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+        ...next,
+      ].join(", "),
+    );
+    setCodeInput("");
+    setCodeQuota("");
+    setCodeError(null);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.name.trim() || form.discountValue <= 0) return;
+    if (codeInput.trim() || codeQuota.trim()) {
+      setCodeError("Nhấn Thêm mã để đưa mã đang nhập vào danh sách trước khi lưu.");
+      return;
+    }
+    const errors = validatePromotionForm(form);
+    const enteredCodes = form.code
+      .split(",")
+      .map((entry) => entry.trim().split(":")[0])
+      .filter(Boolean);
+    const duplicate = enteredCodes.find((code) =>
+      promotions.some(
+        (promotion) =>
+          promotion.id !== editingId &&
+          promotion.code.split(",").some((entry) => entry.trim().split(":")[0] === code),
+      ),
+    );
+    if (duplicate) errors.push(`Mã ${duplicate} đã tồn tại trong cơ sở này.`);
+    if (errors.length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors([]);
     setConfirmTarget({ action: "save" });
   };
 
@@ -294,40 +443,125 @@ export default function AdminPromotionsPage() {
     });
   };
 
-  const updateStatus = (id: string) => {
-    setPromotions((current) =>
-      current.map((p) => (p.id === id ? { ...p, status: nextStatus(p.status) } : p)),
-    );
+  const updateStatus = async (id: string) => {
+    const current = promotions.find((promotion) => promotion.id === id);
+    if (!current) return;
+    try {
+      const updated = await updatePromotionStatus(id, nextStatus(current.status));
+      setPromotions((items) =>
+        items.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...updated.promotion,
+                completedRedemptionCount: updated.completedRedemptionCount,
+                code: updated.codes
+                  .map(
+                    (code) =>
+                      `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+                  )
+                  .join(", "),
+                startAt: updated.promotion.startAt?.slice(0, 16) ?? "",
+                endAt: updated.promotion.endAt?.slice(0, 16) ?? "",
+                targets: updated.targets.map((target) => ({
+                  id: String(target.id),
+                  targetType: target.targetType,
+                  targetId: String(target.targetId),
+                })),
+              }
+            : item,
+        ),
+      );
+      setApiError(null);
+    } catch (cause) {
+      setApiError(cause instanceof Error ? cause.message : "Không thể cập nhật trạng thái.");
+    }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!confirmTarget) return;
     if (confirmTarget.action === "save") {
       const trimmed = form.name.trim();
       const normalized = { ...form, name: trimmed, code: form.code.trim().toUpperCase() };
-      if (editingId) {
+      const command = {
+        ...normalized,
+        startAt: normalized.startAt || null,
+        endAt: normalized.endAt || null,
+        codes: normalized.code
+          ? normalized.code
+              .split(",")
+              .map((entry) => entry.trim())
+              .filter(Boolean)
+              .map((entry) => {
+                const [value, quota] = entry.split(":", 2).map((part) => part.trim());
+                return {
+                  value,
+                  maxRedemptions: quota ? Number(quota) : null,
+                };
+              })
+          : [],
+        targets: normalized.targets.map((target) => ({
+          type: target.targetType,
+          id: Number(target.targetId),
+        })),
+      };
+      try {
+        const saved = editingId
+          ? await updatePromotion(editingId, command)
+          : await createPromotion(command);
+        const next = {
+          ...normalized,
+          ...saved.promotion,
+          completedRedemptionCount: saved.completedRedemptionCount,
+          id: saved.promotion.publicId,
+          code: saved.codes
+            .map(
+              (code) =>
+                `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+            )
+            .join(", "),
+          startAt: saved.promotion.startAt?.slice(0, 16) ?? "",
+          endAt: saved.promotion.endAt?.slice(0, 16) ?? "",
+          targets: saved.targets.map((target) => ({
+            id: String(target.id),
+            targetType: target.targetType,
+            targetId: String(target.targetId),
+          })),
+          redemptions: [],
+        };
         setPromotions((current) =>
-          current.map((p) =>
-            p.id === editingId ? { ...p, ...normalized, redemptions: p.redemptions } : p,
-          ),
+          editingId
+            ? current.map((item) => (item.id === editingId ? next : item))
+            : [next, ...current],
         );
-      } else {
-        setPromotions((current) => [
-          { ...normalized, id: `promo-${Date.now()}`, redemptions: [] },
-          ...current,
-        ]);
+        setApiError(null);
+      } catch (cause) {
+        setFormErrors([cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi."]);
+        setConfirmTarget(null);
+        return;
       }
       setConfirmTarget(null);
       closeForm();
     } else if (confirmTarget.action === "status" && confirmTarget.promotionId) {
-      updateStatus(confirmTarget.promotionId);
+      await updateStatus(confirmTarget.promotionId);
       setConfirmTarget(null);
     }
   };
 
-  const targetOptions = targetType === "MENU_ITEM" ? menuItems : categories;
+  const targetOptions =
+    targetType === "MENU_ITEM"
+      ? catalogMenuItems
+      : targetType === "CATEGORY"
+        ? catalogCategories
+        : [];
+  const getCatalogTargetLabel = (target: PromotionTarget) => {
+    const source = target.targetType === "MENU_ITEM" ? catalogMenuItems : catalogCategories;
+    return source.find((item) => item.id === target.targetId)?.name ?? "Đã ngừng áp dụng";
+  };
   const typeUsesPercent =
     form.promotionType === "PERCENT_OFF" || form.promotionType === "ITEM_PERCENT_OFF";
+  const supportsMaxDiscount = typeUsesPercent;
+  const typeUsesTargets = form.promotionType.startsWith("ITEM_");
 
   return (
     <div className="space-y-6 pb-12">
@@ -337,15 +571,12 @@ export default function AdminPromotionsPage() {
           <h1 className="text-2xl font-black text-cas-on-surface">
             Quản lý chương trình khuyến mãi
           </h1>
-          <p className="mt-1 max-w-3xl text-xs font-medium leading-5 text-cas-on-surface-variant">
-            Mỗi promotion có một mã nhập duy nhất. Khách nhập đúng mã mới được áp dụng. Mỗi bill
-            hiện chỉ dùng tối đa một promotion.
-          </p>
         </div>
         <CasButton onClick={openCreateForm} icon="plus" variant="primary" size="md">
           Tạo promotion
         </CasButton>
       </div>
+      {apiError && <p className="text-sm font-semibold text-cas-error">{apiError}</p>}
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-cas-outline-variant/25 bg-cas-glass p-3 lg:flex-row lg:items-center">
@@ -400,10 +631,10 @@ export default function AdminPromotionsPage() {
           return (
             <article
               key={promotion.id}
-              className={`rounded-3xl border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs ${promotion.status !== "ACTIVE" || quotaReached ? "opacity-85" : ""}`}
+              className={`rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-5 shadow-xs ${promotion.status !== "ACTIVE" || quotaReached ? "opacity-85" : ""}`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-cas-primary">
                     {typeLabels[promotion.promotionType]}
                   </p>
@@ -411,11 +642,11 @@ export default function AdminPromotionsPage() {
                   <p className="mt-1 text-xs font-medium text-cas-on-surface-variant">
                     {promotion.targets.length === 0
                       ? "Áp dụng toàn bill"
-                      : `Áp dụng: ${promotion.targets.map(getTargetLabel).join(", ")}`}
+                      : `Áp dụng: ${promotion.targets.map(getCatalogTargetLabel).join(", ")}`}
                   </p>
                 </div>
                 <span
-                  className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[0.65rem] font-black ${statusTone}`}
+                  className={`inline-flex w-fit shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[0.65rem] font-black ${statusTone}`}
                 >
                   {quotaReached ? "ĐÃ HẾT LƯỢT DÙNG" : statusLabels[promotion.status].toUpperCase()}
                 </span>
@@ -481,10 +712,10 @@ export default function AdminPromotionsPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedRedemptionPromo(promotion)}
+                    onClick={() => void loadRedemptionHistory(promotion)}
                     className="rounded-xl px-2.5 py-1.5 text-xs font-bold text-cas-primary hover:bg-cas-primary/10 transition-colors"
                   >
-                    Lịch sử dùng ({promotion.redemptions.length})
+                    Lịch sử dùng
                   </button>
                   <button
                     type="button"
@@ -512,7 +743,7 @@ export default function AdminPromotionsPage() {
       </div>
 
       {filteredPromotions.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-cas-outline-variant/45 bg-cas-glass px-6 py-12 text-center text-sm font-bold text-cas-on-surface-variant">
+        <div className="rounded-sm border border-dashed border-cas-outline-variant/45 bg-cas-glass px-6 py-12 text-center text-sm font-bold text-cas-on-surface-variant">
           Không tìm thấy promotion phù hợp.
         </div>
       )}
@@ -520,14 +751,14 @@ export default function AdminPromotionsPage() {
       {/* Form modal */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeForm();
           }}
         >
           <form
             onSubmit={handleSubmit}
-            className="my-auto w-full max-w-5xl space-y-5 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
+            className="my-auto w-full max-w-5xl space-y-5 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-2xl sm:p-6"
           >
             {/* Form header */}
             <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
@@ -554,23 +785,109 @@ export default function AdminPromotionsPage() {
                       required
                       value={form.name}
                       onChange={(e) => updateForm("name", e.target.value)}
-                      placeholder="VD: Mùa hè giảm 50.000đ"
+                      placeholder="VD: Mùa hè giảm 50.000 ₫"
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Mã khuyến mãi" className="sm:col-span-2">
-                    <input
-                      value={form.code}
-                      onChange={(e) => updateForm("code", e.target.value.toUpperCase())}
-                      placeholder="VD: SUMMER50K (để trống nếu không cần mã)"
-                      className={inputClass}
-                      maxLength={50}
-                    />
-                  </Field>
+                  <div className="space-y-2 sm:col-span-2">
+                    <p className="text-sm font-bold text-cas-on-surface">Mã khuyến mãi</p>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <Field label="Mã" className="min-w-36 flex-1">
+                        <input
+                          value={codeInput}
+                          onChange={(e) => {
+                            setCodeInput(e.target.value.toUpperCase());
+                            setCodeError(null);
+                          }}
+                          placeholder="VD: DG12345, RT42, DVG34DD"
+                          className={inputClass}
+                          maxLength={500}
+                        />
+                      </Field>
+                      <Field label="Số lượt" className="w-28">
+                        <input
+                          value={codeQuota}
+                          onChange={(e) => {
+                            setCodeQuota(e.target.value);
+                            setCodeError(null);
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Không giới hạn"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <CasButton
+                        type="button"
+                        onClick={addCodes}
+                        variant="outline-primary"
+                        size="sm"
+                      >
+                        Thêm mã
+                      </CasButton>
+                    </div>
+                    {codeError ? (
+                      <p role="alert" className="text-xs font-bold text-cas-error">
+                        {codeError}
+                      </p>
+                    ) : null}
+                    <ul aria-label="Danh sách mã khuyến mãi" className="flex flex-wrap gap-2">
+                      {form.code
+                        .split(",")
+                        .map((entry) => entry.trim())
+                        .filter(Boolean)
+                        .map((entry) => {
+                          const [code, quota] = entry.split(":");
+                          return (
+                            <li
+                              key={code}
+                              className="inline-flex items-center gap-2 rounded-lg bg-cas-primary/10 px-2 py-1 text-xs font-bold text-cas-primary"
+                            >
+                              {code} · {quota ? `${quota} lượt` : "Không giới hạn"}
+                              <button
+                                type="button"
+                                aria-label={`Xóa mã ${code}`}
+                                className="hover:text-cas-error"
+                                onClick={() =>
+                                  updateForm(
+                                    "code",
+                                    form.code
+                                      .split(",")
+                                      .map((item) => item.trim())
+                                      .filter((item) => item.split(":")[0] !== code)
+                                      .join(", "),
+                                  )
+                                }
+                              >
+                                <CasIcon name="close" className="size-3" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
                   <Field label="Loại promotion">
                     <select
                       value={form.promotionType}
-                      onChange={(e) => updateForm("promotionType", e.target.value as PromotionType)}
+                      onChange={(e) => {
+                        const promotionType = e.target.value as PromotionType;
+                        setFormErrors([]);
+                        setForm((current) => ({
+                          ...current,
+                          promotionType,
+                          discountValue:
+                            promotionType.includes("PERCENT") ===
+                            current.promotionType.includes("PERCENT")
+                              ? current.discountValue
+                              : promotionType.includes("PERCENT")
+                                ? 20
+                                : 20000,
+                          maxDiscountAmount: promotionType.includes("PERCENT")
+                            ? current.maxDiscountAmount
+                            : null,
+                          targets: promotionType.startsWith("ITEM_") ? current.targets : [],
+                        }));
+                      }}
                       className={inputClass}
                     >
                       {Object.entries(typeLabels).map(([value, label]) => (
@@ -580,7 +897,10 @@ export default function AdminPromotionsPage() {
                       ))}
                     </select>
                   </Field>
-                  <Field label={typeUsesPercent ? "Tỷ lệ giảm (%)" : "Giá trị giảm (VNĐ)"}>
+                  <Field
+                    label={typeUsesPercent ? "Tỷ lệ giảm (%)" : "Giá trị giảm (VNĐ)"}
+                    tooltip="Với ưu đãi giảm tiền, số tiền giảm thực tế không vượt quá tổng giá trị bill hoặc phần món được áp dụng. Ví dụ: bill 30.000 ₫, ưu đãi 50.000 ₫ — hệ thống giảm 30.000 ₫, số tiền phải thanh toán là 0 ₫."
+                  >
                     {typeUsesPercent ? (
                       <input
                         type="number"
@@ -589,6 +909,12 @@ export default function AdminPromotionsPage() {
                         required
                         value={form.discountValue || ""}
                         onChange={(e) => updateForm("discountValue", Number(e.target.value))}
+                        onInvalid={(event) =>
+                          event.currentTarget.setCustomValidity(
+                            "Tỷ lệ giảm phải lớn hơn 0% và không vượt quá 100%.",
+                          )
+                        }
+                        onInput={(event) => event.currentTarget.setCustomValidity("")}
                         placeholder="VD: 15"
                         className={inputClass}
                       />
@@ -601,7 +927,7 @@ export default function AdminPromotionsPage() {
                       />
                     )}
                   </Field>
-                  {typeUsesPercent && (
+                  {supportsMaxDiscount && (
                     <Field label="Giảm tối đa (VNĐ)">
                       <MoneyInput
                         value={form.maxDiscountAmount}
@@ -617,14 +943,20 @@ export default function AdminPromotionsPage() {
               <section className="space-y-4">
                 <FormTitle icon="settings" title="Điều kiện áp dụng" />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="Bill tối thiểu (VNĐ)">
+                  <Field
+                    label="Bill tối thiểu (VNĐ)"
+                    tooltip="Promotion chỉ áp dụng khi tổng bill đạt mức này. Ví dụ: đặt 100.000 ₫ thì bill 80.000 ₫ không được giảm."
+                  >
                     <MoneyInput
                       value={form.minBillAmount}
                       onChange={(v) => updateForm("minBillAmount", v)}
                       placeholder="Không yêu cầu"
                     />
                   </Field>
-                  <Field label="Số lượt dùng tối đa">
+                  <Field
+                    label="Số lượt dùng tối đa"
+                    tooltip="Giới hạn tổng lượt cho cả chương trình, tính chung mọi mã và cả lượt đang giữ chỗ. Ví dụ: chương trình tối đa 100 lượt thì tất cả mã cộng lại dùng tối đa 100 lượt. Mỗi mã vẫn phải còn lượt riêng để được áp dụng. Để trống nếu không giới hạn."
+                  >
                     <OptionalNumberInput
                       value={form.maxRedemptions}
                       onChange={(v) => updateForm("maxRedemptions", v)}
@@ -672,72 +1004,106 @@ export default function AdminPromotionsPage() {
             </div>
 
             {/* Section 3: Phạm vi áp dụng */}
-            <section className="space-y-3 rounded-2xl border border-cas-outline-variant/25 p-4">
-              <FormTitle icon="menu" title="Phạm vi áp dụng" />
-              <p className="text-[0.7rem] text-cas-on-surface-variant">
-                Không chọn target nghĩa là áp dụng trên toàn bill.
-              </p>
-              {form.promotionType.startsWith("ITEM_") && form.targets.length === 0 && (
-                <p className="rounded-xl bg-cas-tertiary/10 p-2.5 text-xs font-bold text-cas-tertiary">
-                  ⚠️ Loại ưu đãi này áp dụng theo món/danh mục (`ITEM_...`). Vui lòng chọn ít nhất 1
-                  món ăn hoặc danh mục bên dưới.
+            {typeUsesTargets ? (
+              <section className="space-y-3 rounded-2xl border border-cas-outline-variant/25 p-4">
+                <FormTitle
+                  icon="menu"
+                  title="Phạm vi áp dụng"
+                  tooltip="Giảm % hoặc giảm tiền chỉ tính trên món/danh mục đã chọn và không vượt tổng giá trị của chúng. Ví dụ: món 30.000 ₫, giảm 50.000 ₫ thì chỉ giảm 30.000 ₫."
+                />
+                <p className="text-[0.7rem] text-cas-on-surface-variant">
+                  Chọn ít nhất một món hoặc danh mục để áp dụng promotion này.
                 </p>
-              )}
-              <div className="flex gap-2">
-                <select
-                  value={targetType}
-                  onChange={(e) => {
-                    const next = e.target.value as TargetType;
-                    setTargetType(next);
-                    setTargetId((next === "MENU_ITEM" ? menuItems : categories)[0].id);
-                  }}
-                  className={inputClass}
-                >
-                  <option value="MENU_ITEM">Món ăn</option>
-                  <option value="CATEGORY">Danh mục</option>
-                </select>
-                <select
-                  value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  className={inputClass}
-                >
-                  {targetOptions.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <CasButton type="button" onClick={addTarget} variant="outline-primary" size="sm">
-                  Thêm
-                </CasButton>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {form.targets.map((target) => (
-                  <span
-                    key={target.id}
-                    className="inline-flex items-center gap-1 rounded-lg bg-cas-primary/10 px-2 py-1 text-[0.65rem] font-bold text-cas-primary"
+                {form.targets.length === 0 && (
+                  <p className="rounded-xl bg-cas-tertiary/10 p-2.5 text-xs font-bold text-cas-tertiary">
+                    ⚠️ Loại ưu đãi này áp dụng theo món/danh mục (`ITEM_...`). Vui lòng chọn ít nhất
+                    1 món ăn hoặc danh mục bên dưới.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <select
+                    value={targetType}
+                    onChange={(e) => {
+                      const next = e.target.value as TargetType | "";
+                      setTargetType(next);
+                      setTargetId("");
+                    }}
+                    className={inputClass}
                   >
-                    {target.targetType === "MENU_ITEM" ? "Món:" : "Danh mục:"}{" "}
-                    {getTargetLabel(target)}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateForm(
-                          "targets",
-                          form.targets.filter((t) => t.id !== target.id),
-                        )
-                      }
-                      className="ml-0.5 text-cas-primary hover:text-cas-error"
-                      aria-label="Xóa target"
+                    <option value="">Chọn loại phạm vi</option>
+                    <option value="MENU_ITEM">Món ăn</option>
+                    <option value="CATEGORY">Danh mục</option>
+                  </select>
+                  <select
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    className={inputClass}
+                    disabled={!targetType}
+                  >
+                    <option value="">Chọn món hoặc danh mục</option>
+                    {targetOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <CasButton type="button" onClick={addTarget} variant="outline-primary" size="sm">
+                    Thêm
+                  </CasButton>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.targets.map((target) => (
+                    <span
+                      key={target.id}
+                      className="inline-flex items-center gap-1 rounded-lg bg-cas-primary/10 px-2 py-1 text-[0.65rem] font-bold text-cas-primary"
                     >
-                      <CasIcon name="close" className="size-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </section>
+                      {target.targetType === "MENU_ITEM" ? "Món:" : "Danh mục:"}{" "}
+                      {getCatalogTargetLabel(target)}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateForm(
+                            "targets",
+                            form.targets.filter((t) => t.id !== target.id),
+                          )
+                        }
+                        className="ml-0.5 text-cas-primary hover:text-cas-error"
+                        aria-label="Xóa target"
+                      >
+                        <CasIcon name="close" className="size-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="space-y-3 rounded-2xl border border-cas-outline-variant/25 p-4">
+                <FormTitle
+                  icon="menu"
+                  title="Phạm vi áp dụng"
+                  tooltip="Promotion này giảm trên toàn bộ bill nên không cần chọn món hoặc danh mục."
+                />
+                <p className="text-[0.7rem] text-cas-on-surface-variant">
+                  Loại promotion này áp dụng trên toàn bộ bill.
+                </p>
+              </section>
+            )}
 
             {/* Form footer */}
+            {formErrors.length > 0 ? (
+              <div
+                aria-live="polite"
+                className="rounded-xl border border-cas-error/30 bg-cas-error-container/40 px-4 py-3 text-sm text-cas-on-error-container"
+                role="alert"
+              >
+                <p className="font-extrabold">Vui lòng kiểm tra lại thông tin promotion:</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {formErrors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2 border-t border-cas-outline-variant/20 pt-4">
               <CasButton type="button" onClick={closeForm} variant="outline" size="sm">
                 Hủy
@@ -758,14 +1124,18 @@ export default function AdminPromotionsPage() {
           return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center">
               <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-cas-scrim/40 backdrop-blur-sm"
                 onClick={() => setConfirmTarget(null)}
               />
               <div className="relative z-10 w-full max-w-sm rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-6 shadow-2xl">
                 <div className="mb-1 flex items-center gap-3">
                   <span
-                    className={`grid size-10 shrink-0 place-items-center rounded-xl text-white ${
-                      isSave ? "bg-cas-primary" : isDeactivate ? "bg-cas-error" : "bg-cas-secondary"
+                    className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+                      isSave
+                        ? "bg-cas-primary text-cas-on-primary"
+                        : isDeactivate
+                          ? "bg-cas-error text-cas-on-error"
+                          : "bg-cas-secondary text-cas-on-secondary"
                     }`}
                   >
                     <CasIcon
@@ -822,26 +1192,26 @@ export default function AdminPromotionsPage() {
         })()}
 
       {/* Redemptions list modal */}
-      {selectedRedemptionPromo && (
+      {redemptionHistory && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-            onClick={() => setSelectedRedemptionPromo(null)}
+            className="absolute inset-0 bg-cas-scrim/55 backdrop-blur-sm"
+            onClick={() => setRedemptionHistory(null)}
           />
-          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
+          <div className="relative z-10 w-full max-w-2xl rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <div>
                 <h3 className="text-base font-black text-cas-on-surface">
-                  Lịch sử sử dụng: {selectedRedemptionPromo.name}
+                  Lịch sử sử dụng: {redemptionHistory.promotion.name}
                 </h3>
                 <p className="text-xs font-medium text-cas-on-surface-variant">
-                  Mã: {selectedRedemptionPromo.code || "Không dùng mã"} · Tổng lượt dùng:{" "}
-                  {selectedRedemptionPromo.redemptions.length}
+                  Mã: {redemptionHistory.promotion.code || "Không dùng mã"} · Tổng lượt sử dụng:{" "}
+                  {redemptionHistory.total}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedRedemptionPromo(null)}
+                onClick={() => setRedemptionHistory(null)}
                 className="grid size-8 place-items-center rounded-xl text-cas-on-surface-variant hover:bg-cas-on-surface/5"
                 aria-label="Đóng modal lịch sử sử dụng"
               >
@@ -849,7 +1219,11 @@ export default function AdminPromotionsPage() {
               </button>
             </div>
 
-            {selectedRedemptionPromo.redemptions.length === 0 ? (
+            {redemptionHistory.loading ? (
+              <p className="py-8 text-center text-xs font-bold text-cas-on-surface-variant">
+                Đang tải lịch sử sử dụng...
+              </p>
+            ) : redemptionHistory.items.length === 0 ? (
               <p className="py-8 text-center text-xs font-bold text-cas-on-surface-variant">
                 Chưa có khách hàng nào sử dụng chương trình này.
               </p>
@@ -865,24 +1239,32 @@ export default function AdminPromotionsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cas-outline-variant/15 text-cas-on-surface">
-                    {selectedRedemptionPromo.redemptions.map((red) => (
+                    {redemptionHistory.items.map((red) => (
                       <tr key={red.id} className="hover:bg-cas-on-surface/5">
                         <td className="p-3 font-bold">{red.customerName}</td>
                         <td className="p-3 font-black text-cas-primary">
-                          {formatMoney(red.amount)}
+                          {formatMoney(red.discountAmount)}
                         </td>
                         <td className="p-3 font-medium text-cas-on-surface-variant">
-                          {red.paidAt}
+                          {new Date(red.paidAt).toLocaleString("vi-VN")}
                         </td>
                         <td className="p-3">
                           <span
                             className={`inline-block rounded-md px-2 py-0.5 text-[0.65rem] font-bold ${
                               red.status === "COMPLETED"
                                 ? "bg-cas-secondary/15 text-cas-secondary"
-                                : "bg-cas-error/15 text-cas-error"
+                                : red.status === "RESERVED"
+                                  ? "bg-cas-primary/15 text-cas-primary"
+                                  : "bg-cas-error/15 text-cas-error"
                             }`}
                           >
-                            {red.status === "COMPLETED" ? "Hoàn thành" : "Đã hoàn trả (Reversed)"}
+                            {red.status === "COMPLETED"
+                              ? "Hoàn thành"
+                              : red.status === "RESERVED"
+                                ? "Đã giữ lượt"
+                                : red.status === "FORFEITED"
+                                  ? "Đã hao hụt"
+                                  : "Đã hoàn trả (Reversed)"}
                           </span>
                         </td>
                       </tr>
@@ -892,12 +1274,54 @@ export default function AdminPromotionsPage() {
               </div>
             )}
 
+            {!redemptionHistory.loading && redemptionHistory.total > redemptionHistory.size && (
+              <div className="flex items-center justify-between text-xs font-bold text-cas-on-surface-variant">
+                <span>
+                  Trang {redemptionHistory.page + 1}/
+                  {Math.ceil(redemptionHistory.total / redemptionHistory.size)}
+                </span>
+                <div className="flex gap-2">
+                  <CasButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={redemptionHistory.page === 0}
+                    onClick={() =>
+                      void loadRedemptionHistory(
+                        redemptionHistory.promotion,
+                        redemptionHistory.page - 1,
+                      )
+                    }
+                  >
+                    Trước
+                  </CasButton>
+                  <CasButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      (redemptionHistory.page + 1) * redemptionHistory.size >=
+                      redemptionHistory.total
+                    }
+                    onClick={() =>
+                      void loadRedemptionHistory(
+                        redemptionHistory.promotion,
+                        redemptionHistory.page + 1,
+                      )
+                    }
+                  >
+                    Sau
+                  </CasButton>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <CasButton
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedRedemptionPromo(null)}
+                onClick={() => setRedemptionHistory(null)}
               >
                 Đóng
               </CasButton>
@@ -912,21 +1336,24 @@ export default function AdminPromotionsPage() {
 // ─── Shared UI helpers ────────────────────────────────────────────────────────
 
 const inputClass =
-  "w-full rounded-xl border border-cas-outline-variant/35 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary";
+  "w-full rounded-xl border border-cas-outline-variant/35 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface focus:border-cas-primary focus-visible:outline-none";
 
 function Field({
   label,
   className = "",
   children,
+  tooltip,
 }: {
   label: string;
   className?: string;
   children: ReactNode;
+  tooltip?: string;
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-[0.7rem] font-bold text-cas-on-surface-variant">
+      <span className="mb-1 flex items-center gap-1 text-[0.7rem] font-bold text-cas-on-surface-variant">
         {label}
+        {tooltip && <InfoTooltip text={tooltip} label={label} />}
       </span>
       {children}
     </label>
@@ -936,15 +1363,38 @@ function Field({
 function FormTitle({
   icon,
   title,
+  tooltip,
 }: {
   icon: "sparkle" | "settings" | "menu" | "bill";
   title: string;
+  tooltip?: string;
 }) {
   return (
     <h4 className="flex items-center gap-2 text-sm font-black text-cas-on-surface">
       <CasIcon name={icon} className="size-4 text-cas-primary" />
       {title}
+      {tooltip && <InfoTooltip text={tooltip} label={title} />}
     </h4>
+  );
+}
+
+function InfoTooltip({ text, label }: { text: string; label: string }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        className="grid size-4 place-items-center rounded-full border border-cas-outline-variant/70 text-[0.65rem] font-black leading-none text-cas-on-surface-variant transition-colors hover:border-cas-primary hover:text-cas-primary focus:outline-none focus:ring-2 focus:ring-cas-primary"
+        aria-label={`Giải thích ${label}`}
+      >
+        !
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl border border-cas-outline-variant/30 bg-cas-surface px-3 py-2 text-left text-xs font-medium leading-5 text-cas-on-surface-variant opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -1007,7 +1457,5 @@ function MoneyInput({
 }
 
 function typeUsesPercentFor(promotion: Promotion) {
-  return (
-    promotion.promotionType === "PERCENT_OFF" || promotion.promotionType === "ITEM_PERCENT_OFF"
-  );
+  return promotion.promotionType.includes("PERCENT");
 }

@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.ordering.mapper.OrderingMapper">
+    <select id="findMenuItemsForOrder" resultType="vn.cas.ordering.model.OrderMenuItem">
+        SELECT
+            menu_items.id,
+            menu_items.name,
+            menu_items.price,
+            menu_items.availability_status AS availabilityStatus
+        FROM menu_items
+        WHERE menu_items.store_id = #{storeId}
+          AND menu_items.id IN
+          <foreach collection="menuItemIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <select id="findActiveOptionValuesForOrder" resultType="vn.cas.ordering.model.OrderOptionValue">
+        SELECT menu_item_option_groups.menu_item_id AS menuItemId, option_values.id,
+               option_groups.id AS groupId, option_groups.name AS groupName, option_values.name,
+               option_values.extra_price AS extraPrice
+        FROM menu_item_option_groups
+        INNER JOIN option_groups ON option_groups.id=menu_item_option_groups.option_group_id
+        INNER JOIN option_values ON option_values.option_group_id=option_groups.id
+        WHERE menu_item_option_groups.store_id=#{storeId}
+          AND menu_item_option_groups.menu_item_id IN
+          <foreach collection="menuItemIds" item="menuItemId" open="(" separator="," close=")">#{menuItemId}</foreach>
+          AND option_groups.status='ACTIVE' AND option_values.status='ACTIVE'
+          AND option_values.id IN
+          <foreach collection="optionValueIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <select id="findActiveOptionGroupsForOrder" resultType="vn.cas.ordering.model.OrderOptionGroup">
+        SELECT
+            menu_item_option_groups.menu_item_id AS menuItemId,
+            option_groups.id,
+            option_groups.min_select AS minSelect,
+            option_groups.max_select AS maxSelect
+        FROM menu_item_option_groups
+        INNER JOIN option_groups ON option_groups.id = menu_item_option_groups.option_group_id
+        WHERE menu_item_option_groups.store_id = #{storeId}
+          AND menu_item_option_groups.menu_item_id IN
+          <foreach collection="menuItemIds" item="menuItemId" open="(" separator="," close=")">#{menuItemId}</foreach>
+          AND option_groups.status = 'ACTIVE'
+        ORDER BY menu_item_option_groups.menu_item_id ASC, option_groups.id ASC
+    </select>
+    <select id="findBySessionIdAndIdempotencyKey" resultType="vn.cas.ordering.model.StoredOrder">
+        SELECT
+            public_id AS publicId,
+            request_fingerprint AS requestFingerprint,
+            payable_amount AS payableAmount
+        FROM orders
+        WHERE sales_session_id = #{sessionId}
+          AND idempotency_key = #{idempotencyKey}
+    </select>
+    <select id="findCancellableOrderItemForUpdate" resultType="vn.cas.ordering.model.CancellableOrderItem">
+        SELECT order_items.id, order_items.quantity,
+               COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status IN ('PENDING', 'APPROVED') THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS reservedCancellationQuantity,
+               sales_sessions.status AS sessionStatus
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN order_item_cancellation_requests ON order_item_cancellation_requests.order_item_id = order_items.id
+        WHERE orders.sales_session_id = #{sessionId} AND order_items.public_id = #{orderItemPublicId}
+        GROUP BY order_items.id, order_items.quantity, sales_sessions.status
+        FOR UPDATE
+    </select>
+    <select id="findCancellationRequest" resultType="vn.cas.ordering.model.CancellationRequest">
+        SELECT public_id AS publicId, requested_quantity AS requestedQuantity, reason, status
+        FROM order_item_cancellation_requests
+        WHERE order_item_id = #{orderItemId} AND idempotency_key = #{idempotencyKey}
+    </select>
+    <select id="hasPendingCancellationRequests" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM order_item_cancellation_requests
+            INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+            INNER JOIN orders ON orders.id = order_items.order_id
+            WHERE orders.sales_session_id = #{sessionId}
+              AND order_item_cancellation_requests.status = 'PENDING'
+        )
+    </select>
+    <insert id="insertCancellationRequest">
+        INSERT INTO order_item_cancellation_requests (public_id, order_item_id, created_by_account_id, created_by_name, idempotency_key, requested_quantity, reason, status, is_remade, resolved_by, resolved_by_name, resolved_at)
+        VALUES (#{publicId}, #{orderItemId}, NULL, NULL, #{idempotencyKey}, #{requestedQuantity}, #{reason}, 'PENDING', FALSE, NULL, NULL, NULL)
+    </insert>
+    <insert id="insertOrder">
+        INSERT INTO orders (
+            public_id,
+            sales_session_id,
+            created_by_account_id,
+            idempotency_key,
+            request_fingerprint,
+            order_number,
+            original_amount,
+            payable_amount,
+            note
+        ) VALUES (
+            #{publicId},
+            #{sessionId},
+            #{createdByAccountId},
+            #{idempotencyKey},
+            #{fingerprint},
+            #{orderNumber},
+            #{amount},
+            #{amount},
+            #{note}
+        )
+    </insert>
+    <select id="lastInsertId" resultType="long">SELECT LAST_INSERT_ID()</select>
+    <insert id="insertOrderItem">
+        INSERT INTO order_items (
+            public_id,
+            order_id,
+            menu_item_id,
+            item_name,
+            unit_price,
+            options_amount,
+            quantity,
+            prepared_quantity,
+            total_amount
+        ) VALUES (
+            #{publicId},
+            #{orderId},
+            #{menuItemId},
+            #{itemName},
+            #{unitPrice},
+            #{optionsAmount},
+            #{quantity},
+            0,
+            #{totalAmount}
+        )
+    </insert>
+    <select id="lastInsertOrderItemId" resultType="long">SELECT LAST_INSERT_ID()</select>
+    <insert id="insertOrderItemOption">
+        INSERT INTO order_item_options (
+            order_item_id,
+            option_value_id,
+            option_group_name,
+            option_name,
+            unit_price,
+            quantity_per_item,
+            total_amount
+        ) VALUES (
+            #{orderItemId},
+            #{optionValueId},
+            #{groupName},
+            #{optionName},
+            #{unitPrice},
+            #{quantity},
+            #{totalAmount}
+        )
+    </insert>
+    <select id="findOrderOverviewsBySessionId" resultType="vn.cas.ordering.model.OrderOverview">
+        SELECT
+            orders.id,
+            orders.public_id AS publicId,
+            orders.order_number AS orderNumber,
+            orders.original_amount AS originalAmount,
+            orders.payable_amount AS payableAmount,
+            orders.note,
+            orders.created_at AS createdAt
+        FROM orders
+        WHERE orders.sales_session_id = #{sessionId}
+        ORDER BY orders.created_at ASC
+    </select>
+    <select id="findSessionByOrderPublicIdAndStoreId"
+            resultType="vn.cas.ordering.model.OperatorOrderSession">
+        SELECT
+            sales_sessions.id AS sessionId,
+            dining_tables.code AS tableCode,
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.opened_by_customer_phone AS customerPhone
+        FROM orders
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND orders.public_id = #{orderPublicId}
+    </select>
+    <select id="findOrderItemsBySessionId" resultType="vn.cas.ordering.model.OrderItemView">
+        SELECT
+            order_items.id,
+            order_items.order_id AS orderId,
+            order_items.public_id AS publicId,
+            order_items.item_name AS itemName,
+            order_items.unit_price AS unitPrice,
+            order_items.options_amount AS optionsAmount,
+            order_items.quantity,
+            order_items.prepared_quantity AS preparedQuantity,
+            COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status = 'APPROVED'
+                THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS cancelledQuantity,
+            COALESCE(SUM(CASE WHEN order_item_cancellation_requests.status = 'PENDING'
+                THEN order_item_cancellation_requests.requested_quantity ELSE 0 END), 0) AS pendingCancellationQuantity,
+            order_items.total_amount AS totalAmount,
+            (SELECT latest.status FROM order_item_cancellation_requests latest
+             WHERE latest.order_item_id = order_items.id
+             ORDER BY latest.id DESC LIMIT 1) AS latestCancellationStatus,
+            (SELECT latest.is_remade FROM order_item_cancellation_requests latest
+             WHERE latest.order_item_id = order_items.id
+             ORDER BY latest.id DESC LIMIT 1) AS latestCancellationIsRemade
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        LEFT JOIN order_item_cancellation_requests
+            ON order_item_cancellation_requests.order_item_id = order_items.id
+        WHERE orders.sales_session_id = #{sessionId}
+        GROUP BY order_items.id, order_items.public_id, order_items.item_name,
+                 order_items.unit_price, order_items.options_amount, order_items.quantity,
+                 order_items.prepared_quantity, order_items.total_amount
+        ORDER BY orders.created_at ASC, order_items.id ASC
+    </select>
+    <select id="findOrderItemOptionsBySessionId"
+            resultType="vn.cas.ordering.model.OrderItemOptionView">
+        SELECT
+            order_item_options.order_item_id AS orderItemId,
+            order_item_options.option_group_name AS groupName,
+            order_item_options.option_name AS optionName,
+            order_item_options.unit_price AS unitPrice,
+            order_item_options.quantity_per_item AS quantityPerItem
+        FROM order_item_options
+        INNER JOIN order_items ON order_items.id = order_item_options.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        WHERE orders.sales_session_id = #{sessionId}
+        ORDER BY order_item_options.order_item_id ASC, order_item_options.id ASC
+    </select>
+    <sql id="preparationItemColumns">
+        order_items.id AS orderItemId,
+        order_items.public_id AS orderItemPublicId,
+        orders.id AS orderId,
+        orders.public_id AS orderPublicId,
+        sales_sessions.public_id AS sessionPublicId,
+        dining_tables.id AS tableId,
+        dining_tables.code AS tableCode,
+        sales_sessions.opened_by_customer_name AS customerName,
+        order_items.menu_item_id AS menuItemId,
+        order_items.item_name AS itemName,
+        order_items.quantity,
+        order_items.prepared_quantity AS preparedQuantity,
+        COALESCE((
+            SELECT SUM(cancellation_requests.requested_quantity)
+            FROM order_item_cancellation_requests cancellation_requests
+            WHERE cancellation_requests.order_item_id = order_items.id
+              AND cancellation_requests.status = 'APPROVED'
+        ), 0) AS cancelledQuantity,
+        orders.created_at AS orderCreatedAt
+    </sql>
+    <select id="findPreparationItems" resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status = 'OPEN'
+        ORDER BY orders.created_at ASC, order_items.id ASC
+    </select>
+    <select id="findPendingPreparationItems" resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
+        ORDER BY orders.created_at ASC, order_items.id ASC
+    </select>
+    <select id="countPendingPreparationTables" resultType="int">
+        SELECT COUNT(DISTINCT sales_sessions.id)
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
+          AND order_items.quantity > order_items.prepared_quantity + COALESCE((
+              SELECT SUM(cancellation_requests.requested_quantity)
+              FROM order_item_cancellation_requests cancellation_requests
+              WHERE cancellation_requests.order_item_id = order_items.id
+                AND cancellation_requests.status = 'APPROVED'
+          ), 0)
+    </select>
+    <select id="findPreparationItemsBySessionForUpdate" resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items INNER JOIN orders ON orders.id=order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id=orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id=sales_sessions.table_id
+        WHERE sales_sessions.store_id=#{storeId} AND sales_sessions.public_id=#{sessionPublicId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
+        ORDER BY orders.created_at ASC, order_items.id ASC FOR UPDATE
+    </select>
+    <select id="findPreparationTableCompletion" resultType="vn.cas.ordering.model.StoredPreparationTableCompletion">
+        SELECT sales_sessions.public_id AS sessionPublicId, preparation_table_completions.request_fingerprint AS requestFingerprint, preparation_table_completions.allocation_snapshot AS allocationSnapshot
+        FROM preparation_table_completions LEFT JOIN sales_sessions ON sales_sessions.id=preparation_table_completions.sales_session_id
+        WHERE preparation_table_completions.store_id=#{storeId} AND preparation_table_completions.idempotency_key=#{idempotencyKey}
+    </select>
+    <insert id="insertPreparationTableCompletion">INSERT INTO preparation_table_completions(public_id,store_id,sales_session_id,idempotency_key,request_fingerprint,allocation_snapshot,completed_by_account_id) VALUES(#{publicId},#{storeId},#{sessionId},#{idempotencyKey},#{requestFingerprint},#{allocationSnapshot},#{completedByAccountId})</insert>
+    <select id="findPreparationItemsForUpdate"
+            resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status = 'OPEN'
+          AND order_items.menu_item_id = #{menuItemId}
+        ORDER BY orders.created_at ASC, order_items.id ASC
+        FOR UPDATE
+    </select>
+    <select id="findPendingPreparationItemsForUpdate"
+            resultType="vn.cas.ordering.model.PreparationItemRow">
+        SELECT <include refid="preparationItemColumns"/>
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING', 'CLOSED')
+          AND order_items.menu_item_id = #{menuItemId}
+        ORDER BY orders.created_at ASC, order_items.id ASC
+        FOR UPDATE
+    </select>
+    <select id="findPreparationOptions" resultType="vn.cas.ordering.model.PreparationOptionRow">
+        SELECT
+            order_item_options.order_item_id AS orderItemId,
+            order_item_options.option_group_name AS groupName,
+            order_item_options.option_name AS optionName,
+            order_item_options.quantity_per_item AS quantityPerItem
+        FROM order_item_options
+        WHERE order_item_options.order_item_id IN
+        <foreach collection="orderItemIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY order_item_options.order_item_id ASC, order_item_options.option_group_name ASC,
+                 order_item_options.option_name ASC, order_item_options.id ASC
+    </select>
+    <select id="findPreparationBatchCompletion"
+            resultType="vn.cas.ordering.model.StoredPreparationBatchCompletion">
+        SELECT menu_item_id AS menuItemId,
+               option_configuration_hash AS optionConfigurationHash,
+               request_fingerprint AS requestFingerprint,
+               allocation_snapshot AS allocationSnapshot
+        FROM preparation_batch_completions
+        WHERE store_id = #{storeId}
+          AND idempotency_key = #{idempotencyKey}
+    </select>
+    <insert id="insertPreparationBatchCompletion">
+        INSERT INTO preparation_batch_completions (
+            public_id, store_id, menu_item_id, option_configuration_hash, idempotency_key,
+            request_fingerprint, requested_quantity, allocation_snapshot, completed_by_account_id
+        ) VALUES (
+            #{publicId}, #{storeId}, #{menuItemId}, #{optionConfigurationHash}, #{idempotencyKey},
+            #{requestFingerprint}, #{requestedQuantity}, #{allocationSnapshot}, #{completedByAccountId}
+        )
+    </insert>
+    <update id="addPreparedQuantity">
+        UPDATE order_items
+        SET prepared_quantity = prepared_quantity + #{quantity},
+            served_at = CASE WHEN #{markServed} THEN COALESCE(served_at, CURRENT_TIMESTAMP(3))
+                             ELSE served_at END
+        WHERE id = #{orderItemId}
+    </update>
+    <sql id="operatorCancellationRequestColumns">
+        order_item_cancellation_requests.id,
+        order_item_cancellation_requests.public_id AS publicId,
+        orders.id AS orderId,
+        orders.public_id AS orderPublicId,
+        order_items.id AS orderItemId,
+        order_items.public_id AS orderItemPublicId,
+        order_items.menu_item_id AS menuItemId,
+        order_items.item_name AS itemName,
+        order_items.quantity,
+        order_items.prepared_quantity AS preparedQuantity,
+        COALESCE(SUM(CASE WHEN approved_cancellations.status = 'APPROVED' THEN approved_cancellations.requested_quantity ELSE 0 END), 0) AS approvedCancellationQuantity,
+        order_item_cancellation_requests.requested_quantity AS requestedQuantity,
+        order_item_cancellation_requests.reason,
+        order_item_cancellation_requests.status,
+        dining_tables.code AS tableCode,
+        sales_sessions.opened_by_customer_name AS customerName,
+        order_item_cancellation_requests.created_at AS createdAt
+    </sql>
+    <sql id="operatorCancellationRequestJoins">
+        FROM order_item_cancellation_requests
+        INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        LEFT JOIN order_item_cancellation_requests approved_cancellations
+          ON approved_cancellations.order_item_id = order_items.id
+        WHERE sales_sessions.store_id = #{storeId}
+        GROUP BY order_item_cancellation_requests.id, orders.id, orders.public_id, order_items.id,
+                 order_items.public_id, order_items.menu_item_id, order_items.item_name,
+                 order_items.quantity, order_items.prepared_quantity,
+                 order_item_cancellation_requests.requested_quantity,
+                 order_item_cancellation_requests.reason, order_item_cancellation_requests.status,
+                 dining_tables.code, sales_sessions.opened_by_customer_name, order_item_cancellation_requests.created_at
+    </sql>
+    <select id="findPendingCancellationRequests" resultType="vn.cas.ordering.model.OperatorCancellationRequestRow">
+        SELECT <include refid="operatorCancellationRequestColumns"/>
+        <include refid="operatorCancellationRequestJoins"/>
+        HAVING order_item_cancellation_requests.status = 'PENDING'
+        ORDER BY order_item_cancellation_requests.created_at ASC
+    </select>
+    <select id="countPendingCancellationRequests" resultType="int">
+        SELECT COUNT(*)
+        FROM order_item_cancellation_requests
+        INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND order_item_cancellation_requests.status = 'PENDING'
+    </select>
+    <select id="findOperatorCancellationRequest" resultType="vn.cas.ordering.model.OperatorCancellationRequestRow">
+        SELECT <include refid="operatorCancellationRequestColumns"/>
+        <include refid="operatorCancellationRequestJoins"/>
+        HAVING order_item_cancellation_requests.public_id = #{publicId}
+    </select>
+    <select id="findOperatorCancellationRequestForUpdate" resultType="vn.cas.ordering.model.OperatorCancellationRequestRow">
+        SELECT <include refid="operatorCancellationRequestColumns"/>
+        <include refid="operatorCancellationRequestJoins"/>
+        HAVING order_item_cancellation_requests.public_id = #{publicId}
+        FOR UPDATE
+    </select>
+    <update id="resolveCancellationRequest">
+        UPDATE order_item_cancellation_requests
+        SET status = #{status}, is_remade = #{isRemade}, resolved_by = #{resolvedBy},
+            resolved_by_name = #{resolvedByName}, resolved_at = CURRENT_TIMESTAMP(3)
+        WHERE id = #{id} AND status = 'PENDING'
+    </update>
+    <update id="setPreparedQuantity">
+        UPDATE order_items SET prepared_quantity = #{preparedQuantity} WHERE id = #{orderItemId}
+    </update>
+    <insert id="insertPreparedItemTransfer">
+        INSERT INTO prepared_item_transfers (
+            public_id, cancellation_request_id, source_order_item_id, target_order_item_id,
+            quantity, transferred_by_account_id
+        ) VALUES (
+            #{publicId}, #{transfer.cancellationRequestId}, #{transfer.sourceOrderItemId},
+            #{transfer.targetOrderItemId}, #{transfer.quantity}, #{transfer.transferredByAccountId}
+        )
+    </insert>
+    <update id="recalculateOrderPayableAmount">
+        UPDATE orders
+        SET payable_amount = (
+            SELECT COALESCE(SUM((order_items.unit_price + order_items.options_amount) *
+                (order_items.quantity - COALESCE(approved_cancellations.cancelledQuantity, 0))), 0)
+            FROM order_items
+            LEFT JOIN (
+                SELECT order_item_id, SUM(requested_quantity) AS cancelledQuantity
+                FROM order_item_cancellation_requests
+                WHERE status = 'APPROVED'
+                GROUP BY order_item_id
+            ) approved_cancellations ON approved_cancellations.order_item_id = order_items.id
+            WHERE order_items.order_id = #{orderId}
+        ) WHERE id = #{orderId}
+    </update>
+    <insert id="insertApprovedOperatorCancellationRequest">
+        INSERT INTO order_item_cancellation_requests (
+            public_id, order_item_id, created_by_account_id, created_by_name, idempotency_key,
+            requested_quantity, reason, status, is_remade, resolved_by, resolved_by_name, resolved_at
+        ) VALUES (
+            #{publicId}, #{orderItemId}, #{createdBy}, #{createdByName}, #{idempotencyKey},
+            #{requestedQuantity}, #{reason}, 'APPROVED', #{isRemade}, #{createdBy},
+            #{createdByName}, CURRENT_TIMESTAMP(3)
+        )
+    </insert>
+    <select id="findOrderItemRemakeSnapshot"
+            resultType="vn.cas.ordering.model.OrderItemRemakeSnapshot">
+        SELECT
+            orders.sales_session_id AS salesSessionId,
+            order_items.menu_item_id AS menuItemId,
+            order_items.item_name AS itemName,
+            order_items.unit_price AS unitPrice,
+            order_items.options_amount AS optionsAmount
+        FROM order_items
+        INNER JOIN orders ON orders.id = order_items.order_id
+        WHERE order_items.id = #{orderItemId}
+    </select>
+    <select id="findOrderItemOptionRemakeSnapshots"
+            resultType="vn.cas.ordering.model.OrderItemOptionRemakeSnapshot">
+        SELECT
+            option_value_id AS optionValueId,
+            option_group_name AS groupName,
+            option_name AS optionName,
+            unit_price AS unitPrice,
+            quantity_per_item AS quantityPerItem
+        FROM order_item_options
+        WHERE order_item_id = #{orderItemId}
+        ORDER BY id ASC
+    </select>
+</mapper>

@@ -16,7 +16,7 @@ type CategoryNavigationProps = {
 export function CategoryNavigation({
   categories,
   className,
-  stickyTopClass = "top-16",
+  stickyTopClass = "top-19",
 }: CategoryNavigationProps) {
   const navigationRef = useRef<HTMLElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -46,7 +46,14 @@ export function CategoryNavigation({
           return [];
         }
 
-        return [{ id: category.id, top: sectionRect.top }];
+        return [
+          {
+            id: category.id,
+            top: sectionRect.top,
+            scrollMarginTop:
+              Number.parseFloat(window.getComputedStyle(section).scrollMarginTop) || 0,
+          },
+        ];
       });
 
       if (sectionPositions.length === 0) {
@@ -61,7 +68,7 @@ export function CategoryNavigation({
         nextCategoryId = sectionPositions.at(-1)?.id ?? nextCategoryId;
       } else {
         for (const sectionPosition of sectionPositions) {
-          if (sectionPosition.top > activationLine) {
+          if (sectionPosition.top > Math.max(activationLine, sectionPosition.scrollMarginTop + 2)) {
             break;
           }
 
@@ -209,7 +216,7 @@ export function CategoryNavigation({
 
           return (
             <a
-              className={`shrink-0 snap-start whitespace-nowrap rounded-full px-4 py-2.5 text-xs font-bold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
+              className={`shrink-0 snap-start whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-bold transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${
                 isActive
                   ? "bg-cas-primary text-cas-on-primary shadow-sm"
                   : "bg-cas-surface-container text-cas-on-surface-variant hover:bg-cas-primary hover:text-cas-on-primary"

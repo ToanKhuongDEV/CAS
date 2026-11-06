@@ -2,9 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 import type { CasIconName } from "../ui/cas-icon";
 import { CasIcon } from "../ui/cas-icon";
+import {
+  loadOperatorPendingPaymentCount,
+  operatorPendingPaymentCountQueryKey,
+} from "../../lib/api/payment/payment.api";
+import {
+  loadOperatorPendingCancellationCount,
+  operatorPendingCancellationCountQueryKey,
+} from "../../lib/api/ordering/cancellation.api";
+import {
+  loadOperatorPendingPreparationTableCount,
+  operatorPendingPreparationTableCountQueryKey,
+} from "../../lib/api/ordering/preparation.api";
 
 type OperatorTab = {
   badge?: number;
@@ -15,15 +28,51 @@ type OperatorTab = {
 
 const operatorTabs: OperatorTab[] = [
   { href: "/operator/dashboard", icon: "table", label: "Tổng quan" },
-  { badge: 8, href: "/operator/orders", icon: "bill", label: "Đơn gọi món" },
-  { badge: 3, href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
-  { badge: 3, href: "/operator/payments", icon: "payment", label: "Thanh toán" },
-  { badge: 1, href: "/operator/unpaid", icon: "clock", label: "Chưa thanh toán" },
-  { badge: 1, href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
+  { href: "/operator/orders", icon: "bill", label: "Đơn gọi món" },
+  { href: "/operator/cancellations", icon: "minus", label: "Hủy món" },
+  { href: "/operator/payments", icon: "payment", label: "Thanh toán" },
+  { href: "/operator/catalog", icon: "restaurant", label: "Menu" },
+  { href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
 ];
 
-export function OperatorTabNavigation() {
+export function OperatorTabNavigation({
+  cancellationPollIntervalMs = 10_000,
+  paymentPollIntervalMs = 10_000,
+  preparationPollIntervalMs = 10_000,
+}: {
+  cancellationPollIntervalMs?: number;
+  paymentPollIntervalMs?: number;
+  preparationPollIntervalMs?: number;
+}) {
   const pathname = usePathname();
+  const { data: pendingPaymentCount } = useQuery({
+    queryKey: operatorPendingPaymentCountQueryKey,
+    queryFn: loadOperatorPendingPaymentCount,
+    refetchInterval: paymentPollIntervalMs,
+    refetchIntervalInBackground: false,
+  });
+  const { data: pendingCancellationCount } = useQuery({
+    queryKey: operatorPendingCancellationCountQueryKey,
+    queryFn: loadOperatorPendingCancellationCount,
+    refetchInterval: cancellationPollIntervalMs,
+    refetchIntervalInBackground: false,
+  });
+  const { data: pendingPreparationTableCount } = useQuery({
+    queryKey: operatorPendingPreparationTableCountQueryKey,
+    queryFn: loadOperatorPendingPreparationTableCount,
+    refetchInterval: preparationPollIntervalMs,
+    refetchIntervalInBackground: false,
+  });
+  const tabs = operatorTabs.map((tab) => {
+    if (tab.href === "/operator/orders") {
+      return { ...tab, badge: pendingPreparationTableCount ?? 0 };
+    }
+    if (tab.href === "/operator/payments") return { ...tab, badge: pendingPaymentCount ?? 0 };
+    if (tab.href === "/operator/cancellations") {
+      return { ...tab, badge: pendingCancellationCount ?? 0 };
+    }
+    return tab;
+  });
 
   return (
     <nav
@@ -31,7 +80,7 @@ export function OperatorTabNavigation() {
       aria-label="Điều hướng nhân viên"
     >
       <div className="mx-auto flex min-w-max max-w-[100rem] gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-6">
-        {operatorTabs.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
           return (
@@ -47,10 +96,16 @@ export function OperatorTabNavigation() {
             >
               <CasIcon className="size-5 shrink-0" name={tab.icon} />
               <span>{tab.label}</span>
-              {typeof tab.badge === "number" ? (
+              {tab.badge ? (
                 <span
-                  className={`ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[0.7rem] font-black leading-none ${isActive ? "bg-cas-secondary text-white shadow-xs" : "bg-cas-primary/15 text-cas-primary"}`}
-                  aria-label={`${tab.badge} mục cần xử lý`}
+                  aria-label={`${tab.badge} ${
+                    tab.href === "/operator/orders"
+                      ? "phiên đang chờ món"
+                      : tab.href === "/operator/cancellations"
+                        ? "yêu cầu hủy món chờ xử lý"
+                        : "yêu cầu thanh toán chờ xác nhận"
+                  }`}
+                  className="inline-flex size-5 items-center justify-center rounded-full bg-cas-surface text-[0.65rem] font-black leading-none text-cas-error motion-safe:animate-pulse"
                 >
                   {tab.badge}
                 </span>

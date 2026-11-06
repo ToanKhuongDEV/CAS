@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import {
+  adminDashboardFilterStorageKey,
+  adminDashboardFilterUpdatedEvent,
+} from "../../lib/admin/dashboard-filter";
 
 type SubMenuItem = {
-  badge?: number;
   children?: SubMenuItem[];
   href?: string;
   label: string;
@@ -43,9 +46,13 @@ const adminNavSchema: MenuItemGroup[] = [
     label: "Sự cố và Nhân sự",
     items: [
       { href: "/admin/operators", label: "Tài khoản Nhân viên" },
-      { badge: 2, href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
-      { badge: 1, href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
+      { href: "/admin/incidents", label: "Báo cáo Sự cố Ca trực" },
+      { href: "/admin/unpaid", label: "Khoản chưa thanh toán" },
     ],
+  },
+  {
+    href: "/admin/payments",
+    label: "Thanh toán",
   },
   {
     href: "/admin/reports",
@@ -79,20 +86,6 @@ function getAllGroupHrefs(items?: SubMenuItem[]): string[] {
   return hrefs;
 }
 
-function getTotalBadge(items?: SubMenuItem[]): number {
-  if (!items) return 0;
-  let total = 0;
-  for (const item of items) {
-    if (item.badge) total += item.badge;
-    if (item.children) {
-      for (const child of item.children) {
-        if (child.badge) total += child.badge;
-      }
-    }
-  }
-  return total;
-}
-
 function isRouteActive(pathname: string, targetHref: string, siblingHrefs: string[] = []) {
   if (pathname === targetHref) return true;
   if (!pathname.startsWith(targetHref + "/")) return false;
@@ -107,10 +100,21 @@ function isRouteActive(pathname: string, targetHref: string, siblingHrefs: strin
 
 export function AdminTabNavigation() {
   const pathname = usePathname();
+  const [dashboardHref, setDashboardHref] = useState("/admin");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ left: number } | null>(null);
   const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const updateDashboardHref = () => {
+      const query = window.sessionStorage.getItem(adminDashboardFilterStorageKey);
+      setDashboardHref(query ? `/admin?${query}` : "/admin");
+    };
+    updateDashboardHref();
+    window.addEventListener(adminDashboardFilterUpdatedEvent, updateDashboardHref);
+    return () => window.removeEventListener(adminDashboardFilterUpdatedEvent, updateDashboardHref);
+  }, []);
 
   // Tính toán vị trí ngang của popup theo menu đang mở.
   const openDropdown = (label: string, element: HTMLElement) => {
@@ -156,11 +160,12 @@ export function AdminTabNavigation() {
           // Single Link Item (e.g. "Tổng quan")
           if (group.href && !group.items) {
             const isActive = pathname === group.href;
+            const href = group.href === "/admin" ? dashboardHref : group.href;
 
             return (
               <Link
                 key={group.label}
-                href={group.href}
+                href={href}
                 onClick={() => setActiveDropdown(null)}
                 className={`flex min-h-12 shrink-0 items-center rounded-xl px-3.5 text-base font-bold transition focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring ${isActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >
@@ -176,7 +181,6 @@ export function AdminTabNavigation() {
           );
           const isOpen = activeDropdown === group.label;
           const submenuId = `admin-submenu-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-          const totalBadge = getTotalBadge(group.items);
 
           return (
             <div key={group.label} className="relative shrink-0">
@@ -190,11 +194,6 @@ export function AdminTabNavigation() {
                 className={`flex min-h-12 items-center gap-1.5 rounded-xl px-3.5 text-base font-bold transition focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-cas-focus-ring ${isChildActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >
                 <span>{group.label}</span>
-                {Boolean(totalBadge) && (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cas-primary px-1 text-[0.65rem] font-black text-white">
-                    {totalBadge}
-                  </span>
-                )}
               </button>
             </div>
           );
@@ -279,13 +278,6 @@ export function AdminTabNavigation() {
                 className={`flex items-center justify-between rounded-xl px-4 py-2 text-xs font-bold transition ${isSubActive ? "bg-cas-secondary-container/30 text-cas-secondary font-black" : "text-cas-on-surface-variant hover:bg-cas-primary/8 hover:text-cas-on-surface"}`}
               >
                 <span>{sub.label}</span>
-                {typeof sub.badge === "number" && (
-                  <span
-                    className={`inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[0.65rem] font-black ${isSubActive ? "bg-white text-cas-secondary" : "bg-cas-primary text-white"}`}
-                  >
-                    {sub.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

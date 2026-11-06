@@ -1,9 +1,18 @@
 "use client";
 
+import { formatMoney as formatCurrency } from "../../lib/format-money";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
+import { useToast } from "../ui/toast-provider";
+import { formatOrderDestination } from "../../lib/ordering/order-destination";
+import {
+  loadOperatorCancellationRequest,
+  loadOperatorCancellationRequests,
+  resolveOperatorCancellationRequest,
+  type CancellationRequestDetail,
+  type CancellationTransferCandidate,
+} from "../../lib/api/ordering/cancellation.api";
 
 export type CancellationRequest = {
   id: string;
@@ -67,13 +76,26 @@ const initialRequests: CancellationRequest[] = [
   },
 ];
 
-function formatCurrency(value: number) {
-  return `${value.toLocaleString("vi-VN")}đ`;
-}
+function CancellationItemDetails({
+  request,
+  detail,
+}: {
+  request: CancellationRequest;
+  detail: CancellationRequestDetail | null;
+}) {
+  if (!detail) {
+    return (
+      <div className="mt-4 rounded-2xl border border-cas-outline-variant/25 bg-cas-surface-container/60 p-4 text-sm text-cas-on-surface-variant">
+        Đang tải chi tiết món từ hệ thống...
+      </div>
+    );
+  }
 
-function CancellationItemDetails({ request }: { request: CancellationRequest }) {
-  const optionsAmount = request.options.reduce((total, option) => total + option.unitPrice, 0);
-  const unitAmount = request.unitPrice + optionsAmount;
+  const optionsAmount = detail.item.options.reduce(
+    (total, option) => total + option.unitPrice * option.quantityPerItem,
+    0,
+  );
+  const unitAmount = detail.item.unitPrice + optionsAmount;
   const requestedAmount = unitAmount * request.requestedQuantity;
 
   return (
@@ -91,15 +113,23 @@ function CancellationItemDetails({ request }: { request: CancellationRequest }) 
       <div className="mt-3 space-y-2 border-y border-cas-outline-variant/20 py-3 text-xs">
         <div className="flex justify-between gap-4">
           <span className="text-cas-on-surface-variant">Món gốc</span>
-          <span className="font-bold text-cas-on-surface">{formatCurrency(request.unitPrice)}</span>
+          <span className="font-bold text-cas-on-surface">
+            {formatCurrency(detail.item.unitPrice)}
+          </span>
         </div>
-        {request.options.map((option) => (
-          <div className="flex justify-between gap-4" key={`${option.groupName}-${option.name}`}>
+        {detail.item.options.map((option) => (
+          <div
+            className="flex justify-between gap-4"
+            key={`${option.groupName}-${option.optionName}`}
+          >
             <span className="text-cas-on-surface-variant">
-              {option.groupName}: <strong className="text-cas-on-surface">{option.name}</strong>
+              {option.groupName}:{" "}
+              <strong className="text-cas-on-surface">{option.optionName}</strong>
             </span>
             <span className="font-bold text-cas-on-surface">
-              {option.unitPrice > 0 ? `+${formatCurrency(option.unitPrice)}` : "Miễn phí"}
+              {option.unitPrice > 0
+                ? `+${formatCurrency(option.unitPrice * option.quantityPerItem)}`
+                : "Miễn phí"}
             </span>
           </div>
         ))}
@@ -120,17 +150,44 @@ function CancellationItemDetails({ request }: { request: CancellationRequest }) 
 }
 
 export function OperatorCancellationRequestsView() {
-  const [requests, setRequests] = useState<CancellationRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<CancellationRequest[]>([]);
   const [activeModal, setActiveModal] = useState<{
     type: "APPROVE" | "REJECT";
     request: CancellationRequest;
   } | null>(null);
 
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
-  const [staffNote, setStaffNote] = useState("");
-  const [rejectReason, setRejectReason] = useState("Món đã chế biến xong");
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const { showToast } = useToast();
+  const [transferCandidates, setTransferCandidates] = useState<CancellationTransferCandidate[]>([]);
+  const [activeDetail, setActiveDetail] = useState<CancellationRequestDetail | null>(null);
+  const [targetOrderItemId, setTargetOrderItemId] = useState("");
+  const [transferQuantity, setTransferQuantity] = useState(0);
+
+  useEffect(() => {
+    void loadOperatorCancellationRequests()
+      .then((items) =>
+        setRequests(
+          items.map((item) => ({
+            id: item.cancellationRequestId,
+            table: formatOrderDestination(item.tableCode, item.customerName, item.orderId),
+            item: item.itemName,
+            quantity: `${item.requestedQuantity} phần`,
+            requestedQuantity: item.requestedQuantity,
+            requestedAt: new Date(item.requestedAt).toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            unitPrice: 0,
+            options: [],
+            reason: item.reason ?? undefined,
+            status: "PENDING",
+          })),
+        ),
+      )
+      .catch(() => setRequests([]));
+  }, []);
 
   // Esc key & overflow hidden for modal
   useEffect(() => {
@@ -151,44 +208,83 @@ export function OperatorCancellationRequestsView() {
 
   const openApproveModal = (request: CancellationRequest) => {
     setIsRemade(null);
-    setStaffNote("");
-    setModalError(null);
+    setActiveDetail(null);
+    setTransferCandidates([]);
+    setTargetOrderItemId("");
+    setTransferQuantity(0);
     setActiveModal({ type: "APPROVE", request });
+    void loadOperatorCancellationRequest(request.id)
+      .then((detail) => {
+        setActiveDetail(detail);
+        setTransferCandidates(detail.candidates);
+      })
+      .catch(() => showToast({ type: "error", message: "Không thể tải các bàn có thể nhận món." }));
   };
 
   const openRejectModal = (request: CancellationRequest) => {
-    setRejectReason("Món đã chế biến xong");
-    setModalError(null);
+    setRejectionReason("");
+    setActiveDetail(null);
     setActiveModal({ type: "REJECT", request });
+    void loadOperatorCancellationRequest(request.id)
+      .then(setActiveDetail)
+      .catch(() =>
+        showToast({ type: "error", message: "Không thể tải chi tiết món yêu cầu hủy." }),
+      );
   };
 
   const handleConfirmApprove = () => {
     if (!activeModal) return;
     if (isRemade === null) {
-      setModalError("Vui lòng chọn Có hoặc Không cho mục Làm lại món bù.");
+      showToast({ type: "error", message: "Vui lòng chọn Có hoặc Không cho mục Làm lại món bù." });
       return;
     }
     const req = activeModal.request;
 
-    setRequests((prev) =>
-      prev.map((item) => (item.id === req.id ? { ...item, status: "APPROVED" } : item)),
-    );
-
-    const isRemadeText = isRemade ? " (Đã gửi lệnh làm lại món cho bếp)" : "";
-    setFeedbackMessage(`Đã đồng ý hủy món "${req.item}" của ${req.table}.${isRemadeText}`);
-    setActiveModal(null);
+    void resolveOperatorCancellationRequest(req.id, {
+      decision: "APPROVE",
+      isRemade,
+      targetOrderItemId: targetOrderItemId || null,
+      transferQuantity,
+    })
+      .then(() => {
+        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        showToast({
+          type: "success",
+          message: `Đã đồng ý hủy món "${req.item}" của ${req.table}.`,
+        });
+        setActiveModal(null);
+      })
+      .catch((error: unknown) =>
+        showToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Không thể xử lý yêu cầu.",
+        }),
+      );
   };
 
   const handleConfirmReject = () => {
-    if (!activeModal) return;
+    if (!activeModal || isRejecting) return;
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      showToast({ type: "error", message: "Vui lòng nhập lý do từ chối." });
+      return;
+    }
     const req = activeModal.request;
+    setIsRejecting(true);
 
-    setRequests((prev) =>
-      prev.map((item) => (item.id === req.id ? { ...item, status: "REJECTED" } : item)),
-    );
-
-    setFeedbackMessage(`Đã từ chối yêu cầu hủy của ${req.table} với lý do: "${rejectReason}".`);
-    setActiveModal(null);
+    void resolveOperatorCancellationRequest(req.id, { decision: "REJECT", rejectionReason: reason })
+      .then(() => {
+        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        showToast({ type: "success", message: `Đã từ chối yêu cầu hủy món của ${req.table}.` });
+        setActiveModal(null);
+      })
+      .catch((error: unknown) =>
+        showToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Không thể xử lý yêu cầu.",
+        }),
+      )
+      .finally(() => setIsRejecting(false));
   };
 
   const pendingRequests = requests.filter((r) => r.status === "PENDING");
@@ -204,23 +300,6 @@ export function OperatorCancellationRequestsView() {
           Hủy món do sự cố
         </CasButton>
       </div>
-
-      {feedbackMessage ? (
-        <div
-          className="mt-6 flex items-start gap-3 rounded-2xl border border-cas-secondary/25 bg-cas-secondary-container/20 p-4 text-sm font-bold text-cas-secondary"
-          role="status"
-        >
-          <CasIcon className="mt-0.5 size-5 shrink-0" name="check" />
-          <p className="flex-1 leading-relaxed">{feedbackMessage}</p>
-          <button
-            onClick={() => setFeedbackMessage(null)}
-            className="text-xs opacity-75 hover:opacity-100"
-            type="button"
-          >
-            ✕
-          </button>
-        </div>
-      ) : null}
 
       {pendingRequests.length > 0 ? (
         <ul className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -292,7 +371,7 @@ export function OperatorCancellationRequestsView() {
       {/* MODAL XÁC NHẬN ĐỒNG Ý HỦY */}
       {activeModal?.type === "APPROVE" ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4 backdrop-blur-sm"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setActiveModal(null);
           }}
@@ -321,7 +400,7 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <CancellationItemDetails request={activeModal.request} />
+            <CancellationItemDetails detail={activeDetail} request={activeModal.request} />
 
             <div className="mt-4 space-y-4">
               <div>
@@ -333,7 +412,6 @@ export function OperatorCancellationRequestsView() {
                     type="button"
                     onClick={() => {
                       setIsRemade(true);
-                      setModalError(null);
                     }}
                     className={`flex flex-col rounded-xl border p-3 text-left transition ${isRemade === true ? "border-cas-secondary bg-cas-secondary-container/20 font-bold text-cas-secondary" : "border-cas-outline-variant/30 bg-cas-surface text-cas-on-surface-variant"}`}
                   >
@@ -346,7 +424,6 @@ export function OperatorCancellationRequestsView() {
                     type="button"
                     onClick={() => {
                       setIsRemade(false);
-                      setModalError(null);
                     }}
                     className={`flex flex-col rounded-xl border p-3 text-left transition ${isRemade === false ? "border-cas-primary bg-cas-primary/10 font-bold text-cas-primary" : "border-cas-outline-variant/30 bg-cas-surface text-cas-on-surface-variant"}`}
                   >
@@ -356,23 +433,45 @@ export function OperatorCancellationRequestsView() {
                     </span>
                   </button>
                 </div>
-                {modalError ? (
-                  <p className="mt-1.5 text-xs font-bold text-cas-error">{modalError}</p>
-                ) : null}
               </div>
 
-              <label className="block text-xs font-bold">
-                <span className="mb-1.5 block text-cas-on-surface-variant">
-                  Ghi chú xử lý của nhân viên (không bắt buộc)
-                </span>
-                <input
-                  type="text"
-                  value={staffNote}
-                  onChange={(e) => setStaffNote(e.target.value)}
-                  placeholder="Ví dụ: Đã báo Bếp dừng làm món..."
-                  className="h-11 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-3 text-xs outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary/15"
-                />
-              </label>
+              {transferCandidates.length > 0 ? (
+                <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface-container/50 p-3">
+                  <p className="text-xs font-extrabold text-cas-on-surface">
+                    Điều chuyển phần đã làm
+                  </p>
+                  <p className="mt-1 text-xs text-cas-on-surface-variant">
+                    Chỉ chọn khi món và toàn bộ option ở bàn nhận trùng khớp.
+                  </p>
+                  <select
+                    className="mt-3 h-10 w-full rounded-lg border border-cas-outline-variant/40 bg-cas-surface px-2 text-xs"
+                    value={targetOrderItemId}
+                    onChange={(event) => setTargetOrderItemId(event.target.value)}
+                  >
+                    <option value="">Không điều chuyển</option>
+                    {transferCandidates.map((candidate) => (
+                      <option value={candidate.orderItemId} key={candidate.orderItemId}>
+                        {formatOrderDestination(
+                          candidate.tableCode,
+                          candidate.customerName,
+                          candidate.orderId,
+                        )}{" "}
+                        — còn {candidate.remainingQuantity} phần
+                      </option>
+                    ))}
+                  </select>
+                  {targetOrderItemId ? (
+                    <input
+                      aria-label="Số phần điều chuyển"
+                      className="mt-2 h-10 w-full rounded-lg border border-cas-outline-variant/40 bg-cas-surface px-2 text-xs"
+                      min={0}
+                      type="number"
+                      value={transferQuantity}
+                      onChange={(event) => setTransferQuantity(Number(event.target.value))}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
@@ -390,7 +489,7 @@ export function OperatorCancellationRequestsView() {
       {/* MODAL XÁC NHẬN TỪ CHỐI */}
       {activeModal?.type === "REJECT" ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center bg-cas-scrim/50 p-4 backdrop-blur-sm"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setActiveModal(null);
           }}
@@ -419,28 +518,36 @@ export function OperatorCancellationRequestsView() {
               </button>
             </div>
 
-            <CancellationItemDetails request={activeModal.request} />
+            <CancellationItemDetails detail={activeDetail} request={activeModal.request} />
 
-            <div className="mt-4">
-              <label className="block text-xs font-bold">
-                <span className="mb-2 block text-cas-on-surface-variant">Lý do từ chối</span>
-                <input
-                  type="text"
-                  required
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Ví dụ: Món đã chế biến xong, không thể hủy..."
-                  className="h-11 w-full rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-3 text-xs outline-none focus:border-cas-primary focus:ring-2 focus:ring-cas-primary/15"
-                />
-              </label>
-            </div>
+            <label
+              className="mt-4 block text-sm font-bold text-cas-on-surface"
+              htmlFor="rejection-reason"
+            >
+              Lý do từ chối
+            </label>
+            <textarea
+              id="rejection-reason"
+              className="mt-2 min-h-24 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface p-3 text-sm text-cas-on-surface focus:outline-none focus:ring-2 focus:ring-cas-primary"
+              maxLength={1000}
+              value={rejectionReason}
+              onChange={(event) => {
+                setRejectionReason(event.target.value);
+              }}
+              required
+            />
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <CasButton variant="outline" size="sm" onClick={() => setActiveModal(null)}>
                 Quay lại
               </CasButton>
-              <CasButton variant="danger" size="sm" onClick={handleConfirmReject}>
-                Xác nhận từ chối
+              <CasButton
+                variant="danger"
+                size="sm"
+                disabled={isRejecting}
+                onClick={handleConfirmReject}
+              >
+                {isRejecting ? "Đang xử lý..." : "Xác nhận từ chối"}
               </CasButton>
             </div>
           </section>

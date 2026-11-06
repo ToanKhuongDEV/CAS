@@ -1,0 +1,207 @@
+import { getFirebaseAuth } from "../../auth/firebase";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+type ApiResponse<T> = { data: T; message?: string };
+
+export type CustomerOrderItem = {
+  orderItemId: string;
+  itemName: string;
+  unitPrice: number;
+  optionsAmount: number;
+  quantity: number;
+  preparedQuantity: number;
+  cancelledQuantity: number;
+  pendingCancellationQuantity: number;
+  latestCancellationStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
+  latestCancellationIsRemade?: boolean | null;
+  totalAmount: number;
+  options: { groupName: string; optionName: string; unitPrice: number; quantityPerItem: number }[];
+};
+
+export type CustomerOrder = {
+  orderId: string;
+  orderNumber: string;
+  originalAmount: number;
+  payableAmount: number;
+  note: string | null;
+  createdAt: string;
+  items: CustomerOrderItem[];
+};
+
+export type CustomerBill = {
+  tableCode: number | null;
+  sessionStatus: "OPEN" | "PAYMENT_PENDING" | "CLOSED";
+  originalAmount: number;
+  payableAmount: number;
+  orders: CustomerOrder[];
+};
+
+export type OperatorTable = {
+  tableId: number;
+  tableCode: number;
+  sessions: OperatorTableSession[];
+};
+
+export type OperatorTableSession = {
+  sessionId: string;
+  customerName: string;
+  status: "OPEN" | "PAYMENT_PENDING";
+};
+
+export type OperatorSessionListing = {
+  tables: OperatorTable[];
+  takeawaySessions: OperatorTableSession[];
+};
+
+export type OperatorOrderDetail = {
+  tableCode: number | null;
+  customerName: string;
+  customerPhone: string | null;
+  order: CustomerOrder;
+};
+
+export async function loadCustomerOrders() {
+  return customerRequest<CustomerOrder[]>("/orders");
+}
+
+export function createCustomerOrder(input: {
+  idempotencyKey: string;
+  note: string | null;
+  items: { menuItemId: number; quantity: number; optionValueIds: number[] }[];
+}) {
+  return customerRequest<{ orderId: string; payableAmount: number }>("/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function loadCustomerBill() {
+  return customerRequest<CustomerBill>("/orders/bill");
+}
+
+export async function cancelCustomerSalesSession() {
+  await customerRequest<void>("/sales-sessions/current", { method: "DELETE" });
+}
+
+export async function requestCustomerCancellation(
+  orderItemId: string,
+  requestedQuantity: number,
+  reason: string | null,
+) {
+  return customerRequest(`/orders/items/${encodeURIComponent(orderItemId)}/cancellation-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), requestedQuantity, reason }),
+  });
+}
+
+export async function loadOperatorTables() {
+  return (await loadOperatorSessionListing()).tables;
+}
+
+export async function loadOperatorSessionListing() {
+  return operatorRequest<OperatorSessionListing>("/sales-sessions/tables");
+}
+
+export async function loadOperatorBill(sessionPublicId: string) {
+  return operatorRequest<CustomerBill>(
+    `/sales-sessions/${encodeURIComponent(sessionPublicId)}/bill`,
+  );
+}
+
+export async function loadOperatorOrderDetail(orderId: string) {
+  return operatorRequest<OperatorOrderDetail>(`/orders/${encodeURIComponent(orderId)}`);
+}
+
+export async function openOperatorSalesSession(
+  tableId: number,
+  customer?: { customerName: string; customerPhone: string | null },
+) {
+  return operatorRequest<{
+    sessionId: string;
+    sessionType: "DINE_IN" | "TAKEAWAY";
+    tableCode: number | null;
+    status: "OPEN";
+  }>("/sales-sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionType: "DINE_IN", tableId, ...customer }),
+  });
+}
+
+export async function openOperatorTakeawaySalesSession(customer: {
+  customerName: string;
+  customerPhone: string;
+}) {
+  return operatorRequest<{
+    sessionId: string;
+    sessionType: "TAKEAWAY";
+    tableCode: null;
+    status: "OPEN";
+  }>("/sales-sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionType: "TAKEAWAY", ...customer }),
+  });
+}
+
+export async function cancelOperatorSalesSession(sessionPublicId: string) {
+  await operatorRequest<void>(`/sales-sessions/${encodeURIComponent(sessionPublicId)}`, {
+    method: "DELETE",
+  });
+}
+
+export function createOperatorOrder(
+  sessionPublicId: string,
+  input: {
+    note: string | null;
+    items: { menuItemId: number; quantity: number; optionValueIds: number[] }[];
+  },
+) {
+  return operatorRequest<{ orderId: string; payableAmount: number }>(
+    `/sales-sessions/${encodeURIComponent(sessionPublicId)}/orders`,
+    {
+      method: "POST",
+      body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), ...input }),
+    },
+  );
+}
+
+async function customerRequest<T>(path: string, init: RequestInit = {}) {
+  return request<T>(`/api/v1/customer${path}`, { ...init, credentials: "include" });
+}
+
+async function operatorRequest<T>(path: string, init: RequestInit = {}) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  return request<T>(`/api/v1/operator${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${await user.getIdToken()}`,
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
+}
+
+async function request<T>(path: string, init: RequestInit) {
+  const response = await fetch(`${apiUrl}${path}`, { cache: "no-store", ...init });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isApiResponse<T>(body)) {
+    throw new Error(getMessage(body, "Không thể tải dữ liệu order."));
+  }
+  return body.data;
+}
+
+function isApiResponse<T>(value: unknown): value is ApiResponse<T> {
+  return Boolean(value && typeof value === "object" && "data" in value);
+}
+
+function getMessage(value: unknown, fallback: string) {
+  return value &&
+    typeof value === "object" &&
+    "message" in value &&
+    typeof value.message === "string"
+    ? value.message
+    : fallback;
+}

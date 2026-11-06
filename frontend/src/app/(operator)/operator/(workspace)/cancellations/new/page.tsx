@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { formatMoney as formatPrice } from "../../../../../../lib/format-money";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CasIcon } from "../../../../../../components/ui/cas-icon";
 import { CasButton } from "../../../../../../components/ui/cas-button";
+import { useToast } from "../../../../../../components/ui/toast-provider";
+import { createOperatorIncidentCancellation } from "../../../../../../lib/api/ordering/cancellation.api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { loadOperatorSessionListing } from "../../../../../../lib/api/ordering/ordering.api";
+import { useOperatorBillQuery } from "../../../../../../lib/api/ordering/ordering.query";
+import { formatOrderDestination } from "../../../../../../lib/ordering/order-destination";
 
 type TableOrderItem = {
   id: string;
@@ -14,75 +21,70 @@ type TableOrderItem = {
   options: { name: string; price: number }[];
 };
 
-const mockTableOrders: Record<string, TableOrderItem[]> = {
-  "Bàn 01": [
-    {
-      id: "item-01-1",
-      name: "Gà chiên mắm",
-      unitPrice: 49000,
-      quantity: 2,
-      options: [{ name: "Không cay", price: 0 }],
-    },
-    {
-      id: "item-01-2",
-      name: "Trà sữa Trân châu Đường đen",
-      unitPrice: 35000,
-      quantity: 2,
-      options: [
-        { name: "50% đường, ít đá", price: 0 },
-        { name: "Thêm trân châu", price: 10000 },
-      ],
-    },
-  ],
-  "Bàn 03": [
-    {
-      id: "item-03-1",
-      name: "Mỳ cay đặc biệt 7 cấp độ",
-      unitPrice: 45000,
-      quantity: 2,
-      options: [
-        { name: "Cấp độ 2", price: 0 },
-        { name: "Thêm xúc xích", price: 10000 },
-        { name: "Thêm bò viên", price: 15000 },
-      ],
-    },
-    {
-      id: "item-03-2",
-      name: "Gà rán giòn rụm",
-      unitPrice: 35000,
-      quantity: 1,
-      options: [{ name: "Thêm sốt phô mai", price: 10000 }],
-    },
-  ],
-  "Bàn 05": [
-    {
-      id: "item-05-1",
-      name: "Bò sốt tiêu đen",
-      unitPrice: 59000,
-      quantity: 4,
-      options: [
-        { name: "Chín vừa", price: 0 },
-        { name: "Thêm nấm đùi gà", price: 15000 },
-      ],
-    },
-  ],
-};
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
-
 export default function IncidentCancellationPage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
   const [cancelQuantities, setCancelQuantities] = useState<Record<string, number>>({});
   const [isRemade, setIsRemade] = useState<boolean | null>(null);
   const [reason, setReason] = useState("Đổ/bể trong lúc phục vụ");
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const {
+    data: listing,
+    error: listingError,
+    isLoading: isLoadingSessions,
+  } = useQuery({
+    queryKey: ["operator", "sales-sessions", "listing"],
+    queryFn: loadOperatorSessionListing,
+  });
+  const sessions = useMemo(
+    () => [
+      ...(listing?.tables ?? []).flatMap((table) =>
+        table.sessions
+          .filter((session) => session.status === "OPEN")
+          .map((session) => ({
+            id: session.sessionId,
+            label: formatOrderDestination(table.tableCode),
+          })),
+      ),
+      ...(listing?.takeawaySessions ?? [])
+        .filter((session) => session.status === "OPEN")
+        .map((session) => ({
+          id: session.sessionId,
+          label: formatOrderDestination(null, session.customerName, session.sessionId),
+        })),
+    ],
+    [listing],
+  );
+  const {
+    data: bill,
+    error: billError,
+    isLoading: isLoadingBill,
+  } = useOperatorBillQuery(selectedTable || null);
+  const currentItems: TableOrderItem[] = (bill?.orders ?? []).flatMap((order) =>
+    order.items
+      .map((item) => ({
+        id: item.orderItemId,
+        name: item.itemName,
+        unitPrice: item.unitPrice,
+        quantity: Math.max(
+          0,
+          item.quantity - item.cancelledQuantity - item.pendingCancellationQuantity,
+        ),
+        options: item.options.map((option) => ({
+          name: `${option.groupName}: ${option.optionName}`,
+          price: option.unitPrice * option.quantityPerItem,
+        })),
+      }))
+      .filter((item) => item.quantity > 0),
+  );
+  const isLoadingOrders = isLoadingSessions || (Boolean(selectedTable) && isLoadingBill);
+  const loadError = listingError?.message ?? billError?.message ?? null;
 
   const handleTableChange = (tableName: string) => {
     setSelectedTable(tableName);
     setCancelQuantities({});
-    setValidationError(null);
   };
 
   const updateCancelQty = (itemId: string, newQty: number) => {
@@ -90,33 +92,54 @@ export default function IncidentCancellationPage() {
       ...prev,
       [itemId]: newQty,
     }));
-    setValidationError(null);
   };
-
-  const currentItems = selectedTable ? (mockTableOrders[selectedTable] ?? []) : [];
 
   const totalCancelCount = Object.values(cancelQuantities).reduce((acc, qty) => acc + qty, 0);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedTable) {
-      setValidationError("Vui lòng chọn bàn đang phục vụ.");
+      showToast({ type: "error", message: "Vui lòng chọn bàn hoặc đơn mang về." });
       return;
     }
     if (totalCancelCount === 0) {
-      setValidationError("Vui lòng dùng nút trừ/cộng để chọn số lượng món cần hủy.");
+      showToast({
+        type: "error",
+        message: "Vui lòng dùng nút trừ/cộng để chọn số lượng món cần hủy.",
+      });
       return;
     }
     if (isRemade === null) {
-      setValidationError("Vui lòng chọn Có hoặc Không cho mục 'Làm lại món bù'.");
+      showToast({
+        type: "error",
+        message: "Vui lòng chọn Có hoặc Không cho mục 'Làm lại món bù'.",
+      });
       return;
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
+    try {
+      await Promise.all(
+        currentItems
+          .filter((item) => (cancelQuantities[item.id] ?? 0) > 0)
+          .map((item) =>
+            createOperatorIncidentCancellation({
+              orderItemId: item.id,
+              requestedQuantity: cancelQuantities[item.id],
+              reason,
+              isRemade,
+            }),
+          ),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["operator"] });
       router.push("/operator/cancellations");
-    }, 800);
+    } catch (error) {
+      showToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Không thể hủy món.",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -143,25 +166,38 @@ export default function IncidentCancellationPage() {
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-cas-primary/15 text-xs font-extrabold text-cas-primary">
               1
             </span>
-            <h2 className="text-lg font-extrabold">Thông tin Bàn & Danh sách Món</h2>
+            <h2 className="text-lg font-extrabold">Thông tin đơn & Danh sách Món</h2>
           </div>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold">Bàn đang phục vụ</span>
+            <span className="mb-2 block text-sm font-bold">Bàn / đơn mang về</span>
             <select
               required
               value={selectedTable}
               onChange={(e) => handleTableChange(e.target.value)}
+              disabled={isLoadingOrders || Boolean(loadError)}
               className="h-13 w-full cursor-pointer appearance-none rounded-xl border border-cas-outline-variant/45 bg-cas-surface px-4 text-sm font-medium outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
             >
               <option value="" disabled>
-                --- Chọn bàn để xem danh sách món ---
+                --- Chọn bàn hoặc đơn mang về ---
               </option>
-              <option value="Bàn 01">Bàn 01 (ORD-0820)</option>
-              <option value="Bàn 03">Bàn 03 (ORD-0819)</option>
-              <option value="Bàn 05">Bàn 05 (ORD-0821)</option>
+              {sessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.label}
+                </option>
+              ))}
             </select>
           </label>
+
+          {isLoadingOrders ? (
+            <p className="text-sm text-cas-on-surface-variant">Đang tải món đã gọi...</p>
+          ) : null}
+          {loadError ? <p className="text-sm font-bold text-cas-error">{loadError}</p> : null}
+          {!isLoadingOrders && !loadError && sessions.length === 0 ? (
+            <p className="text-sm text-cas-on-surface-variant">
+              Chưa có món nào có thể hủy do sự cố.
+            </p>
+          ) : null}
 
           {selectedTable ? (
             <div className="space-y-3 pt-2">
@@ -267,16 +303,10 @@ export default function IncidentCancellationPage() {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-cas-outline-variant/40 bg-cas-surface/50 p-6 text-center text-xs text-cas-on-surface-variant">
-              Vui lòng chọn bàn ở trên để xem chi tiết các món ăn và chọn số lượng cần hủy.
+              Vui lòng chọn bàn hoặc đơn mang về để xem món và chọn số lượng cần hủy.
             </div>
           )}
         </section>
-
-        {validationError ? (
-          <div className="rounded-xl bg-cas-error-container/20 border border-cas-error/30 p-3 text-xs font-bold text-cas-error">
-            {validationError}
-          </div>
-        ) : null}
 
         <section className="space-y-5 border-t border-cas-outline-variant/25 pt-8">
           <div className="flex items-center gap-2">
@@ -307,7 +337,6 @@ export default function IncidentCancellationPage() {
                 type="button"
                 onClick={() => {
                   setIsRemade(true);
-                  setValidationError(null);
                 }}
                 className={`flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all ${isRemade === true ? "border-cas-secondary bg-cas-secondary-container/20 text-cas-secondary shadow-xs" : "border-cas-outline-variant/30 bg-cas-surface hover:border-cas-outline-variant/60"}`}
               >
@@ -319,7 +348,7 @@ export default function IncidentCancellationPage() {
                 <div>
                   <strong className="block text-sm font-extrabold">Có</strong>
                   <p className="mt-1 text-xs text-cas-on-surface-variant leading-relaxed">
-                    Tự động tạo phiếu chế biến mới gửi bếp làm lại món.
+                    Tạo order mới cùng món và option để bếp làm lại; tổng bill được giữ nguyên.
                   </p>
                 </div>
               </button>
@@ -328,7 +357,6 @@ export default function IncidentCancellationPage() {
                 type="button"
                 onClick={() => {
                   setIsRemade(false);
-                  setValidationError(null);
                 }}
                 className={`flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all ${isRemade === false ? "border-cas-primary bg-cas-primary/10 text-cas-primary shadow-xs" : "border-cas-outline-variant/30 bg-cas-surface hover:border-cas-outline-variant/60"}`}
               >
@@ -354,7 +382,7 @@ export default function IncidentCancellationPage() {
             size="lg"
             icon="trash"
             className="w-full sm:w-auto shadow-[0_8px_20px_var(--cas-shadow-color)]"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoadingOrders || Boolean(loadError)}
           >
             {isSubmitting ? "Đang xử lý..." : "Xác nhận Hủy món & Cập nhật"}
           </CasButton>

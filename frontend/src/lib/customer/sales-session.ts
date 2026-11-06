@@ -1,0 +1,148 @@
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+type ApiResponse<T> = {
+  data: T;
+};
+
+export type SalesSessionResolution = {
+  customerInformationRequired: boolean;
+  joinSessionRequired: boolean;
+  sessionStatus:
+    "CUSTOMER_INFORMATION_REQUIRED" | "JOIN_SESSION_REQUIRED" | "OPEN" | "PAYMENT_PENDING";
+  tableCode: number | null;
+  joinableSessions: {
+    sessionId: string;
+    customerName: string;
+    sessionStatus: "OPEN" | "PAYMENT_PENDING";
+  }[];
+};
+
+export async function resolveCustomerSalesSession(
+  qrToken: string,
+  input?: {
+    customerName?: string;
+    customerPhone?: string | null;
+    joinSessionId?: string;
+    sessionType?: "DINE_IN" | "TAKEAWAY";
+    storeId?: number;
+  },
+): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-qr`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qrToken, ...input }),
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error(getBackendErrorMessage(body, "Không thể xác thực phiên bàn từ mã QR."));
+  }
+
+  return body.data;
+}
+
+export async function resolveCustomerSalesSessionByTable(input: {
+  storeId: number;
+  tableCode: number;
+  customerName?: string;
+  customerPhone?: string | null;
+  joinSessionId?: string;
+}): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/resolve-table`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error(getBackendErrorMessage(body, "KhÃ´ng thá»ƒ xÃ¡c thá»±c bÃ n Ä‘Ã£ chá»n."));
+  }
+
+  return body.data;
+}
+
+export async function openCustomerTakeawaySalesSession(input: {
+  storeId: number;
+  customerName: string;
+  customerPhone: string;
+}): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/takeaway`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error(getBackendErrorMessage(body, "Không thể tạo đơn mang về."));
+  }
+  return body.data;
+}
+
+export async function getCurrentCustomerSalesSession(): Promise<SalesSessionResolution> {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/current`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (!response.ok || !isSalesSessionResolutionResponse(body)) {
+    throw new Error("Không tìm thấy phiên bàn hiện tại.");
+  }
+
+  return body.data;
+}
+
+export async function logoutCustomer() {
+  const response = await fetch(`${apiUrl}/api/v1/customer/sales-sessions/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => undefined);
+    throw new Error(getBackendErrorMessage(body, "Không thể thoát phiên. Vui lòng thử lại."));
+  }
+}
+
+export async function hasOpenCustomerSalesSession(): Promise<boolean> {
+  try {
+    return (await getCurrentCustomerSalesSession()).sessionStatus === "OPEN";
+  } catch {
+    return false;
+  }
+}
+
+function isSalesSessionResolutionResponse(
+  value: unknown,
+): value is ApiResponse<SalesSessionResolution> {
+  if (!value || typeof value !== "object" || !("data" in value)) {
+    return false;
+  }
+
+  const { data } = value;
+  return Boolean(
+    data &&
+    typeof data === "object" &&
+    "customerInformationRequired" in data &&
+    typeof data.customerInformationRequired === "boolean" &&
+    "joinSessionRequired" in data &&
+    typeof data.joinSessionRequired === "boolean" &&
+    "joinableSessions" in data &&
+    Array.isArray(data.joinableSessions) &&
+    "sessionStatus" in data &&
+    (data.sessionStatus === "CUSTOMER_INFORMATION_REQUIRED" ||
+      data.sessionStatus === "JOIN_SESSION_REQUIRED" ||
+      data.sessionStatus === "OPEN" ||
+      data.sessionStatus === "PAYMENT_PENDING"),
+  );
+}
+
+function getBackendErrorMessage(body: unknown, fallback: string) {
+  return body &&
+    typeof body === "object" &&
+    "message" in body &&
+    typeof body.message === "string" &&
+    body.message.trim()
+    ? body.message
+    : fallback;
+}

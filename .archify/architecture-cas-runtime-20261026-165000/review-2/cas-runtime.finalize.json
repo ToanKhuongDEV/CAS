@@ -1,0 +1,780 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-26T10:03:18.725Z",
+  "specification": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+    "sha256": "0ec05c5343379f90f64ad12d4c29d0431f54fffcbdb49ed0e2c83cc8dc7bd1ea",
+    "bytes": 11731
+  },
+  "artifact": {
+    "path": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+    "sha256": "be24dcd5a176ea77be63ceeaee41108318ea08a07c55577305f97d290ecf9f40",
+    "bytes": 888982
+  },
+  "stages": {
+    "validate": {
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": null,
+      "command": [
+        "C:\\Users\\KhuongXuanToan\\AppData\\Local\\Volta\\tools\\image\\node\\22.23.1\\node.exe",
+        "C:\\Users\\KhuongXuanToan\\.codex-account-b\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+        "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "D:\\CAS",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "deliver",
+        "receiptId": "1f928cf3-c019-424b-a75c-d3bb7989d220",
+        "stage": "check",
+        "type": "architecture",
+        "input": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\candidate.json",
+        "output": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+        "error": "Final artifact check failed; the previous artifact was preserved.",
+        "diagnostics": [
+          {
+            "code": "composition/desktop-readability",
+            "severity": "error",
+            "message": "Final artifact failed composition/desktop-readability.",
+            "subject": {
+              "check": "composition",
+              "nodeId": "operations"
+            },
+            "evidence": {
+              "owner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "viewportWidth": 1440,
+              "viewportHeight": 900,
+              "availableDiagramWidth": 930,
+              "budgetBasis": "legacy-930",
+              "readerContract": "declared-wide-v1",
+              "requestedTargetPx": 7.5,
+              "requestedTargetMet": false,
+              "budgetLimit": "legacy",
+              "viewBoxWidth": 1406,
+              "scale": 0.6614509246088194,
+              "text": "accounts, dashboard, incidents, audit, recipients",
+              "detail": "context",
+              "sourceFontPx": 6.3,
+              "projectedFontPx": 4.167140825035562,
+              "minimumProjectedFontPx": 6
+            },
+            "supportedFixes": [
+              "Preserve the semantic text and any supplied coordinates, routes, sides, channels, and labels. Compactly reflow automatic spacing and empty corridors so the complete viewBox width is at most 976px (current 1406px; 6.3px source text at 930px desktop budget). If supplied geometry fixes that width, use a renderer-supported semantic text-size setting or renderer-level fix instead. Position-only label controls cannot repair its projection."
+            ]
+          }
+        ],
+        "provenance": "failed",
+        "checker": {
+          "ok": false,
+          "file": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\cas-runtime.html",
+          "artifact": {
+            "sha256": "a544e9fdd184d673a4ab82bc97c67ea09c3744100971f1d5801cff96ec2ddda5",
+            "bytes": 888424
+          },
+          "checks": [
+            {
+              "name": "single_svg",
+              "ok": true,
+              "details": [
+                "found 1 <svg> block(s)"
+              ]
+            },
+            {
+              "name": "finite_svg",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "orthogonal_arrows",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "label_route_clearance",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "relationship_crossings",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "relationship_corridors",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "container_border_runs",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "route_rhythm",
+              "ok": true,
+              "details": []
+            },
+            {
+              "name": "legend_clearance",
+              "ok": true,
+              "details": []
+            }
+          ],
+          "composition": {
+            "schemaVersion": 1,
+            "profile": "showcase",
+            "status": "fail",
+            "summary": {
+              "errors": 1,
+              "warnings": 0
+            },
+            "metrics": {
+              "properCrossings": 0,
+              "resolvedCrossovers": 18,
+              "ambiguousCorridors": 0,
+              "arrowheadCollisions": 0,
+              "containerBorderRuns": 0,
+              "labelRouteClearanceIssues": 0,
+              "labelCanvasOverflowIssues": 0,
+              "minLabelRouteClearance": 4.8,
+              "desktopReadabilityIssues": 1,
+              "viewportHeightIssues": 0,
+              "minProjectedNodeTextPx": 4.167140825035562,
+              "maxBends": 5,
+              "routesOverSuggestedBends": 7,
+              "maxStretch": 1.801,
+              "routesOverSuggestedStretch": 2,
+              "minSegmentPx": 24,
+              "minInteriorSegmentPx": 42,
+              "shortSegmentCount": 0,
+              "shortEndpointSegmentCount": 0,
+              "shortInteriorSegmentCount": 0,
+              "microSegmentCount": 0
+            },
+            "suggestedLimits": {
+              "bendsPerRelationship": 2,
+              "stretch": 1.35,
+              "segmentPx": 16,
+              "microSegmentPx": 8
+            },
+            "routeReview": {
+              "crossings": [
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "store",
+                    "label": "public QR / session APIs",
+                    "collectionIndex": 0,
+                    "artifactIndex": 1
+                  },
+                  "right": {
+                    "from": "catalog",
+                    "to": "cloudinary",
+                    "label": "signed asset upload",
+                    "collectionIndex": 19,
+                    "artifactIndex": 20
+                  },
+                  "point": [
+                    726,
+                    158
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "catalog",
+                    "label": "public menu APIs",
+                    "collectionIndex": 1,
+                    "artifactIndex": 2
+                  },
+                  "right": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "point": [
+                    595,
+                    232.5
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "ordering",
+                    "label": "session-cookie order APIs",
+                    "collectionIndex": 2,
+                    "artifactIndex": 3
+                  },
+                  "right": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "point": [
+                    595,
+                    338.95
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "ordering",
+                    "label": "session-cookie order APIs",
+                    "collectionIndex": 2,
+                    "artifactIndex": 3
+                  },
+                  "right": {
+                    "from": "ordering",
+                    "to": "payment",
+                    "label": "current bill",
+                    "collectionIndex": 16,
+                    "artifactIndex": 17
+                  },
+                  "point": [
+                    829.9499999999992,
+                    375.99999999999994
+                  ],
+                  "sharedNode": "ordering"
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "ordering",
+                    "label": "session-cookie order APIs",
+                    "collectionIndex": 2,
+                    "artifactIndex": 3
+                  },
+                  "right": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "point": [
+                    829.9499999999994,
+                    349
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "payment",
+                    "label": "payment request",
+                    "collectionIndex": 3,
+                    "artifactIndex": 4
+                  },
+                  "right": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "point": [
+                    595,
+                    354
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "payment",
+                    "label": "payment request",
+                    "collectionIndex": 3,
+                    "artifactIndex": 4
+                  },
+                  "right": {
+                    "from": "operator-ui",
+                    "to": "preparation",
+                    "label": "FIFO completion APIs",
+                    "collectionIndex": 12,
+                    "artifactIndex": 13
+                  },
+                  "point": [
+                    693,
+                    473.90000000000003
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "customer-ui",
+                    "to": "payment",
+                    "label": "payment request",
+                    "collectionIndex": 3,
+                    "artifactIndex": 4
+                  },
+                  "right": {
+                    "from": "operator-ui",
+                    "to": "payment",
+                    "label": "manual PAID confirmation",
+                    "collectionIndex": 13,
+                    "artifactIndex": 14
+                  },
+                  "point": [
+                    693,
+                    599
+                  ],
+                  "sharedNode": "payment"
+                },
+                {
+                  "left": {
+                    "from": "operator-ui",
+                    "to": "security",
+                    "label": "Bearer ID token",
+                    "collectionIndex": 6,
+                    "artifactIndex": 7
+                  },
+                  "right": {
+                    "from": "operator-ui",
+                    "to": "payment",
+                    "label": "manual PAID confirmation",
+                    "collectionIndex": 13,
+                    "artifactIndex": 14
+                  },
+                  "point": [
+                    292,
+                    505.04999999999995
+                  ],
+                  "sharedNode": "operator-ui"
+                },
+                {
+                  "left": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "right": {
+                    "from": "operator-ui",
+                    "to": "preparation",
+                    "label": "FIFO completion APIs",
+                    "collectionIndex": 12,
+                    "artifactIndex": 13
+                  },
+                  "point": [
+                    595,
+                    473.90000000000003
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "right": {
+                    "from": "operator-ui",
+                    "to": "payment",
+                    "label": "manual PAID confirmation",
+                    "collectionIndex": 13,
+                    "artifactIndex": 14
+                  },
+                  "point": [
+                    595,
+                    599
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "security",
+                    "to": "store",
+                    "label": "scoped admin / operator APIs",
+                    "collectionIndex": 10,
+                    "artifactIndex": 11
+                  },
+                  "right": {
+                    "from": "catalog",
+                    "to": "cloudinary",
+                    "label": "signed asset upload",
+                    "collectionIndex": 19,
+                    "artifactIndex": 20
+                  },
+                  "point": [
+                    726,
+                    180
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "operator-ui",
+                    "to": "preparation",
+                    "label": "FIFO completion APIs",
+                    "collectionIndex": 12,
+                    "artifactIndex": 13
+                  },
+                  "right": {
+                    "from": "ordering",
+                    "to": "payment",
+                    "label": "current bill",
+                    "collectionIndex": 16,
+                    "artifactIndex": 17
+                  },
+                  "point": [
+                    747,
+                    575
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "operator-ui",
+                    "to": "preparation",
+                    "label": "FIFO completion APIs",
+                    "collectionIndex": 12,
+                    "artifactIndex": 13
+                  },
+                  "right": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "point": [
+                    714,
+                    473.90000000000003
+                  ]
+                },
+                {
+                  "left": {
+                    "from": "operator-ui",
+                    "to": "payment",
+                    "label": "manual PAID confirmation",
+                    "collectionIndex": 13,
+                    "artifactIndex": 14
+                  },
+                  "right": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "point": [
+                    714,
+                    599
+                  ],
+                  "sharedNode": "payment"
+                },
+                {
+                  "left": {
+                    "from": "ordering",
+                    "to": "payment",
+                    "label": "current bill",
+                    "collectionIndex": 16,
+                    "artifactIndex": 17
+                  },
+                  "right": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "point": [
+                    747,
+                    636.5
+                  ],
+                  "sharedNode": "payment"
+                },
+                {
+                  "left": {
+                    "from": "ordering",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 22,
+                    "artifactIndex": 23
+                  },
+                  "right": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "point": [
+                    1069.5,
+                    349
+                  ],
+                  "sharedNode": "mybatis"
+                },
+                {
+                  "left": {
+                    "from": "preparation",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 23,
+                    "artifactIndex": 24
+                  },
+                  "right": {
+                    "from": "operations",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 25,
+                    "artifactIndex": 26
+                  },
+                  "point": [
+                    1111.5,
+                    475
+                  ],
+                  "sharedNode": "mybatis"
+                }
+              ],
+              "crowdedSides": [
+                {
+                  "node": "customer-ui",
+                  "label": "Customer Next.js area",
+                  "side": "right",
+                  "relationships": 4,
+                  "sidePx": 70,
+                  "neededPx": 74
+                }
+              ],
+              "detours": [
+                {
+                  "relationship": {
+                    "from": "customer-ui",
+                    "to": "catalog",
+                    "label": "public menu APIs",
+                    "collectionIndex": 1,
+                    "artifactIndex": 2
+                  },
+                  "bends": 3,
+                  "stretch": 1.197
+                },
+                {
+                  "relationship": {
+                    "from": "firebase",
+                    "to": "security",
+                    "label": "verify Firebase UID",
+                    "collectionIndex": 9,
+                    "artifactIndex": 10
+                  },
+                  "bends": 3,
+                  "stretch": 1.286
+                },
+                {
+                  "relationship": {
+                    "from": "operator-ui",
+                    "to": "payment",
+                    "label": "manual PAID confirmation",
+                    "collectionIndex": 13,
+                    "artifactIndex": 14
+                  },
+                  "bends": 4,
+                  "stretch": 1
+                },
+                {
+                  "relationship": {
+                    "from": "ordering",
+                    "to": "payment",
+                    "label": "current bill",
+                    "collectionIndex": 16,
+                    "artifactIndex": 17
+                  },
+                  "bends": 4,
+                  "stretch": 1.801,
+                  "directCorridorBlockers": [
+                    {
+                      "id": "preparation",
+                      "label": "Preparation module",
+                      "box": [
+                        750,
+                        540,
+                        190,
+                        70
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "relationship": {
+                    "from": "catalog",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 21,
+                    "artifactIndex": 22
+                  },
+                  "bends": 3,
+                  "stretch": 1.235
+                },
+                {
+                  "relationship": {
+                    "from": "preparation",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 23,
+                    "artifactIndex": 24
+                  },
+                  "bends": 5,
+                  "stretch": 1.218
+                },
+                {
+                  "relationship": {
+                    "from": "payment",
+                    "to": "mybatis",
+                    "label": "mapped persistence",
+                    "collectionIndex": 24,
+                    "artifactIndex": 25
+                  },
+                  "bends": 4,
+                  "stretch": 1.471
+                }
+              ]
+            },
+            "leadingSpace": {
+              "measured": true,
+              "emptyTopPx": 10,
+              "emptyTopRatio": 0.011,
+              "occupiedTop": 10,
+              "viewBoxTop": 0,
+              "canvasHeight": 922,
+              "typicalNodeHeight": 70,
+              "reviewSuggested": false
+            },
+            "desktopReadability": {
+              "budgetBasis": "legacy-930",
+              "readerContract": "declared-wide-v1",
+              "availableDiagramWidth": 930,
+              "actualBudgetPx": 930,
+              "limit": "legacy",
+              "requestedTargetPx": 7.5,
+              "requestedTargetMet": false,
+              "hardFloorPx": 6,
+              "hardFloorMet": false,
+              "minimumOwner": {
+                "kind": "node",
+                "id": "operations"
+              },
+              "minimumSourceTextPx": 6.3,
+              "minimumProjectedTextPx": 4.167140825035562,
+              "semanticTextCount": 64
+            },
+            "issues": [
+              {
+                "severity": "error",
+                "code": "composition/desktop-readability",
+                "nodeId": "operations",
+                "owner": {
+                  "kind": "node",
+                  "id": "operations"
+                },
+                "viewportWidth": 1440,
+                "viewportHeight": 900,
+                "availableDiagramWidth": 930,
+                "budgetBasis": "legacy-930",
+                "readerContract": "declared-wide-v1",
+                "requestedTargetPx": 7.5,
+                "requestedTargetMet": false,
+                "budgetLimit": "legacy",
+                "viewBoxWidth": 1406,
+                "scale": 0.6614509246088194,
+                "text": "accounts, dashboard, incidents, audit, recipients",
+                "detail": "context",
+                "sourceFontPx": 6.3,
+                "projectedFontPx": 4.167140825035562,
+                "minimumProjectedFontPx": 6
+              }
+            ]
+          }
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      },
+      "execution": "embedded-in-deliver"
+    },
+    "deliver": {
+      "status": "not-run",
+      "execution": "blocked-by-validate"
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "composition/desktop-readability",
+      "severity": "error",
+      "message": "Final artifact failed composition/desktop-readability.",
+      "subject": {
+        "check": "composition",
+        "nodeId": "operations"
+      },
+      "evidence": {
+        "owner": {
+          "kind": "node",
+          "id": "operations"
+        },
+        "viewportWidth": 1440,
+        "viewportHeight": 900,
+        "availableDiagramWidth": 930,
+        "budgetBasis": "legacy-930",
+        "readerContract": "declared-wide-v1",
+        "requestedTargetPx": 7.5,
+        "requestedTargetMet": false,
+        "budgetLimit": "legacy",
+        "viewBoxWidth": 1406,
+        "scale": 0.6614509246088194,
+        "text": "accounts, dashboard, incidents, audit, recipients",
+        "detail": "context",
+        "sourceFontPx": 6.3,
+        "projectedFontPx": 4.167140825035562,
+        "minimumProjectedFontPx": 6
+      },
+      "supportedFixes": [
+        "Preserve the semantic text and any supplied coordinates, routes, sides, channels, and labels. Compactly reflow automatic spacing and empty corridors so the complete viewBox width is at most 976px (current 1406px; 6.3px source text at 930px desktop budget). If supplied geometry fixes that width, use a renderer-supported semantic text-size setting or renderer-level fix instead. Position-only label controls cannot repair its projection."
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\review-2\\cas-runtime.finalize.json",
+    "summaryReceipt": "D:\\CAS\\.archify\\architecture-cas-runtime-20261026-165000\\review-2\\cas-runtime.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "validate",
+  "finishedAt": "2026-10-26T10:03:20.188Z",
+  "durationMs": 1463,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-26T10:02:07.431Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

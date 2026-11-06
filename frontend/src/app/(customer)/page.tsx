@@ -1,9 +1,19 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { CustomerBottomNavigation } from "../../components/customer/customer-bottom-navigation";
-import { CustomerHeader } from "../../components/customer/customer-header";
 import { CasIcon } from "../../components/ui/cas-icon";
+import {
+  getRememberedPublicStoreId,
+  loadPublicStore,
+  loadPublicStoreWelcomeConfig,
+  type PublicStoreWelcomeConfig,
+} from "../../lib/api/store/public-store.api";
+import type { StoreSettings } from "../../lib/api/store/store-settings.api";
+import { getCurrentCustomerSalesSession } from "../../lib/customer/sales-session";
 
 const quickStats = [
   { value: "4.9", label: "Đánh giá" },
@@ -11,44 +21,118 @@ const quickStats = [
   { value: "15p", label: "Phục vụ" },
 ];
 
-const menuCategories = [
+const fallbackMenuCategories = [
   {
     title: "Mỳ cay",
-    href: "/menu#my-cay",
     imageSrc: "/images/welcome/spicy-noodles.jpg",
     imageAlt: "Tô mỳ cay nóng với rau nấm và nhiều topping",
   },
   {
     title: "Nước giải khát",
-    href: "/menu#nuoc-giai-khat",
     imageSrc: "/images/welcome/matcha-drink.jpg",
     imageAlt: "Ly matcha mát lạnh",
   },
   {
     title: "Cà phê",
-    href: "/menu#ca-phe",
     imageSrc: "/images/welcome/iced-coffee.jpg",
     imageAlt: "Ly cà phê sữa đá Việt Nam",
   },
   {
     title: "Trà sữa",
-    href: "/menu#tra-sua",
     imageSrc: "/images/welcome/milk-tea.jpg",
     imageAlt: "Ly trà sữa trân châu mát lạnh",
   },
   {
     title: "Gà rán",
-    href: "/menu#ga-ran",
     imageSrc: "/images/welcome/fried-chicken.jpg",
     imageAlt: "Gà rán giòn phủ sốt cay và mè",
   },
 ];
 
-export default function Home() {
-  return (
-    <div className="min-h-screen overflow-hidden bg-cas-surface text-cas-on-surface transition-colors duration-200 bg-[linear-gradient(var(--cas-pattern-color)_1px,transparent_1px),linear-gradient(90deg,var(--cas-pattern-color)_1px,transparent_1px)] bg-size-[30px_30px]">
-      <CustomerHeader tableName="Bàn 05" />
+const fallbackStore: StoreSettings = {
+  address: "123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh",
+  closeTime: "22:30:00",
+  email: "contact@cas-restaurant.vn",
+  googleMapsLocation: "https://maps.google.com/?q=10.7554,106.6781",
+  logoStorageKey: null,
+  logoUrl: null,
+  name: "Tiệm Ăn Vặt & Mỳ Cay CAS",
+  openTime: "08:00:00",
+  phone: "0901234567",
+  status: "ACTIVE",
+  welcomeSlogan: null,
+};
 
+function imageUrl(configuredUrl: string | null | undefined, fallbackUrl: string) {
+  return configuredUrl || fallbackUrl;
+}
+
+function formatOpeningHours(openTime: string, closeTime: string) {
+  return `${openTime.slice(0, 5)} – ${closeTime.slice(0, 5)} mỗi ngày`;
+}
+
+export default function Home() {
+  const router = useRouter();
+  const [store, setStore] = useState<StoreSettings>(fallbackStore);
+  const [welcome, setWelcome] = useState<PublicStoreWelcomeConfig | null>(null);
+  const [checkingSession, setCheckingSession] = useState(false);
+
+  async function startOrdering() {
+    setCheckingSession(true);
+    try {
+      const session = await getCurrentCustomerSalesSession();
+      router.push(
+        session.sessionStatus === "OPEN"
+          ? "/menu"
+          : session.sessionStatus === "PAYMENT_PENDING"
+            ? "/payment"
+            : "/start",
+      );
+    } catch {
+      router.push("/start");
+    } finally {
+      setCheckingSession(false);
+    }
+  }
+
+  useEffect(() => {
+    const storeId = getRememberedPublicStoreId() ?? 1;
+    void loadPublicStore(storeId)
+      .then(setStore)
+      .catch(() => undefined);
+    void loadPublicStoreWelcomeConfig(storeId)
+      .then(setWelcome)
+      .catch(() => undefined);
+  }, []);
+
+  const menuCategories = fallbackMenuCategories.map((category, index) => ({
+    ...category,
+    href: `/menu?category=${encodeURIComponent(category.title)}`,
+    imageSrc: imageUrl(
+      welcome?.[
+        `menuPreview${index + 1}ImageUrl` as keyof Pick<
+          PublicStoreWelcomeConfig,
+          | "menuPreview1ImageUrl"
+          | "menuPreview2ImageUrl"
+          | "menuPreview3ImageUrl"
+          | "menuPreview4ImageUrl"
+          | "menuPreview5ImageUrl"
+        >
+      ],
+      category.imageSrc,
+    ),
+  }));
+  const heroPrimaryImage = imageUrl(
+    welcome?.heroPrimaryImageUrl,
+    "/images/welcome/spicy-noodles.jpg",
+  );
+  const heroSecondaryImage = imageUrl(
+    welcome?.heroSecondaryImageUrl,
+    "/images/welcome/street-snacks.jpg",
+  );
+
+  return (
+    <div className="min-h-screen overflow-hidden text-cas-on-surface transition-colors duration-200">
       <div className="mx-auto flex w-full max-w-340 items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
         <CustomerBottomNavigation activeItem="home" />
 
@@ -62,21 +146,23 @@ export default function Home() {
 
               <h1 className="m-0 text-[clamp(2rem,9vw,3rem)] leading-[1.2] font-extrabold tracking-[-0.035em] md:text-[clamp(2.8rem,5vw,4rem)] md:leading-[1.1]">
                 Chào mừng bạn <br className="hidden md:block" />
-                đến <em className="text-cas-primary">Cas</em>
+                đến <em className="text-cas-primary">{store.brandName ?? "CAS"}</em>
               </h1>
 
               <p className="mt-4 max-w-124 text-[0.93rem] leading-[1.65] text-cas-on-surface-variant md:text-[1.05rem]">
-                Cùng chọn món ngon cho bàn của bạn. Thưởng thức mỳ cay 7 cấp độ, gà rán giòn tan
-                cùng cà phê, trà sữa và đồ uống mát lạnh.
+                {store.welcomeSlogan ??
+                  "Cùng chọn món ngon cho bàn của bạn. Thưởng thức mỳ cay 7 cấp độ, gà rán giòn tan cùng cà phê, trà sữa và đồ uống mát lạnh."}
               </p>
 
-              <Link
+              <button
                 className="mt-6 inline-flex min-h-14 w-full max-w-84 items-center justify-center gap-3.5 rounded-xl bg-cas-primary px-7 font-bold text-cas-on-primary shadow-[0_10px_28px_var(--cas-shadow-color)] transition duration-200 hover:-translate-y-0.5 hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring md:w-auto md:min-w-54"
-                href="/menu"
+                type="button"
+                disabled={checkingSession}
+                onClick={startOrdering}
               >
                 Bắt đầu gọi món
                 <CasIcon className="size-5" name="arrow" />
-              </Link>
+              </button>
 
               <div
                 className="mt-6 grid w-full max-w-92 grid-cols-3 divide-x divide-cas-outline-variant text-cas-on-surface-variant md:w-auto"
@@ -95,31 +181,26 @@ export default function Home() {
 
             <div className="relative mt-8 h-112 md:mt-0 md:h-148" aria-label="Món ăn nổi bật">
               <div className="group absolute top-0 right-0 h-[79%] w-[82%] overflow-hidden rounded-4xl shadow-[0_22px_48px_var(--cas-shadow-color)]">
-                <Image
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  src="/images/welcome/spicy-noodles.jpg"
+                <img
+                  className="absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  src={heroPrimaryImage}
                   alt="Tô mỳ cay nóng nổi bật tại CAS"
-                  fill
                   loading="eager"
-                  priority
-                  sizes="(max-width: 767px) 80vw, 48vw"
                 />
-                <span className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
+                <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/40 to-transparent" />
               </div>
 
               <div className="animate-cas-float absolute bottom-6 left-0 z-20 aspect-square w-[58%] overflow-hidden rounded-3xl border-[0.45rem] border-cas-surface shadow-[0_22px_48px_var(--cas-shadow-color)]">
-                <Image
-                  className="object-cover"
-                  src="/images/welcome/street-snacks.jpg"
+                <img
+                  className="absolute inset-0 size-full object-cover"
+                  src={heroSecondaryImage}
                   alt="Các món ăn vặt gồm cá viên, khoai tây chiên và xiên que"
-                  fill
                   loading="eager"
-                  priority
-                  sizes="(max-width: 767px) 58vw, 28vw"
+                  fetchPriority="high"
                 />
               </div>
 
-              <div className="absolute top-13 left-[7%] z-30 flex items-center gap-2 rounded-full border border-white/35 bg-cas-glass px-3 py-2 text-[0.62rem] font-semibold shadow-[0_8px_20px_var(--cas-shadow-color)] backdrop-blur-xl">
+              <div className="absolute top-13 left-[7%] z-30 flex items-center gap-2 rounded-full border border-cas-on-scrim/35 bg-cas-glass px-3 py-2 text-[0.62rem] font-semibold shadow-[0_8px_20px_var(--cas-shadow-color)] backdrop-blur-xl">
                 <span className="grid size-7 place-items-center rounded-full bg-cas-tertiary-container text-cas-on-tertiary-container">
                   <CasIcon className="size-4" name="fire" />
                 </span>
@@ -132,6 +213,19 @@ export default function Home() {
               />
             </div>
           </section>
+
+          {welcome?.bannerImageUrl ? (
+            <section
+              className="mb-8 overflow-hidden rounded-3xl shadow-[0_12px_28px_var(--cas-shadow-color)]"
+              aria-label="Banner giới thiệu cửa hàng"
+            >
+              <img
+                className="aspect-[11/4] w-full object-cover"
+                src={welcome.bannerImageUrl}
+                alt="Banner giới thiệu cửa hàng"
+              />
+            </section>
+          ) : null}
 
           <section className="w-full py-6 pb-11 md:py-10 md:pb-14" id="menu-preview">
             <div className="mb-6 flex items-end justify-between gap-4">
@@ -160,16 +254,14 @@ export default function Home() {
                   href={category.href}
                   aria-label={category.title}
                 >
-                  <Image
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  <img
+                    className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
                     src={category.imageSrc}
                     alt={category.imageAlt}
-                    fill
                     loading={index === 0 ? "eager" : "lazy"}
-                    sizes="(max-width: 767px) 46vw, 24vw"
                   />
-                  <span className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent" />
-                  <strong className="absolute right-4 bottom-4 left-4 z-10 text-sm font-bold text-white drop-shadow-md">
+                  <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/45 to-transparent" />
+                  <strong className="absolute right-4 bottom-4 left-4 z-10 text-sm font-bold text-cas-on-scrim drop-shadow-md">
                     {category.title}
                   </strong>
                 </Link>
@@ -182,7 +274,7 @@ export default function Home() {
               <div>
                 <p className="flex items-center gap-2 font-extrabold text-cas-on-surface">
                   <CasIcon className="size-4 text-cas-primary" name="restaurant" />
-                  Tiệm Ăn Vặt &amp; Mỳ Cay CAS
+                  {store.brandName ?? store.branchName ?? store.name}
                 </p>
               </div>
               <div>
@@ -192,11 +284,11 @@ export default function Home() {
                 </p>
                 <a
                   className="mt-2 block leading-relaxed hover:text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                  href="https://maps.google.com/?q=10.7554,106.6781"
+                  href={store.googleMapsLocation || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh
+                  {store.address}
                 </a>
               </div>
               <div>
@@ -207,21 +299,21 @@ export default function Home() {
                 <div className="mt-2 grid gap-2">
                   <a
                     className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    href="tel:0901234567"
+                    href={`tel:${store.phone}`}
                   >
                     <CasIcon className="size-4" name="phone" />
-                    0901 234 567
+                    {store.phone}
                   </a>
                   <a
                     className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    href="mailto:contact@cas-restaurant.vn"
+                    href={`mailto:${store.email}`}
                   >
                     <CasIcon className="size-4" name="mail" />
-                    contact@cas-restaurant.vn
+                    {store.email}
                   </a>
                   <p className="inline-flex items-center gap-2">
                     <CasIcon className="size-4 text-cas-primary" name="clock" />
-                    08:00 – 22:30 mỗi ngày
+                    {formatOpeningHours(store.openTime, store.closeTime)}
                   </p>
                 </div>
               </div>

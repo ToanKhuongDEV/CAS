@@ -1,11 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { formatMoney } from "../../lib/format-money";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
+import {
+  cancelOperatorServiceBooking,
+  confirmOperatorServiceBooking,
+  createOperatorServiceBooking,
+  requestOperatorServiceBookingPayment,
+  type ServiceBooking as ApiServiceBooking,
+  updateOperatorServiceBooking,
+} from "../../lib/api/operation/service-bookings.api";
+import {
+  operatorServiceBookingsQueryKey,
+  useOperatorServiceBookingsQuery,
+} from "../../lib/api/operation/service-bookings.query";
 import { CasIcon } from "../ui/cas-icon";
+import { useToast } from "../ui/toast-provider";
 
 type PaymentStatus = "PAY_LATER" | "PENDING" | "PAID" | "CANCELLED";
-type CreateServiceField = "clientName" | "clientPhone" | "serviceName" | "agreedPrice";
+type CreateServiceField = "clientName" | "clientPhone" | "serviceName" | "note" | "agreedPrice";
 
 type ClientAccount = {
   id: string;
@@ -24,51 +39,29 @@ type ServiceBooking = {
   serviceName: string;
 };
 
-const clientAccounts: ClientAccount[] = [
-  { id: "client-001", name: "Nguyễn Minh Anh", phone: "0901 234 567" },
-  { id: "client-002", name: "Trần Quốc Bảo", phone: "0912 345 678" },
-  { id: "client-003", name: "Lê Hoài Phương", phone: "0987 654 321" },
-];
-
-const initialBookings: ServiceBooking[] = [
-  {
-    agreedPrice: 1500000,
-    clientAccountId: "client-001",
-    createdAt: "09:20 11/08/2026",
-    createdByName: "Nguyễn Văn A",
-    id: "service-001",
-    note: "Khách cần xác nhận lại thời gian tổ chức trước một ngày.",
-    paymentStatus: "PAY_LATER",
-    serviceName: "Đặt tiệc sinh nhật 12 khách",
-  },
-  {
-    agreedPrice: 2800000,
-    clientAccountId: "client-002",
-    createdAt: "14:05 10/08/2026",
-    createdByName: "Nguyễn Văn A",
-    id: "service-002",
-    note: "Chuẩn bị bàn gần cửa sổ và hoàn tất trang trí trước 17:30.",
-    paymentStatus: "PENDING",
-    serviceName: "Set trang trí sự kiện tại bàn",
-  },
-  {
-    agreedPrice: 950000,
-    clientAccountId: "client-003",
-    createdAt: "11:40 09/08/2026",
-    createdByName: "Trần Thị B",
-    id: "service-003",
-    note: "Khách sẽ nhận dịch vụ tại quầy vào lúc 18:00.",
-    paymentStatus: "PAID",
-    serviceName: "Đặt trước combo liên hoan",
-  },
-];
-
 const statusLabels: Record<PaymentStatus, string> = {
   CANCELLED: "Đã hủy",
   PAY_LATER: "Thanh toán sau",
   PENDING: "Chờ xác nhận",
   PAID: "Đã thanh toán",
 };
+
+function bookingFromApi(booking: ApiServiceBooking): ServiceBooking {
+  return {
+    agreedPrice: booking.agreedPrice,
+    clientAccountId: booking.publicId,
+    createdAt: booking.createdAt,
+    createdByName: booking.createdByName,
+    id: booking.publicId,
+    note: booking.note ?? undefined,
+    paymentStatus: booking.paymentStatus,
+    serviceName: booking.serviceName,
+  };
+}
+
+function clientFromApi(booking: ApiServiceBooking): ClientAccount {
+  return { id: booking.publicId, name: booking.clientName, phone: booking.clientPhone };
+}
 
 function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");
@@ -100,22 +93,35 @@ export function OperatorServiceBookingsView({
 }: {
   mode?: "admin" | "operator";
 }) {
-  const [bookings, setBookings] = useState<ServiceBooking[]>(initialBookings);
-  const [clients, setClients] = useState<ClientAccount[]>(clientAccounts);
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: apiBookings = [], error } = useOperatorServiceBookingsQuery();
+  const bookings = apiBookings.map(bookingFromApi);
+  const clients = apiBookings.map(clientFromApi);
   const [filter, setFilter] = useState<"ALL" | PaymentStatus>("ALL");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [bookingToEdit, setBookingToEdit] = useState<ServiceBooking | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [serviceName, setServiceName] = useState("");
   const [note, setNote] = useState("");
   const [agreedPrice, setAgreedPrice] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"PAY_LATER" | "PENDING">("PAY_LATER");
-  const [message, setMessage] = useState<string | null>(null);
   const [bookingToConfirm, setBookingToConfirm] = useState<ServiceBooking | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<ServiceBooking | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [createFormErrors, setCreateFormErrors] = useState<
     Partial<Record<CreateServiceField, string>>
   >({});
+
+  useEffect(() => {
+    if (!error) return;
+
+    showToast({
+      message: error instanceof Error ? error.message : "Không thể tải dịch vụ đặt trước.",
+      type: "error",
+    });
+  }, [error, showToast]);
 
   const visibleBookings = bookings.filter(
     (booking) => filter === "ALL" || booking.paymentStatus === filter,
@@ -142,11 +148,17 @@ export function OperatorServiceBookingsView({
     else if (clientName.trim().length > 150) errors.clientName = "Tên khách hàng tối đa 150 ký tự.";
 
     if (!clientPhone.trim()) errors.clientPhone = "Vui lòng nhập số điện thoại.";
-    else if (!/^[0-9\s()+.-]+$/.test(clientPhone) || normalizedPhone.length > 20)
+    else if (
+      !/^[0-9\s()+.-]+$/.test(clientPhone) ||
+      normalizedPhone.length === 0 ||
+      normalizedPhone.length > 20
+    )
       errors.clientPhone = "Số điện thoại chỉ được chứa chữ số và tối đa 20 chữ số.";
 
     if (!serviceName.trim()) errors.serviceName = "Vui lòng nhập tên dịch vụ.";
     else if (serviceName.trim().length > 255) errors.serviceName = "Tên dịch vụ tối đa 255 ký tự.";
+
+    if (note.length > 65535) errors.note = "Ghi chú tối đa 65.535 ký tự.";
 
     if (!agreedPrice || !Number.isFinite(price) || price < 0)
       errors.agreedPrice = "Vui lòng nhập giá đã thỏa thuận hợp lệ.";
@@ -157,38 +169,71 @@ export function OperatorServiceBookingsView({
     return { errors, normalizedPhone, price };
   }
 
-  function handleCreate(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) return;
     const { errors, normalizedPhone, price } = validateCreateForm();
     if (Object.keys(errors).length > 0) return;
 
-    const existingClient = clients.find(
-      (client) => normalizePhone(client.phone) === normalizedPhone,
-    );
-    const clientAccount = existingClient ?? {
-      id: `client-${Date.now()}`,
-      name: clientName.trim(),
-      phone: clientPhone.trim(),
-    };
-
-    const now = new Date();
-    const createdAt = `${now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} ${now.toLocaleDateString("vi-VN")}`;
-    const newBooking: ServiceBooking = {
-      agreedPrice: price,
-      clientAccountId: clientAccount.id,
-      createdAt,
-      createdByName: mode === "admin" ? "Quản trị viên đang đăng nhập" : "Nhân viên đang đăng nhập",
-      id: `service-${Date.now()}`,
-      note: note.trim() || undefined,
-      paymentStatus,
-      serviceName: serviceName.trim(),
-    };
-
-    if (!existingClient) {
-      setClients((previous) => [...previous, clientAccount]);
+    setIsSaving(true);
+    try {
+      if (bookingToEdit) {
+        await updateOperatorServiceBooking(bookingToEdit.id, {
+          clientName: clientName.trim(),
+          serviceName: serviceName.trim(),
+          note: note.trim() || null,
+          agreedPrice: price,
+        });
+      } else {
+        await createOperatorServiceBooking({
+          clientName: clientName.trim(),
+          clientPhone: normalizedPhone,
+          serviceName: serviceName.trim(),
+          note: note.trim() || null,
+          agreedPrice: price,
+          paymentStatus,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
+      setFilter("ALL");
+      setClientName("");
+      setClientPhone("");
+      setServiceName("");
+      setNote("");
+      setAgreedPrice("");
+      setPaymentStatus("PAY_LATER");
+      setCreateFormErrors({});
+      setBookingToEdit(null);
+      setIsCreateDialogOpen(false);
+      showToast({
+        message: bookingToEdit ? "Đã cập nhật dịch vụ đặt trước." : "Đã lưu dịch vụ đặt trước.",
+        type: "success",
+      });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tạo dịch vụ đặt trước.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
     }
-    setBookings((previous) => [newBooking, ...previous]);
-    setFilter("ALL");
+    return;
+  }
+
+  function openEditDialog(booking: ServiceBooking) {
+    const client = getClient(booking.clientAccountId);
+    setBookingToEdit(booking);
+    setClientName(client?.name ?? "");
+    setClientPhone(client?.phone ?? "");
+    setServiceName(booking.serviceName);
+    setNote(booking.note ?? "");
+    setAgreedPrice(booking.agreedPrice.toLocaleString("en-US"));
+    setCreateFormErrors({});
+    setIsCreateDialogOpen(true);
+  }
+
+  function openCreateDialog() {
+    setBookingToEdit(null);
     setClientName("");
     setClientPhone("");
     setServiceName("");
@@ -196,36 +241,70 @@ export function OperatorServiceBookingsView({
     setAgreedPrice("");
     setPaymentStatus("PAY_LATER");
     setCreateFormErrors({});
-    setIsCreateDialogOpen(false);
-    setMessage(
-      paymentStatus === "PENDING"
-        ? "Đã tạo dịch vụ và chuyển sang chờ xác nhận thanh toán."
-        : "Đã tạo dịch vụ với trạng thái thanh toán sau.",
-    );
+    setIsCreateDialogOpen(true);
   }
 
-  function handleConfirmPayment(bookingId: string) {
-    const booking = bookings.find((item) => item.id === bookingId);
+  async function handleConfirmPayment(bookingId: string) {
+    const booking = bookings.find((item) => item.id === bookingId)!;
     if (!booking) return;
 
-    setBookings((previous) =>
-      previous.map((item) => (item.id === bookingId ? { ...item, paymentStatus: "PAID" } : item)),
-    );
-    setBookingToConfirm(null);
-    setMessage(`Đã xác nhận thanh toán cho “${booking.serviceName}”.`);
+    setIsSaving(true);
+    try {
+      await confirmOperatorServiceBooking(bookingId);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
+      setBookingToConfirm(null);
+      showToast({ message: "Đã xác nhận thanh toán dịch vụ.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể xác nhận thanh toán.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+    return;
   }
 
-  function handleCancelBooking(bookingId: string) {
-    const booking = bookings.find((item) => item.id === bookingId);
+  async function startPaymentConfirmation(booking: ServiceBooking) {
+    if (booking.paymentStatus === "PENDING") {
+      setBookingToConfirm(booking);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await requestOperatorServiceBookingPayment(booking.id);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
+      setBookingToConfirm({ ...booking, paymentStatus: "PENDING" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể bắt đầu xác nhận thanh toán.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleCancelBooking(bookingId: string) {
+    const booking = bookings.find((item) => item.id === bookingId)!;
     if (!booking) return;
 
-    setBookings((previous) =>
-      previous.map((item) =>
-        item.id === bookingId ? { ...item, paymentStatus: "CANCELLED" } : item,
-      ),
-    );
-    setBookingToCancel(null);
-    setMessage(`Đã hủy dịch vụ “${booking.serviceName}” vì khách không tiếp tục đặt.`);
+    setIsSaving(true);
+    try {
+      await cancelOperatorServiceBooking(bookingId);
+      await queryClient.invalidateQueries({ queryKey: operatorServiceBookingsQueryKey });
+      setBookingToCancel(null);
+      showToast({ message: "Đã hủy dịch vụ đặt trước.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể hủy dịch vụ.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+    return;
   }
 
   return (
@@ -236,7 +315,7 @@ export function OperatorServiceBookingsView({
         </div>
         <button
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-cas-primary px-4 py-2.5 text-sm font-extrabold text-cas-on-primary transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-          onClick={() => setIsCreateDialogOpen(true)}
+          onClick={openCreateDialog}
           type="button"
         >
           <CasIcon className="size-4" name="plus" />
@@ -254,7 +333,7 @@ export function OperatorServiceBookingsView({
             Tổng giá trị chưa hoàn tất
           </p>
           <p className="mt-2 text-2xl font-black text-cas-on-surface">
-            {outstandingAmount.toLocaleString("vi-VN")}đ
+            {formatMoney(outstandingAmount)}
           </p>
         </article>
       </section>
@@ -276,25 +355,6 @@ export function OperatorServiceBookingsView({
           </button>
         ))}
       </div>
-
-      {message ? (
-        <div
-          className="flex items-center justify-between gap-3 rounded-xl border border-cas-secondary/30 bg-cas-secondary-container/20 p-4 text-sm font-bold text-cas-secondary"
-          role="status"
-        >
-          <span className="flex items-center gap-2">
-            <CasIcon className="size-5" name="check" />
-            {message}
-          </span>
-          <button
-            className="text-xs underline hover:no-underline"
-            onClick={() => setMessage(null)}
-            type="button"
-          >
-            Ẩn
-          </button>
-        </div>
-      ) : null}
 
       <ul className="grid gap-4" aria-label="Danh sách dịch vụ thêm">
         {visibleBookings.map((booking) => {
@@ -327,12 +387,22 @@ export function OperatorServiceBookingsView({
               </div>
               <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                 <p className="text-xl font-black text-cas-primary">
-                  {booking.agreedPrice.toLocaleString("vi-VN")}đ
+                  {formatMoney(booking.agreedPrice)}
                 </p>
                 {booking.paymentStatus !== "PAID" && booking.paymentStatus !== "CANCELLED" ? (
                   <button
+                    className="rounded-xl border border-cas-primary/40 px-3.5 py-2 text-xs font-extrabold text-cas-primary transition hover:bg-cas-primary/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                    onClick={() => openEditDialog(booking)}
+                    type="button"
+                  >
+                    Sửa
+                  </button>
+                ) : null}
+                {booking.paymentStatus !== "PAID" && booking.paymentStatus !== "CANCELLED" ? (
+                  <button
                     className="rounded-xl border border-cas-secondary/40 px-3.5 py-2 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    onClick={() => setBookingToConfirm(booking)}
+                    disabled={isSaving}
+                    onClick={() => startPaymentConfirmation(booking)}
                     type="button"
                   >
                     Xác nhận đã thanh toán
@@ -355,7 +425,7 @@ export function OperatorServiceBookingsView({
 
       {isCreateDialogOpen ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setIsCreateDialogOpen(false);
           }}
@@ -363,6 +433,7 @@ export function OperatorServiceBookingsView({
           <form
             aria-labelledby="create-service-title"
             className="my-auto w-full max-w-lg rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl"
+            noValidate
             onSubmit={handleCreate}
           >
             <div className="flex items-start justify-between gap-4 border-b border-cas-outline-variant/20 pb-4">
@@ -372,7 +443,7 @@ export function OperatorServiceBookingsView({
                   className="mt-1 text-xl font-black text-cas-on-surface"
                   id="create-service-title"
                 >
-                  Tạo dịch vụ thêm
+                  {bookingToEdit ? "Cập nhật dịch vụ" : "Tạo dịch vụ thêm"}
                 </h2>
               </div>
               <button
@@ -397,6 +468,7 @@ export function OperatorServiceBookingsView({
                       setClientName(event.target.value);
                       clearCreateFieldError("clientName");
                     }}
+                    maxLength={150}
                     placeholder="Ví dụ: Nguyễn Minh Anh"
                     required
                     value={clientName}
@@ -418,10 +490,12 @@ export function OperatorServiceBookingsView({
                     aria-invalid={Boolean(createFormErrors.clientPhone)}
                     className="mt-1.5 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
                     inputMode="tel"
+                    disabled={Boolean(bookingToEdit)}
                     onChange={(event) => {
                       setClientPhone(event.target.value);
                       clearCreateFieldError("clientPhone");
                     }}
+                    maxLength={40}
                     placeholder="Ví dụ: 0901 234 567"
                     required
                     type="tel"
@@ -449,6 +523,7 @@ export function OperatorServiceBookingsView({
                     setServiceName(event.target.value);
                     clearCreateFieldError("serviceName");
                   }}
+                  maxLength={255}
                   placeholder="Ví dụ: Đặt tiệc sinh nhật 12 khách"
                   required
                   value={serviceName}
@@ -462,11 +537,22 @@ export function OperatorServiceBookingsView({
               <label className="block">
                 <span className="text-xs font-bold text-cas-on-surface-variant">Ghi chú</span>
                 <textarea
+                  aria-describedby={createFormErrors.note ? "service-note-error" : undefined}
+                  aria-invalid={Boolean(createFormErrors.note)}
                   className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2.5 text-sm font-medium text-cas-on-surface outline-none focus:ring-2 focus:ring-cas-primary"
-                  onChange={(event) => setNote(event.target.value)}
+                  maxLength={65535}
+                  onChange={(event) => {
+                    setNote(event.target.value);
+                    clearCreateFieldError("note");
+                  }}
                   placeholder="Ví dụ: Khách cần xác nhận thời gian trước một ngày"
                   value={note}
                 />
+                {createFormErrors.note ? (
+                  <p className="mt-1 text-xs font-medium text-cas-error" id="service-note-error">
+                    {createFormErrors.note}
+                  </p>
+                ) : null}
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-cas-on-surface-variant">
@@ -492,41 +578,43 @@ export function OperatorServiceBookingsView({
                   </p>
                 ) : null}
               </label>
-              <fieldset>
-                <legend className="text-xs font-bold text-cas-on-surface-variant">
-                  Thanh toán
-                </legend>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-cas-outline-variant/35 p-3 text-sm">
-                    <input
-                      checked={paymentStatus === "PAY_LATER"}
-                      name="service-payment-status"
-                      onChange={() => setPaymentStatus("PAY_LATER")}
-                      type="radio"
-                    />
-                    <span>
-                      <strong className="block text-cas-on-surface">Thanh toán sau</strong>
-                      <span className="text-xs text-cas-on-surface-variant">
-                        Lưu trạng thái PAY_LATER.
+              {!bookingToEdit ? (
+                <fieldset>
+                  <legend className="text-xs font-bold text-cas-on-surface-variant">
+                    Thanh toán
+                  </legend>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-cas-outline-variant/35 p-3 text-sm">
+                      <input
+                        checked={paymentStatus === "PAY_LATER"}
+                        name="service-payment-status"
+                        onChange={() => setPaymentStatus("PAY_LATER")}
+                        type="radio"
+                      />
+                      <span>
+                        <strong className="block text-cas-on-surface">Thanh toán sau</strong>
+                        <span className="text-xs text-cas-on-surface-variant">
+                          Lưu trạng thái PAY_LATER.
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-cas-outline-variant/35 p-3 text-sm">
-                    <input
-                      checked={paymentStatus === "PENDING"}
-                      name="service-payment-status"
-                      onChange={() => setPaymentStatus("PENDING")}
-                      type="radio"
-                    />
-                    <span>
-                      <strong className="block text-cas-on-surface">Thanh toán ngay</strong>
-                      <span className="text-xs text-cas-on-surface-variant">
-                        Tạo trạng thái PENDING để xác nhận.
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-cas-outline-variant/35 p-3 text-sm">
+                      <input
+                        checked={paymentStatus === "PENDING"}
+                        name="service-payment-status"
+                        onChange={() => setPaymentStatus("PENDING")}
+                        type="radio"
+                      />
+                      <span>
+                        <strong className="block text-cas-on-surface">Thanh toán ngay</strong>
+                        <span className="text-xs text-cas-on-surface-variant">
+                          Tạo trạng thái PENDING để xác nhận.
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                </div>
-              </fieldset>
+                    </label>
+                  </div>
+                </fieldset>
+              ) : null}
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
@@ -539,9 +627,10 @@ export function OperatorServiceBookingsView({
               </button>
               <button
                 className="rounded-xl bg-cas-primary px-4 py-2.5 text-sm font-extrabold text-cas-on-primary transition hover:bg-cas-primary-hover"
+                disabled={isSaving}
                 type="submit"
               >
-                Lưu dịch vụ
+                {isSaving ? "Đang lưu..." : bookingToEdit ? "Cập nhật" : "Lưu dịch vụ"}
               </button>
             </div>
           </form>
@@ -550,7 +639,7 @@ export function OperatorServiceBookingsView({
 
       {bookingToConfirm ? (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] grid place-items-center bg-cas-scrim/55 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setBookingToConfirm(null);
           }}
@@ -598,7 +687,7 @@ export function OperatorServiceBookingsView({
               <div className="flex items-center justify-between gap-3 border-t border-cas-outline-variant/20 pt-2">
                 <span className="text-cas-on-surface-variant">Số tiền</span>
                 <strong className="text-lg text-cas-primary">
-                  {bookingToConfirm.agreedPrice.toLocaleString("vi-VN")}đ
+                  {formatMoney(bookingToConfirm.agreedPrice)}
                 </strong>
               </div>
             </div>
@@ -625,7 +714,7 @@ export function OperatorServiceBookingsView({
 
       {bookingToCancel ? (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] grid place-items-center bg-cas-scrim/55 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setBookingToCancel(null);
           }}
@@ -658,7 +747,7 @@ export function OperatorServiceBookingsView({
               <p className="font-extrabold text-cas-on-surface">{bookingToCancel.serviceName}</p>
               <p className="mt-1 text-cas-on-surface-variant">
                 {getClient(bookingToCancel.clientAccountId)?.name} ·{" "}
-                {bookingToCancel.agreedPrice.toLocaleString("vi-VN")}đ
+                {formatMoney(bookingToCancel.agreedPrice)}
               </p>
             </div>
 

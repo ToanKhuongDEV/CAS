@@ -5,13 +5,15 @@ import { CasIcon } from "../../ui/cas-icon";
 
 export type TableOption = {
   id: string;
+  sessionPublicId?: string | null;
   code: string;
   label: string;
   customerName?: string;
-  customerPhone?: string;
+  customerPhone?: string | null;
   activeOrdersCount: number;
   status: "OPEN" | "EMPTY" | "PAYMENT_PENDING";
   openedAt?: string;
+  sessions?: { sessionId: string; customerName: string; status: "OPEN" | "PAYMENT_PENDING" }[];
 };
 
 export const availableTables: TableOption[] = [
@@ -93,6 +95,7 @@ export const availableTables: TableOption[] = [
 
 type OperatorTableSelectModalProps = {
   isOpen: boolean;
+  tables: TableOption[];
   newlyOpenedTableIds: string[];
   selectedTableId: string;
   onClose: () => void;
@@ -102,6 +105,7 @@ type OperatorTableSelectModalProps = {
 
 export function OperatorTableSelectModal({
   isOpen,
+  tables,
   newlyOpenedTableIds,
   selectedTableId,
   onClose,
@@ -112,7 +116,7 @@ export function OperatorTableSelectModal({
 
   if (!isOpen) return null;
 
-  const filteredTables = availableTables.filter(
+  const filteredTables = tables.filter(
     (t) =>
       t.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.code.includes(searchTerm) ||
@@ -133,10 +137,10 @@ export function OperatorTableSelectModal({
               className="text-xl font-extrabold text-cas-on-surface"
               id="table-select-modal-title"
             >
-              Chọn bàn phục vụ
+              Chọn bàn hoặc đơn mang về
             </h2>
             <p className="mt-0.5 text-xs text-cas-on-surface-variant">
-              Chọn bàn có phiên đang mở để tạo hoặc gọi thêm món
+              Chọn phiên đang mở để tạo hoặc gọi thêm món
             </p>
           </div>
 
@@ -172,7 +176,8 @@ export function OperatorTableSelectModal({
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {filteredTables.map((table) => {
               const isSelected = table.id === selectedTableId;
-              const isOpenSession = table.status === "OPEN" || newlyOpenedTableIds.includes(table.id);
+              const isOpenSession =
+                table.status === "OPEN" || newlyOpenedTableIds.includes(table.id);
               const isPendingPayment = table.status === "PAYMENT_PENDING";
               const isEmpty = table.status === "EMPTY";
 
@@ -192,12 +197,12 @@ export function OperatorTableSelectModal({
                   }}
                   className={`flex flex-col items-start justify-between rounded-xl border p-3.5 text-left transition ${
                     isSelected
-                      ? "border-cas-secondary bg-cas-secondary-container/20 ring-2 ring-cas-secondary"
+                      ? "border-cas-secondary bg-cas-secondary-container/20"
                       : isOpenSession
                         ? "border-cas-outline-variant/30 bg-cas-glass hover:border-cas-secondary hover:bg-cas-secondary-container/10"
                         : isPendingPayment
                           ? "cursor-not-allowed border-cas-tertiary/30 bg-cas-tertiary-container/15 opacity-70"
-                        : "cursor-pointer border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60 hover:opacity-100"
+                          : "cursor-pointer border-dashed border-cas-outline-variant/40 bg-cas-glass/40 opacity-60 hover:opacity-100"
                   }`}
                 >
                   <div className="flex w-full items-center justify-between">
@@ -223,7 +228,8 @@ export function OperatorTableSelectModal({
                     <div className="mt-2 text-xs text-cas-on-surface-variant">
                       <p className="font-semibold text-cas-on-surface">{table.customerName}</p>
                       <p className="text-[0.7rem] text-cas-on-surface-variant/80">
-                        {table.customerPhone} • Mở lúc {table.openedAt}
+                        {table.customerPhone ?? "Khách lẻ"}
+                        {table.openedAt ? ` • Mở lúc ${table.openedAt}` : ""}
                       </p>
                     </div>
                   )}

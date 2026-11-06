@@ -3,6 +3,7 @@
 import { FormEvent, useRef, useState } from "react";
 
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 
 type CustomerInformationErrors = {
   customerName?: string;
@@ -11,18 +12,20 @@ type CustomerInformationErrors = {
 
 export type CustomerInformation = {
   customerName: string;
-  customerPhone: string;
+  customerPhone: string | null;
 };
 
 type CustomerInformationFormFieldsProps = {
   idPrefix?: string;
   onSubmitCustomerInfo: (information: CustomerInformation) => void;
+  phoneRequired?: boolean;
   submitLabel?: string;
 };
 
 export function CustomerInformationFormFields({
   idPrefix = "customer",
   onSubmitCustomerInfo,
+  phoneRequired = false,
   submitLabel = "Mở phiên và xem thực đơn",
 }: CustomerInformationFormFieldsProps) {
   const customerNameInputRef = useRef<HTMLInputElement>(null);
@@ -39,33 +42,31 @@ export function CustomerInformationFormFields({
     if (!customerName.trim()) {
       nextErrors.customerName = "Vui lòng nhập tên của bạn.";
     }
-
-    if (!customerPhone.trim()) {
-      nextErrors.customerPhone = "Vui lòng nhập số điện thoại.";
+    const normalizedCustomerPhone = customerPhone.replace(/\s/g, "");
+    if (phoneRequired && !normalizedCustomerPhone) {
+      nextErrors.customerPhone = "Vui lòng nhập số điện thoại của bạn.";
+    } else if (normalizedCustomerPhone && !/^0\d{9}$/.test(normalizedCustomerPhone)) {
+      nextErrors.customerPhone = "Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0.";
     }
 
     setErrors(nextErrors);
 
-    if (nextErrors.customerName) {
+    if (nextErrors.customerName || nextErrors.customerPhone) {
       customerNameInputRef.current?.focus();
-      return;
-    }
-
-    if (nextErrors.customerPhone) {
-      customerPhoneInputRef.current?.focus();
+      if (!nextErrors.customerName) customerPhoneInputRef.current?.focus();
       return;
     }
 
     onSubmitCustomerInfo({
       customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
+      customerPhone: normalizedCustomerPhone || null,
     });
   };
 
   return (
     <form noValidate onSubmit={handleSubmit}>
       <label className="block" htmlFor={`${idPrefix}-name`}>
-        <span className="text-xs font-bold">
+        <span className="text-sm font-bold">
           Tên của bạn <span aria-hidden="true">*</span>
         </span>
         <span className="relative mt-2 block">
@@ -75,7 +76,7 @@ export function CustomerInformationFormFields({
           />
           <input
             ref={customerNameInputRef}
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-base outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-name`}
             name="customerName"
             placeholder="Ví dụ: Nguyễn Văn A"
@@ -96,14 +97,17 @@ export function CustomerInformationFormFields({
         </span>
       </label>
       {errors.customerName ? (
-        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-name-error`}>
+        <p className="mt-2 text-sm font-semibold text-cas-primary" id={`${idPrefix}-name-error`}>
           {errors.customerName}
         </p>
       ) : null}
 
       <label className="mt-5 block" htmlFor={`${idPrefix}-phone`}>
-        <span className="text-xs font-bold">
-          Số điện thoại <span aria-hidden="true">*</span>
+        <span className="text-sm font-bold">
+          Số điện thoại {phoneRequired ? <span aria-hidden="true">*</span> : null}
+          {!phoneRequired ? (
+            <span className="font-medium text-cas-on-surface-variant">(không bắt buộc)</span>
+          ) : null}
         </span>
         <span className="relative mt-2 block">
           <CasIcon
@@ -112,14 +116,14 @@ export function CustomerInformationFormFields({
           />
           <input
             ref={customerPhoneInputRef}
-            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-sm outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
+            className="h-13 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface pr-4 pl-12 text-base outline-none placeholder:text-cas-on-surface-variant/55 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15 aria-invalid:border-cas-primary aria-invalid:ring-3 aria-invalid:ring-cas-primary/15"
             id={`${idPrefix}-phone`}
             name="customerPhone"
             placeholder="09xx xxx xxx"
             autoComplete="tel"
             inputMode="tel"
             maxLength={20}
-            required
+            required={phoneRequired}
             type="tel"
             value={customerPhone}
             aria-describedby={errors.customerPhone ? `${idPrefix}-phone-error` : undefined}
@@ -134,18 +138,17 @@ export function CustomerInformationFormFields({
         </span>
       </label>
       {errors.customerPhone ? (
-        <p className="mt-2 text-xs font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
+        <p className="mt-2 text-sm font-semibold text-cas-primary" id={`${idPrefix}-phone-error`}>
           {errors.customerPhone}
         </p>
       ) : null}
-
-      <button
-        className="mt-6 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-cas-primary px-5 font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+      <CasButton
+        className="mt-6 min-h-13 w-full rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]"
         type="submit"
       >
         {submitLabel}
         <CasIcon className="size-5" name="arrow" />
-      </button>
+      </CasButton>
     </form>
   );
 }

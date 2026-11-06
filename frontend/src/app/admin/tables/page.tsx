@@ -1,9 +1,22 @@
 "use client";
 
 import { QRCodeCanvas } from "qrcode.react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { useToast } from "../../../components/ui/toast-provider";
+import {
+  type AdminDiningTable,
+  createDiningTable,
+  deleteDiningTable,
+  loadActiveTableQrCode,
+  loadDiningTables,
+  reissueTableQrCode,
+} from "../../../lib/api/tables/tables.api";
+import { getCurrentOperationalAccount } from "../../../lib/auth/operational-auth";
+import { getFirebaseAuth } from "../../../lib/auth/firebase";
+
+const webUrl = process.env.NEXT_PUBLIC_WEB_URL?.replace(/\/+$/, "");
 
 type TableItem = {
   code: number;
@@ -12,64 +25,137 @@ type TableItem = {
   sessionStatus: "OPEN" | "CLOSED" | "PAYMENT_PENDING";
 };
 
-const mockTables: TableItem[] = [
-  { id: 1, code: 1, qrToken: "CAS_TABLE_001", sessionStatus: "OPEN" },
-  { id: 2, code: 2, qrToken: "CAS_TABLE_002", sessionStatus: "OPEN" },
-  { id: 3, code: 3, qrToken: "CAS_TABLE_003", sessionStatus: "CLOSED" },
-  { id: 4, code: 4, qrToken: "CAS_TABLE_004", sessionStatus: "PAYMENT_PENDING" },
-  { id: 5, code: 5, qrToken: "CAS_TABLE_005", sessionStatus: "CLOSED" },
-];
+type QrColors = {
+  background: string;
+  foreground: string;
+};
+
+function toTableItem(table: AdminDiningTable): TableItem {
+  return {
+    code: table.code,
+    id: table.id,
+    qrToken: table.activeQrToken ?? "",
+    sessionStatus: table.sessionStatus ?? "CLOSED",
+  };
+}
 
 export default function AdminTablesPage() {
-  const [tables, setTables] = useState<TableItem[]>(mockTables);
+  const { showToast } = useToast();
+  const [tables, setTables] = useState<TableItem[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTableCode, setNewTableCode] = useState<string>("");
   const [selectedQR, setSelectedQR] = useState<TableItem | null>(null);
   const [deletingTable, setDeletingTable] = useState<TableItem | null>(null);
+  const [reissuingTable, setReissuingTable] = useState<TableItem | null>(null);
+  const [storeId, setStoreId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CLOSED" | "PAYMENT_PENDING">(
     "ALL",
   );
+  const [qrColors, setQrColors] = useState<QrColors | null>(null);
 
-  const handleCreateTable = (e: React.FormEvent) => {
+  const reloadTables = useCallback(async () => {
+    try {
+      setTables((await loadDiningTables()).map(toTableItem));
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tải danh sách bàn ăn.",
+        type: "error",
+      });
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void reloadTables();
+  }, [reloadTables]);
+
+  useEffect(() => {
+    const styles = window.getComputedStyle(document.documentElement);
+    setQrColors({
+      background: styles.getPropertyValue("--cas-qr-background").trim(),
+      foreground: styles.getPropertyValue("--cas-qr-foreground").trim(),
+    });
+  }, []);
+
+  useEffect(() => {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) return;
+    void getCurrentOperationalAccount(user)
+      .then((account) => setStoreId(account.storeId))
+      .catch(() => undefined);
+  }, []);
+
+  const handleCreateTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableCode) return;
     const codeNum = Number(newTableCode);
 
-    // Kiểm tra trùng mã bàn
-    if (tables.some((t) => t.code === codeNum)) {
-      alert(`Bàn số ${codeNum} đã tồn tại trong hệ thống!`);
-      return;
+    try {
+      await createDiningTable(codeNum);
+      await reloadTables();
+      setNewTableCode("");
+      setShowAddForm(false);
+      showToast({ message: "Đã tạo bàn ăn và mã QR.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tạo bàn ăn.",
+        type: "error",
+      });
     }
-
-    const formattedCode =
-      codeNum < 10 ? `00${codeNum}` : codeNum < 100 ? `0${codeNum}` : `${codeNum}`;
-
-    const newTab: TableItem = {
-      id: Date.now(),
-      code: codeNum,
-      qrToken: `CAS_TABLE_${formattedCode}`,
-      sessionStatus: "CLOSED",
-    };
-    setTables([...tables, newTab]);
-    setNewTableCode("");
-    setShowAddForm(false);
   };
 
-  const handleDeleteTable = (id: number) => {
-    setTables((prev) => prev.filter((t) => t.id !== id));
-    setDeletingTable(null);
+  const handleDeleteTable = async (id: number) => {
+    try {
+      await deleteDiningTable(id);
+      await reloadTables();
+      setDeletingTable(null);
+      showToast({ message: "Đã xóa bàn và mã QR liên quan.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể xóa bàn ăn.",
+        type: "error",
+      });
+    }
   };
 
-  const downloadQRCode = (tableCode: number) => {
-    const canvas = document.getElementById(`qr-code-canvas-${tableCode}`) as HTMLCanvasElement;
+  const handleViewQr = async (table: TableItem) => {
+    try {
+      const qrCode = await loadActiveTableQrCode(table.id);
+      setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể tải mã QR của bàn.",
+        type: "error",
+      });
+    }
+  };
+
+  const handleReissueQr = async (table: TableItem) => {
+    try {
+      const qrCode = await reissueTableQrCode(table.id);
+      await reloadTables();
+      setReissuingTable(null);
+      setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });
+      showToast({ message: "Đã cấp lại mã QR. Mã cũ không còn sử dụng được.", type: "success" });
+    } catch (error) {
+      showToast({
+        message: error instanceof Error ? error.message : "Không thể cấp lại mã QR của bàn.",
+        type: "error",
+      });
+    }
+  };
+
+  const downloadQRCode = (canvasId: string, fileName: string) => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     if (!canvas) return;
     const image = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = image;
-    link.download = `QR-Code-Ban-${tableCode}.png`;
+    link.download = fileName;
     link.click();
   };
+
+  const storeQrUrl = storeId && webUrl ? `${webUrl}/start?storeId=${storeId}` : null;
 
   const filteredTables = tables.filter((t) => {
     const matchesSearch =
@@ -85,14 +171,56 @@ export default function AdminTablesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-cas-on-surface">Quản lý Bàn ăn & Thẻ Mã QR</h1>
-          <p className="text-xs text-cas-on-surface-variant">
-            Danh sách mã bàn, mã QR token và trạng thái hoạt động trong nhà hàng.
-          </p>
         </div>
         <CasButton icon="plus" onClick={() => setShowAddForm(true)} size="md" variant="primary">
           Thêm Bàn mới
         </CasButton>
       </div>
+
+      <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-xs">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <h2 className="text-base font-black text-cas-on-surface">QR chung của cửa hàng</h2>
+            <p className="mt-1 text-xs leading-5 text-cas-on-surface-variant">
+              Khách quét mã này để vào web, tự chọn đúng chi nhánh, rồi chọn ăn tại quán hoặc mang
+              về.
+            </p>
+            {storeQrUrl ? (
+              <p className="mt-3 break-all font-mono text-[0.7rem] text-cas-on-surface-variant">
+                {storeQrUrl}
+              </p>
+            ) : (
+              <p className="mt-3 text-xs font-bold text-cas-error">
+                Chưa có URL web. Hãy cấu hình NEXT_PUBLIC_WEB_URL trong môi trường Frontend.
+              </p>
+            )}
+          </div>
+          {storeQrUrl ? (
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <div className="rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-3">
+                {qrColors ? (
+                  <QRCodeCanvas
+                    bgColor={qrColors.background}
+                    fgColor={qrColors.foreground}
+                    id="store-qr-code-canvas"
+                    includeMargin
+                    level="H"
+                    size={140}
+                    value={storeQrUrl}
+                  />
+                ) : null}
+              </div>
+              <CasButton
+                onClick={() => downloadQRCode("store-qr-code-canvas", `QR-Cua-Hang-${storeId}.png`)}
+                size="sm"
+                variant="outline-primary"
+              >
+                Tải QR chung
+              </CasButton>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       {/* Thanh Tìm kiếm & Lọc Trạng thái */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-3.5 shadow-xs backdrop-blur-md">
@@ -126,14 +254,14 @@ export default function AdminTablesPage() {
             Bàn trống ({tables.filter((t) => t.sessionStatus === "CLOSED").length})
           </button>
           <button
-            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "OPEN" ? "bg-emerald-600 text-white shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
+            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "OPEN" ? "bg-cas-secondary text-cas-on-secondary shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
             onClick={() => setStatusFilter("OPEN")}
             type="button"
           >
             Đang có khách ({tables.filter((t) => t.sessionStatus === "OPEN").length})
           </button>
           <button
-            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "PAYMENT_PENDING" ? "bg-amber-600 text-white shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
+            className={`rounded-xl px-3 py-1.5 font-bold transition ${statusFilter === "PAYMENT_PENDING" ? "bg-cas-tertiary text-cas-on-primary shadow-xs" : "bg-cas-surface text-cas-on-surface-variant hover:bg-cas-surface-container"}`}
             onClick={() => setStatusFilter("PAYMENT_PENDING")}
             type="button"
           >
@@ -145,13 +273,13 @@ export default function AdminTablesPage() {
       {/* Modal Tạo Bàn mới */}
       {showAddForm && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddForm(false);
           }}
         >
           <form
-            className="my-auto w-full max-w-md space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
+            className="my-auto w-full max-w-md space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150"
             onSubmit={handleCreateTable}
           >
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
@@ -203,7 +331,7 @@ export default function AdminTablesPage() {
       )}
 
       {/* Bảng Danh Sách Bàn Ăn (Table View) */}
-      <div className="overflow-hidden rounded-3xl border border-cas-outline-variant/30 bg-cas-glass shadow-xs backdrop-blur-md">
+      <div className="overflow-hidden rounded-sm border border-cas-outline-variant/30 bg-cas-glass shadow-xs backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-cas-outline-variant/20 bg-cas-surface-container/60 text-cas-on-surface uppercase font-black tracking-wider">
@@ -242,10 +370,10 @@ export default function AdminTablesPage() {
 
                     <td className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.68rem] font-black ${table.sessionStatus === "OPEN" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : table.sessionStatus === "PAYMENT_PENDING" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" : "bg-cas-surface-container text-cas-on-surface-variant border border-cas-outline-variant/30"}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.68rem] font-black ${table.sessionStatus === "OPEN" ? "border border-cas-secondary/30 bg-cas-secondary-container/25 text-cas-secondary" : table.sessionStatus === "PAYMENT_PENDING" ? "border border-cas-tertiary/30 bg-cas-tertiary-container/25 text-cas-tertiary" : "border border-cas-outline-variant/30 bg-cas-surface-container text-cas-on-surface-variant"}`}
                       >
                         <span
-                          className={`size-1.5 rounded-full ${table.sessionStatus === "OPEN" ? "bg-emerald-500" : table.sessionStatus === "PAYMENT_PENDING" ? "bg-amber-500 animate-ping" : "bg-cas-on-surface-variant/40"}`}
+                          className={`size-1.5 rounded-full ${table.sessionStatus === "OPEN" ? "bg-cas-secondary" : table.sessionStatus === "PAYMENT_PENDING" ? "animate-ping bg-cas-tertiary" : "bg-cas-on-surface-variant/40"}`}
                         />
                         {table.sessionStatus === "OPEN"
                           ? "ĐANG CÓ KHÁCH"
@@ -259,14 +387,21 @@ export default function AdminTablesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <CasButton
                           icon="search"
-                          onClick={() => setSelectedQR(table)}
+                          onClick={() => void handleViewQr(table)}
                           size="sm"
                           variant="outline-primary"
                         >
                           Xem QR
                         </CasButton>
+                        <CasButton
+                          onClick={() => setReissuingTable(table)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Cấp lại QR
+                        </CasButton>
                         <button
-                          className="grid size-8 place-items-center rounded-xl bg-cas-error/10 text-cas-error transition hover:bg-cas-error hover:text-white"
+                          className="grid size-8 place-items-center rounded-xl bg-cas-error/10 text-cas-error transition hover:bg-cas-error hover:text-cas-on-error"
                           onClick={() => setDeletingTable(table)}
                           title={`Xóa Bàn ${table.code}`}
                           type="button"
@@ -285,8 +420,8 @@ export default function AdminTablesPage() {
 
       {/* Modal Xác nhận Xóa Bàn */}
       {deletingTable && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center gap-3 text-cas-error">
               <span className="grid size-10 place-items-center rounded-2xl bg-cas-error/15">
                 <CasIcon className="size-5" name="trash" />
@@ -317,10 +452,43 @@ export default function AdminTablesPage() {
         </div>
       )}
 
+      {reissuingTable && (
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 shadow-2xl animate-in fade-in duration-150">
+            <div className="flex items-center gap-3 text-cas-primary">
+              <span className="grid size-10 place-items-center rounded-2xl bg-cas-primary/15">
+                <CasIcon className="size-5" name="table" />
+              </span>
+              <div>
+                <h3 className="text-base font-black text-cas-on-surface">
+                  Cấp lại QR cho BÀN {reissuingTable.code}?
+                </h3>
+                <p className="text-xs text-cas-on-surface-variant">
+                  QR hiện tại sẽ bị thu hồi ngay. Khách cần quét mã QR mới.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <CasButton onClick={() => setReissuingTable(null)} size="sm" variant="outline">
+                Hủy
+              </CasButton>
+              <CasButton
+                onClick={() => void handleReissueQr(reissuingTable)}
+                size="sm"
+                variant="primary"
+              >
+                Cấp lại QR
+              </CasButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Xem Mã QR thực tế */}
       {selectedQR && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm space-y-4 rounded-3xl border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-cas-scrim/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm space-y-4 rounded-sm border border-cas-outline-variant/30 bg-cas-surface p-6 text-center shadow-2xl animate-in fade-in duration-150">
             <div className="flex items-center justify-between border-b border-cas-outline-variant/20 pb-3">
               <h3 className="flex items-center gap-2 text-base font-black text-cas-on-surface">
                 <CasIcon className="size-5 text-cas-primary" name="table" />
@@ -335,17 +503,23 @@ export default function AdminTablesPage() {
               </button>
             </div>
 
-            <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-white p-5 shadow-inner">
-              <QRCodeCanvas
-                bgColor="#ffffff"
-                fgColor="#000000"
-                id={`qr-code-canvas-${selectedQR.code}`}
-                includeMargin
-                level="H"
-                size={180}
-                value={`${typeof window !== "undefined" ? window.location.origin : ""}/table/${selectedQR.qrToken}`}
-              />
-              <span className="mt-2 font-mono text-[0.65rem] font-bold text-gray-500">
+            <div className="mx-auto flex flex-col items-center justify-center rounded-2xl border border-cas-outline-variant/30 bg-cas-surface p-5 shadow-inner">
+              {webUrl && qrColors ? (
+                <QRCodeCanvas
+                  bgColor={qrColors.background}
+                  fgColor={qrColors.foreground}
+                  id={`qr-code-canvas-${selectedQR.code}`}
+                  includeMargin
+                  level="H"
+                  size={180}
+                  value={`${webUrl}/table/${selectedQR.qrToken}`}
+                />
+              ) : (
+                <p className="text-xs font-bold text-cas-error">
+                  Chưa có URL web. Hãy cấu hình NEXT_PUBLIC_WEB_URL trong môi trường Frontend.
+                </p>
+              )}
+              <span className="mt-2 font-mono text-[0.65rem] font-bold text-cas-on-surface-variant">
                 {selectedQR.qrToken}
               </span>
             </div>
@@ -365,7 +539,13 @@ export default function AdminTablesPage() {
               </CasButton>
               <CasButton
                 className="w-full"
-                onClick={() => downloadQRCode(selectedQR.code)}
+                disabled={!webUrl}
+                onClick={() =>
+                  downloadQRCode(
+                    `qr-code-canvas-${selectedQR.code}`,
+                    `QR-Code-Ban-${selectedQR.code}.png`,
+                  )
+                }
                 size="sm"
                 variant="primary"
               >

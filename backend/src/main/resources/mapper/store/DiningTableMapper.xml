@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.store.mapper.DiningTableMapper">
+
+    <select id="existsByStoreIdAndCode" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM dining_tables
+            WHERE store_id = #{storeId}
+              AND code = #{code}
+        )
+    </select>
+
+    <insert id="insertDiningTable" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dining_tables (
+            store_id,
+            code,
+            capacity,
+            created_by
+        ) VALUES (
+            #{storeId},
+            #{code},
+            #{capacity},
+            #{createdBy}
+        )
+    </insert>
+
+    <insert id="insertActiveQrCode">
+        INSERT INTO table_qr_codes (
+            table_id,
+            token,
+            status,
+            issued_at,
+            revoked_at
+        ) VALUES (
+            #{tableId},
+            #{token},
+            'ACTIVE',
+            #{issuedAt},
+            NULL
+        )
+    </insert>
+
+    <select id="findAdminDiningTablesByStoreId"
+            resultType="vn.cas.store.model.AdminDiningTable">
+        SELECT
+            dining_tables.id AS id,
+            dining_tables.code AS code,
+            dining_tables.capacity AS capacity,
+            table_qr_codes.token AS activeQrToken,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.public_id AS sessionPublicId
+        FROM dining_tables
+        LEFT JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
+            AND table_qr_codes.status = 'ACTIVE'
+        LEFT JOIN sales_sessions ON sales_sessions.id = (
+            SELECT active_sessions.id
+            FROM sales_sessions active_sessions
+            WHERE active_sessions.table_id = dining_tables.id
+              AND active_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+            ORDER BY active_sessions.created_at ASC, active_sessions.id ASC
+            LIMIT 1
+        )
+        WHERE dining_tables.store_id = #{storeId}
+        ORDER BY dining_tables.code ASC
+    </select>
+
+    <select id="findActiveQrCodeByStoreIdAndTableId"
+            resultType="vn.cas.store.model.ActiveTableQrCode">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.code AS tableCode,
+            table_qr_codes.token AS token
+        FROM dining_tables
+        INNER JOIN table_qr_codes ON table_qr_codes.table_id = dining_tables.id
+            AND table_qr_codes.status = 'ACTIVE'
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+    </select>
+
+    <update id="revokeActiveQrCode">
+        UPDATE table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        SET table_qr_codes.status = 'REVOKED',
+            table_qr_codes.revoked_at = #{revokedAt}
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+          AND table_qr_codes.status = 'ACTIVE'
+    </update>
+
+    <delete id="deleteDiningTable">
+        DELETE FROM dining_tables
+        WHERE store_id = #{storeId}
+          AND id = #{tableId}
+    </delete>
+
+    <delete id="deleteTableQrCodes">
+        DELETE table_qr_codes
+        FROM table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+    </delete>
+
+    <select id="findTableByActiveQrTokenForUpdate"
+            resultType="vn.cas.store.model.QrTableLookup">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode
+        FROM table_qr_codes
+        INNER JOIN dining_tables ON dining_tables.id = table_qr_codes.table_id
+        WHERE table_qr_codes.token = #{qrToken}
+          AND table_qr_codes.status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="findTableByStoreIdAndCodeForUpdate"
+            resultType="vn.cas.store.model.QrTableLookup">
+        SELECT
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode
+        FROM dining_tables
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.code = #{tableCode}
+        FOR UPDATE
+    </select>
+
+    <select id="findJoinableDineInSessionsByTableId"
+            resultType="vn.cas.store.model.JoinableSalesSession">
+        SELECT
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.status AS sessionStatus
+        FROM sales_sessions
+        WHERE sales_sessions.table_id = #{tableId}
+          AND sales_sessions.session_type = 'DINE_IN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY sales_sessions.created_at ASC, sales_sessions.id ASC
+    </select>
+
+    <select id="findActiveDineInSessionsByStoreId"
+            resultType="vn.cas.store.model.OperatorTableSession">
+        SELECT
+            sales_sessions.table_id AS tableId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.opened_by_customer_name AS customerName,
+            sales_sessions.status AS sessionStatus
+        FROM sales_sessions
+        WHERE sales_sessions.store_id = #{storeId}
+          AND sales_sessions.session_type = 'DINE_IN'
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY sales_sessions.table_id ASC, sales_sessions.created_at ASC, sales_sessions.id ASC
+    </select>
+
+    <select id="findActiveTakeawaySessionsByStoreId" resultType="vn.cas.store.model.JoinableSalesSession">
+        SELECT public_id AS sessionPublicId, opened_by_customer_name AS customerName,
+               status AS sessionStatus
+        FROM sales_sessions
+        WHERE store_id = #{storeId} AND session_type = 'TAKEAWAY'
+          AND status IN ('OPEN', 'PAYMENT_PENDING')
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <select id="findCurrentSalesSessionByPublicId"
+            resultType="vn.cas.store.model.SalesSessionLookup">
+        SELECT
+            sales_sessions.id AS sessionId,
+            dining_tables.id AS tableId,
+            sales_sessions.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+    </select>
+
+    <select id="findCurrentSalesSessionByPublicIdForUpdate"
+            resultType="vn.cas.store.model.SalesSessionLookup">
+        SELECT
+            sales_sessions.id AS sessionId,
+            dining_tables.id AS tableId,
+            sales_sessions.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+          AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        FOR UPDATE
+    </select>
+
+    <select id="findSalesSessionByPublicIdForUpdate" resultType="vn.cas.store.model.SalesSessionLookup">
+        SELECT sales_sessions.id AS sessionId, sales_sessions.table_id AS tableId,
+               sales_sessions.store_id AS storeId, dining_tables.code AS tableCode,
+               sales_sessions.client_account_id AS clientAccountId,
+               sales_sessions.selected_promotion_id AS selectedPromotionId,
+               sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+               sales_sessions.public_id AS sessionPublicId, sales_sessions.status AS sessionStatus,
+               sales_sessions.session_type AS sessionType
+        FROM sales_sessions
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.public_id = #{sessionPublicId}
+        FOR UPDATE
+    </select>
+
+    <select id="findSalesSessionByStoreIdAndTableIdForUpdate"
+            resultType="vn.cas.store.model.SalesSessionLookup">
+        SELECT
+            sales_sessions.id AS sessionId,
+            dining_tables.id AS tableId,
+            dining_tables.store_id AS storeId,
+            dining_tables.code AS tableCode,
+            sales_sessions.client_account_id AS clientAccountId,
+            sales_sessions.selected_promotion_id AS selectedPromotionId,
+            sales_sessions.selected_promotion_code_id AS selectedPromotionCodeId,
+            sales_sessions.public_id AS sessionPublicId,
+            sales_sessions.status AS sessionStatus,
+            sales_sessions.session_type AS sessionType
+        FROM dining_tables
+        LEFT JOIN sales_sessions ON sales_sessions.table_id = dining_tables.id
+            AND sales_sessions.session_type = 'DINE_IN'
+            AND sales_sessions.status IN ('OPEN', 'PAYMENT_PENDING')
+        WHERE dining_tables.store_id = #{storeId}
+          AND dining_tables.id = #{tableId}
+        ORDER BY sales_sessions.created_at ASC, sales_sessions.id ASC
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
+    <select id="hasOrders" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM orders
+            WHERE sales_session_id = #{sessionId}
+        )
+    </select>
+
+    <update id="closeSessionWithoutOrders">
+        UPDATE sales_sessions
+        SET status = 'CLOSED', closed_at = CURRENT_TIMESTAMP(3)
+        WHERE id = #{sessionId}
+          AND status = 'OPEN'
+    </update>
+
+    <select id="findClientAccountIdByStoreIdAndPhone" resultType="long">
+        SELECT id
+        FROM client_accounts
+        WHERE store_id = #{storeId}
+          AND phone = #{phone}
+    </select>
+
+    <insert id="insertClientAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_accounts (
+            store_id,
+            phone,
+            display_name
+        ) VALUES (
+            #{storeId},
+            #{customerPhone},
+            #{customerName}
+        )
+    </insert>
+
+    <insert id="insertOpenDineInSalesSession">
+        INSERT INTO sales_sessions (
+            store_id,
+            session_type,
+            table_id,
+            public_id,
+            client_account_id,
+            opened_by_customer_name,
+            opened_by_customer_phone,
+            status,
+            payment_requested_at,
+            closed_at
+        ) SELECT
+            dining_tables.store_id,
+            'DINE_IN',
+            dining_tables.id,
+            #{publicId},
+            #{clientAccountId},
+            #{customerName},
+            #{customerPhone},
+            'OPEN',
+            NULL,
+            NULL
+        FROM dining_tables
+        WHERE dining_tables.id = #{tableId}
+    </insert>
+
+    <insert id="insertOpenTakeawaySalesSession">
+        INSERT INTO sales_sessions (
+            store_id,
+            session_type,
+            table_id,
+            public_id,
+            client_account_id,
+            opened_by_customer_name,
+            opened_by_customer_phone,
+            status,
+            payment_requested_at,
+            closed_at
+        ) VALUES (
+            #{storeId},
+            'TAKEAWAY',
+            NULL,
+            #{publicId},
+            #{clientAccountId},
+            #{customerName},
+            #{customerPhone},
+            'OPEN',
+            NULL,
+            NULL
+        )
+    </insert>
+    <update id="moveSessionToPaymentPending">UPDATE sales_sessions SET status='PAYMENT_PENDING', payment_requested_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='OPEN'</update>
+    <update id="closePaymentSession">UPDATE sales_sessions SET status='CLOSED', closed_at=CURRENT_TIMESTAMP(3) WHERE id=#{sessionId} AND status='PAYMENT_PENDING'</update>
+</mapper>

@@ -1,17 +1,16 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../../lib/format-money";
 import Image from "next/image";
 
 import { ItemQuantityControl } from "../../customer/item-quantity-control";
-import {
-  CustomerOrderVoucherSummary,
-  type VoucherSummary,
-} from "../../customer/customer-order-voucher-summary";
 import { CasIcon } from "../../ui/cas-icon";
 import type { TableOption } from "./operator-table-select-modal";
 
 export type CartItem = {
   cartItemId: string;
+  menuItemId: number;
+  optionValueIds: number[];
   name: string;
   imageSrc: string;
   imageAlt: string;
@@ -28,17 +27,14 @@ type OperatorCartPanelProps = {
   orderNote: string;
   isSubmitting: boolean;
   onChangeTableClick: () => void;
+  onCancelSalesSession?: () => void;
   onUpdateQuantity: (cartItemId: string, delta: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onClearCart: () => void;
   onOrderNoteChange: (note: string) => void;
   onSubmitOrder: () => void;
   onCloseMobileDrawer?: () => void;
-  onVoucherSummaryChange: (summary: VoucherSummary) => void;
-  voucherSummary: VoucherSummary;
 };
-
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 
 export function OperatorCartPanel({
   selectedTable,
@@ -46,20 +42,19 @@ export function OperatorCartPanel({
   orderNote,
   isSubmitting,
   onChangeTableClick,
+  onCancelSalesSession,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
   onOrderNoteChange,
   onSubmitOrder,
-  onVoucherSummaryChange,
-  voucherSummary,
   onCloseMobileDrawer,
 }: OperatorCartPanelProps) {
   const totalItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalCartAmount = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-[1.4rem] border border-cas-outline-variant/30 bg-cas-surface shadow-[0_8px_24px_var(--cas-shadow-color)]">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-[1.4rem] border border-cas-outline-variant/30 bg-cas-surface shadow-[0_8px_24px_var(--cas-shadow-color)] lg:rounded-none">
       {/* Table Context Header */}
       <div className="shrink-0 border-b border-cas-outline-variant/20 bg-cas-secondary-container/15 p-4 sm:p-5">
         <div className="flex items-center justify-between">
@@ -73,24 +68,38 @@ export function OperatorCartPanel({
                   {selectedTable.label}
                 </h3>
                 <span className="rounded-full bg-cas-secondary-container/30 px-2 py-0.5 text-[0.68rem] font-bold text-cas-secondary">
-                  Phiên đang mở
+                  {selectedTable.sessionPublicId ? "Phiên đang mở" : "Chưa chọn phiên"}
                 </span>
               </div>
               {selectedTable.customerName && (
                 <p className="text-xs text-cas-on-surface-variant">
-                  Khách: {selectedTable.customerName} ({selectedTable.customerPhone})
+                  Khách: {selectedTable.customerName}
+                  {selectedTable.customerPhone
+                    ? ` (${selectedTable.customerPhone})`
+                    : selectedTable.id.startsWith("takeaway:")
+                      ? ""
+                      : " (Khách lẻ)"}
                 </p>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {selectedTable.sessionPublicId && onCancelSalesSession ? (
+              <button
+                type="button"
+                onClick={onCancelSalesSession}
+                className="rounded-xl border border-cas-error/30 bg-cas-error-container/35 px-2.5 py-1 text-xs font-extrabold text-cas-on-error-container transition hover:bg-cas-error-container/55 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
+              >
+                Hủy phiên
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onChangeTableClick}
               className="rounded-xl border border-cas-secondary/40 bg-cas-glass px-2.5 py-1 text-xs font-extrabold text-cas-secondary transition hover:bg-cas-secondary-container/30 focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
             >
-              Chọn bàn khác
+              Chọn phiên khác
             </button>
             {onCloseMobileDrawer && (
               <button
@@ -133,7 +142,9 @@ export function OperatorCartPanel({
               <span className="grid size-12 place-items-center rounded-2xl bg-cas-outline-variant/20 text-cas-on-surface-variant/60">
                 <CasIcon className="size-6" name="basket" />
               </span>
-              <p className="mt-3 text-sm font-bold text-cas-on-surface">Chưa có món nào trong đơn</p>
+              <p className="mt-3 text-sm font-bold text-cas-on-surface">
+                Chưa có món nào trong đơn
+              </p>
               <p className="mt-1 text-xs text-cas-on-surface-variant/80">
                 Nhấp chọn món ở danh mục bên trái để đưa món vào đơn
               </p>
@@ -229,11 +240,6 @@ export function OperatorCartPanel({
             />
           </label>
         </section>
-
-        <CustomerOrderVoucherSummary
-          originalAmount={totalCartAmount}
-          onSummaryChange={onVoucherSummaryChange}
-        />
       </div>
 
       {/* Summary Footer - Identical to Customer Cart */}
@@ -241,10 +247,10 @@ export function OperatorCartPanel({
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[0.68rem] font-semibold text-cas-on-surface-variant">
-              {voucherSummary.discountAmount > 0 ? "Cần thanh toán" : "Tạm tính"} ({totalItemCount} món)
+              Tạm tính ({totalItemCount} món)
             </p>
             <strong className="text-lg font-extrabold text-cas-primary">
-              {formatPrice(voucherSummary.payableAmount)}
+              {formatPrice(totalCartAmount)}
             </strong>
           </div>
         </div>

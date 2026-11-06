@@ -6,7 +6,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 
 - Quản lý cửa hàng, bàn và mã QR.
 - Quản lý menu.
-- Phiên sử dụng bàn.
+- Phiên bán hàng tại bàn và mang về.
 - Gọi món và xử lý order.
 - Yêu cầu thanh toán và xác nhận trạng thái thủ công.
 - Tài khoản, phân quyền theo role và nhật ký cơ bản.
@@ -20,7 +20,7 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 - Tất cả thời gian nghiệp vụ được lưu theo múi giờ Việt Nam `Asia/Ho_Chi_Minh` (`UTC+07:00`).
 - Các bảng nghiệp vụ có `created_at` và `updated_at` khi phù hợp.
 - Order và payment không bị xóa vật lý.
-- Dữ liệu cha đang được tham chiếu không bị xóa vật lý; tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
+- Dữ liệu cha đang được tham chiếu không bị xóa vật lý; các foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`. Khi xóa bàn, Backend xóa QR của bàn trong cùng transaction trước khi xóa bản ghi `dining_tables`.
 - Quy tắc nghiệp vụ được kiểm tra trong Java, không dùng MySQL `CHECK` constraint.
 - Thông tin order được lưu theo các cột nghiệp vụ.
 - Toàn bộ nội dung bill được lưu trong JSON snapshot khi tạo payment và khi ghi nhận khoản chưa thanh toán.
@@ -73,8 +73,8 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Menu | `option_groups` | Nhóm lựa chọn dùng chung hoặc thuộc cửa hàng (như Kích thước, Đường, Topping) |
 | Menu | `option_values` | Các giá trị bên trong nhóm lựa chọn (như Size L, 50%, Trân châu) |
 | Menu | `menu_item_option_groups` | Liên kết nhiều-nhiều giữa món và nhóm lựa chọn |
-| Phiên bàn | `table_sessions` | Lượt sử dụng bàn |
-| Order | `orders` | Các order thuộc mỗi phiên bàn |
+| Phiên bán hàng | `sales_sessions` | Lượt bán tại bàn hoặc mang về |
+| Order | `orders` | Các order thuộc mỗi sales session |
 | Order | `order_items` | Các món trong order |
 | Order | `order_item_options` | Các option thực tế đã chọn cho từng dòng món |
 | Order | `order_item_cancellation_requests` | Yêu cầu hủy món và kết quả xử lý |
@@ -85,12 +85,13 @@ Tài liệu mô tả mô hình dữ liệu cơ bản cho CAS, bao gồm:
 | Tài khoản khách | `client_accounts` | Thông tin khách hàng mở phiên bàn |
 | Vận hành | `operational_incidents` | Báo cáo sự cố phát sinh do nhân viên vận hành ghi nhận trong ca |
 | Vận hành | `audit_logs` | Nhật ký thao tác quan trọng |
-| Khuyến mãi | `promotions` | Chương trình khuyến mãi, mã nhập và loại ưu đãi |
+| Khuyến mãi | `promotions` | Chương trình khuyến mãi và loại ưu đãi |
+| Mã khuyến mãi | `promotion_codes` | Mã nhập tùy chọn của chương trình khuyến mãi |
 | Khuyến mãi | `promotion_targets` | Phạm vi áp dụng theo món hoặc danh mục |
 | Khuyến mãi | `promotion_redemptions` | Lịch sử chương trình đã được sử dụng |
-| Giảm giá bill | `bill_discounts` | Snapshot discount thực tế áp dụng cho bill của table session |
+| Giảm giá bill | `bill_discounts` | Snapshot discount thực tế áp dụng cho bill của sales session |
 | Thông báo | `system_notifications` | Thông báo hệ thống và tin tức vận hành |
-| Người nhận thông báo | `system_notification_recipients` | Trạng thái đã đọc/chưa đọc của từng người nhận |
+| Người nhận thông báo | `system_notification_recipients` | Trạng thái đọc của từng account hoặc sales session nhận thông báo |
 
 Các tên trên là tên vật lý dự kiến dùng trong MySQL.
 
@@ -100,7 +101,7 @@ Các tên trên là tên vật lý dự kiến dùng trong MySQL.
 stores
   ├── dining_tables
   │     ├── table_qr_codes
-  │     └── table_sessions
+  │     └── sales_sessions (`DINE_IN`)
   │            ├── orders
   │            │     └── order_items
   │            │            ├── order_item_options
@@ -141,21 +142,50 @@ Lưu thông tin cửa hàng.
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh cửa hàng |
-| `name` | `VARCHAR(150) NOT NULL` | Tên cửa hàng |
+| `name` | `VARCHAR(150) NOT NULL` | Tên cơ sở/chi nhánh |
 | `address` | `VARCHAR(500) NOT NULL` | Địa chỉ cửa hàng |
 | `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại hotline |
 | `email` | `VARCHAR(254) NOT NULL` | Email liên hệ |
 | `google_maps_location` | `VARCHAR(2048) NULL` | Đường dẫn Google Maps hoặc cặp tọa độ vị trí cửa hàng |
+| `latitude` | `DECIMAL(10,8) NULL` | Vĩ độ cửa hàng, dùng để chọn chi nhánh gần nhất |
+| `longitude` | `DECIMAL(11,8) NULL` | Kinh độ cửa hàng, dùng để chọn chi nhánh gần nhất |
 | `open_time` | `TIME NOT NULL` | Giờ mở cửa theo giờ địa phương của cửa hàng |
 | `close_time` | `TIME NOT NULL` | Giờ đóng cửa theo giờ địa phương của cửa hàng |
-| `welcome_slogan` | `VARCHAR(500) NULL` | Thông điệp/slogan chào mừng hiển thị cho khách |
 | `long_wait_warning_minutes` | `SMALLINT UNSIGNED NOT NULL DEFAULT 25` | Ngưỡng cảnh báo bàn chờ lâu, tính theo phút |
 | `timezone` | `VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh'` | Múi giờ vận hành, dùng cố định `Asia/Ho_Chi_Minh` (`UTC+07:00`) |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái hoạt động |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Hệ thống hiện vận hành một cửa hàng nhưng vẫn giữ entity `stores` để dữ liệu có ngữ cảnh rõ ràng. Các trường liên hệ, vị trí, giờ hoạt động và slogan được `ADMIN` cấu hình từ màn hình Settings; Customer có thể dùng dữ liệu công khai này để xem thông tin cửa hàng. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
+`stores` chỉ quản lý thông tin cơ sở: tên chi nhánh, liên hệ, vị trí và giờ hoạt động. Logo và slogan không nằm trong bảng này. CAS không lưu thông tin tài khoản ngân hàng. Giá trị `stores.timezone` mặc định là `Asia/Ho_Chi_Minh` và không cho phép thay đổi.
+
+### 3.2. Cấu hình thương hiệu chung (`brand_settings`)
+
+`brand_settings` là singleton (`id = 1`) dùng chung toàn hệ thống. Nó lưu `name`, `logo_url`, `logo_storage_key` và `welcome_slogan`. Migration khởi tạo bản ghi này bằng tên, logo và slogan của cơ sở `id = 1`; migration kế tiếp xóa các cột logo/slogan khỏi `stores`. Logo mới được upload vào thư mục Cloudinary dùng chung `cas/brand`. Chỉ `SUPER_ADMIN` được cập nhật; `ADMIN` chỉ cập nhật `stores` trong cơ sở được chọn.
+
+#### `store_banners`
+
+Lưu một cấu hình Welcome duy nhất cho mỗi cửa hàng. Record này chứa 2 ảnh Hero, 5 ảnh xem trước Menu và 1 ảnh Banner; các thông tin cửa hàng đã có trong `stores` không lặp lại ở đây.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `store_id` | `BIGINT UNSIGNED NOT NULL UNIQUE` | Cửa hàng sở hữu một cấu hình Welcome |
+| `hero_primary_image_url` | `VARCHAR(2048) NULL` | URL ảnh Hero chính |
+| `hero_primary_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Hero chính |
+| `hero_secondary_image_url` | `VARCHAR(2048) NULL` | URL ảnh Hero phụ |
+| `hero_secondary_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Hero phụ |
+| `menu_preview_1_image_url` … `menu_preview_5_image_url` | `VARCHAR(2048) NULL` | URL 5 ảnh xem trước Menu, theo thứ tự hiển thị cố định |
+| `menu_preview_1_image_storage_key` … `menu_preview_5_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary tương ứng của 5 ảnh xem trước Menu |
+| `banner_image_url` | `VARCHAR(2048) NULL` | URL ảnh Banner |
+| `banner_image_storage_key` | `VARCHAR(512) NULL` | Khóa Cloudinary của ảnh Banner |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | `ACTIVE` hoặc `INACTIVE` |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo banner |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Backend chỉ trả record `ACTIVE` của store cho Customer. Mỗi store có đúng một record nhờ unique `store_id`; frontend dùng từng field đúng vị trí cố định. Không có `start_at`/`end_at`; Admin bật hoặc tắt toàn bộ cấu hình Welcome bằng `status`. Migration có foreign key `store_id`, `created_by`, `updated_by` với `ON DELETE RESTRICT ON UPDATE RESTRICT`.
 
 #### `dining_tables`
 
@@ -166,10 +196,14 @@ Lưu thông tin bàn.
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bàn |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
 | `code` | `INT UNSIGNED NOT NULL` | Mã bàn |
+| `capacity` | `SMALLINT UNSIGNED NULL` | Sức chứa bàn, nếu cửa hàng cần quản lý |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo bàn |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Trạng thái bàn trống hay đang có khách được suy ra từ việc tồn tại một `table_sessions` trạng thái `OPEN` hoặc `PAYMENT_PENDING`, không lưu trong `dining_tables`.
+Trạng thái bàn trống hay đang có khách được suy ra từ một `sales_sessions` loại
+`DINE_IN` trạng thái `OPEN` hoặc `PAYMENT_PENDING`, không lưu trong
+`dining_tables`.
 
 #### `table_qr_codes`
 
@@ -214,6 +248,7 @@ Lưu thông tin món.
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh món |
 | `category_id` | `BIGINT UNSIGNED NOT NULL` | Danh mục |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng, được lưu dư thừa có kiểm soát để DB bảo đảm món và danh mục cùng cửa hàng |
 | `name` | `VARCHAR(150) NOT NULL` | Tên món |
 | `description` | `TEXT NULL` | Mô tả |
 | `price` | `DECIMAL(15,2) NOT NULL` | Giá hiện tại |
@@ -235,6 +270,7 @@ Lưu các nhãn dùng chung trong phạm vi cửa hàng, ví dụ `Bán chạy` 
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nhãn |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu nhãn |
 | `name` | `VARCHAR(150) NOT NULL` | Tên nhãn |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng nhãn |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -246,9 +282,11 @@ Liên kết nhiều-nhiều giữa `menu_items` và `tags`. Một menu item có 
 |---|---|---|
 | `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Menu item được gắn nhãn |
 | `tag_id` | `BIGINT UNSIGNED NOT NULL` | Nhãn được gắn |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng, dùng trong composite FK để menu item và tag phải cùng cửa hàng |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm gắn nhãn |
 
 Hệ thống không giới hạn tag theo `category_type`; tag có thể gắn với bất kỳ bản ghi nào trong `menu_items`.
+Composite FK trên `(menu_item_id, store_id)` và `(tag_id, store_id)` ngăn liên kết menu item với tag của cửa hàng khác.
 
 #### `option_groups`
 
@@ -264,6 +302,8 @@ Lưu các nhóm lựa chọn của cửa hàng như `Kích thước`, `Độ ng�
 | `max_select` | `SMALLINT UNSIGNED NULL` | Số lựa chọn tối đa; `NULL` nghĩa là không giới hạn |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo nhóm option |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -282,6 +322,8 @@ Lưu các giá trị cụ thể nằm bên trong nhóm lựa chọn (ví dụ: `
 | `is_default` | `BOOLEAN NOT NULL DEFAULT FALSE` | Giá trị mặc định của nhóm |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái sử dụng |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin tạo option value |
+| `updated_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin cập nhật gần nhất |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
@@ -294,6 +336,7 @@ Liên kết nhiều-nhiều giữa `menu_items` và `option_groups` để xác �
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh liên kết |
 | `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Món áp dụng |
 | `option_group_id` | `BIGINT UNSIGNED NOT NULL` | Nhóm lựa chọn được áp dụng |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng, dùng trong composite FK để món và nhóm option phải cùng cửa hàng |
 | `display_order` | `INT UNSIGNED NOT NULL DEFAULT 0` | Thứ tự hiển thị nhóm trong món |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm liên kết |
 
@@ -316,13 +359,18 @@ Trà sữa (menu_items)
 
 Category loại `OPTION` không hiển thị như danh mục món chính trên giao diện khách. Một option có thể được liên kết với nhiều nhóm của nhiều món. Menu item loại option không được có option group con.
 
-Ảnh món được quản lý qua CAS Backend. Backend nhận file từ giao diện admin, upload lên Cloudinary bằng authenticated API, sau đó lưu URL hiển thị vào `image_url` và khóa asset vào `image_storage_key`. Frontend không upload trực tiếp lên Cloudinary.
+`menu_items.store_id` phải khớp `categories.store_id`. Composite FK của
+`menu_item_option_groups` tiếp tục bảo đảm menu item và option group cùng cửa hàng.
+
+Ảnh được Frontend upload trực tiếp lên Cloudinary bằng chữ ký ngắn hạn do API chung `POST /api/v1/admin/images/upload-signature` cấp theo `purpose` (`MENU_ITEM`, `BRAND_LOGO` hoặc `WELCOME`). Frontend gửi URL hiển thị và Cloudinary public ID về Backend để lưu lần lượt vào cột `*_image_url`/`*_image_storage_key` hoặc `brand_settings.logo_url`/`logo_storage_key`; API secret không rời Backend.
+
+Khi một ảnh được thay hoặc bỏ khỏi dữ liệu bền vững, Backend chỉ gọi Cloudinary xóa `storage_key` cũ sau khi transaction MySQL đã commit. Nếu xóa Cloudinary thất bại, dữ liệu mới vẫn giữ nguyên và lỗi được ghi log để xử lý lại.
 
 ### 5.3. Khuyến mãi và snapshot discount
 
 Tất cả record của mô hình khuyến mãi và snapshot discount phải có `store_id`
 để dữ liệu luôn được xác định trong đúng cửa hàng khi CAS mở rộng thành chuỗi.
-Backend phải kiểm tra store của promotion, table session, order, order item,
+Backend phải kiểm tra store của promotion, sales session, order, order item,
 payment và code trước mọi thao tác áp dụng hoặc xác nhận redemption.
 
 #### `promotions`
@@ -336,10 +384,9 @@ cơ bản được lưu trực tiếp trong bảng để mô hình giai đoạn 
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu promotion |
 | `name` | `VARCHAR(150) NOT NULL` | Tên chương trình để hiển thị và snapshot |
-| `code` | `VARCHAR(50) NOT NULL` | Mã nhập của promotion, như `ZALO10` hoặc `TET2027`; unique theo store |
 | `promotion_type` | `VARCHAR(30) NOT NULL` | `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` hoặc `ITEM_FIXED_OFF` |
 | `discount_value` | `DECIMAL(15,2) NULL` | Giá trị giảm khi loại promotion sử dụng giá trị này |
-| `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF`; `NULL` là không giới hạn |
+| `max_discount_amount` | `DECIMAL(15,2) NULL` | Mức giảm tối đa cho `PERCENT_OFF` hoặc `ITEM_PERCENT_OFF`; `NULL` là không giới hạn |
 | `min_bill_amount` | `DECIMAL(15,2) NULL` | Giá trị bill tối thiểu; `NULL` là không yêu cầu |
 | `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn tổng redemption `COMPLETED`; `NULL` là không giới hạn |
 | `max_redemptions_per_customer` | `INT UNSIGNED NULL` | Giới hạn số bill mỗi khách dùng promotion; `NULL` là không giới hạn |
@@ -353,32 +400,62 @@ Promotion hết hạn được suy ra khi `now > end_at`; không có trạng th�
 được lưu. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn không thuộc mô
 hình hiện tại; chỉ tách bảng điều kiện khi cần mở rộng các rule đó.
 
+#### `promotion_codes`
+
+Lưu mã nhập tùy chọn của promotion. Một promotion có thể không có code (tự động
+áp dụng khi thỏa điều kiện) hoặc có một hay nhiều code.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu code |
+| `promotion_id` | `BIGINT UNSIGNED NOT NULL` | Promotion của code |
+| `code` | `VARCHAR(100) NOT NULL` | Mã khách nhập, unique trong store |
+| `max_redemptions` | `INT UNSIGNED NULL` | Giới hạn lượt `RESERVED`, `COMPLETED` và `FORFEITED` của riêng code; `NULL` là không giới hạn |
+| `deleted_at` | `DATETIME(3) NULL` | Thời điểm xóa mềm; `NULL` là mã còn hiệu lực |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Mã được xóa mềm kể cả khi đã sử dụng; ID, tham chiếu và snapshot thanh toán được
+giữ lại. Mã đã xóa không được chọn hoặc áp dụng mới; có thể thêm lại vào chính
+promotion với cùng ID. Một promotion từng có mã không tự trở thành khuyến mãi
+công khai khi mọi mã bị xóa.
+
 #### `promotion_targets`
 
 Lưu phạm vi áp dụng của promotion. Mỗi record có `id`, `store_id`,
 `promotion_id`, `target_type` (`MENU_ITEM` hoặc `CATEGORY`) và `target_id`.
 Promotion không có record target áp dụng trên toàn bộ bill theo điều kiện cơ bản
-của chương trình.
+của chương trình. Vì `target_id` là liên kết đa hình nên không có foreign key
+vật lý: khi tạo hoặc cập nhật record, backend phải phân luồng theo
+`target_type`, chỉ chấp nhận `MENU_ITEM` hoặc `CATEGORY`, rồi kiểm tra
+`target_id` thực sự tồn tại lần lượt trong `menu_items` hoặc `categories` và
+thuộc cùng `store_id` với promotion trước khi ghi dữ liệu.
 
 #### `promotion_redemptions`
 
-Lưu lịch sử sử dụng sau khi payment của table session đã chuyển `PAID`. Mỗi
-record có `store_id`, `promotion_id`, `client_account_id`, `table_session_id`,
+Lưu lịch sử sử dụng sau khi payment của sales session đã chuyển `PAID`. Mỗi
+record có `store_id`, `promotion_id`, `client_account_id`, `sales_session_id`,
 `payment_id`, `status`, `created_at` và `reversed_at` khi phù hợp. Trạng thái
 gồm `COMPLETED` và `REVERSED`; redemption `REVERSED` không được tính vào quota
 sử dụng. Backend kiểm tra quota theo promotion và `client_account_id` trong
 transaction tạo redemption.
 
+Promotion quota is consumed at payment-request creation, not at confirmation. Redemption status
+is `RESERVED` while the payment is pending, `COMPLETED` after confirmation, or `FORFEITED` when
+the session is recorded unpaid; all three states count against quota. `REVERSED` is the only
+state that releases quota. The promotion row is locked while the reservation is created.
+
 #### `bill_discounts`
 
-Promotion được chọn cho toàn bộ bill của table session. Trước khi tạo payment,
+Promotion được chọn cho toàn bộ bill của sales session. Trước khi tạo payment,
 backend có thể tính lại discount khi order của session thay đổi. Khi session
 chuyển `PAYMENT_PENDING`, các bảng snapshot discount được khóa bất biến.
 
 Mỗi record snapshot có `store_id` và phải lưu tối thiểu `promotion_id`,
 `promotion_name`, `code`, `promotion_type`, `discount_value`, `discount_amount`,
 `max_discount_amount`, các điều kiện quan trọng và `promotion_snapshot` dạng
-JSON. `bill_discounts` gắn với `table_session_id` và bill/payment khi đã được
+JSON. `bill_discounts` gắn với `sales_session_id` và bill/payment khi đã được
 tạo; không phân bổ discount cấp bill xuống từng order hoặc từng dòng món trong
 giai đoạn hiện tại.
 
@@ -386,37 +463,94 @@ Giá niêm yết `menu_items.price` không bị sửa khi chạy promotion. Snap
 discount là nguồn xác định số tiền giảm của bill lịch sử khi promotion hoặc code
 thay đổi sau này.
 
-### 5.4. Phiên sử dụng bàn
+#### `system_notifications`
 
-#### `table_sessions`
-
-Đại diện cho một lượt khách sử dụng bàn.
+Lưu notification broadcast do `ADMIN` phát hành cho Operator, Customer hoặc cả hai.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh phiên |
-| `table_id` | `BIGINT UNSIGNED NOT NULL` | Bàn |
-| `public_id` | `CHAR(36) NOT NULL` | UUID dùng ở giao diện khách |
-| `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản khách đầu tiên mở phiên bàn |
-| `opened_by_customer_name` | `VARCHAR(150) NOT NULL` | Tên khách đầu tiên mở phiên bàn |
-| `opened_by_customer_phone` | `VARCHAR(20) NOT NULL` | Số điện thoại khách đầu tiên mở phiên bàn |
-| `status` | `VARCHAR(20) NOT NULL` | Trạng thái phiên |
-| `payment_requested_at` | `DATETIME(3) NULL` | Thời điểm khách yêu cầu thanh toán, để trống khi chưa yêu cầu |
-| `closed_at` | `DATETIME(3) NULL` | Thời điểm đóng |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phiên bắt đầu |
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh notification |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng phát hành notification |
+| `title` | `VARCHAR(200) NOT NULL` | Tiêu đề |
+| `content` | `TEXT NOT NULL` | Nội dung |
+| `type` | `VARCHAR(20) NOT NULL DEFAULT 'INFO'` | Mức độ notification |
+| `target_role` | `VARCHAR(20) NOT NULL DEFAULT 'BOTH'` | Đối tượng nhận: `OPERATOR`, `CUSTOMER` hoặc `BOTH` |
+| `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin phát hành |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phát hành |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Table session ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` được xem là đang chiếm dụng bàn. Mỗi bàn chỉ được có tối đa một session đang chiếm dụng tại cùng một thời điểm. Người đầu tiên mở phiên bàn cần nhập tên và số điện thoại. Hệ thống tạo hoặc tìm `client_accounts` theo số điện thoại rồi gắn vào session qua `client_account_id`. Nhiều điện thoại quét cùng QR sau đó sẽ dùng chung session đang chiếm dụng, không cần nhập lại thông tin khách và nhìn thấy cùng danh sách order của phiên bàn.
+#### `system_notification_recipients`
 
-Khi khách yêu cầu thanh toán, session chuyển sang `PAYMENT_PENDING`, không nhận thêm món và vẫn chiếm dụng bàn. Chỉ khi session được đóng mới có thể tạo session mới cho cùng bàn.
+Lưu trạng thái notification theo từng account Operator hoặc sales session Customer.
 
-Table session không lưu `is_paid`. Kết quả thanh toán được xác định từ `payments.status`; `unpaid_records` ghi nhận trường hợp phiên đã đóng khi payment vẫn `PENDING`, còn `table_sessions.status` chỉ quản lý vòng đời sử dụng bàn.
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh recipient |
+| `notification_id` | `BIGINT UNSIGNED NOT NULL` | Notification được nhận |
+| `account_id` | `BIGINT UNSIGNED NULL` | Account Operator nhận notification |
+| `sales_session_id` | `BIGINT UNSIGNED NULL` | Sales session Customer nhận notification |
+| `status` | `VARCHAR(20) NOT NULL DEFAULT 'UNREAD'` | Trạng thái `UNREAD` hoặc `READ` |
+| `read_at` | `DATETIME(3) NULL` | Thời điểm đã đọc |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo recipient |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+`CHECK` constraint bắt buộc đúng một trong `account_id` và `sales_session_id` có
+giá trị. Cặp `notification_id + account_id` và `notification_id + sales_session_id`
+là unique. Khi xóa `system_notifications`, database tự xóa các
+`system_notification_recipients` liên quan qua foreign key `ON DELETE CASCADE`.
+
+### 5.4. Aggregate bán hàng mục tiêu
+
+#### `sales_sessions`
+
+`sales_sessions` là aggregate chung gom các lần gửi món, bill, payment, khoản
+chưa thanh toán và trạng thái vòng đời bán hàng. Cả đơn tại bàn và đơn mang về
+đều dùng aggregate này; schema không còn bảng `sales_sessions`.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ aggregate bán hàng |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng sở hữu đơn |
+| `session_type` | `VARCHAR(20) NOT NULL` | `DINE_IN` hoặc `TAKEAWAY` |
+| `table_id` | `BIGINT UNSIGNED NULL` | Bắt buộc khi `DINE_IN`, phải là `NULL` khi `TAKEAWAY` |
+| `client_account_id` | `BIGINT UNSIGNED NOT NULL` | Khách mở phiên bán hàng |
+| `opened_by_customer_name` | `VARCHAR(150) NOT NULL` | Snapshot tên khách mở phiên |
+| `opened_by_customer_phone` | `VARCHAR(20) NULL` | Snapshot SĐT khách mở phiên; `NULL` khi khách lẻ |
+| `selected_promotion_id` | `BIGINT UNSIGNED NULL` | Promotion đang được chọn tạm thời khi session còn `OPEN` |
+| `selected_promotion_code_id` | `BIGINT UNSIGNED NULL` | Mã promotion đang được chọn nếu có |
+| `status` | `VARCHAR(20) NOT NULL` | `OPEN`, `PAYMENT_PENDING` hoặc `CLOSED` |
+| `payment_requested_at` | `DATETIME(3) NULL` | Thời điểm tạo yêu cầu thanh toán |
+| `closed_at` | `DATETIME(3) NULL` | Thời điểm đóng phiên bán hàng |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm mở phiên |
+| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
+
+Ràng buộc dữ liệu:
+
+- `session_type = DINE_IN` bắt buộc có `table_id`; `session_type = TAKEAWAY`
+  bắt buộc `table_id` là `NULL`.
+- `DINE_IN` ở `OPEN` hoặc `PAYMENT_PENDING` chiếm bàn; một bàn có thể có nhiều
+  session đang chiếm dụng và chỉ được xem là trống khi không còn session nào như vậy.
+- Cả hai loại dùng cùng trạng thái `OPEN → PAYMENT_PENDING → CLOSED`, cùng
+  quy tắc order, hủy món, chế biến, promotion, payment, unpaid và audit log.
+- Customer có thể tạo `TAKEAWAY` từ browser sau khi chọn chi nhánh hoặc từ QR bàn;
+  QR chỉ xác định chi nhánh. Session này không gắn `table_id` và bắt buộc có tên cùng
+  SĐT. `TAKEAWAY` do `OPERATOR` tạo cũng dùng cùng quy tắc.
+- `orders`, `payments`, `unpaid_records`, `promotion_redemptions`,
+  `bill_discounts` và recipient Customer của notification tham chiếu
+  `sales_session_id`.
+
+`DINE_IN` ở trạng thái `OPEN` hoặc `PAYMENT_PENDING` chiếm dụng bàn. Khi yêu
+cầu thanh toán, sales session chuyển sang `PAYMENT_PENDING`, không nhận thêm
+món; chỉ `DINE_IN` tiếp tục chiếm dụng bàn đến khi được đóng. Sales session
+không lưu `is_paid`: `payments.status` là nguồn xác định kết quả thanh toán,
+còn `unpaid_records` ghi nhận phiên đã đóng khi payment vẫn `PENDING`.
 
 ### 5.5. Order
 
 #### `orders`
 
-Lưu một lần gửi món của một table session. Khách hoặc `OPERATOR` tạo order hộ có
+Lưu một lần gửi món của một sales session. Khách hoặc `OPERATOR` tạo order hộ có
 thể gửi món nhiều lần trong cùng session; mỗi lần gửi tạo một order riêng cho
 đến khi yêu cầu thanh toán.
 
@@ -424,7 +558,7 @@ thể gửi món nhiều lần trong cùng session; mỗi lần gửi tạo mộ
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh order |
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
-| `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn |
+| `sales_session_id` | `BIGINT UNSIGNED NOT NULL` | Sales session |
 | `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên tạo order hộ; `NULL` khi do Khách tự đặt qua QR |
 | `idempotency_key` | `VARCHAR(100) NOT NULL` | Khóa chống tạo order trùng cho một lần submit trong cùng phiên bàn |
 | `request_fingerprint` | `CHAR(64) NOT NULL` | SHA-256 dạng hexadecimal của payload order đã được backend chuẩn hóa |
@@ -435,7 +569,7 @@ thể gửi món nhiều lần trong cùng session; mỗi lần gửi tạo mộ
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Một `table_session_id` có thể xuất hiện ở nhiều bản ghi trong `orders`, tương ứng một session có nhiều order theo từng lần khách gửi món.
+Một `sales_session_id` có thể xuất hiện ở nhiều bản ghi trong `orders`, tương ứng một sales session có nhiều order theo từng lần gửi món.
 
 Danh sách đơn gọi món của Operation được sắp xếp FIFO theo
 `orders.created_at ASC`: order được tạo trước được ưu tiên lên món trước. Order
@@ -446,14 +580,14 @@ chính xác millisecond, thứ tự giữa chúng không cần được bảo đ
 khóa sắp xếp phụ.
 
 Dashboard Operation xác định order có `created_at` sớm nhất trong từng
-`table_session_id` mà vẫn còn ít nhất một phần chưa làm xong. Thời điểm của
+`sales_session_id` mà vẫn còn ít nhất một phần chưa làm xong. Thời điểm của
 order đó là mốc tính thời gian chờ của bàn; order gọi thêm không làm đặt lại mốc
 nếu order cũ hơn vẫn còn món cần làm. Chức năng cảnh báo này dùng dữ liệu hiện
 có, không bổ sung cột trạng thái hoặc cột thời gian chờ vào database; ngưỡng
 cảnh báo do `ADMIN` cấu hình tại `stores.long_wait_warning_minutes` và được
 backend áp dụng.
 
-`idempotency_key` do frontend tạo mới cho mỗi lần submit order và được lưu bền vững cùng order. Backend chuẩn hóa payload, tính SHA-256 và lưu vào `request_fingerprint`; client không được gửi hoặc quyết định fingerprint. Cặp `table_session_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo; nếu fingerprint khác, backend trả HTTP `409 Conflict`. Key không cần TTL và fingerprint không cần unique constraint.
+`idempotency_key` do frontend tạo mới cho mỗi lần submit order và được lưu bền vững cùng order. Backend chuẩn hóa payload, tính SHA-256 và lưu vào `request_fingerprint`; client không được gửi hoặc quyết định fingerprint. Cặp `sales_session_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng fingerprint trả về order đã tạo; nếu fingerprint khác, backend trả HTTP `409 Conflict`. Key không cần TTL và fingerprint không cần unique constraint.
 
 Order do `OPERATOR` tạo hộ dùng cùng cấu trúc dữ liệu và quy tắc tính tiền với
 order do Customer gửi. Cột `created_by_account_id` lưu ID tài khoản nhân viên thao tác
@@ -469,6 +603,7 @@ Lưu các món thuộc order.
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh dòng món |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
 | `order_id` | `BIGINT UNSIGNED NOT NULL` | Order |
 | `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Tham chiếu món gốc |
 | `item_name` | `VARCHAR(150) NOT NULL` | Tên món được ghi nhận trong order |
@@ -476,6 +611,7 @@ Lưu các món thuộc order.
 | `options_amount` | `DECIMAL(15,2) NOT NULL DEFAULT 0` | Tổng giá option cho một đơn vị món tại thời điểm đặt |
 | `quantity` | `INT UNSIGNED NOT NULL` | Số lượng món có cùng cấu hình option |
 | `prepared_quantity` | `INT UNSIGNED NOT NULL DEFAULT 0` | Số phần đã được nhân viên ghi nhận làm xong |
+| `served_at` | `DATETIME(3) NULL` | Thời điểm dòng món lần đầu được ghi nhận làm xong toàn bộ số lượng hiệu lực |
 | `total_amount` | `DECIMAL(15,2) NOT NULL` | Thành tiền ban đầu: `(unit_price + options_amount) × quantity` |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
@@ -531,6 +667,36 @@ thực tế trong `order_item_options`. Chỉ các tập option giống hoàn to
 gộp chung. Khi nhân viên hoàn thành một mẻ, backend phân bổ số lượng về các
 `order_items` theo `orders.created_at ASC` trong một transaction.
 
+`served_at` chỉ được gán một lần khi `prepared_quantity` đạt số lượng hiệu lực;
+thời điểm này là lúc món được xem là đã phục vụ theo nghiệp vụ CAS và dùng để
+thống kê thời gian chờ ra món.
+
+#### `preparation_batch_completions`
+
+Lưu một lần hoàn thành theo mẻ của nhân viên để thao tác có idempotency bền
+vững. Record được tạo trong cùng transaction với việc tăng
+`order_items.prepared_quantity` theo FIFO.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
+| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng thực hiện |
+| `menu_item_id` | `BIGINT UNSIGNED NOT NULL` | Món chính của nhóm chế biến |
+| `option_configuration_hash` | `CHAR(64) NOT NULL` | SHA-256 của tập option chuẩn hóa, xác định đúng nhóm món được hoàn thành |
+| `idempotency_key` | `VARCHAR(100) NOT NULL` | Khóa idempotency do client tạo cho một lần hoàn thành mẻ, unique trong store |
+| `request_fingerprint` | `CHAR(64) NOT NULL` | SHA-256 payload đã được backend chuẩn hóa để phân biệt retry hợp lệ |
+| `requested_quantity` | `INT UNSIGNED NOT NULL` | Số phần nhân viên yêu cầu ghi nhận hoàn thành |
+| `allocation_snapshot` | `JSON NOT NULL` | Kết quả phân bổ FIFO bất biến theo từng order item, dùng để trả lại khi retry |
+| `completed_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản Operator thực hiện |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm hoàn thành |
+
+Cặp `store_id + idempotency_key` là unique. Khi nhận lại cùng key, backend tính
+fingerprint từ payload chuẩn hóa: nếu trùng thì trả `allocation_snapshot` đã lưu;
+nếu khác thì trả HTTP `409 Conflict`. Backend phải chèn record này và cập nhật
+`prepared_quantity` trong cùng transaction, nên retry không thể phân bổ hoặc
+cộng số phần thêm lần nữa.
+
 #### `order_item_cancellation_requests`
 
 Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân viên.
@@ -538,6 +704,7 @@ Lưu yêu cầu hủy món của khách và kết quả xử lý của nhân vi�
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh yêu cầu |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
 | `order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món cần hủy |
 | `created_by_account_id` | `BIGINT UNSIGNED NULL` | Tài khoản nhân viên khởi tạo yêu cầu hủy (Hủy sự cố); `NULL` khi do Khách tự gửi |
 | `created_by_name` | `VARCHAR(150) NULL` | Tên người khởi tạo yêu cầu tại thời điểm thao tác |
@@ -568,18 +735,36 @@ payable_line_amount
 
 Việc tạo và duyệt yêu cầu hủy phải kiểm tra số lượng còn lại trong transaction để tổng số lượng đã duyệt không vượt quá `order_items.quantity` khi có xử lý đồng thời. Cặp `order_item_id + idempotency_key` là duy nhất. Request lặp lại với cùng key và cùng nội dung trả về yêu cầu cũ; cùng key nhưng khác nội dung trả HTTP `409 Conflict`.
 
-Chỉ tạo hoặc xử lý cancellation request khi table session còn `OPEN`. Session không được chuyển sang `PAYMENT_PENDING` nếu còn cancellation request `PENDING`; sau khi chuyển trạng thái, dữ liệu cấu thành bill của session là bất biến.
+Chỉ tạo hoặc xử lý cancellation request khi sales session còn `OPEN`. Session không được chuyển sang `PAYMENT_PENDING` nếu còn cancellation request `PENDING`; sau khi chuyển trạng thái, dữ liệu cấu thành bill của session là bất biến.
+
+#### `prepared_item_transfers`
+
+Lưu vết phần món đã hoàn thành được điều chuyển từ dòng món nguồn sang dòng món tương thích ở bàn khác khi nhân viên duyệt hủy. Bảng này không thay đổi giá hoặc bill; backend giảm `prepared_quantity` ở nguồn và tăng tại đích trong cùng transaction.
+
+| Cột | Kiểu dữ liệu | Ý nghĩa |
+|---|---|---|
+| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh nội bộ |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng để truy vết |
+| `cancellation_request_id` | `BIGINT UNSIGNED NOT NULL` | Phiếu hủy đã được duyệt |
+| `source_order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món đã làm tại bàn nguồn |
+| `target_order_item_id` | `BIGINT UNSIGNED NOT NULL` | Dòng món nhận tại bàn đích |
+| `quantity` | `INT UNSIGNED NOT NULL` | Số phần được điều chuyển |
+| `transferred_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Nhân viên thực hiện |
+| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm điều chuyển |
+
+Chỉ cho phép điều chuyển sang dòng có cùng món và cấu hình option. Phiếu hủy do khách gửi vẫn `PENDING` cho đến khi nhân viên quyết định; hủy do sự cố được nhân viên tạo trực tiếp là `APPROVED` ngay. Khi `is_remade = TRUE`, backend tạo một order bù với snapshot giá và option của dòng nguồn, ghi chú `[LÀM LẠI]`, nên tổng bill của bàn không đổi.
 
 ### 5.6. Thanh toán
 
 #### `unpaid_records`
 
-Ghi nhận trường hợp table session được đóng khi payment vẫn chưa được nhân viên xác nhận `PAID`. Bảng này phục vụ trạng thái vận hành, không đại diện cho giao dịch ngân hàng hoặc hệ thống quản lý công nợ.
+Ghi nhận trường hợp sales session được đóng khi payment vẫn chưa được nhân viên xác nhận `PAID`. Bảng này phục vụ trạng thái vận hành, không đại diện cho giao dịch ngân hàng hoặc hệ thống quản lý công nợ.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh bản ghi |
-| `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn chưa thanh toán; duy nhất trong bảng |
+| `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài hệ thống |
+| `sales_session_id` | `BIGINT UNSIGNED NOT NULL` | Sales session chưa thanh toán; duy nhất trong bảng |
 | `amount` | `DECIMAL(15,2) NOT NULL` | Tổng tiền chưa thanh toán tại thời điểm ghi nhận |
 | `bill_snapshot` | `JSON NOT NULL` | Toàn bộ nội dung bill tại thời điểm ghi nhận chưa thanh toán |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái `OPEN` hoặc `RESOLVED` |
@@ -591,20 +776,20 @@ Ghi nhận trường hợp table session được đóng khi payment vẫn chưa
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` từ payment, sau đó đóng table session. Snapshot là bất biến.
+Khi nhân viên ghi nhận chưa thanh toán, hệ thống bảo đảm session có một payment `PENDING`, bỏ discount khuyến mãi, giữ điều chỉnh và tính lại tổng, rồi tạo `unpaid_records` bằng cách sao chép `amount` và `bill_snapshot` trước khi đóng sales session. Snapshot là bất biến, trừ xử lý dữ liệu khuyến mãi cũ theo quy tắc hiện có.
 
-Nếu payment được nhân viên xác nhận sau đó, hệ thống chuyển payment sang `PAID`, chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` bằng chính payment của session và lưu `resolved_at`. CAS chỉ lưu trạng thái nghiệp vụ; không lưu hoặc xác minh dữ liệu giao dịch tài chính.
+Nếu payment được nhân viên xác nhận sau đó, hệ thống chuyển payment sang `PAID`, chuyển `unpaid_records` sang `RESOLVED`, gán `resolution_payment_id` bằng chính payment của session và lưu `resolved_at`. Payment đã được ghi nhận chưa thanh toán không tạo promotion redemption khi được thu lại. CAS chỉ lưu trạng thái nghiệp vụ; không lưu hoặc xác minh dữ liệu giao dịch tài chính.
 
 #### `payments`
 
-Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của table session. Mỗi session chỉ có một payment cho toàn bộ các order tại thời điểm khách yêu cầu thanh toán.
+Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của sales session. Mỗi session chỉ có một payment cho toàn bộ các order tại thời điểm khách yêu cầu thanh toán.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh payment |
 | `public_id` | `CHAR(36) NOT NULL` | UUID dùng bên ngoài |
-| `table_session_id` | `BIGINT UNSIGNED NOT NULL` | Phiên bàn; duy nhất trong bảng |
-| `amount` | `DECIMAL(15,2) NOT NULL` | Tổng cần thanh toán, do backend lấy từ tổng `orders.payable_amount` |
+| `sales_session_id` | `BIGINT UNSIGNED NOT NULL` | Sales session; duy nhất trong bảng |
+| `amount` | `DECIMAL(15,2) NOT NULL` | Tổng cần thanh toán, do backend tính từ bill sau giảm; có thể bằng `0` |
 | `bill_snapshot` | `JSON NOT NULL` | Toàn bộ nội dung bill tại thời điểm khách yêu cầu thanh toán |
 | `status` | `VARCHAR(20) NOT NULL` | Trạng thái `PENDING` hoặc `PAID` |
 | `confirmed_by` | `BIGINT UNSIGNED NULL` | Tài khoản xác nhận thanh toán |
@@ -613,7 +798,11 @@ Lưu yêu cầu và kết quả xác nhận thanh toán thủ công của table 
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm khách tạo yêu cầu thanh toán |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom toàn bộ các order của session tại thời điểm khách yêu cầu thanh toán và không thay đổi trong suốt vòng đời payment.
+`bill_snapshot` là bản dữ liệu dùng để hiển thị và xác nhận bill gắn với payment. Snapshot gom order, khuyến mãi và điều chỉnh; thay đổi điều chỉnh được lưu, cập nhật snapshot và số tiền trong cùng transaction xác nhận payment. Sau khi thanh toán, Admin hoặc Super Admin được thêm, sửa hoặc xóa điều chỉnh; snapshot, số tiền và audit trước/sau được cập nhật trong cùng transaction.
+
+#### `bill_adjustments`
+
+Migration V9 lưu từng khoản điều chỉnh theo sales session: `public_id`, `adjustment_type` (`INCREASE`/`DECREASE`), `amount` (`DECIMAL(15,2)` dương), `reason`, `created_by` và `created_at`. Thao tác thêm, sửa, xóa được ghi audit log. Khi payment đang chờ, snapshot chứa danh sách điều chỉnh tại thời điểm cập nhật.
 
 Nội dung JSON cơ bản:
 
@@ -668,14 +857,14 @@ Snapshot chỉ chứa dữ liệu cần thiết của bill, không sao chép to�
 
 Snapshot của mỗi order cần chứa `orders.note`; các item không có trường ghi chú riêng.
 
-Khi tạo payment, backend tự tính `amount = SUM(orders.payable_amount)` trong table session. Client không gửi một số tiền để backend tin cậy. Payment bắt đầu ở trạng thái `PENDING` và không tự hết hạn.
+Khi tạo payment, backend tự tính `amount = SUM(orders.payable_amount)` trong sales session. Client không gửi một số tiền để backend tin cậy. Payment bắt đầu ở trạng thái `PENDING` và không tự hết hạn.
 
 CAS không tạo QR thanh toán; không lưu số tài khoản, mã ngân hàng, tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hoặc mã tham chiếu giao dịch. Sau khi khách ra gặp nhân viên và chuyển khoản, nhân viên xác minh tiền đã vào qua loa báo giao dịch (“ting ting”) rồi bấm xác nhận payment `PAID`. CAS không tích hợp với loa hoặc tự đối soát giao dịch.
 
 Khi payment được xác nhận:
 
 - Lưu `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
-- Cập nhật table session sang `CLOSED` và lưu `closed_at`.
+- Cập nhật sales session sang `CLOSED` và lưu `closed_at`.
 - Chuyển `unpaid_records` của session sang `RESOLVED` nếu bản ghi đó tồn tại và đang `OPEN`.
 - Ghi thao tác xác nhận vào `audit_logs`.
 
@@ -683,7 +872,7 @@ Nếu nhân viên cần đóng phiên khi payment chưa được xác nhận, h�
 
 #### `service_bookings`
 
-Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của cửa hàng, sau đó `OPERATOR` hoặc `ADMIN` tạo record với tên dịch vụ và giá đã chốt. Dịch vụ này độc lập với `table_sessions`, `orders`, `payments` và `unpaid_records`.
+Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của cửa hàng, sau đó `OPERATOR` hoặc `ADMIN` tạo record với tên dịch vụ và giá đã chốt. Dịch vụ này độc lập với `sales_sessions`, `orders`, `payments` và `unpaid_records`.
 
 | Cột | Kiểu dữ liệu | Ý nghĩa |
 |---|---|---|
@@ -703,7 +892,7 @@ Lưu dịch vụ đặt trước do khách liên hệ qua Zalo hotline của c�
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại đã trao đổi qua Zalo, cùng ghi chú nếu cần. Backend tìm `client_accounts` theo số điện thoại: nếu đã có thì gắn `client_account_id` hiện có, nếu chưa có thì tạo tài khoản khách mới rồi gắn ID mới. Tên chỉ phục vụ hiển thị khi tạo tài khoản mới, không dùng để nhận diện hoặc ghép khách. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên chuyển record sang `CANCELLED`; record này không được xác nhận thanh toán. Không tạo `payments`, `bill_snapshot`, order món, table session hoặc yêu cầu thanh toán tại bàn cho luồng này.
+Khi tạo dịch vụ, `OPERATOR` hoặc `ADMIN` nhập tên và số điện thoại đã trao đổi qua Zalo, cùng ghi chú nếu cần. Backend tìm `client_accounts` theo số điện thoại: nếu đã có thì gắn `client_account_id` hiện có, nếu chưa có thì tạo tài khoản khách mới rồi gắn ID mới. Tên chỉ phục vụ hiển thị khi tạo tài khoản mới, không dùng để nhận diện hoặc ghép khách. Khi chọn thanh toán sau, record được tạo ở `PAY_LATER`. Khi khách thanh toán, `OPERATOR` hoặc `ADMIN` chuyển record sang `PENDING` để chờ xác minh thủ công, sau đó xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên chuyển record sang `CANCELLED`; record này không được xác nhận thanh toán. Không tạo `payments`, `bill_snapshot`, order món, sales session hoặc yêu cầu thanh toán tại bàn cho luồng này.
 
 ### 5.7. Vận hành
 
@@ -715,7 +904,9 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh tài khoản |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
-| `email` | `VARCHAR(254) NOT NULL` | Email của tài khoản nhân viên |
+| `firebase_uid` | `VARCHAR(128) NOT NULL` | UID của tài khoản trên Firebase Authentication, duy nhất toàn hệ thống |
+| `email` | `VARCHAR(254) NOT NULL` | Email đăng nhập, duy nhất toàn hệ thống |
+| `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại liên hệ, duy nhất toàn hệ thống; không dùng để đăng nhập |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên hiển thị |
 | `role` | `VARCHAR(20) NOT NULL` | Vai trò của tài khoản |
 | `status` | `VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'` | Trạng thái tài khoản |
@@ -723,10 +914,11 @@ Lưu tài khoản đăng nhập hệ thống. Authentication và authorization �
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-`accounts.email` là định danh của tài khoản vận hành, duy nhất trong toàn hệ thống và phải khớp email đã xác thực từ Firebase Authentication; dùng unique constraint `uk_accounts_email`. CAS không lưu mật khẩu nhân viên vì Firebase Authentication quản lý thông tin xác thực.
+`accounts.firebase_uid`, `accounts.email` và `accounts.phone` đều là định danh duy nhất của tài khoản vận hành trong toàn hệ thống. CAS không lưu mật khẩu nhân viên; Firebase Authentication quản lý thông tin xác thực.
 
 Các role cơ bản:
 
+- `SUPER_ADMIN`: của developer tạo tài khoản admin
 - `ADMIN`: thực hiện toàn bộ chức năng quản trị cấu hình hệ thống và dữ liệu.
 - `OPERATOR`: chỉ xử lý nghiệp vụ vận hành như order và xác nhận trạng thái thanh toán.
 
@@ -737,7 +929,7 @@ Authentication sử dụng Firebase Authentication:
 - Khách hàng không có tài khoản đăng nhập và không sử dụng authentication.
 - Tài khoản vận hành (`ADMIN`, `OPERATOR`) được nhận diện bằng email và xác thực qua Firebase Authentication.
 - Client truyền Firebase ID Token trong HTTP header `Authorization: Bearer <Firebase_ID_Token>`.
-- CAS Backend verify Firebase ID Token (sử dụng Firebase Admin SDK hoặc thư viện xác thực tương đương), lấy email đã xác thực để tìm `accounts.email`, rồi phân quyền theo role (`ADMIN`, `OPERATOR`) lưu trong database.
+- CAS Backend verify Firebase ID Token (sử dụng Firebase Admin SDK hoặc thư viện xác thực tương đương), lấy `uid` từ token để tìm `accounts.firebase_uid`, rồi kiểm tra trạng thái và phân quyền theo role (`ADMIN`, `OPERATOR`) lưu trong database.
 - Chỉ `ADMIN` được tạo tài khoản vận hành.
 - Backend phải kiểm tra role trên mọi API được bảo vệ; ma trận quyền chi tiết theo từng API được xác định trong API contract.
 
@@ -749,20 +941,21 @@ Lưu thông tin khách hàng mở phiên bàn hoặc đặt dịch vụ. Khách 
 |---|---|---|
 | `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh tài khoản khách |
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng |
-| `phone` | `VARCHAR(20) NOT NULL` | Số điện thoại khách |
+| `phone` | `VARCHAR(20) NULL` | Số điện thoại khách; `NULL` khi là khách lẻ |
 | `display_name` | `VARCHAR(150) NOT NULL` | Tên khách |
 | `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo |
 | `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
 
-Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại:
+Khi người đầu tiên mở phiên bàn nhập tên và số điện thoại tùy chọn:
 
-- Nếu `phone` đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó; `display_name` không tham gia nhận diện hoặc ghép khách.
-- Nếu `phone` chưa tồn tại, hệ thống tạo `client_accounts` mới.
-- `table_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bàn.
+- Nếu có `phone` và số này đã tồn tại trong `client_accounts` của cửa hàng, hệ thống dùng lại tài khoản khách đó; `display_name` không tham gia nhận diện hoặc ghép khách.
+- Nếu có `phone` nhưng chưa tồn tại, hệ thống tạo `client_accounts` mới.
+- Nếu không có `phone`, hệ thống tạo một `client_accounts` khách lẻ với `phone = NULL`; không dùng tên để ghép hoặc dùng lại khách lẻ giữa các phiên.
+- `sales_sessions` lưu `client_account_id` để biết ai là người đại diện mở phiên bán hàng.
 - `service_bookings` cũng dùng `client_account_id`; không sao chép tên hoặc số điện thoại vào bảng dịch vụ.
-- `opened_by_customer_name` và `opened_by_customer_phone` trong `table_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
+- `opened_by_customer_name` và `opened_by_customer_phone` trong `sales_sessions` là snapshot tại thời điểm mở phiên, không thay đổi nếu thông tin khách được cập nhật sau này.
 
-Module tra cứu khách hàng dành cho `ADMIN` dùng lại `client_accounts` cùng các quan hệ hiện có tới `table_sessions`, `orders`, `payments`, `unpaid_records` và `service_bookings`; không cần thêm bảng CRM. Danh sách khách chỉ trả dữ liệu nhận diện tối thiểu, số lượt mở bàn và thời điểm sử dụng gần nhất; thông tin chi tiết lịch sử được truy vấn khi `ADMIN` mở một khách cụ thể. Mọi truy vấn phải giới hạn theo `store_id`.
+Module tra cứu khách hàng dành cho `ADMIN` dùng lại `client_accounts` cùng các quan hệ hiện có tới `sales_sessions`, `orders`, `payments`, `unpaid_records` và `service_bookings`; không cần thêm bảng CRM. Danh sách khách chỉ trả dữ liệu nhận diện tối thiểu, số lượt mua và thời điểm sử dụng gần nhất; khách có `phone = NULL` hiển thị là `Khách lẻ` và không thể tìm bằng số điện thoại. Thông tin chi tiết lịch sử được truy vấn khi `ADMIN` mở một khách cụ thể. Mọi truy vấn phải giới hạn theo `store_id`.
 
 #### `operational_incidents`
 
@@ -800,7 +993,7 @@ Lưu các thao tác thay đổi quan trọng của `ADMIN` và `OPERATOR`, như 
 
 Trong đó:
 
-- `entity_type` có thể là `STORE`, `ACCOUNT`, `DINING_TABLE`, `TABLE_QR_CODE`, `TABLE_SESSION`, `CATEGORY`, `MENU_ITEM`, `OPTION_GROUP`, `OPTION_VALUE`, `TAG`, `PROMOTION`, `SYSTEM_NOTIFICATION`, `ORDER`, `ORDER_ITEM`, `PAYMENT`, `UNPAID_RECORD`, `SERVICE_BOOKING`, `CANCELLATION_REQUEST` hoặc `OPERATIONAL_INCIDENT`.
+- `entity_type` có thể là `STORE`, `ACCOUNT`, `DINING_TABLE`, `TABLE_QR_CODE`, `SALES_SESSION`, `CATEGORY`, `MENU_ITEM`, `OPTION_GROUP`, `OPTION_VALUE`, `TAG`, `PROMOTION`, `SYSTEM_NOTIFICATION`, `ORDER`, `ORDER_ITEM`, `PAYMENT`, `UNPAID_RECORD`, `SERVICE_BOOKING`, `CANCELLATION_REQUEST` hoặc `OPERATIONAL_INCIDENT`.
 - `entity_id` liên kết logic tới dữ liệu gốc. Không tạo một foreign key chung vì audit log có thể tham chiếu nhiều loại bảng.
 - `entity_name` giúp nhận biết nhanh dữ liệu đã thay đổi, ví dụ `Cà phê sữa`.
 - `actor_account_id` lưu ID tài khoản thực hiện thao tác.
@@ -823,43 +1016,10 @@ Các thao tác bắt buộc ghi audit log:
 - `PAYMENT`: xác nhận payment từ `PENDING` sang `PAID`.
 - `UNPAID_RECORD`: ghi nhận chưa thanh toán.
 - `SERVICE_BOOKING`: tạo dịch vụ, sửa tên dịch vụ/giá đã chốt, chuyển sang chờ thanh toán, xác nhận thanh toán hoặc hủy dịch vụ.
-- `TABLE_SESSION`: đóng session trong luồng ghi nhận chưa thanh toán.
+- `SALES_SESSION`: đóng session trong luồng ghi nhận chưa thanh toán.
 - `OPERATIONAL_INCIDENT`: cập nhật hoặc ghi chú xử lý sự cố.
 
 Không ghi audit log cho mở trang, tìm kiếm, lọc, xem dữ liệu, thao tác Customer thông thường hoặc retry không làm thay đổi dữ liệu; đặc biệt, confirm lặp trên payment đã `PAID` không tạo log mới.
-
-#### `system_notifications`
-
-Lưu thông báo hệ thống do `ADMIN` phát hành. `target_role` mô tả nhóm đối tượng mà Admin chọn trên giao diện; trạng thái đọc không lưu trên bảng này mà lưu theo từng người nhận ở `system_notification_recipients`.
-
-| Cột | Kiểu dữ liệu | Ý nghĩa |
-|---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh thông báo |
-| `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng phát hành thông báo |
-| `title` | `VARCHAR(255) NOT NULL` | Tiêu đề thông báo |
-| `content` | `TEXT NOT NULL` | Nội dung chi tiết |
-| `type` | `VARCHAR(20) NOT NULL` | Mức độ: `INFO`, `WARNING` hoặc `URGENT` |
-| `target_role` | `VARCHAR(20) NOT NULL` | Đối tượng UI chọn: `OPERATOR`, `CUSTOMER` hoặc `BOTH` |
-| `created_by_account_id` | `BIGINT UNSIGNED NOT NULL` | Tài khoản `ADMIN` phát hành |
-| `created_by_name` | `VARCHAR(150) NOT NULL` | Tên người phát hành tại thời điểm tạo |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm phát hành |
-| `updated_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)` | Thời điểm cập nhật |
-
-#### `system_notification_recipients`
-
-Bảng trung gian lưu trạng thái đọc riêng của từng người nhận. Một record là một thông báo dành cho đúng một tài khoản vận hành hoặc một tài khoản khách; không dùng cờ `is_read` chung trên `system_notifications`.
-
-| Cột | Kiểu dữ liệu | Ý nghĩa |
-|---|---|---|
-| `id` | `BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` | Định danh record người nhận |
-| `system_notification_id` | `BIGINT UNSIGNED NOT NULL` | Thông báo được nhận |
-| `account_id` | `BIGINT UNSIGNED NULL` | Người nhận là tài khoản vận hành |
-| `client_account_id` | `BIGINT UNSIGNED NULL` | Người nhận là tài khoản khách |
-| `is_read` | `BOOLEAN NOT NULL DEFAULT FALSE` | `FALSE`: chưa đọc; `TRUE`: đã đọc |
-| `read_at` | `DATETIME(3) NULL` | Thời điểm đánh dấu đã đọc; để trống khi chưa đọc |
-| `created_at` | `DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)` | Thời điểm tạo record người nhận |
-
-Backend kiểm tra chính xác một trong hai cột `account_id` hoặc `client_account_id` có giá trị. Tạo unique constraint cho từng loại người nhận: `system_notification_id + account_id` và `system_notification_id + client_account_id`; không được tạo hai record trạng thái cho cùng một người nhận và cùng một thông báo. Foreign key tới `system_notifications`, `accounts` và `client_accounts` dùng `ON DELETE RESTRICT`.
 
 ## 6. Quan hệ chính
 
@@ -867,7 +1027,7 @@ Backend kiểm tra chính xác một trong hai cột `account_id` hoặc `client
 |---|---|
 | Store — Dining table | Một - nhiều |
 | Dining table — QR code | Một - nhiều theo lịch sử |
-| Dining table — Table session | Một - nhiều theo thời gian |
+| Dining table — Sales session | Một - nhiều theo thời gian cho `DINE_IN` |
 | Store — Category | Một - nhiều |
 | Category — Menu item | Một - nhiều |
 | Store — Tag | Một - nhiều |
@@ -875,32 +1035,33 @@ Backend kiểm tra chính xác một trong hai cột `account_id` hoặc `client
 | Store — Option group | Một - nhiều |
 | Option group — Option value | Một - nhiều |
 | Menu item — Option group | Nhiều - nhiều qua `menu_item_option_groups` |
-| Table session — Order | Một - nhiều |
+| Sales session — Order | Một - nhiều |
 | Order — Order item | Một - nhiều |
 | Order item — Order item option | Một - nhiều |
 | Order item — Cancellation request | Một - nhiều |
-| Table session — Unpaid record | Một - không hoặc một |
-| Unpaid record — Payment | Một - một payment của cùng table session dùng để xác định kết quả |
-| Table session — Payment | Một - không hoặc một |
+| Sales session — Unpaid record | Một - không hoặc một |
+| Unpaid record — Payment | Một - một payment của cùng sales session dùng để xác định kết quả |
+| Sales session — Payment | Một - không hoặc một |
 | Store — Service booking | Một - nhiều |
 | Client account — Service booking | Một - nhiều |
 | Account — Service booking | Một - nhiều (với vai trò người tạo hoặc xác nhận thanh toán) |
 | Store — Promotion | Một - nhiều |
 | Store — Bill discount | Một - nhiều |
 | Promotion — Promotion target | Một - nhiều |
+| Promotion — Promotion code | Một - nhiều |
 | Promotion — Promotion redemption | Một - nhiều |
-| Table session — Promotion redemption | Một - nhiều theo lịch sử |
+| Sales session — Promotion redemption | Một - nhiều theo lịch sử |
 | Payment — Promotion redemption | Một - nhiều theo các promotion đã áp dụng |
-| Table session — Bill discount | Một - nhiều theo lịch sử |
+| Sales session — Bill discount | Một - nhiều theo lịch sử |
 | Store — Operational incident | Một - nhiều |
 | Account — Operational incident | Một - nhiều (với vai trò người tạo báo cáo) |
 | Store — Audit log | Một - nhiều |
 | Account — Audit log | Một - nhiều |
-| Client account — Table session | Một - nhiều |
+| Client account — Sales session | Một - nhiều |
 | Store — System notification | Một - nhiều |
 | System notification — System notification recipient | Một - nhiều |
 | Account — System notification recipient | Một - nhiều (khi người nhận là nhân viên) |
-| Client account — System notification recipient | Một - nhiều (khi người nhận là khách hàng) |
+| Sales session — System notification recipient | Một - nhiều (khi người nhận là khách hàng) |
 
 ## 7. Trạng thái dữ liệu
 
@@ -910,10 +1071,11 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 |---|---|
 | Store | `ACTIVE`, `INACTIVE` |
 | QR code | `ACTIVE`, `REVOKED` |
-| Table session | `OPEN`, `PAYMENT_PENDING`, `CLOSED` |
+| Sales session | `OPEN`, `PAYMENT_PENDING`, `CLOSED` |
 | Unpaid record | `OPEN`, `RESOLVED` |
 | Category | `ACTIVE`, `INACTIVE` |
 | Menu item | `AVAILABLE`, `SOLD_OUT`, `INACTIVE` |
+| Tag | `ACTIVE`, `INACTIVE` |
 | Option group | `ACTIVE`, `INACTIVE` |
 | Option value | `ACTIVE`, `INACTIVE` |
 | Cancellation request | `PENDING`, `APPROVED`, `REJECTED` |
@@ -922,20 +1084,20 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 | Promotion | `DRAFT`, `ACTIVE`, `INACTIVE` |
 | Promotion redemption | `COMPLETED`, `REVERSED` |
 | Account | `ACTIVE`, `INACTIVE` |
-| Account role | `ADMIN`, `OPERATOR` |
+| Account role | `SUPER_ADMIN`, `ADMIN`, `OPERATOR` |
 
 ## 8. Ràng buộc và index cơ bản
 
 ### 8.1. Khóa ngoại và chính sách xóa
 
 - Tất cả quan hệ trong mục 6 được tạo foreign key vật lý, ngoại trừ `audit_logs.entity_id` và `promotion_targets.target_id` là liên kết logic tới nhiều loại entity. `promotion_targets.target_type` xác định `target_id` tham chiếu `menu_items` hoặc `categories`.
-- Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`.
+- Tất cả foreign key dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`. Use case xóa bàn xóa `table_qr_codes` của bàn trong cùng transaction trước khi xóa `dining_tables`.
 - Mỗi foreign key có index với tên tường minh để MySQL không tự tạo index ẩn.
 - Dữ liệu đã được tham chiếu không bị xóa vật lý; các entity có trạng thái được chuyển sang `INACTIVE` hoặc `REVOKED`.
 
 ### 8.2. Unique constraint và quy tắc nghiệp vụ
 
-- `dining_tables`: unique `code`.
+- `dining_tables`: unique `store_id + code`.
 - `table_qr_codes`: unique `token`.
 - `categories`: unique `store_id + name`.
 - `tags`: unique `store_id + name`.
@@ -943,29 +1105,32 @@ Các giá trị dưới đây là trạng thái đã chốt cho hệ thống.
 - `option_groups`: unique `store_id + name`.
 - `option_values`: unique `option_group_id + name`.
 - `menu_item_option_groups`: unique `menu_item_id + option_group_id`.
-- `orders`: unique `public_id`, `order_number` và cặp `table_session_id + idempotency_key`.
+- `menu_items.store_id` phải khớp store của category; `menu_item_tags` và `menu_item_option_groups` dùng composite foreign key với `store_id` để ngăn liên kết Catalog chéo cửa hàng.
+- `orders`: unique `public_id`, `order_number` và cặp `sales_session_id + idempotency_key`.
 - `orders.request_fingerprint`: bắt buộc, do backend tạo từ SHA-256 của payload đã chuẩn hóa; không đặt unique constraint.
-- `order_items`: unique `order_id + menu_item_id` chỉ khi cùng cấu hình option (kiểm tra trong Java).
+- `order_items`: unique `public_id`; `order_id + menu_item_id` chỉ khi cùng cấu hình option (kiểm tra trong Java).
 - `order_item_options`: unique `order_item_id + option_value_id`.
 - Catalog đã được tham chiếu bởi order chỉ được chuyển `INACTIVE`, không xóa vật lý; snapshot trong order vẫn là nguồn hiển thị lịch sử.
-- `order_item_cancellation_requests`: unique `order_item_id + idempotency_key`.
+- `order_item_cancellation_requests`: unique `public_id` và `order_item_id + idempotency_key`.
+- `preparation_batch_completions`: unique `public_id` và `store_id + idempotency_key`.
 - Tạo/resolve cancellation và chuyển session sang `PAYMENT_PENDING` phải khóa session hoặc dùng transaction tương đương để không phát sinh thay đổi sau khi bill bị khóa.
-- `unpaid_records`: unique `table_session_id` và `resolution_payment_id`.
-- `payments`: unique `public_id` và `table_session_id`.
+- `unpaid_records`: unique `public_id`, `sales_session_id` và `resolution_payment_id`.
+- `payments`: unique `public_id` và `sales_session_id`.
 - `service_bookings`: unique `public_id`.
 - Confirm lặp trên payment đã `PAID` là thao tác đọc idempotent: không cập nhật dữ liệu và không tạo audit log mới.
-- Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng table session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
-- `accounts`: unique `email` toàn hệ thống.
+- Mỗi unpaid record chỉ được giải quyết bởi payment `PAID` của cùng sales session; confirm payment và cập nhật unpaid record phải nằm trong cùng transaction.
+- `accounts`: unique `firebase_uid`.
 - `client_accounts`: unique `store_id + phone`.
 - Tra cứu khách hàng dùng unique index `client_accounts(store_id, phone)` hiện có; index phục vụ tìm kiếm theo tên hoặc thống kê lịch sử chỉ được bổ sung sau khi có truy vấn triển khai và kiểm tra bằng `EXPLAIN`.
-- `promotions`: unique `public_id` và `store_id + code`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
+- `promotions`: unique `public_id`; index `(store_id, status, start_at, end_at)` phục vụ truy vấn promotion còn hiệu lực.
+- `promotion_codes`: unique `store_id + code`.
 - `promotion_targets`: unique `promotion_id + target_type + target_id`.
 - `promotion_redemptions`: unique `payment_id` để confirm payment lặp không tạo redemption thứ hai; index theo `promotion_id`, `client_account_id` và `status` phục vụ kiểm tra quota.
 - `bill_discounts`: unique `payment_id` vì mỗi bill hiện chỉ áp dụng tối đa một promotion.
 
 ### 8.3. Quy tắc chỉ kiểm tra trong Java
 
-Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java phải kiểm tra trong application/domain layer trước khi ghi dữ liệu:
+Database không tạo `CHECK` constraint cho các quy tắc nghiệp vụ dưới đây. Java phải kiểm tra trong application/domain layer trước khi ghi dữ liệu. Ngoại lệ duy nhất hiện tại là `system_notification_recipients`, dùng `CHECK` để bảo đảm cấu trúc một recipient tham chiếu chính xác một trong hai loại đích.
 
 - Giá trị hợp lệ và quy tắc chuyển đổi của tất cả trạng thái.
 - Các nhóm lựa chọn được quản lý qua `option_groups` và liên kết với món qua `menu_item_option_groups`.
@@ -976,16 +1141,19 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 - `order_items.prepared_quantity` không lớn hơn `quantity` trừ tổng số lượng hủy
   `APPROVED`; cập nhật hoàn thành theo mẻ phải khóa và kiểm tra lại các dòng liên
   quan trong cùng transaction.
+- `preparation_batch_completions.option_configuration_hash` phải được backend tạo
+  từ đúng tập option đã chuẩn hóa của nhóm chế biến; `request_fingerprint` phải
+  khớp payload retry trước khi trả lại `allocation_snapshot` đã lưu.
 - `unpaid_records.amount` bằng `bill_snapshot.payableAmount`; trạng thái `OPEN` không có thông tin resolve và trạng thái `RESOLVED` có đủ thông tin resolve.
-- Payment và unpaid record liên quan phải thuộc cùng table session; số tiền và bill snapshot phải khớp.
-- `payments.amount` bằng tổng `orders.payable_amount` của table session tại thời điểm tạo payment.
+- Payment và unpaid record liên quan phải thuộc cùng sales session; số tiền và bill snapshot phải khớp.
+- `payments.amount` bằng tổng `orders.payable_amount` của sales session tại thời điểm tạo payment.
 - Payment `PENDING` không có thông tin xác nhận; payment `PAID` phải có đủ `confirmed_by`, `confirmed_by_name` và `confirmed_at`.
 - Payment chỉ chuyển từ `PENDING` sang `PAID`.
 - `service_bookings.agreed_price` không âm và `client_account_id` phải thuộc cùng `store_id`; giá `0` biểu thị dịch vụ miễn phí. `note` là tùy chọn. `PAY_LATER`, `PENDING` và `CANCELLED` không có thông tin xác nhận; `PAID` phải có đủ `confirmed_by_account_id`, `confirmed_by_name` và `confirmed_at`. `CANCELLED` là trạng thái cuối và không thể chuyển sang thanh toán. Chỉ `OPERATOR` hoặc `ADMIN` được tạo dịch vụ, cập nhật tên dịch vụ/ghi chú/giá đã chốt, chuyển trạng thái thanh toán, xác nhận `PAID` hoặc hủy dịch vụ; mọi thao tác làm thay đổi `service_bookings` phải ghi `audit_logs` với `entity_type = SERVICE_BOOKING`.
-- Promotion phải thuộc cùng store với promotion code, target, table session, payment, client account, redemption và bill discount liên quan.
+- Promotion phải thuộc cùng store với promotion code, target, sales session, payment, client account, redemption và bill discount liên quan.
 - `promotion_targets.target_type` chỉ nhận `MENU_ITEM` hoặc `CATEGORY`; backend kiểm tra `target_id` tồn tại và thuộc cùng store.
 - Promotion chỉ hợp lệ khi `status = ACTIVE`, nằm trong thời gian hiệu lực và thỏa `min_bill_amount` cùng quota theo promotion/code/khách hàng.
-- `stores.long_wait_warning_minutes` phải nằm trong khoảng từ `5` đến `120` phút.
+- `stores.long_wait_warning_minutes` nhận `0` để tắt cảnh báo; giá trị bật cảnh báo phải nằm trong khoảng từ `1` đến `1440` phút. Backend dùng `25` khi không đọc được cấu hình hợp lệ.
 - `stores.open_time` và `stores.close_time` được diễn giải theo `stores.timezone`; backend không được suy diễn giờ mở/đóng cửa khi chưa có quy tắc ngày trong tuần hoặc ngày nghỉ được thiết kế riêng.
 
 ### 8.4. Unique constraint có điều kiện
@@ -993,7 +1161,8 @@ Database không tạo `CHECK` constraint cho các quy tắc dưới đây. Java 
 MySQL dùng generated column kết hợp unique index cho các quy tắc cần chống race condition:
 
 - `table_qr_codes.active_table_id`: nhận `table_id` khi `status = 'ACTIVE'`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một QR `ACTIVE`.
-- `table_sessions.occupying_table_id`: nhận `table_id` khi `status IN ('OPEN', 'PAYMENT_PENDING')`, ngược lại nhận `NULL`; unique index bảo đảm mỗi bàn chỉ có một session đang chiếm dụng.
+- `sales_sessions` không dùng unique index theo session đang chiếm dụng; nhiều
+  `DINE_IN` đang hoạt động có thể cùng thuộc một bàn.
 
 Java vẫn phải dùng transaction và khóa scope tương ứng khi tạo QR bàn, session hoặc payment; unique index là lớp bảo vệ cuối cùng khi có request đồng thời.
 
@@ -1009,13 +1178,25 @@ Giai đoạn đầu chỉ tạo thêm các performance index phục vụ luồng
 - `option_values(option_group_id, status, display_order)`.
 - `menu_item_option_groups(menu_item_id, display_order)`.
 
-Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Index cho payment, unpaid record, order, cancellation request, audit log, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
+Primary key, unique index và index bắt buộc cho foreign key vẫn được tạo đầy đủ. Payment dùng index `(status, created_at, sales_session_id)` cho danh sách và số lượng payment `PENDING` theo thời điểm tạo; index cho unpaid record, order, cancellation request, thống kê và tìm kiếm tên món sẽ được bổ sung khi triển khai các truy vấn tương ứng và kiểm tra bằng `EXPLAIN`.
+
+Không tạo index đơn dư thừa khi đã có composite unique index cùng tiền tố trái:
+`dining_tables(store_id)` được bao phủ bởi `(store_id, code)`, `tags(store_id)`
+được bao phủ bởi `(store_id, name)` và `client_accounts(store_id)` được bao phủ
+bởi `(store_id, phone)`. Các truy vấn theo thời gian đã chốt dùng composite
+index: `audit_logs(store_id, created_at)`,
+`audit_logs(actor_account_id, created_at)`,
+`sales_sessions(client_account_id, created_at)`,
+`system_notification_recipients(account_id, status, created_at)` và
+`system_notification_recipients(sales_session_id, status, created_at)`.
+Index theo thời gian cho các luồng khác chỉ được thêm sau khi có API/query thực
+tế và được đánh giá bằng `EXPLAIN ANALYZE`.
 
 ## 9. Các nội dung ngoài phạm vi hiện tại
 
 Thiết kế hiện tại chưa bao gồm:
 
-- Đổi bàn, chuyển bàn, tách bàn hoặc gộp bàn giữa các table session.
+- Đổi bàn, chuyển bàn, tách bàn hoặc gộp bàn giữa các sales session `DINE_IN`.
 - Hồ sơ và lịch sử nhân viên.
 - Dữ liệu khai báo tiền mặt đầu ca/cuối ca, đối soát quỹ theo ca và xử lý chênh lệch.
 - Ma trận phân quyền chi tiết theo từng API.
@@ -1030,21 +1211,21 @@ Thiết kế hiện tại chưa bao gồm:
 
 ## 10. Các quyết định đã xác nhận
 
-- Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
+- Tất cả foreign key vật lý dùng `ON DELETE RESTRICT` và `ON UPDATE RESTRICT`; use case xóa bàn xóa `table_qr_codes` trong cùng transaction trước khi xóa `dining_tables`. `audit_logs.entity_id` tiếp tục là liên kết logic và không có foreign key.
 - Không dùng MySQL `CHECK` constraint cho quy tắc nghiệp vụ; Java chịu trách nhiệm validation.
-- Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE` và một session đang chiếm dụng cho mỗi bàn.
+- Generated column kết hợp unique index được dùng để bảo đảm một QR bàn `ACTIVE`; session đang hoạt động không bị unique theo bàn.
 - Quy tắc mỗi option group có tối đa một option mặc định chỉ được kiểm tra trong Java, không có unique constraint trong database.
 - Giai đoạn đầu chỉ tạo performance index cho truy vấn menu; index cho các luồng khác được bổ sung khi triển khai truy vấn tương ứng.
 - Authentication sử dụng Firebase Authentication; Client truyền Firebase ID Token trong header request để backend verify và phân quyền.
 - Chỉ `ADMIN` được tạo tài khoản vận hành; client không có tài khoản đăng nhập; mọi chức năng quản trị chỉ dành cho `ADMIN`, còn `OPERATOR` chỉ xử lý nghiệp vụ vận hành.
-- Module tra cứu khách hàng chỉ dành cho `ADMIN`, dùng lại `client_accounts` và lịch sử table session/order/payment hiện có; đây là chức năng chỉ đọc, không phải CRM và không bổ sung bảng dữ liệu.
-- Mỗi table session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
-- `OPERATOR` được tạo order hộ vào table session `OPEN`; order này dùng cùng dữ
+- Module tra cứu khách hàng chỉ dành cho `ADMIN`, dùng lại `client_accounts` và lịch sử sales session/order/payment hiện có; đây là chức năng chỉ đọc, không phải CRM và không bổ sung bảng dữ liệu.
+- Mỗi sales session có thể có nhiều order; mỗi lần khách gửi món tạo một order riêng trong cùng session.
+- `OPERATOR` được tạo order hộ vào sales session `OPEN`; order này dùng cùng dữ
   liệu, validation, tính tiền, idempotency và FIFO với order do Customer gửi,
   đồng thời phải ghi audit log theo tài khoản nhân viên.
 - Tất cả trường thời gian nghiệp vụ được lưu theo `Asia/Ho_Chi_Minh` (`UTC+07:00`); giá trị thời gian trao đổi qua API phải kèm offset `+07:00`.
 - Mỗi order chỉ có một ghi chú chung trong `orders.note`; không lưu `note` trong `order_items`.
-- Tạo order bắt buộc có `idempotency_key`; key duy nhất trong cùng table session, được lưu trong `orders` và được bảo vệ bằng unique constraint `table_session_id + idempotency_key`.
+- Tạo order bắt buộc có `idempotency_key`; key duy nhất trong cùng sales session, được lưu trong `orders` và được bảo vệ bằng unique constraint `sales_session_id + idempotency_key`.
 - Backend lưu `orders.request_fingerprint` từ SHA-256 của payload chuẩn hóa để phân biệt retry hợp lệ với việc tái sử dụng key cho nội dung khác.
 - `orders.original_amount` là tổng tiền ban đầu và bất biến; `orders.payable_amount` là số tiền còn phải trả sau các yêu cầu hủy `APPROVED`.
 - `option_groups` lưu nhóm lựa chọn (như Size, Đường, Topping); `option_values` lưu giá trị lựa chọn bên trong nhóm (như Size L, 50%, Trân châu). Topping và size nằm riêng trong `option_values`, không thuộc `menu_items`.
@@ -1054,11 +1235,11 @@ Thiết kế hiện tại chưa bao gồm:
 - Hai món có cấu hình option khác nhau phải nằm ở hai `order_items` khác nhau.
 - Thanh toán toàn bộ các order của phiên bàn, chưa hỗ trợ tách hóa đơn.
 - Khi yêu cầu thanh toán, session ngừng nhận món và tiếp tục chiếm dụng bàn cho đến khi được đóng.
-- `orders` không có trạng thái riêng; trạng thái xử lý được quản lý ở `table_sessions`.
+- `orders` không có trạng thái riêng; trạng thái xử lý được quản lý ở `sales_sessions`.
 - `orders` không lưu `is_completed`; hoàn thành order được suy ra từ số lượng
   còn cần làm của các `order_items`.
-- `table_sessions` không lưu `is_paid`; `payments.status` là nguồn xác định kết quả thanh toán, còn `unpaid_records` ghi nhận phiên đã đóng khi payment vẫn `PENDING`.
-- `table_sessions.payment_requested_at` được lưu khi session chuyển từ `OPEN` sang `PAYMENT_PENDING`.
+- `sales_sessions` không lưu `is_paid`; `payments.status` là nguồn xác định kết quả thanh toán, còn `unpaid_records` ghi nhận phiên đã đóng khi payment vẫn `PENDING`.
+- `sales_sessions.payment_requested_at` được lưu khi session chuyển từ `OPEN` sang `PAYMENT_PENDING`.
 - Size có một giá trị mặc định được cấu hình theo món.
 - Topping không giới hạn số lựa chọn.
 - Theo dõi số phần đã làm xong bằng `order_items.prepared_quantity`; không dùng
@@ -1074,27 +1255,28 @@ Thiết kế hiện tại chưa bao gồm:
 - Payment chỉ có trạng thái `PENDING` hoặc `PAID`; không có trạng thái `IGNORED` và không tạo lại nhiều payment cho cùng session.
 - `unpaid_records` lưu `amount` và `bill_snapshot` bất biến khi nhân viên đóng một session chưa được xác nhận thanh toán.
 - Session `OPEN` và `PAYMENT_PENDING` đều chiếm dụng bàn.
-- Một bàn không bao giờ được có nhiều hơn một session đang chiếm dụng tại cùng một thời điểm, kể cả khi có nhiều yêu cầu tạo session đồng thời.
-- Nhiều điện thoại quét cùng QR dùng chung session và nhìn thấy cùng danh sách order.
-- Người đầu tiên mở session bàn cần nhập tên và số điện thoại; hệ thống tạo hoặc dùng lại `client_accounts`; người quét QR sau trong cùng session không cần nhập lại.
+- Một bàn có thể có nhiều session đang chiếm dụng cùng lúc; transaction khóa QR/bàn giúp lựa chọn hoặc tạo session nhất quán khi có yêu cầu đồng thời.
+- Nhiều điện thoại quét cùng QR chọn session để chung bàn và nhìn thấy cùng danh sách order, hoặc tạo session độc lập.
+- Người đầu tiên mở session bàn cần nhập tên; số điện thoại là tùy chọn. Nếu không có số điện thoại, hệ thống tạo `client_accounts` khách lẻ với `phone = NULL`; người quét QR sau trong cùng session không cần nhập lại.
 - Order không cần bước xác nhận trước khi cửa hàng xử lý.
 - Hệ thống không tách màn hình bếp và phục vụ.
 - Không lưu bảng lịch sử giá món riêng.
 - Mỗi món chỉ có một ảnh.
-- `menu_items.image_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; `image_url` chỉ phục vụ hiển thị.
+- Các cột `*_image_storage_key` và `brand_settings.logo_storage_key` được dùng để quản lý asset trên dịch vụ lưu trữ; các cột URL chỉ phục vụ hiển thị.
 - Nhãn của menu item được quản lý bằng `tags` và quan hệ nhiều-nhiều `menu_item_tags`; không lưu cờ nhãn riêng trong `menu_items`.
 - Tag có thể gắn với bất kỳ `menu_items`, không giới hạn theo loại category.
 - QR bàn là mã cố định được in và dán tại bàn; hệ thống không tạo QR thanh toán.
 - CAS không lưu số tài khoản, mã hoặc tên ngân hàng, tên chủ tài khoản, nội dung chuyển khoản hay mã tham chiếu giao dịch.
 - CAS không tích hợp với loa báo giao dịch; việc xác minh chuyển khoản diễn ra ngoài hệ thống và CAS chỉ ghi nhận trạng thái phục vụ vận hành.
-- Ảnh món được frontend gửi qua CAS Backend; backend upload lên Cloudinary bằng authenticated API.
+- Frontend upload ảnh món trực tiếp lên Cloudinary bằng chữ ký ngắn hạn từ Backend, rồi lưu URL/public ID qua API Catalog.
 - Báo cáo sự cố phát sinh do nhân viên `OPERATOR` khởi tạo tại ca trực (bao gồm `created_by_name`/`created_by_account_id`, `created_at`, `description`) để quản trị viên `ADMIN` tiếp nhận, tra cứu và xử lý.
 - Khuyến mãi dùng đúng 5 bảng: `promotions`, `promotion_codes`, `promotion_targets`, `promotion_redemptions` và `bill_discounts`, thay cho bảng `vouchers` đơn giản. Tất cả record promotion/redemption/discount snapshot có `store_id`. `promotions` hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`.
 - Điều kiện cơ bản `min_bill_amount`, thời gian hiệu lực và quota nằm trực tiếp tại `promotions`. `promotion_targets` dùng `target_type` và `target_id` để giới hạn phạm vi theo món hoặc danh mục. `BUY_X_GET_Y`, `FREE_ITEM` và điều kiện phức tạp hơn sẽ được bổ sung ở giai đoạn mở rộng.
-- Một promotion được chọn cho toàn bộ bill của table session; backend trả danh sách đủ điều kiện và số tiền dự kiến, không tự chọn promotion có lợi nhất. Bill chỉ áp dụng tối đa một promotion ở phiên bản hiện tại.
+- Một promotion được chọn cho toàn bộ bill của sales session; backend trả danh sách đủ điều kiện và số tiền dự kiến, không tự chọn promotion có lợi nhất. Bill chỉ áp dụng tối đa một promotion ở phiên bản hiện tại.
 - Không sửa `menu_items.price` khi một chương trình chạy. Discount cấp bill được tính lại trước payment khi bill thay đổi và được lưu tại `bill_discounts`, không phân bổ xuống từng order hoặc dòng món. Các snapshot được khóa khi session chuyển `PAYMENT_PENDING`.
 - `promotion_redemptions` chỉ được tạo khi payment `PAID`; redemption chuyển `REVERSED` và không tính quota nếu payment đã paid bị refund hoặc hủy toàn bộ trong tương lai.
-- `system_notifications` lưu danh sách thông báo hệ thống do `ADMIN` phát hành; `target_role` dùng `OPERATOR`, `CUSTOMER` hoặc `BOTH` theo giao diện Admin. `system_notification_recipients` là nguồn dữ liệu cho trạng thái đã đọc/chưa đọc của từng người nhận.
+- `system_notifications` lưu danh sách thông báo hệ thống do `ADMIN` phát hành (tiêu đề `title`, nội dung `content`, mức độ `type` IN (`INFO`, `WARNING`, `URGENT`), đối tượng nhận `target_role` IN (`OPERATOR`, `CUSTOMER`, `BOTH`)).
+- `system_notification_recipients` lưu trạng thái `UNREAD` hoặc `READ` theo từng người nhận. Một record nhận gắn với đúng một `account_id` (Operator) hoặc một `sales_session_id` (Customer); `CHECK` constraint bắt buộc điều kiện này. Khi phát hành, backend tạo recipient Customer cho sales session `DINE_IN` và `TAKEAWAY` trạng thái `OPEN` hoặc `PAYMENT_PENDING`; sales session đã `CLOSED` chỉ giữ lịch sử recipient có sẵn và không nhận notification mới. `read_at` chỉ có khi trạng thái là `READ`.
 
 ## 11. Bước tiếp theo
 

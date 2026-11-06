@@ -1,12 +1,15 @@
 "use client";
 
+import { formatMoney as formatPrice } from "../../lib/format-money";
 import { useState } from "react";
 
 import { ItemQuantityControl } from "./item-quantity-control";
 import { CasIcon } from "../ui/cas-icon";
+import { CasButton } from "../ui/cas-button";
 
 type MenuOption = {
   id: string;
+  isDefault?: boolean;
   label: string;
   priceDelta: number;
 };
@@ -14,6 +17,8 @@ type MenuOption = {
 export type MenuOptionGroup = {
   id: string;
   label: string;
+  maxSelect?: number | null;
+  minSelect?: number;
   selectionType: "SINGLE" | "MULTIPLE";
   options: MenuOption[];
 };
@@ -27,17 +32,19 @@ export type AddToCartPayload = {
 
 type AddToCartOptionDialogProps = {
   basePrice: number;
+  beforeAddToCart?: () => Promise<boolean>;
   currentQuantity?: number;
+  disabled?: boolean;
   itemName: string;
   optionGroups?: MenuOptionGroup[];
   onAddToCart?: (payload: AddToCartPayload) => void;
 };
 
-const formatPrice = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
-
 export function AddToCartOptionDialog({
   basePrice,
+  beforeAddToCart,
   currentQuantity,
+  disabled = false,
   itemName,
   optionGroups = [],
   onAddToCart,
@@ -47,7 +54,9 @@ export function AddToCartOptionDialog({
     Object.fromEntries(
       optionGroups.map((group) => [
         group.id,
-        group.selectionType === "SINGLE" && group.options[0] ? [group.options[0].id] : [],
+        group.selectionType === "SINGLE" && group.options[0]
+          ? [group.options.find((option) => option.isDefault)?.id ?? group.options[0].id]
+          : [],
       ]),
     ),
   );
@@ -70,16 +79,28 @@ export function AddToCartOptionDialog({
         return { ...current, [group.id]: [optionId] };
       }
 
+      if (currentOptions.includes(optionId)) {
+        return { ...current, [group.id]: currentOptions.filter((id) => id !== optionId) };
+      }
+      if (
+        group.maxSelect !== null &&
+        group.maxSelect !== undefined &&
+        currentOptions.length >= group.maxSelect
+      ) {
+        return current;
+      }
       return {
         ...current,
-        [group.id]: currentOptions.includes(optionId)
-          ? currentOptions.filter((id) => id !== optionId)
-          : [...currentOptions, optionId],
+        [group.id]: [...currentOptions, optionId],
       };
     });
   }
 
   function handleConfirm() {
+    const invalidGroup = optionGroups.find(
+      (group) => (selectedOptions[group.id]?.length ?? 0) < (group.minSelect ?? 0),
+    );
+    if (invalidGroup) return;
     if (onAddToCart) {
       const summaryParts: string[] = [];
       for (const group of optionGroups) {
@@ -102,7 +123,11 @@ export function AddToCartOptionDialog({
     setIsOpen(false);
   }
 
-  function handleTriggerClick() {
+  async function handleTriggerClick() {
+    if (disabled) return;
+    if (beforeAddToCart && !(await beforeAddToCart())) {
+      return;
+    }
     if (optionGroups.length === 0 && onAddToCart) {
       onAddToCart({
         optionsSummary: "Món tiêu chuẩn",
@@ -117,18 +142,22 @@ export function AddToCartOptionDialog({
 
   return (
     <>
-      {currentQuantity && currentQuantity > 0 ? (
+      {disabled ? (
+        <span className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full bg-cas-outline-variant/45 px-3 text-sm font-bold text-cas-on-surface-variant">
+          Hết hàng
+        </span>
+      ) : currentQuantity && currentQuantity > 0 ? (
         <ItemQuantityControl
           itemName={itemName}
           quantity={currentQuantity}
-          onIncrease={() => setIsOpen(true)}
+          onIncrease={() => void handleTriggerClick()}
         />
       ) : (
         <button
           className="grid size-9 place-items-center rounded-full bg-cas-primary text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
           type="button"
           aria-label={`Chọn tùy chọn cho ${itemName}`}
-          onClick={handleTriggerClick}
+          onClick={() => void handleTriggerClick()}
         >
           <CasIcon className="size-5" name="plus" />
         </button>
@@ -144,7 +173,7 @@ export function AddToCartOptionDialog({
           <section className="mx-auto my-auto w-full max-w-lg rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_16px_36px_var(--cas-shadow-color)] md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                <p className="text-sm font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
                   Chọn tùy chọn
                 </p>
                 <h2 className="mt-1 text-xl font-extrabold" id={`${itemId}-options-title`}>
@@ -161,10 +190,13 @@ export function AddToCartOptionDialog({
                 {optionGroups.map((group) => (
                   <fieldset key={group.id}>
                     <legend className="text-sm font-extrabold">{group.label}</legend>
-                    <p className="mt-1 text-xs text-cas-on-surface-variant">
-                      {group.selectionType === "SINGLE"
-                        ? "Chọn một lựa chọn."
-                        : "Có thể chọn nhiều lựa chọn."}
+                    <p className="mt-1 text-sm text-cas-on-surface-variant">
+                      {group.minSelect
+                        ? `Chọn ít nhất ${group.minSelect} lựa chọn.`
+                        : "Tùy chọn thêm."}
+                      {group.maxSelect !== null && group.maxSelect !== undefined
+                        ? ` Tối đa ${group.maxSelect} lựa chọn.`
+                        : ""}
                     </p>
                     {group.id === "spice-level" ? (
                       <select
@@ -196,7 +228,7 @@ export function AddToCartOptionDialog({
                               />
                               <span className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm transition peer-checked:border-cas-primary peer-checked:bg-cas-primary/10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cas-focus-ring">
                                 <span className="font-bold">{option.label}</span>
-                                <span className="shrink-0 text-xs font-bold text-cas-primary">
+                                <span className="shrink-0 text-sm font-bold text-cas-primary">
                                   +{formatPrice(option.priceDelta)}
                                 </span>
                               </span>
@@ -215,20 +247,24 @@ export function AddToCartOptionDialog({
             )}
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                className="min-h-12 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              <CasButton
+                className="min-h-12 rounded-xl"
                 type="button"
+                variant="outline"
                 onClick={() => setIsOpen(false)}
               >
                 Quay lại
-              </button>
-              <button
-                className="min-h-12 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              </CasButton>
+              <CasButton
+                className="min-h-12 rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]"
                 type="button"
+                disabled={optionGroups.some(
+                  (group) => (selectedOptions[group.id]?.length ?? 0) < (group.minSelect ?? 0),
+                )}
                 onClick={handleConfirm}
               >
                 Thêm vào giỏ · {formatPrice(basePrice + selectedOptionPrice)}
-              </button>
+              </CasButton>
             </div>
           </section>
         </div>

@@ -1,0 +1,220 @@
+package vn.cas.ordering.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import vn.cas.common.constants.ApiMessages;
+import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.ordering.mapper.OrderingMapper;
+import vn.cas.ordering.model.OrderMenuItem;
+import vn.cas.ordering.model.OrderOptionGroup;
+import vn.cas.ordering.model.OrderOptionValue;
+import vn.cas.ordering.model.OperatorOrderSession;
+import vn.cas.ordering.model.OrderOverview;
+import vn.cas.ordering.model.StoredOrder;
+import vn.cas.operation.service.AuditLogService;
+import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.service.SalesSessionService;
+
+class CustomerOrderingServiceTest {
+
+    private final OrderingMapper mapper = mock(OrderingMapper.class);
+    private final SalesSessionService sessions = mock(SalesSessionService.class);
+    private final CustomerOrderingService service = new CustomerOrderingService(mapper, sessions,
+            mock(AuditLogService.class));
+
+    @Test
+    void shouldCreateOrderWithServerCalculatedSnapshots() {
+        currentOpenSession();
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L)))
+                .thenReturn(List.of(new OrderOptionGroup(11L, 9L, 1, 1)));
+        when(mapper.findActiveOptionValuesForOrder(2L, List.of(11L), List.of(21L))).thenReturn(List
+                .of(new OrderOptionValue(11L, 21L, 9L, "Size", "L", new BigDecimal("5000.00"))));
+        when(mapper.lastInsertId()).thenReturn(44L);
+        when(mapper.lastInsertOrderItemId()).thenReturn(45L);
+
+        var result = service.create("session-1", "key-1", "Ít đá",
+                List.of(new CustomerOrderingService.OrderLine(11L, 2, List.of(21L))));
+
+        assertThat(result.orderId()).isNotBlank();
+        assertThat(result.payableAmount()).isEqualByComparingTo("74000.00");
+        verify(mapper).insertOrderItem(any(), eq(44L), eq(11L), eq("Trà đào"),
+                eq(new BigDecimal("32000.00")), eq(new BigDecimal("5000.00")), eq(2),
+                eq(new BigDecimal("74000.00")));
+        verify(mapper).insertOrderItemOption(eq(45L), eq(21L), eq("Size"), eq("L"),
+                eq(new BigDecimal("5000.00")), eq(1), eq(new BigDecimal("10000.00")));
+    }
+
+    @Test
+    void shouldReturnExistingOrderForMatchingIdempotentRequest() {
+        currentOpenSession();
+        var lines = List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()));
+        when(mapper.findBySessionIdAndIdempotencyKey(7L, "key-1")).thenReturn(
+                new StoredOrder("order-1", CustomerOrderingService.fingerprint(null, lines),
+                        new BigDecimal("32000.00")));
+
+        var result = service.create("session-1", "key-1", null, lines);
+
+        assertThat(result).isEqualTo(
+                new CustomerOrderingService.CreatedOrder("order-1", new BigDecimal("32000.00")));
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
+    void shouldLoadOrderValidationDataOnceForMultipleLines() {
+        currentOpenSession();
+        var menuItemIds = List.of(11L, 12L);
+        var optionValueIds = List.of(21L, 22L);
+        when(mapper.findMenuItemsForOrder(2L, menuItemIds)).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE"),
+                        new OrderMenuItem(12L, "Bạc xỉu", new BigDecimal("28000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, menuItemIds)).thenReturn(
+                List.of(new OrderOptionGroup(11L, 9L, 1, 1), new OrderOptionGroup(12L, 10L, 1, 1)));
+        when(mapper.findActiveOptionValuesForOrder(2L, menuItemIds, optionValueIds)).thenReturn(
+                List.of(new OrderOptionValue(11L, 21L, 9L, "Size", "L", new BigDecimal("5000.00")),
+                        new OrderOptionValue(12L, 22L, 10L, "Đá", "Ít đá", BigDecimal.ZERO)));
+        when(mapper.lastInsertId()).thenReturn(44L);
+        when(mapper.lastInsertOrderItemId()).thenReturn(45L, 46L);
+
+        service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of(21L)),
+                        new CustomerOrderingService.OrderLine(12L, 1, List.of(22L))));
+
+        verify(mapper).findMenuItemsForOrder(2L, menuItemIds);
+        verify(mapper).findActiveOptionGroupsForOrder(2L, menuItemIds);
+        verify(mapper).findActiveOptionValuesForOrder(2L, menuItemIds, optionValueIds);
+    }
+
+    @Test
+    void shouldRejectMissingRequiredOptionBeforeCreatingOrder() {
+        currentOpenSession();
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L)))
+                .thenReturn(List.of(new OrderOptionGroup(11L, 9L, 1, 1)));
+
+        assertThatThrownBy(() -> service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()))))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.BAD_REQUEST,
+                        ApiMessages.INVALID_REQUEST);
+
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
+    void shouldRejectReusingIdempotencyKeyForDifferentPayload() {
+        currentOpenSession();
+        var originalLines = List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()));
+        when(mapper.findBySessionIdAndIdempotencyKey(7L, "key-1")).thenReturn(
+                new StoredOrder("order-1", CustomerOrderingService.fingerprint(null, originalLines),
+                        new BigDecimal("32000.00")));
+
+        assertThatThrownBy(() -> service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 2, List.of()))))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.CONFLICT,
+                        ApiMessages.INVALID_REQUEST);
+
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
+    void shouldExplainWhenAnItemWasMarkedSoldOutAfterCustomerAddedItToCart() {
+        currentOpenSession();
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Tra dao", new BigDecimal("32000.00"), "SOLD_OUT")));
+
+        assertThatThrownBy(() -> service.create("session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of()))))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.CONFLICT,
+                        "Món \"Tra dao\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.");
+
+        verify(mapper, never()).insertOrder(any(), anyLong(), any(), any(), any(), any(), any(),
+                any());
+    }
+
+    @Test
+    void shouldRecordOperatorAsOrderCreatorAndWriteAuditLog() {
+        currentOpenSession();
+        when(mapper.findMenuItemsForOrder(2L, List.of(11L))).thenReturn(
+                List.of(new OrderMenuItem(11L, "Trà đào", new BigDecimal("32000.00"), "ACTIVE")));
+        when(mapper.findActiveOptionGroupsForOrder(2L, List.of(11L))).thenReturn(List.of());
+        when(mapper.lastInsertId()).thenReturn(44L);
+        var auditLogs = mock(AuditLogService.class);
+        var operatorService = new CustomerOrderingService(mapper, sessions, auditLogs);
+
+        operatorService.createForOperator(
+                new OperationalPrincipal(3L, 2L, "firebase-uid", "Operator One", "OPERATOR"),
+                "session-1", "key-1", null,
+                List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of())),
+                UUID.randomUUID());
+
+        verify(mapper).insertOrder(any(), eq(7L), eq(3L), eq("key-1"), any(), any(), any(), any());
+        verify(auditLogs).record(any());
+    }
+
+    @Test
+    void shouldRejectOperatorOrderForAnotherStoreSession() {
+        currentOpenSession();
+
+        var auditLogs = mock(AuditLogService.class);
+        var operatorService = new CustomerOrderingService(mapper, sessions, auditLogs);
+
+        assertThatThrownBy(
+                () -> operatorService.createForOperator(
+                        new OperationalPrincipal(3L, 8L, "firebase-uid", "Operator One",
+                                "OPERATOR"),
+                        "session-1", "key-1", null,
+                        List.of(new CustomerOrderingService.OrderLine(11L, 1, List.of())),
+                        UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status())
+                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void shouldReturnOrderDetailForOperatorWithinOwnStore() {
+        when(mapper.findSessionByOrderPublicIdAndStoreId(2L, "order-1"))
+                .thenReturn(new OperatorOrderSession(7L, 5L, "Nguyễn An", "0901234567"));
+        when(mapper.findOrderOverviewsBySessionId(7L)).thenReturn(
+                List.of(new OrderOverview(8L, "order-1", "ORD-001", new BigDecimal("55000.00"),
+                        new BigDecimal("55000.00"), null, java.time.LocalDateTime.now())));
+        when(mapper.findOrderItemsBySessionId(7L)).thenReturn(List.of());
+        when(mapper.findOrderItemOptionsBySessionId(7L)).thenReturn(List.of());
+
+        var result = service.getForOperator(
+                new OperationalPrincipal(3L, 2L, "firebase-uid", "Operator One", "OPERATOR"),
+                "order-1");
+
+        assertThat(result.tableCode()).isEqualTo(5L);
+        assertThat(result.customerName()).isEqualTo("Nguyễn An");
+        assertThat(result.order().orderId()).isEqualTo("order-1");
+    }
+
+    private void currentOpenSession() {
+        when(sessions.requireCurrentForUpdate("session-1"))
+                .thenReturn(new SalesSessionLookup(7L, 9L, 2L, 5L, "session-1", "OPEN"));
+    }
+}

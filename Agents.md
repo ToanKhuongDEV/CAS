@@ -21,7 +21,7 @@ with MySQL, supported by Redis, Flyway, Lombok, and Jakarta Bean Validation.
 Organize packages by business feature:
 
 ```text
-com.cas
+vn.cas
 ├── shared      # Shared configuration and technical components
 ├── store       # Store, dining tables, and table QR codes
 ├── catalog     # Categories, menu items, and options
@@ -57,14 +57,29 @@ Do not organize the entire application into shared technical packages such as
 
 ## Test Order
 
+- Never ask for approval before running a test command or test file; execute the
+  relevant test directly.
+- For every new or changed backend API endpoint, add or update its cURL example
+  in `backend/README.md` for Postman/manual testing.
+- Keep Firebase ID Tokens only in local shell or Postman environments; never
+  commit them to the repository.
+- When services are available, execute the relevant cURL/Postman request before
+  completing the task. Otherwise, state the remaining risk.
+
 
 ## Do Not Edit Manually
 
 
 ## Conventions
 - Upon completing a task, you must update the PROJECT_PROGRESS.md file.
+- For every new or changed backend API, add a concise summary of the API to
+  `document/PROJECT_PROGRESS.md` under `## 5. Backend ### Các api đã làm `.
 - Do not read files or directories listed in .gitignore.
 - Do not create a Git commit unless the user explicitly requests it.
+- When a Git commit is authorized, use exactly this format:
+  `<prefix>(<scope>): <description>`. The only allowed prefixes are `add`,
+  `update`, and `delete`; the scope must be `be`, `fe`, `docs`, or `chore`.
+  For example: `add(be): add account, operator, and table management APIs`.
 - If anything is unclear, ask for the user's approval before implementing it. Do not guess.
 - Use explicit MyBatis column lists; never use `SELECT *`. Use dedicated query
   DTOs or views for joined and aggregated results.
@@ -86,7 +101,7 @@ Do not organize the entire application into shared technical packages such as
 - Do not manually edit generated files, including OpenAPI or code-generation outputs.
 - Do not delete existing files, code, comments, tests, or configurations unless explicitly required.
 - Keep changes minimal and focused. Do not format or modify unrelated files.
-- After completing the implementation, run the project's formatting command (for frontend: npx prettier --write src/ or npm run format).
+- After completing any code implementation, run the shared formatter from the repository root: `.\scripts\format.ps1`.
 - Clearly report assumptions, modified files, important decisions, and any remaining risks.
 
 ## Frontend Design System
@@ -94,4 +109,3 @@ Do not organize the entire application into shared technical packages such as
 - **Colors**: Always use the design tokens defined in `frontend/src/app/globals.css` (e.g., `cas-primary`, `cas-error`, `cas-secondary`, `cas-tertiary`, `cas-on-surface`, `cas-on-surface-variant`, `cas-surface`, `cas-outline-variant`, etc.). Never use raw Tailwind color utilities such as `red-500`, `emerald-500`, `rose-500`, `amber-500`, `slate-500`, or any other hardcoded palette color. If a new color is genuinely needed and no existing token fits, ask the user for approval before adding it to `globals.css`.
 - **Fonts**: Always use the system font stack defined via `--font-cas` in `globals.css`, applied globally through the `font-sans` Tailwind utility on `<body>`. Never declare a custom `font-family`, import a separate Google Font, or use any Tailwind font utility other than `font-sans`. If a new typeface is required, ask the user for approval before adding it.
 - Minimize additions to the design system. Reuse existing tokens first. Adding new tokens or colors requires explicit user approval.
-

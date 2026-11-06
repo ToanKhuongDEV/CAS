@@ -16,14 +16,17 @@ Trong phiên bản đầu tiên, sản phẩm tập trung vào trải nghiệm g
 - Duy trì hoạt động vận hành cơ bản (xem menu, gọi món, điều phối bếp, in phiếu) ngay cả khi mất kết nối internet và tự đồng bộ khi mạng trở lại.
 - Tạo nền tảng để mở rộng các chức năng quản lý trong tương lai.
 
+Phase 1 là bản production tối thiểu, không phải demo: các luồng đã thuộc phạm vi phải dùng dữ liệu và API đáng tin cậy, được kiểm thử phù hợp trước khi triển khai tại cửa hàng. Dữ liệu hoặc ảnh mẫu chỉ là fallback/test asset, không thay thế dữ liệu vận hành do Backend quản lý.
+
 ## 3. Đối tượng sử dụng và Phân quyền (Roles)
 
 Hệ thống CAS phân định rõ 3 tác nhân chính tham gia vào quy trình, với các quyền hạn tính năng tách biệt:
 
 ### 3.1. Khách hàng (CLIENT / GUEST)
-_Không có tài khoản đăng nhập nội bộ hệ thống; khách được nhận diện bằng số điện thoại, còn QR token chỉ cấp quyền truy cập phiên bàn._
-- **Mở bàn:** Quét mã QR, điền tên và số điện thoại để khởi tạo phiên bàn. (Các thiết bị quét sau vào chung phiên).
+_Không có tài khoản đăng nhập nội bộ hệ thống; khách có số điện thoại được nhận diện theo số đó, còn khách không cung cấp số điện thoại là khách lẻ. QR token chỉ cấp quyền truy cập phiên bàn._
+- **Mở bàn:** Quét mã QR, điền tên để khởi tạo phiên bàn; số điện thoại là tùy chọn. (Các thiết bị quét sau vào chung phiên).
 - **Xem menu:** Xem danh sách danh mục, món ăn, giá tiền, hình ảnh và gợi ý option.
+- **Xem giới thiệu cửa hàng:** Xem banner/ảnh giới thiệu đang hiển thị ở trang Welcome và Menu của cửa hàng.
 - **Gọi món:** Thêm món vào giỏ hàng và gửi order xuống bếp (có thể gọi thêm nhiều lần, cùng lúc qua nhiều thiết bị).
 - **Hủy phiên bàn:** Được quyền đóng phiên bàn ngay lập tức nếu chưa gửi bất kỳ món nào xuống bếp.
 - **Yêu cầu hủy món:** Tạo request yêu cầu hủy (cần được nhân viên duyệt).
@@ -37,10 +40,11 @@ _Tài khoản nhân viên phục vụ, thu ngân hoặc phụ bếp. Được nh
 - **Nghiệp vụ gọi món:** Xem chi tiết order từng bàn, gọi món hộ khách, hoặc đóng phiên bàn (chưa có món).
 - **Duyệt/Chủ động Hủy món:** Xác nhận hoặc từ chối yêu cầu hủy của khách. Quyền chủ động hủy món kèm lý do, bao gồm phương án **Làm lại món** (hủy lưu cờ `is_remade = TRUE` và tự động sinh order bồi thường) để xử lý món lỗi bể/vỡ.
 - **Điều phối chế biến:** Ghi nhận và cập nhật số lượng món đã làm xong (`prepared_quantity`) để trả đồ cho khách.
-- **Nghiệp vụ thanh toán:** Kiểm tra hóa đơn, đối chiếu tiền mặt/chuyển khoản và ấn **Xác nhận thanh toán thủ công (PAID)**. (Đã bấm là không được hoàn tác).
+- **Nghiệp vụ thanh toán:** Có thể tạo yêu cầu thanh toán hộ khách cho toàn bộ phiên bàn, kiểm tra hóa đơn, đối chiếu tiền mặt/chuyển khoản và ấn **Xác nhận thanh toán thủ công (PAID)**. (Đã bấm là không được hoàn tác).
 - **In hóa đơn:** In hóa đơn thanh toán cho khách khi payment ở trạng thái `PAID` qua máy in kết nối nội bộ (LAN/USB).
 - **In phiếu bếp:** In phiếu chế biến cho bếp trực tiếp từ màn hình vận hành khi máy in kết nối nội bộ.
 - **Xử lý sự cố:** Ghi nhận "Chưa thanh toán" khi khách rời đi không quẹt thẻ, đóng phiên bàn để dọn chỗ cho khách mới; **Tạo Báo cáo sự cố phát sinh** trong ca trực (lưu tên người tạo, thời gian và mô tả sự cố) để gửi trực tiếp cho ADMIN.
+- **Trạng thái món:** Chỉ chuyển món đang hiển thị giữa `ACTIVE` (đang bán) và `SOLD_OUT` (hết hàng); không được tạo, xóa hoặc sửa thông tin món.
 - **Dịch vụ đặt trước:** Tạo dịch vụ sau khi chốt qua Zalo, nhập giá đã thỏa thuận và xác nhận thanh toán thủ công khi khách thanh toán.
 
 ### 3.3. Quản lý / Quản trị viên (ADMIN)
@@ -50,6 +54,8 @@ _Tài khoản chủ quán hoặc cửa hàng trưởng. Nắm toàn bộ quyền
 - **Quản lý khuyến mãi (Promotions):** Tạo, sửa, kích hoạt/khóa chương trình khuyến mãi; cấu hình điều kiện, phạm vi món/danh mục và mã khuyến mãi.
 - **Quản lý Thông báo hệ thống:** Gửi, tra cứu và phân phối các thông báo vận hành, tin tức hoặc cảnh báo từ Admin tới các đối tượng nhận: Nhân viên (`OPERATOR`), Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - **Quản lý Nhân viên:** Tạo, kích hoạt, khóa tài khoản `OPERATOR`.
+- **Quản lý đa cơ sở:** `SUPER_ADMIN` chọn một cơ sở hiện có để quản trị; `ADMIN` và `OPERATOR` chỉ thao tác trong cơ sở được gán.
+- **Thương hiệu chung:** Chỉ `SUPER_ADMIN` chỉnh tên, logo và slogan dùng chung toàn hệ thống; mỗi cơ sở giữ địa chỉ, Google Maps, giờ hoạt động, phone và email riêng.
 - **Tra cứu khách hàng:** Xem danh sách khách đã mở bàn tại cửa hàng và lịch sử phiên bàn, order, payment hoặc khoản chưa thanh toán liên quan. Đây là chức năng tra cứu, không phải CRM.
 - **Cấu hình hệ thống:** Thiết lập các tham số vận hành (như thời gian ngưỡng cảnh báo chờ món lâu).
 - **Xem & Quản lý Báo cáo sự cố:** Tiếp nhận, tra cứu và theo dõi các báo cáo sự cố phát sinh do nhân viên OPERATOR gửi về từ ca trực.
@@ -90,11 +96,17 @@ Nhân viên xác nhận kết quả thanh toán
 - Quản lý trạng thái còn hoặc hết món.
 - Quản lý hình ảnh món.
 
+#### Quản lý banner và ảnh giới thiệu
+
+- `ADMIN` quản lý một cấu hình Welcome cho từng cửa hàng: 2 ảnh Hero, 5 ảnh xem trước Menu, 1 ảnh Banner và trạng thái `ACTIVE`/`INACTIVE`.
+- Đây là nội dung giới thiệu cửa hàng, không phải banner khuyến mãi, header ticker hoặc gợi ý mã giảm giá. Thông tin cơ sở hiển thị ở Welcome vẫn dùng từ `stores`; tên/logo/slogan dùng từ thương hiệu chung.
+- Cấu hình không có thời gian bắt đầu/kết thúc; Admin bật hoặc tắt toàn bộ bằng trạng thái.
+
 #### Quản lý khuyến mãi (Promotions) & Thông báo Khuyến mãi
 
 - Mỗi promotion thuộc một store. Điều kiện cơ bản, thời gian hiệu lực và quota nằm ngay tại `promotions`; mã, phạm vi món/danh mục và lịch sử sử dụng lần lượt nằm tại `promotion_codes`, `promotion_targets` và `promotion_redemptions`.
 - Mô hình đơn giản hiện tại hỗ trợ `PERCENT_OFF`, `FIXED_AMOUNT_OFF`, `ITEM_PERCENT_OFF` và `ITEM_FIXED_OFF`. `BUY_X_GET_Y` và `FREE_ITEM` cần dữ liệu mua/tặng riêng nên được để cho giai đoạn mở rộng promotion phức tạp hơn.
-- Backend trả danh sách promotion đủ điều kiện cùng số tiền giảm dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của table session; backend không tự chọn phương án có lợi nhất.
+- Backend trả danh sách promotion đủ điều kiện cùng số tiền giảm dự kiến để khách chọn tối đa một promotion cho toàn bộ bill của sales session; backend không tự chọn phương án có lợi nhất.
 - Giá niêm yết tại `menu_items.price` không bị sửa khi chạy khuyến mãi. Discount cấp bill được tính lại khi bill thay đổi và được snapshot tại `bill_discounts` khi payment được tạo, để hóa đơn lịch sử không thay đổi khi chương trình được sửa hoặc ngừng hiệu lực.
 - Quản lý danh sách thông báo hệ thống và phát hành tin tức, cảnh báo cho phép linh hoạt cấu hình đối tượng nhận thông báo: Chỉ Nhân viên (`OPERATOR`), Chỉ Khách hàng (`CUSTOMER`), hoặc Cả hai (`BOTH`).
 - Tích hợp biểu tượng **Chuông thông báo (Bell Icon)** ở góc trên bên phải giao diện Khách hàng (`Customer`) và Nhân viên (`Operator`) để xem nhanh thông báo khuyến mãi và tin tức vận hành.
@@ -133,11 +145,11 @@ hoàn thành theo giá trị suy ra khi mọi dòng món còn hiệu lực đề
 cần làm.
 
 Thời gian chờ của một bàn được tính từ `orders.created_at` của order cũ nhất vẫn
-còn ít nhất một phần chưa làm xong trong table session đang phục vụ. Một bàn
+còn ít nhất một phần chưa làm xong trong sales session đang phục vụ. Một bàn
 được cảnh báo khi thời gian chờ lớn hơn hoặc bằng ngưỡng do `ADMIN` cấu hình.
 Trong giai đoạn UI chưa kết nối cấu hình backend, giá trị tạm thời là `25` phút.
 
-Order do `OPERATOR` tạo hộ vẫn thuộc đúng table session của khách và tuân theo
+Order do `OPERATOR` tạo hộ vẫn thuộc đúng sales session của khách và tuân theo
 cùng quy tắc giá, kiểm tra món/option, idempotency và FIFO như order do Customer
 gửi. Backend không tin giá hoặc tổng tiền từ giao diện vận hành. Thao tác tạo hộ
 phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
@@ -162,8 +174,8 @@ phải được ghi `audit_logs` với tài khoản nhân viên thực hiện.
 #### Tra cứu khách hàng cho Admin
 
 - `ADMIN` có thể tra cứu khách hàng đã mở bàn trong phạm vi cửa hàng, theo tên hoặc số điện thoại.
-- Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách.
-- Khi mở chi tiết, `ADMIN` có thể xem các table session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
+- Danh sách chỉ hiển thị thông tin nhận diện cần thiết, số lượt mở bàn và thời điểm sử dụng gần nhất; số điện thoại phải được che một phần ở màn danh sách khi có, còn khách không có số điện thoại hiển thị là `Khách lẻ`.
+- Khi mở chi tiết, `ADMIN` có thể xem các sales session và lịch sử order, payment hoặc `unpaid_records` liên quan đến khách hàng đó.
 - Chức năng chỉ đọc dữ liệu hiện có, không cho sửa hoặc xóa thông tin khách, order, payment hay lịch sử phiên bàn.
 - `OPERATOR` không được truy cập chức năng này.
 
@@ -178,7 +190,6 @@ khi chưa có quyết định tiếp theo.
 - Đổi bàn, chuyển bàn hoặc gộp bàn giữa các phiên bàn.
 - Quản lý nhân viên, ca làm, chấm công và khai báo tiền mặt đầu ca/cuối ca.
 - Ma trận phân quyền chi tiết theo từng API.
-- Quản lý nhiều chi nhánh.
 - Quản lý kho và nguyên vật liệu.
 - Chương trình thành viên và tích điểm khách hàng.
 - CRM và chăm sóc khách hàng.
@@ -228,7 +239,7 @@ CAS chỉ ghi nhận trạng thái nghiệp vụ `PENDING` hoặc `PAID`; hệ t
 
 ### 5.4. Dịch vụ đặt trước
 
-Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với table session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên đánh dấu dịch vụ `CANCELLED`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
+Khách liên hệ Zalo bằng hotline của cửa hàng để thỏa thuận dịch vụ và giá với `OPERATOR` hoặc `ADMIN`. Sau khi chốt, nhân viên tạo một `service_booking` độc lập với sales session và order món, ghi tên dịch vụ cùng giá đã thỏa thuận. Dịch vụ có thể ở trạng thái thanh toán sau (`PAY_LATER`) hoặc được nhân viên xác minh thủ công và xác nhận `PAID`. Nếu khách không tiếp tục đặt, nhân viên đánh dấu dịch vụ `CANCELLED`; không dùng `payments`, `bill_snapshot` hay luồng thanh toán tại bàn.
 
 ## 6. Kiến trúc tổng thể
 
@@ -259,12 +270,14 @@ CAS Frontend
 └── Admin — Firebase Auth, role ADMIN
 ```
 
-Luồng route Customer bắt đầu tại `/table/{qrToken}` khi khách quét QR. Route
-này chỉ dùng để backend xác minh QR, xác định bàn và tìm hoặc mở table session.
-Sau khi có session hợp lệ, frontend chuyển sang các route ngắn `/menu`, `/cart`
-và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ chế vận chuyển và
-lưu ngữ cảnh session giữa frontend và backend phải được chốt trong API contract.
-Backend không được tin table ID hoặc session ID do client tự suy diễn.
+Customer có thể vào trực tiếp `/menu` và `/cart` công khai. Khi thêm món vào giỏ
+mà chưa có session, frontend chuyển tới `/table/{qrToken}` sau khi khách quét
+hoặc nhập QR; route này chỉ dùng để backend xác minh QR, xác định bàn và tìm
+hoặc mở sales session. Sau khi có session hợp lệ, Customer tiếp tục dùng các route ngắn
+`/menu`, `/cart` và `/orders`; QR token không tiếp tục xuất hiện trong URL. Cơ
+chế vận chuyển và lưu ngữ cảnh session giữa frontend và backend phải được chốt
+trong API contract. Backend không được tin table ID hoặc session ID do client tự
+suy diễn.
 
 Thanh điều hướng Customer mặc định gồm bốn tab theo thứ tự: Trang chủ, Thực đơn,
 Đơn hàng và Cài đặt. Thanh toán không phải tab truy cập thường trực; Customer chỉ
@@ -293,11 +306,59 @@ trực tiếp trên nền trang thay vì nằm trong một thanh sidebar liền 
 
 Các module được tổ chức trong cùng một backend và có thể tách hoặc mở rộng khi hệ thống phát triển.
 
+### 6.2.1. Cấu trúc thư mục backend
+
+```text
+backend/
+├── src/main/java/vn/cas/
+│   ├── CasApplication.java       # Điểm khởi động Spring Boot
+│   ├── common/                   # Thành phần dùng chung
+│   │   ├── config/               # CORS, Security và cấu hình kỹ thuật
+│   │   ├── exception/            # Exception và xử lý lỗi tập trung
+│   │   ├── response/             # API response và error response dùng chung
+│   │   ├── constants/            # Hằng số endpoint và API message
+│   │   ├── persistence/          # Thành phần persistence chung, ví dụ MyBatis type handler
+│   │   ├── security/             # Firebase filter, principal và xử lý quyền
+│   │   └── web/                  # Request ID, filter và controller dùng chung
+│   ├── store/ operation/                              # Module nghiệp vụ đã triển khai
+│   │   ├── controller/            # REST controller theo từng module
+│   │   ├── service/               # Service, use case và transaction
+│   │   ├── mapper/                # MyBatis mapper và thao tác persistence
+│   │   ├── model/                 # Model, enum và quy tắc nghiệp vụ
+│   │   ├── dto/                   # Request, response, command và query DTO
+│   │   └── exception/             # Exception đặc thù của module
+│   └── catalog/ ordering/ payment/ # Chỉ có package module, chưa có mã nguồn
+├── src/main/resources/
+│   ├── application.yml           # Cấu hình Spring Boot và import `.env` local
+│   ├── db/migration/             # Flyway migration, là nguồn schema database
+│   └── mapper/                   # MyBatis XML query với danh sách cột tường minh
+├── worker/                       # Dành trước cho worker tác vụ nền; chưa là Maven module
+└── src/test/                     # Unit và integration test
+```
+
+Trong mỗi module, `controller` tiếp nhận REST request, `service` điều phối use
+case và transaction, `mapper` chứa MyBatis mapper, `model` giữ model/enum/quy
+tắc nghiệp vụ, `dto` chứa dữ liệu trao đổi và `exception` chứa lỗi đặc thù.
+Các tích hợp ngoài thuộc module được đặt bên trong `service` khi cần, ví dụ
+`operation/service/firebase`. `.env` chỉ dành cho cấu hình local, không được
+commit; môi trường deploy dùng biến môi trường tương ứng.
+
+Các module chưa có mã nguồn như `catalog`, `ordering` và `payment` chỉ giữ
+package module tổng; các package con được tạo khi bắt đầu triển khai theo cấu
+trúc ở trên.
+
+`common/util` và `common/validation` chỉ được tạo khi có utility hoặc custom
+Bean Validation dùng chung thực sự cần tái sử dụng.
+
+Worker được để dành cho các tác vụ nền khi có yêu cầu đã chốt. Ở giai đoạn hiện
+tại, `backend/worker/` chỉ là vị trí dự phòng, không chứa application chạy độc lập
+và không làm thay đổi build hay runtime của API.
+
 ### 6.3. Giao tiếp và đồng bộ trạng thái
 
 - Frontend gọi REST API để thực hiện các thao tác và nhận kết quả trực tiếp.
 - Các màn hình Customer, Operation và Admin dùng polling để lấy thay đổi phát sinh từ thiết bị khác, gồm order mới, yêu cầu hủy, yêu cầu thanh toán, trạng thái payment và khoản chưa thanh toán.
-- Dashboard Operation dùng polling để cập nhật danh sách bàn chờ lâu; thời gian chờ được backend tính từ `orders.created_at` của order cũ nhất còn món chưa làm xong trong session bàn.
+- Dashboard Operation dùng polling để cập nhật danh sách bàn chờ lâu; thời gian chờ được backend tính từ `orders.created_at` của order cũ nhất còn món chưa làm xong trong session bàn. Ngưỡng do `ADMIN` cấu hình; `0` tắt cảnh báo và backend dùng `25` phút nếu không đọc được cấu hình hợp lệ.
 - Menu không polling liên tục; backend luôn kiểm tra lại trạng thái món và option khi khách submit order.
 - Giai đoạn đầu không dùng SSE, WebSocket hoặc Redis Pub/Sub.
 - Chu kỳ polling là cấu hình kỹ thuật được xác định khi triển khai và kiểm thử thực tế.
@@ -343,8 +404,8 @@ Giao diện Operation hỗ trợ chế độ offline có giới hạn để duy 
 
 ### 6.5. Tích hợp dịch vụ ngoài
 
-- Frontend chỉ giao tiếp với CAS Backend, không gọi trực tiếp Cloudinary.
-- Khi admin quản lý ảnh món, CAS Backend nhận file, kiểm tra quyền và upload ảnh lên Cloudinary bằng authenticated API. Backend lưu `image_url` và `image_storage_key` vào MySQL.
+- Frontend xin chữ ký upload ngắn hạn từ API chung qua `purpose` (`MENU_ITEM`, `STORE_LOGO` hoặc `WELCOME`) rồi upload trực tiếp ảnh lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
+- Khi admin lưu món, Frontend gửi URL hiển thị và Cloudinary public ID về CAS Backend; Backend kiểm tra quyền và lưu `image_url`, `image_storage_key` vào MySQL.
 - Số tiền của payment được CAS Backend tính từ tổng `orders.payable_amount`; frontend không được gửi một số tiền để backend tin cậy.
 - CAS không tích hợp VietQR, dịch vụ ngân hàng hoặc loa báo giao dịch. Nhân viên dùng tín hiệu “ting ting” bên ngoài CAS để xác minh chuyển khoản trước khi bấm xác nhận; CAS chỉ cập nhật trạng thái nghiệp vụ.
 - Cloudinary được cô lập trong infrastructure adapter; domain không phụ thuộc trực tiếp vào SDK hoặc provider.
@@ -367,11 +428,11 @@ Danh sách dưới đây phản ánh các công nghệ đã được chốt và 
 | Ngôn ngữ frontend | TypeScript ^5.9.0 | Kiểm tra kiểu tĩnh cho frontend |
 | Quản lý package frontend | npm, package-lock v3 | Cài đặt và khóa phiên bản dependency |
 | Cơ sở dữ liệu | MySQL 8.4 | Lưu dữ liệu nghiệp vụ bền vững |
-| Cache/dữ liệu tạm thời | Redis 7.4 Alpine | Cache và dữ liệu tạm thời; không phải nguồn dữ liệu bền vững |
-| Môi trường phát triển | Docker Compose | Khởi chạy MySQL và Redis cục bộ |
+| Cache/dữ liệu tạm thời | Redis Cloud (phát triển), Redis 7.4 Alpine (production) | Cache và dữ liệu tạm thời; không phải nguồn dữ liệu bền vững |
+| Môi trường phát triển | Backend, frontend và MySQL local; Redis Cloud | Phát triển không dùng Docker Compose |
 | Lưu trữ hình ảnh | Cloudinary (đã chốt, chưa cấu hình) | Lưu trữ hình ảnh menu |
 | CI/CD | GitHub Actions (đã chốt, chưa cấu hình workflow) | Tự động kiểm tra và triển khai ứng dụng |
-| Môi trường production | Một VPS, Docker Compose (đã chốt, chưa cấu hình) | Frontend và backend chạy trong cùng Docker Compose network |
+| Môi trường production | Một VPS, Docker Compose (đã chốt, chưa cấu hình) | Các service triển khai bằng Docker Compose |
 
 ### 7.2. Thư viện backend
 
