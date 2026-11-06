@@ -1,0 +1,218 @@
+-- CAS demo data. Run this manually only after Flyway has created an empty schema.
+-- This file is intentionally outside db/migration, so Flyway never executes it automatically.
+-- Demo customer QR URL: http://localhost:3000/table/<token below>
+-- Menu items and Welcome banners use the demo Cloudinary image URLs below.
+
+CREATE USER 'cas_codex_ro'@'localhost' IDENTIFIED BY '123456';
+
+GRANT SELECT, SHOW VIEW
+ON cas_db.*
+TO 'cas_codex_ro'@'localhost';
+
+FLUSH PRIVILEGES;
+
+
+START TRANSACTION;
+
+INSERT INTO stores (
+    name, address, phone, email, logo_url, google_maps_location, open_time, close_time,
+    welcome_slogan, long_wait_warning_minutes, timezone, status
+) VALUES (
+    'CAS Mì Cay', '123 Đường Ẩm Thực, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
+    '0900000000', 'hello@cas.local', 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787647789/cas/stores/1/1_20bbe6e4-5482-47d1-8018-6e4e25b9cff8.svg',
+    'https://maps.google.com/?q=10.7769,106.7009',
+    '09:00:00', '22:00:00', 'Món ngon gọi nhanh, vui trọn từng bàn.', 25,
+    'Asia/Ho_Chi_Minh', 'ACTIVE'
+);
+SET @store_id = LAST_INSERT_ID();
+
+-- Các Firebase user với UID tương ứng phải được tạo trước khi đăng nhập bằng các account demo này.
+INSERT INTO accounts (
+    store_id, firebase_uid, email, phone, display_name, role, status,
+    last_login_at, created_at, updated_at
+) VALUES
+    (@store_id, 'BBceWGHKmQMGSrRupMHdaXp3zK32', 'kxtdumbo@gmail.com', '0900000001',
+        'Super Admin Toan', 'SUPER_ADMIN', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137'),
+    (@store_id, 'pt7OP6fHG7T6CfF0W1I7FH68OK12', 'khuongxuantoan@gmail.com', '0900000002',
+        'Admin Toan', 'ADMIN', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137'),
+    (@store_id, 'VQ03PGio6bg1ueIL20ENUpeiUgf2', 'khuongxuantoan+operator@gmail.com', '0900000003',
+        'Operator Toan1', 'OPERATOR', 'ACTIVE', '2026-08-20 15:01:10.419',
+        '2026-08-20 08:15:40.137', '2026-08-20 15:01:10.422'),
+    (@store_id, 'dwUyrSq2TMX74IHpuFx9qoHNVms1', 'kxtdumbo+operator@gmail.com', '0900000004',
+        'Operator Toàn2', 'OPERATOR', 'ACTIVE', NULL,
+        '2026-08-20 08:15:40.137', '2026-08-20 08:15:40.137');
+
+-- Không gán created_by để dữ liệu menu và bàn vẫn độc lập với account demo.
+-- Welcome uses local test assets from frontend/public/images/welcome.
+-- Storage keys stay NULL because these files are not Cloudinary assets.
+INSERT INTO store_banners (
+    store_id,
+    hero_primary_image_url, hero_primary_image_storage_key,
+    hero_secondary_image_url, hero_secondary_image_storage_key,
+    menu_preview_1_image_url, menu_preview_1_image_storage_key,
+    menu_preview_2_image_url, menu_preview_2_image_storage_key,
+    menu_preview_3_image_url, menu_preview_3_image_storage_key,
+    menu_preview_4_image_url, menu_preview_4_image_storage_key,
+    menu_preview_5_image_url, menu_preview_5_image_storage_key,
+    banner_image_url, banner_image_storage_key,
+    status, created_by, updated_by
+) VALUES (
+    @store_id,
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788427932/cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896.jpg', 'cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg', 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407065/cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809.jpg', 'cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg', 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406767/cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c.jpg', 'cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406770/cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b.jpg', 'cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406766/cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014.jpg', 'cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg', 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238',
+    'ACTIVE', NULL, NULL
+);
+
+INSERT INTO dining_tables (store_id, code, capacity, created_by) VALUES
+    (@store_id, 1, 4, NULL), (@store_id, 2, 4, NULL),
+    (@store_id, 3, 4, NULL), (@store_id, 4, 4, NULL),
+    (@store_id, 5, 6, NULL), (@store_id, 6, 6, NULL),
+    (@store_id, 7, 8, NULL), (@store_id, 8, 8, NULL);
+
+INSERT INTO table_qr_codes (table_id, token, status, issued_at, revoked_at)
+SELECT dining_tables.id, demo_qr.token, 'ACTIVE', CURRENT_TIMESTAMP(3), NULL
+FROM dining_tables
+INNER JOIN (
+    SELECT 1 AS table_code, 'Q00000001' AS token
+    UNION ALL SELECT 2, 'Q00000002'
+    UNION ALL SELECT 3, 'Q00000003'
+    UNION ALL SELECT 4, 'Q00000004'
+    UNION ALL SELECT 5, 'Q00000005'
+    UNION ALL SELECT 6, 'Q00000006'
+    UNION ALL SELECT 7, 'Q00000007'
+    UNION ALL SELECT 8, 'Q00000008'
+) AS demo_qr ON demo_qr.table_code = dining_tables.code
+WHERE dining_tables.store_id = @store_id;
+
+INSERT INTO categories (store_id, name, description, category_type, display_order, status, created_by, updated_by) VALUES
+    (@store_id, 'Mì cay', 'Mì cay nhiều cấp độ.', 'REGULAR', 1, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Gà rán', 'Các món gà rán giòn.', 'REGULAR', 2, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Trà sữa', 'Đồ uống trà sữa và topping.', 'REGULAR', 3, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Cà phê', 'Cà phê pha máy và cà phê truyền thống.', 'REGULAR', 4, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Nước giải khát', 'Đồ uống mát lạnh.', 'REGULAR', 5, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Ăn vặt', 'Món ăn vặt dùng chung.', 'REGULAR', 6, 'ACTIVE', NULL, NULL);
+
+INSERT INTO tags (store_id, name, status) VALUES
+    (@store_id, 'Bán chạy', 'ACTIVE'), (@store_id, 'Món mới', 'ACTIVE'), (@store_id, 'Cực cay', 'ACTIVE');
+
+INSERT INTO option_groups (
+    store_id, name, selection_type, min_select, max_select, display_order, status, created_by, updated_by
+) VALUES
+    (@store_id, 'Cấp độ cay', 'SINGLE', 1, 1, 1, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Kích thước', 'SINGLE', 1, 1, 2, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Độ ngọt', 'SINGLE', 0, 1, 3, 'ACTIVE', NULL, NULL),
+    (@store_id, 'Topping', 'MULTIPLE', 0, NULL, 4, 'ACTIVE', NULL, NULL);
+
+INSERT INTO option_values (
+    option_group_id, name, extra_price, is_default, display_order, status, created_by, updated_by
+)
+SELECT option_groups.id, demo_option.name, demo_option.extra_price, demo_option.is_default,
+       demo_option.display_order, 'ACTIVE', NULL, NULL
+FROM option_groups
+INNER JOIN (
+    SELECT 'Cấp độ cay' AS group_name, 'Cấp 0' AS name, 0.00 AS extra_price, TRUE AS is_default, 0 AS display_order
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 1', 0.00, FALSE, 1
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 2', 0.00, FALSE, 2
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 3', 0.00, FALSE, 3
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 4', 0.00, FALSE, 4
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 5', 0.00, FALSE, 5
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 6', 0.00, FALSE, 6
+    UNION ALL SELECT 'Cấp độ cay', 'Cấp 7', 0.00, FALSE, 7
+    UNION ALL SELECT 'Kích thước', 'Size M', 0.00, TRUE, 1
+    UNION ALL SELECT 'Kích thước', 'Size L', 10000.00, FALSE, 2
+    UNION ALL SELECT 'Độ ngọt', '30%', 0.00, FALSE, 1
+    UNION ALL SELECT 'Độ ngọt', '50%', 0.00, FALSE, 2
+    UNION ALL SELECT 'Độ ngọt', '100%', 0.00, TRUE, 3
+    UNION ALL SELECT 'Topping', 'Trân châu đen', 8000.00, FALSE, 1
+    UNION ALL SELECT 'Topping', 'Trân châu trắng', 8000.00, FALSE, 2
+    UNION ALL SELECT 'Topping', 'Pudding trứng', 10000.00, FALSE, 3
+    UNION ALL SELECT 'Topping', 'Thạch phô mai', 10000.00, FALSE, 4
+) AS demo_option ON demo_option.group_name = option_groups.name
+WHERE option_groups.store_id = @store_id;
+
+INSERT INTO menu_items (
+    category_id, store_id, name, description, price, image_url, image_storage_key,
+    availability_status, display_order, created_by, updated_by
+)
+SELECT categories.id, @store_id, demo_item.name, demo_item.description, demo_item.price,
+       CASE demo_item.image_url
+           WHEN '/images/welcome/spicy-noodles-featured.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788427932/cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896.jpg'
+           WHEN '/images/welcome/spicy-noodles.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407065/cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809.jpg'
+           WHEN '/images/welcome/street-snacks.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407067/cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238.jpg'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788407061/cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a.jpg'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406770/cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b.jpg'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406767/cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c.jpg'
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1788406766/cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014.jpg'
+       END,
+       CASE demo_item.image_url
+           WHEN '/images/welcome/spicy-noodles-featured.jpg' THEN 'cas/menu/1/1_2a1caaa7-8215-43a7-995e-fec5f0a83896'
+           WHEN '/images/welcome/spicy-noodles.jpg' THEN 'cas/menu/1/1_054d9cea-3769-489f-84e2-effb9ac79809'
+           WHEN '/images/welcome/street-snacks.jpg' THEN 'cas/menu/1/1_18cdeab7-f080-43f0-a517-feda5a983238'
+           WHEN '/images/welcome/matcha-drink.jpg' THEN 'cas/menu/1/1_26a8d520-cd37-44ba-b8f1-62f2a051d50a'
+           WHEN '/images/welcome/milk-tea.jpg' THEN 'cas/menu/1/1_7bd00cd1-8283-4a96-af4c-2f3f2180ef1b'
+           WHEN '/images/welcome/iced-coffee.jpg' THEN 'cas/menu/1/1_f26c916d-90fc-4e59-b26f-371b6947c90c'
+           WHEN '/images/welcome/fried-chicken.jpg' THEN 'cas/menu/1/1_b0a18ea5-ee3d-4520-b897-edae47aea014'
+       END,
+       'AVAILABLE', demo_item.display_order, NULL, NULL
+FROM categories
+INNER JOIN (
+    SELECT 'Mì cay' AS category_name, 'Mì cay đặc biệt 7 cấp độ' AS name, 'Mì cay đậm vị với rau, nấm và topping.' AS description, 55000.00 AS price, '/images/welcome/spicy-noodles-featured.jpg' AS image_url, 1 AS display_order
+    UNION ALL SELECT 'Mì cay', 'Mì cay xúc xích phô mai', 'Mì cay béo thơm cùng xúc xích và phô mai.', 49000.00, '/images/welcome/spicy-noodles.jpg', 2
+    UNION ALL SELECT 'Mì cay', 'Mì cay nấm rau củ', 'Mì cay thanh nhẹ với nấm và rau xanh.', 42000.00, '/images/welcome/spicy-noodles.jpg', 3
+    UNION ALL SELECT 'Gà rán', 'Gà rán giòn rụm', 'Gà rán vàng giòn, dùng kèm sốt cay.', 35000.00, '/images/welcome/fried-chicken.jpg', 1
+    UNION ALL SELECT 'Gà rán', 'Gà sốt cay Hàn Quốc', 'Gà rán phủ sốt cay ngọt và mè rang.', 39000.00, '/images/welcome/fried-chicken.jpg', 2
+    UNION ALL SELECT 'Gà rán', 'Gà popcorn lắc phô mai', 'Gà viên giòn tan phủ bột phô mai.', 32000.00, '/images/welcome/fried-chicken.jpg', 3
+    UNION ALL SELECT 'Trà sữa', 'Trà sữa trân châu đường đen', 'Trà thơm dịu cùng trân châu đường đen.', 45000.00, '/images/welcome/milk-tea.jpg', 1
+    UNION ALL SELECT 'Trà sữa', 'Trà sữa truyền thống', 'Trà đậm thơm hòa cùng sữa béo nhẹ.', 35000.00, '/images/welcome/milk-tea.jpg', 2
+    UNION ALL SELECT 'Trà sữa', 'Trà sữa matcha', 'Matcha thơm dịu cùng sữa tươi.', 42000.00, '/images/welcome/matcha-drink.jpg', 3
+    UNION ALL SELECT 'Cà phê', 'Cà phê sữa đá', 'Cà phê rang đậm pha cùng sữa đặc.', 29000.00, '/images/welcome/iced-coffee.jpg', 1
+    UNION ALL SELECT 'Cà phê', 'Cà phê đen đá', 'Cà phê rang đậm, vị mạnh mẽ.', 24000.00, '/images/welcome/iced-coffee.jpg', 2
+    UNION ALL SELECT 'Nước giải khát', 'Trà đào cam sả', 'Trà đào mát lạnh cùng cam và sả.', 39000.00, '/images/welcome/matcha-drink.jpg', 1
+    UNION ALL SELECT 'Nước giải khát', 'Soda chanh', 'Soda chanh tươi mát lạnh.', 25000.00, '/images/welcome/milk-tea.jpg', 2
+    UNION ALL SELECT 'Ăn vặt', 'Khoai tây chiên', 'Khoai tây chiên vàng giòn.', 30000.00, '/images/welcome/street-snacks.jpg', 1
+    UNION ALL SELECT 'Ăn vặt', 'Xúc xích chiên', 'Xúc xích chiên nóng hổi.', 25000.00, '/images/welcome/street-snacks.jpg', 2
+) AS demo_item ON demo_item.category_name = categories.name
+WHERE categories.store_id = @store_id;
+
+INSERT INTO menu_item_option_groups (menu_item_id, option_group_id, store_id, display_order)
+SELECT menu_items.id, option_groups.id, @store_id, demo_link.display_order
+FROM menu_items
+INNER JOIN (
+    SELECT 'Mì cay đặc biệt 7 cấp độ' AS item_name, 'Cấp độ cay' AS group_name, 1 AS display_order
+    UNION ALL SELECT 'Mì cay xúc xích phô mai', 'Cấp độ cay', 1
+    UNION ALL SELECT 'Mì cay nấm rau củ', 'Cấp độ cay', 1
+    UNION ALL SELECT 'Trà sữa trân châu đường đen', 'Kích thước', 1
+    UNION ALL SELECT 'Trà sữa trân châu đường đen', 'Độ ngọt', 2
+    UNION ALL SELECT 'Trà sữa trân châu đường đen', 'Topping', 3
+    UNION ALL SELECT 'Trà sữa truyền thống', 'Kích thước', 1
+    UNION ALL SELECT 'Trà sữa truyền thống', 'Độ ngọt', 2
+    UNION ALL SELECT 'Trà sữa truyền thống', 'Topping', 3
+    UNION ALL SELECT 'Trà sữa matcha', 'Kích thước', 1
+    UNION ALL SELECT 'Trà sữa matcha', 'Độ ngọt', 2
+    UNION ALL SELECT 'Trà sữa matcha', 'Topping', 3
+) AS demo_link ON demo_link.item_name = menu_items.name
+INNER JOIN option_groups ON option_groups.name = demo_link.group_name AND option_groups.store_id = @store_id
+WHERE menu_items.store_id = @store_id;
+
+INSERT INTO menu_item_tags (menu_item_id, tag_id, store_id)
+SELECT menu_items.id, tags.id, @store_id
+FROM menu_items
+INNER JOIN (
+    SELECT 'Mì cay đặc biệt 7 cấp độ' AS item_name, 'Bán chạy' AS tag_name
+    UNION ALL SELECT 'Mì cay đặc biệt 7 cấp độ', 'Cực cay'
+    UNION ALL SELECT 'Mì cay xúc xích phô mai', 'Món mới'
+    UNION ALL SELECT 'Gà sốt cay Hàn Quốc', 'Bán chạy'
+    UNION ALL SELECT 'Trà sữa matcha', 'Món mới'
+) AS demo_tag ON demo_tag.item_name = menu_items.name
+INNER JOIN tags ON tags.name = demo_tag.tag_name AND tags.store_id = @store_id
+WHERE menu_items.store_id = @store_id;
+
+COMMIT;

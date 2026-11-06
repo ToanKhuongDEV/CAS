@@ -8,10 +8,11 @@ The frontend is responsible for:
 
 - Customer-facing QR menu and ordering flows.
 - Operator-facing order and payment screens.
-- Admin-facing configuration, catalog, table, account, audit, and unpaid-record screens.
+- Admin-facing configuration, catalog, table, account, audit, and unpaid-status screens.
 - Displaying current business state received from the backend.
-- Providing a mobile-first experience for customers.
-- Providing responsive tablet and desktop experiences for Operation and Admin.
+- Providing a mobile-first experience for Customer.
+- Providing desktop-first web experiences for Operation and Admin, with responsive mobile layouts.
+- Keeping all three areas responsive across their supported screen sizes.
 - Keeping business rules in the backend unless they are purely presentational.
 
 Do not implement backend authorization, payment confirmation, pricing rules, or order-state transitions only in the frontend.
@@ -35,7 +36,9 @@ Restaurant processes the order
     ↓
 Customer requests payment
     ↓
-Operator generates VietQR
+Customer must meet the operator
+    ↓
+Operator verifies the successful transfer through the external “ting ting” speaker
     ↓
 Operator manually confirms payment
     ↓
@@ -60,21 +63,18 @@ Customer is an actor, not an `accounts.role`. The current system has no kitchen/
 - One Next.js App Router application.
 - Three route and layout areas: Customer, Operation, and Admin.
 - Customer routes are public and entered through the table QR flow.
-- JWT is the primary authentication mechanism for Operation and Admin.
-- Access JWT lifetime is 15 minutes; refresh JWT lifetime is 10 days.
-- Access and refresh JWTs must never be stored in `localStorage`.
-- The system does not limit the number of logged-in devices and has no active JWT revocation mechanism in the current scope.
+- Firebase Authentication is the primary authentication mechanism for Operation and Admin; client attaches Firebase ID Token in requests.
 - Only `ADMIN` can create operational accounts.
 - Detailed permissions for `ADMIN` and `OPERATOR` must follow the backend contract once finalized.
 - Frontend communicates only with CAS Backend.
 - State created by another device is synchronized using REST polling.
 - SSE, WebSocket, and Redis Pub/Sub are not part of the initial frontend architecture.
-- Frontend never uploads directly to Cloudinary and never calls VietQR APIs directly.
+- Với ảnh món, Frontend xin chữ ký upload ngắn hạn từ CAS Backend rồi upload trực tiếp lên Cloudinary; API secret không bao giờ được gửi cho trình duyệt.
 
 Out of scope for the current frontend unless explicitly requested:
 
 - Inventory management
-- Employee scheduling and attendance
+- Operator scheduling and attendance
 - Multi-branch management
 - Zalo integration
 - CRM
@@ -483,8 +483,8 @@ Polling rules:
 - Do not rely solely on stale cached menu data during order submission.
 - Images must include meaningful alternative text.
 - Use image dimensions or aspect ratios to avoid layout shifts.
-- Admin sends image files to CAS Backend. Frontend must not upload directly to Cloudinary.
-- Store and render only the finalized media URL returned by the backend.
+- Admin xin chữ ký upload từ CAS Backend rồi upload ảnh món trực tiếp lên Cloudinary. Khi lưu món, Frontend gửi `secure_url` và `public_id` về CAS Backend.
+- Store and render only the finalized media URL returned by Cloudinary và được Backend chấp nhận.
 
 ### 11.3. Ordering
 
@@ -499,23 +499,27 @@ Polling rules:
 
 ### 11.4. Payment
 
-The current payment flow is manually confirmed by an operator.
+The current payment-status flow is manually confirmed by an operator.
 
 - The customer requests payment.
-- The operator generates VietQR.
-- VietQR is displayed on the operator device.
-- The operator verifies the bank transaction.
+- The backend creates a `PENDING` payment whose amount equals the session's authoritative order total.
+- The customer UI instructs the customer to meet an operator to finish payment.
+- The operator verifies the successful transfer through the external “ting ting” notification speaker.
 - The operator confirms payment.
+- The backend changes the payment to `PAID`.
 - The backend closes the table session.
 
 Frontend rules:
 
 - Do not show a “paid” state before backend confirmation.
 - Do not infer payment success from elapsed time.
-- Do not infer payment success from opening a banking application.
 - Do not automatically close a table session.
-- Show the exact amount and transfer content returned by the backend.
-- Display only VietQR data returned by CAS Backend. Frontend must not call VietQR Generate API or construct an authoritative VietQR payload.
+- Show the exact amount returned by the backend.
+- Never submit a client-calculated amount as authoritative payment data.
+- Do not display or collect bank account, bank name, account-holder, transfer-reference, QR-payment, or transaction data.
+- Clearly tell the customer that they must meet an operator after requesting payment.
+- The operator confirmation UI must state that confirmation is allowed only after the external speaker reports a successful transfer.
+- Do not imply that CAS reads or integrates with the speaker; verification is a manual action outside CAS.
 - Require an explicit confirmation action from the operator.
 - Protect confirmation from accidental double clicks.
 - Show who confirmed payment when that data is available.
@@ -539,8 +543,10 @@ Use Tailwind CSS 4 and existing design tokens.
 
 ### 12.1. General rules
 
-- Mobile-first for customer flows.
-- Responsive for operator screens.
+- Mobile-first for Customer flows.
+- Desktop-first web layout for Operation screens used by restaurant staff, with responsive mobile layouts.
+- Desktop-first web layout for Admin screens.
+- Keep Customer, Operation, and Admin responsive beyond their primary target size.
 - Use consistent spacing, typography, radius, and control heights.
 - Reuse existing UI primitives.
 - Avoid arbitrary values when a token or standard utility works.
@@ -617,9 +623,8 @@ Are you sure?
 ## 14. Authentication and Authorization
 
 - Customer does not log in and must not be treated as role `USER`.
-- JWT is the primary authentication mechanism and is used only by `ADMIN` and `OPERATOR`.
-- Access JWT expires after 15 minutes; refresh JWT expires after 10 days.
-- Never store access or refresh JWTs in `localStorage`.
+- Firebase Authentication is the primary authentication mechanism used by `ADMIN` and `OPERATOR`.
+- Client attaches Firebase ID Token in the `Authorization: Bearer <Firebase_ID_Token>` header for protected backend requests.
 - Do not fall back to `sessionStorage` or IndexedDB as an alternative token store without an approved architecture change.
 - Use the token transport and storage mechanism defined by the backend API contract. The split between in-memory state and secure cookies has not yet been approved.
 - Centralize access-token attachment, refresh, authentication failure, and logout behavior.
@@ -697,12 +702,12 @@ Use Playwright for critical flows:
 - Submit an order
 - Add more items in the same table session
 - Request payment
-- Generate or display VietQR on the operator screen
+- Show the instruction requiring the customer to meet an operator
 - Confirm payment manually
 - Finish the table session
 - Reject unauthorized operational access
 
-E2E tests should use stable test data and should not depend on production services. Cloudinary and VietQR integrations must be stubbed or run against an explicitly approved non-production environment.
+E2E tests should use stable test data and should not depend on production services. Cloudinary integration must be stubbed or run against an explicitly approved non-production environment.
 
 ### 16.3. Regression rules
 
@@ -740,6 +745,7 @@ Minimum expectation for normal code changes:
 
 ```bash
 npm run lint
+npm run format # or npx prettier --write src/
 npm run typecheck
 npm run test
 ```
@@ -783,7 +789,7 @@ Feature flags
 Observability configuration
 ```
 
-Do not add Cloudinary credentials, upload presets, VietQR credentials, or provider endpoints to frontend environment variables. CAS Backend owns both integrations and returns finalized media or QR data.
+Do not add Cloudinary credentials or upload presets to frontend environment variables. CAS Backend chỉ cấp chữ ký upload ngắn hạn; API secret luôn ở Backend.
 
 ---
 
@@ -820,7 +826,7 @@ Treat all browser input and external data as untrusted.
 - Use CSRF protection according to the backend authentication model.
 - Do not log sensitive payment or authentication data.
 - Do not trust role, price, total, order status, or payment status supplied only by the browser.
-- Do not call Cloudinary or VietQR APIs directly from browser code.
+- Không gọi Cloudinary API trực tiếp từ browser ngoài luồng upload ảnh món có chữ ký do CAS Backend cấp.
 
 ---
 
@@ -900,3 +906,9 @@ Do not:
 - Remove tests merely because they fail.
 - Perform unrelated refactors.
 - Add out-of-scope CAS features unless explicitly requested.
+
+## Frontend Design System
+
+- **Colors**: Always use the design tokens defined in `frontend/src/app/globals.css` (e.g., `cas-primary`, `cas-error`, `cas-secondary`, `cas-tertiary`, `cas-on-surface`, `cas-on-surface-variant`, `cas-surface`, `cas-outline-variant`, etc.). Never use raw Tailwind color utilities such as `red-500`, `emerald-500`, `rose-500`, `amber-500`, `slate-500`, or any other hardcoded palette color. If a new color is genuinely needed and no existing token fits, ask the user for approval before adding it to `globals.css`.
+- **Fonts**: Always use the system font stack defined via `--font-cas` in `globals.css`, applied globally through the `font-sans` Tailwind utility on `<body>`. Never declare a custom `font-family`, import a separate Google Font, or use any Tailwind font utility other than `font-sans`. If a new typeface is required, ask the user for approval before adding it.
+- Minimize additions to the design system. Reuse existing tokens first. Adding new tokens or colors requires explicit user approval.

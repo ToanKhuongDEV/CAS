@@ -1,0 +1,126 @@
+package vn.cas.store.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import vn.cas.common.constants.ApiMessages;
+import vn.cas.common.exception.ApiException;
+import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.operation.dto.AuditLogCommand;
+import vn.cas.operation.service.AuditLogService;
+import vn.cas.store.dto.CreateDiningTableCommand;
+import vn.cas.store.mapper.DiningTableMapper;
+import vn.cas.store.model.ActiveTableQrCode;
+
+class DiningTableServiceTest {
+
+    private final DiningTableMapper diningTableMapper = mock(DiningTableMapper.class);
+    private final AuditLogService auditLogService = mock(AuditLogService.class);
+    private final DiningTableService service = new DiningTableService(diningTableMapper,
+            auditLogService);
+    private final OperationalPrincipal principal = new OperationalPrincipal(7L, 2L,
+            "firebase-user-1", "Admin One", "ADMIN");
+
+    @Test
+    void shouldCreateDiningTableWithActiveQrCodeAndAuditLog() {
+        when(diningTableMapper.existsByStoreIdAndCode(2L, 5L)).thenReturn(false);
+        doAnswer(invocation -> {
+            invocation.getArgument(0, CreateDiningTableCommand.class).setId(11L);
+            return 1;
+        }).when(diningTableMapper).insertDiningTable(any());
+        UUID requestId = UUID.randomUUID();
+
+        var result = service.create(principal, 5L, 4, requestId);
+
+        assertThat(result.id()).isEqualTo(11L);
+        assertThat(result.code()).isEqualTo(5L);
+        assertThat(result.capacity()).isEqualTo(4);
+        assertThat(result.activeQrToken()).matches("Q\\d{8}");
+        verify(diningTableMapper).insertActiveQrCode(anyLong(), any(), any());
+
+        var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
+        verify(auditLogService).record(auditCaptor.capture());
+        assertThat(auditCaptor.getValue()).extracting(AuditLogCommand::action,
+                AuditLogCommand::entityType, AuditLogCommand::entityId)
+                .containsExactly("CREATE", "DINING_TABLE", 11L);
+        assertThat(auditCaptor.getValue().changeData()).isEqualTo("{\"code\":5,\"capacity\":4}");
+    }
+
+    @Test
+    void shouldRejectExistingDiningTableCodeWithinStore() {
+        when(diningTableMapper.existsByStoreIdAndCode(2L, 5L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(principal, 5L, null, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.CONFLICT,
+                        ApiMessages.DINING_TABLE_CODE_ALREADY_EXISTS);
+
+        verify(diningTableMapper, never()).insertDiningTable(any());
+        verify(auditLogService, never()).record(any());
+    }
+
+    @Test
+    void shouldDeleteDiningTableAndRecordAuditLog() {
+        UUID requestId = UUID.randomUUID();
+        when(diningTableMapper.deleteDiningTable(2L, 11L)).thenReturn(1);
+
+        service.delete(principal, 11L, requestId);
+
+        var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
+        verify(auditLogService).record(auditCaptor.capture());
+        assertThat(auditCaptor.getValue()).extracting(AuditLogCommand::action,
+                AuditLogCommand::entityType, AuditLogCommand::entityId)
+                .containsExactly("DELETE", "DINING_TABLE", 11L);
+    }
+
+    @Test
+    void shouldReissueTableQrCodeAndRecordQrAuditLogs() {
+        when(diningTableMapper.revokeActiveQrCode(anyLong(), anyLong(), any())).thenReturn(1);
+        when(diningTableMapper.findActiveQrCodeByStoreIdAndTableId(2L, 11L))
+                .thenReturn(new ActiveTableQrCode(11L, 5L, "Q12345678"));
+
+        var result = service.reissueQrCode(principal, 11L, UUID.randomUUID());
+
+        assertThat(result).isEqualTo(new ActiveTableQrCode(11L, 5L, "Q12345678"));
+        verify(diningTableMapper).insertActiveQrCode(anyLong(), any(), any());
+        var auditCaptor = ArgumentCaptor.forClass(AuditLogCommand.class);
+        verify(auditLogService, org.mockito.Mockito.times(2)).record(auditCaptor.capture());
+        assertThat(auditCaptor.getAllValues()).extracting(AuditLogCommand::action)
+                .containsExactly("QR_REVOKED", "QR_CREATED");
+    }
+
+    @Test
+    void shouldRejectReissuingQrCodeForUnknownDiningTable() {
+        when(diningTableMapper.revokeActiveQrCode(anyLong(), anyLong(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> service.reissueQrCode(principal, 11L, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.NOT_FOUND,
+                        ApiMessages.DINING_TABLE_NOT_FOUND);
+        verify(diningTableMapper, never()).insertActiveQrCode(anyLong(), any(), any());
+    }
+
+    @Test
+    void shouldRejectDeletingUnknownDiningTable() {
+        when(diningTableMapper.deleteDiningTable(2L, 11L)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.delete(principal, 11L, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class)
+                .extracting(throwable -> ((ApiException) throwable).status(), Throwable::getMessage)
+                .containsExactly(org.springframework.http.HttpStatus.NOT_FOUND,
+                        ApiMessages.DINING_TABLE_NOT_FOUND);
+        verify(auditLogService, never()).record(any());
+    }
+}

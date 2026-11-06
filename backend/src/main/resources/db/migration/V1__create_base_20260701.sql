@@ -1,2 +1,933 @@
--- Baseline cho dự án CAS.
--- Schema nghiệp vụ sẽ được bổ sung sau khi ERD, foreign key và constraint được chốt.
+CREATE TABLE stores (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL,
+    address VARCHAR(500) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    logo_url VARCHAR(2048) NULL,
+    logo_storage_key VARCHAR(512) NULL,
+    google_maps_location VARCHAR(2048) NULL,
+    open_time TIME NOT NULL,
+    close_time TIME NOT NULL,
+    welcome_slogan VARCHAR(500) NULL,
+    long_wait_warning_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 25,
+    timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id)
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE accounts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    firebase_uid VARCHAR(128) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    display_name VARCHAR(150) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    last_login_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_accounts_firebase_uid UNIQUE (firebase_uid),
+    CONSTRAINT uk_accounts_email UNIQUE (email),
+    CONSTRAINT uk_accounts_phone UNIQUE (phone),
+    KEY idx_accounts_store_id (store_id),
+    CONSTRAINT fk_accounts_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE dining_tables (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    code INT UNSIGNED NOT NULL,
+    capacity SMALLINT UNSIGNED NULL,
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_dining_tables_store_code UNIQUE (store_id, code),
+    KEY idx_dining_tables_created_by (created_by),
+    CONSTRAINT fk_dining_tables_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_dining_tables_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE table_qr_codes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    table_id BIGINT UNSIGNED NOT NULL,
+    token CHAR(64) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    issued_at DATETIME(3) NOT NULL,
+    revoked_at DATETIME(3) NULL,
+    active_table_id BIGINT UNSIGNED
+        GENERATED ALWAYS AS (
+            CASE WHEN status = 'ACTIVE' THEN table_id ELSE NULL END
+        ) STORED,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_table_qr_codes_token UNIQUE (token),
+    CONSTRAINT uk_table_qr_codes_active_table UNIQUE (active_table_id),
+    KEY idx_table_qr_codes_table_id (table_id),
+    CONSTRAINT fk_table_qr_codes_table
+        FOREIGN KEY (table_id) REFERENCES dining_tables (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE categories (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    category_type VARCHAR(20) NOT NULL,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_categories_store_name UNIQUE (store_id, name),
+    CONSTRAINT uk_categories_id_store UNIQUE (id, store_id),
+    KEY idx_categories_menu (store_id, status, display_order),
+    KEY idx_categories_created_by (created_by),
+    KEY idx_categories_updated_by (updated_by),
+    CONSTRAINT fk_categories_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_categories_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_categories_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE menu_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    category_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    price DECIMAL(15, 2) NOT NULL,
+    image_url VARCHAR(2048) NULL,
+    image_storage_key VARCHAR(512) NULL,
+    availability_status VARCHAR(20) NOT NULL,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_menu_items_id_store UNIQUE (id, store_id),
+    KEY idx_menu_items_menu (category_id, availability_status, display_order),
+    KEY idx_menu_items_created_by (created_by),
+    KEY idx_menu_items_updated_by (updated_by),
+    CONSTRAINT fk_menu_items_category_store
+        FOREIGN KEY (category_id, store_id) REFERENCES categories (id, store_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_menu_items_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_menu_items_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE tags (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_tags_store_name UNIQUE (store_id, name),
+    CONSTRAINT uk_tags_id_store UNIQUE (id, store_id),
+    CONSTRAINT fk_tags_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE menu_item_tags (
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    tag_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (menu_item_id, tag_id),
+    KEY idx_menu_item_tags_menu_item_store (menu_item_id, store_id),
+    KEY idx_menu_item_tags_tag_store (tag_id, store_id),
+    CONSTRAINT fk_menu_item_tags_menu_item_store
+        FOREIGN KEY (menu_item_id, store_id) REFERENCES menu_items (id, store_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_menu_item_tags_tag_store
+        FOREIGN KEY (tag_id, store_id) REFERENCES tags (id, store_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE option_groups (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    selection_type VARCHAR(20) NOT NULL,
+    min_select SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    max_select SMALLINT UNSIGNED NULL,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_option_groups_store_name UNIQUE (store_id, name),
+    CONSTRAINT uk_option_groups_id_store UNIQUE (id, store_id),
+    KEY idx_option_groups_store (store_id, status, display_order),
+    KEY idx_option_groups_created_by (created_by),
+    KEY idx_option_groups_updated_by (updated_by),
+    CONSTRAINT fk_option_groups_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_option_groups_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_option_groups_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE option_values (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    option_group_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    extra_price DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_option_values_group_name UNIQUE (option_group_id, name),
+    KEY idx_option_values_group (option_group_id, status, display_order),
+    KEY idx_option_values_created_by (created_by),
+    KEY idx_option_values_updated_by (updated_by),
+    CONSTRAINT fk_option_values_group
+        FOREIGN KEY (option_group_id) REFERENCES option_groups (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_option_values_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_option_values_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE menu_item_option_groups (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    option_group_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    display_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_menu_item_option_groups UNIQUE (menu_item_id, option_group_id),
+    KEY idx_menu_item_option_groups_menu_item_store (menu_item_id, store_id),
+    KEY idx_menu_item_option_groups_option_group_store (option_group_id, store_id),
+    KEY idx_menu_item_option_groups_menu (menu_item_id, display_order),
+    CONSTRAINT fk_menu_item_option_groups_menu_item_store
+        FOREIGN KEY (menu_item_id, store_id) REFERENCES menu_items (id, store_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_menu_item_option_groups_option_group_store
+        FOREIGN KEY (option_group_id, store_id) REFERENCES option_groups (id, store_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE client_accounts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    phone VARCHAR(20) NULL,
+    display_name VARCHAR(150) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_client_accounts_store_phone UNIQUE (store_id, phone),
+    CONSTRAINT fk_client_accounts_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE sales_sessions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    session_type VARCHAR(20) NOT NULL,
+    table_id BIGINT UNSIGNED NULL,
+    client_account_id BIGINT UNSIGNED NOT NULL,
+    opened_by_customer_name VARCHAR(150) NOT NULL,
+    opened_by_customer_phone VARCHAR(20) NULL,
+    selected_promotion_id BIGINT UNSIGNED NULL,
+    selected_promotion_code_id BIGINT UNSIGNED NULL,
+    status VARCHAR(20) NOT NULL,
+    payment_requested_at DATETIME(3) NULL,
+    closed_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    occupying_table_id BIGINT UNSIGNED
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN session_type = 'DINE_IN' AND status IN ('OPEN', 'PAYMENT_PENDING') THEN table_id
+                ELSE NULL
+            END
+        ) STORED,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_sales_sessions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_sales_sessions_occupying_table UNIQUE (occupying_table_id),
+    KEY idx_sales_sessions_store_created_at (store_id, created_at),
+    KEY idx_sales_sessions_table_id (table_id),
+    KEY idx_sales_sessions_client_account_created_at (client_account_id, created_at),
+    CONSTRAINT chk_sales_sessions_type_table CHECK (
+        (session_type = 'DINE_IN' AND table_id IS NOT NULL)
+        OR (session_type = 'TAKEAWAY' AND table_id IS NULL)
+    ),
+    CONSTRAINT fk_sales_sessions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_sales_sessions_table
+        FOREIGN KEY (table_id) REFERENCES dining_tables (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_sales_sessions_client_account
+        FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE orders (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
+    created_by_account_id BIGINT UNSIGNED NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    order_number VARCHAR(50) NOT NULL,
+    original_amount DECIMAL(15, 2) NOT NULL,
+    payable_amount DECIMAL(15, 2) NOT NULL,
+    note VARCHAR(1000) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_orders_public_id UNIQUE (public_id),
+    CONSTRAINT uk_orders_order_number UNIQUE (order_number),
+    CONSTRAINT uk_orders_session_idempotency
+        UNIQUE (sales_session_id, idempotency_key),
+    KEY idx_orders_created_by_account_id (created_by_account_id),
+    CONSTRAINT fk_orders_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_orders_creator
+        FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE order_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    order_id BIGINT UNSIGNED NOT NULL,
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    item_name VARCHAR(150) NOT NULL,
+    unit_price DECIMAL(15, 2) NOT NULL,
+    options_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    quantity INT UNSIGNED NOT NULL,
+    prepared_quantity INT UNSIGNED NOT NULL DEFAULT 0,
+    total_amount DECIMAL(15, 2) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_order_items_public_id UNIQUE (public_id),
+    KEY idx_order_items_order_id (order_id),
+    KEY idx_order_items_menu_item_id (menu_item_id),
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id) REFERENCES orders (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_order_items_menu_item
+        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE order_item_options (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    order_item_id BIGINT UNSIGNED NOT NULL,
+    option_value_id BIGINT UNSIGNED NOT NULL,
+    option_group_name VARCHAR(150) NOT NULL,
+    option_name VARCHAR(150) NOT NULL,
+    unit_price DECIMAL(15, 2) NOT NULL,
+    quantity_per_item INT UNSIGNED NOT NULL DEFAULT 1,
+    total_amount DECIMAL(15, 2) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_order_item_options_item_value
+        UNIQUE (order_item_id, option_value_id),
+    KEY idx_order_item_options_option_value_id (option_value_id),
+    CONSTRAINT fk_order_item_options_order_item
+        FOREIGN KEY (order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_order_item_options_option_value
+        FOREIGN KEY (option_value_id) REFERENCES option_values (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE preparation_batch_completions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    menu_item_id BIGINT UNSIGNED NOT NULL,
+    option_configuration_hash CHAR(64) NOT NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    requested_quantity INT UNSIGNED NOT NULL,
+    allocation_snapshot JSON NOT NULL,
+    completed_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_preparation_batch_completions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_preparation_batch_completions_store_idempotency
+        UNIQUE (store_id, idempotency_key),
+    KEY idx_preparation_batch_completions_menu_item_id (menu_item_id),
+    KEY idx_preparation_batch_completions_completed_by (completed_by_account_id),
+    CONSTRAINT fk_preparation_batch_completions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_preparation_batch_completions_menu_item
+        FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_preparation_batch_completions_completed_by
+        FOREIGN KEY (completed_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE order_item_cancellation_requests (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    order_item_id BIGINT UNSIGNED NOT NULL,
+    created_by_account_id BIGINT UNSIGNED NULL,
+    created_by_name VARCHAR(150) NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    requested_quantity INT UNSIGNED NOT NULL,
+    reason VARCHAR(1000) NULL,
+    status VARCHAR(20) NOT NULL,
+    is_remade BOOLEAN NOT NULL DEFAULT FALSE,
+    resolved_by BIGINT UNSIGNED NULL,
+    resolved_by_name VARCHAR(150) NULL,
+    resolved_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_cancellation_requests_public_id UNIQUE (public_id),
+    CONSTRAINT uk_cancellation_requests_item_idempotency
+        UNIQUE (order_item_id, idempotency_key),
+    KEY idx_cancellation_requests_created_by (created_by_account_id),
+    KEY idx_cancellation_requests_resolved_by (resolved_by),
+    CONSTRAINT fk_cancellation_requests_order_item
+        FOREIGN KEY (order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_cancellation_requests_creator
+        FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_cancellation_requests_resolver
+        FOREIGN KEY (resolved_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE payments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    bill_snapshot JSON NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    confirmed_by BIGINT UNSIGNED NULL,
+    confirmed_by_name VARCHAR(150) NULL,
+    confirmed_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_payments_public_id UNIQUE (public_id),
+    CONSTRAINT uk_payments_sales_session UNIQUE (sales_session_id),
+    KEY idx_payments_confirmed_by (confirmed_by),
+    KEY idx_payments_status_created_session (status, created_at, sales_session_id),
+    CONSTRAINT fk_payments_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_payments_confirmer
+        FOREIGN KEY (confirmed_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE unpaid_records (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    bill_snapshot JSON NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    reason VARCHAR(1000) NULL,
+    reported_by BIGINT UNSIGNED NOT NULL,
+    reported_by_name VARCHAR(150) NOT NULL,
+    resolution_payment_id BIGINT UNSIGNED NULL,
+    resolved_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_unpaid_records_public_id UNIQUE (public_id),
+    CONSTRAINT uk_unpaid_records_sales_session UNIQUE (sales_session_id),
+    CONSTRAINT uk_unpaid_records_resolution_payment UNIQUE (resolution_payment_id),
+    KEY idx_unpaid_records_reported_by (reported_by),
+    CONSTRAINT fk_unpaid_records_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_unpaid_records_reporter
+        FOREIGN KEY (reported_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_unpaid_records_resolution_payment
+        FOREIGN KEY (resolution_payment_id) REFERENCES payments (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE audit_logs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    request_id CHAR(36) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT UNSIGNED NOT NULL,
+    entity_name VARCHAR(150) NULL,
+    change_data JSON NOT NULL,
+    actor_account_id BIGINT UNSIGNED NOT NULL,
+    actor_name VARCHAR(150) NOT NULL,
+    description VARCHAR(1000) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_audit_logs_store_created_at (store_id, created_at),
+    KEY idx_audit_logs_actor_created_at (actor_account_id, created_at),
+    CONSTRAINT fk_audit_logs_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_audit_logs_actor
+        FOREIGN KEY (actor_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE operational_incidents (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    reporter_name VARCHAR(150) NOT NULL,
+    created_by_account_id BIGINT UNSIGNED NULL,
+    description TEXT NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_operational_incidents_public_id UNIQUE (public_id),
+    KEY idx_operational_incidents_store_id (store_id),
+    KEY idx_operational_incidents_created_by (created_by_account_id),
+    CONSTRAINT fk_operational_incidents_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_operational_incidents_creator
+        FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE service_bookings (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    client_account_id BIGINT UNSIGNED NOT NULL,
+    service_name VARCHAR(255) NOT NULL,
+    note TEXT NULL,
+    agreed_price DECIMAL(15, 2) NOT NULL,
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'PAY_LATER',
+    created_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_by_name VARCHAR(150) NOT NULL,
+    confirmed_by_account_id BIGINT UNSIGNED NULL,
+    confirmed_by_name VARCHAR(150) NULL,
+    confirmed_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_service_bookings_public_id UNIQUE (public_id),
+    KEY idx_service_bookings_store_id (store_id),
+    KEY idx_service_bookings_client_account_id (client_account_id),
+    KEY idx_service_bookings_created_by (created_by_account_id),
+    KEY idx_service_bookings_confirmed_by (confirmed_by_account_id),
+    CONSTRAINT fk_service_bookings_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_client_account
+        FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_creator
+        FOREIGN KEY (created_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_service_bookings_confirmer
+        FOREIGN KEY (confirmed_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    promotion_type VARCHAR(30) NOT NULL,
+    discount_value DECIMAL(15, 2) NULL,
+    max_discount_amount DECIMAL(15, 2) NULL,
+    min_bill_amount DECIMAL(15, 2) NULL,
+    max_redemptions INT UNSIGNED NULL,
+    max_redemptions_per_customer INT UNSIGNED NULL,
+    status VARCHAR(20) NOT NULL,
+    start_at DATETIME(3) NULL,
+    end_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotions_public_id UNIQUE (public_id),
+    KEY idx_promotions_store_status_period (store_id, status, start_at, end_at),
+    CONSTRAINT fk_promotions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_codes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    max_redemptions INT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_codes_store_code UNIQUE (store_id, code),
+    KEY idx_promotion_codes_promotion_id (promotion_id),
+    CONSTRAINT fk_promotion_codes_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_codes_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_targets (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    target_type VARCHAR(20) NOT NULL,
+    target_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_targets_promotion_type_target
+        UNIQUE (promotion_id, target_type, target_id),
+    KEY idx_promotion_targets_store_id (store_id),
+    CONSTRAINT fk_promotion_targets_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_targets_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE promotion_redemptions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    promotion_code_id BIGINT UNSIGNED NULL,
+    client_account_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
+    payment_id BIGINT UNSIGNED NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    reversed_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_promotion_redemptions_payment UNIQUE (payment_id),
+    KEY idx_promotion_redemptions_promotion_status (promotion_id, status),
+    KEY idx_promotion_redemptions_code_status (promotion_code_id, status),
+    KEY idx_promotion_redemptions_client_promotion_status
+        (client_account_id, promotion_id, status),
+    KEY idx_promotion_redemptions_sales_session_id (sales_session_id),
+    CONSTRAINT fk_promotion_redemptions_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_code
+        FOREIGN KEY (promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_client_account
+        FOREIGN KEY (client_account_id) REFERENCES client_accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_promotion_redemptions_payment
+        FOREIGN KEY (payment_id) REFERENCES payments (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE bill_discounts (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    sales_session_id BIGINT UNSIGNED NOT NULL,
+    payment_id BIGINT UNSIGNED NOT NULL,
+    promotion_id BIGINT UNSIGNED NOT NULL,
+    promotion_code_id BIGINT UNSIGNED NULL,
+    promotion_name VARCHAR(150) NOT NULL,
+    code VARCHAR(100) NULL,
+    promotion_type VARCHAR(30) NOT NULL,
+    discount_value DECIMAL(15, 2) NULL,
+    discount_amount DECIMAL(15, 2) NOT NULL,
+    max_discount_amount DECIMAL(15, 2) NULL,
+    promotion_snapshot JSON NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_bill_discounts_payment UNIQUE (payment_id),
+    KEY idx_bill_discounts_store_id (store_id),
+    KEY idx_bill_discounts_sales_session_id (sales_session_id),
+    KEY idx_bill_discounts_promotion_id (promotion_id),
+    KEY idx_bill_discounts_code_id (promotion_code_id),
+    CONSTRAINT fk_bill_discounts_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_payment
+        FOREIGN KEY (payment_id) REFERENCES payments (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_promotion
+        FOREIGN KEY (promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_bill_discounts_code
+        FOREIGN KEY (promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE system_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'INFO',
+    target_role VARCHAR(20) NOT NULL DEFAULT 'BOTH',
+    created_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_system_notifications_store_role (store_id, target_role, created_at),
+    KEY idx_system_notifications_created_by (created_by),
+    CONSTRAINT fk_system_notifications_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_system_notifications_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE system_notification_recipients (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    notification_id BIGINT UNSIGNED NOT NULL,
+    account_id BIGINT UNSIGNED NULL,
+    sales_session_id BIGINT UNSIGNED NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'UNREAD',
+    read_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT chk_notification_recipients_exactly_one_recipient CHECK (
+        (account_id IS NOT NULL AND sales_session_id IS NULL)
+        OR (account_id IS NULL AND sales_session_id IS NOT NULL)
+    ),
+    CONSTRAINT uk_notification_recipients_notification_account
+        UNIQUE (notification_id, account_id),
+    CONSTRAINT uk_notification_recipients_notification_session
+        UNIQUE (notification_id, sales_session_id),
+    KEY idx_notification_recipients_account_status_created_at
+        (account_id, status, created_at),
+    KEY idx_notification_recipients_session_status_created_at
+        (sales_session_id, status, created_at),
+    CONSTRAINT fk_notification_recipients_notification
+        FOREIGN KEY (notification_id) REFERENCES system_notifications (id)
+        ON DELETE CASCADE ON UPDATE RESTRICT,
+    CONSTRAINT fk_notification_recipients_account
+        FOREIGN KEY (account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_notification_recipients_sales_session
+        FOREIGN KEY (sales_session_id) REFERENCES sales_sessions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE store_banners (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    hero_primary_image_url VARCHAR(512) NULL,
+    hero_primary_image_storage_key VARCHAR(255) NULL,
+    hero_secondary_image_url VARCHAR(512) NULL,
+    hero_secondary_image_storage_key VARCHAR(255) NULL,
+    menu_preview_1_image_url VARCHAR(512) NULL,
+    menu_preview_1_image_storage_key VARCHAR(255) NULL,
+    menu_preview_2_image_url VARCHAR(512) NULL,
+    menu_preview_2_image_storage_key VARCHAR(255) NULL,
+    menu_preview_3_image_url VARCHAR(512) NULL,
+    menu_preview_3_image_storage_key VARCHAR(255) NULL,
+    menu_preview_4_image_url VARCHAR(512) NULL,
+    menu_preview_4_image_storage_key VARCHAR(255) NULL,
+    menu_preview_5_image_url VARCHAR(512) NULL,
+    menu_preview_5_image_storage_key VARCHAR(255) NULL,
+    banner_image_url VARCHAR(512) NULL,
+    banner_image_storage_key VARCHAR(255) NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_by BIGINT UNSIGNED NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_store_banners_store (store_id),
+    KEY idx_store_banners_created_by (created_by),
+    KEY idx_store_banners_updated_by (updated_by),
+    CONSTRAINT fk_store_banners_store
+        FOREIGN KEY (store_id) REFERENCES stores (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_store_banners_creator
+        FOREIGN KEY (created_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_store_banners_updater
+        FOREIGN KEY (updated_by) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT chk_store_banners_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+ALTER TABLE sales_sessions
+    ADD CONSTRAINT fk_sales_sessions_selected_promotion
+        FOREIGN KEY (selected_promotion_id) REFERENCES promotions (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    ADD CONSTRAINT fk_sales_sessions_selected_promotion_code
+        FOREIGN KEY (selected_promotion_code_id) REFERENCES promotion_codes (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+CREATE TABLE prepared_item_transfers (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    cancellation_request_id BIGINT UNSIGNED NOT NULL,
+    source_order_item_id BIGINT UNSIGNED NOT NULL,
+    target_order_item_id BIGINT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    transferred_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_prepared_item_transfers_public_id UNIQUE (public_id),
+    KEY idx_prepared_item_transfers_cancellation_request (cancellation_request_id),
+    KEY idx_prepared_item_transfers_source_order_item (source_order_item_id),
+    KEY idx_prepared_item_transfers_target_order_item (target_order_item_id),
+    KEY idx_prepared_item_transfers_transferred_by (transferred_by_account_id),
+    CONSTRAINT fk_prepared_item_transfers_cancellation_request
+        FOREIGN KEY (cancellation_request_id) REFERENCES order_item_cancellation_requests (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_source_order_item
+        FOREIGN KEY (source_order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_target_order_item
+        FOREIGN KEY (target_order_item_id) REFERENCES order_items (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_prepared_item_transfers_operator
+        FOREIGN KEY (transferred_by_account_id) REFERENCES accounts (id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE preparation_table_completions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id CHAR(36) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    table_id BIGINT UNSIGNED NOT NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    allocation_snapshot JSON NOT NULL,
+    completed_by_account_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_preparation_table_completions_public_id UNIQUE (public_id),
+    CONSTRAINT uk_preparation_table_completions_store_idempotency UNIQUE (store_id, idempotency_key),
+    KEY idx_preparation_table_completions_table_created_at (table_id, created_at),
+    CONSTRAINT fk_preparation_table_completions_store FOREIGN KEY (store_id) REFERENCES stores (id),
+    CONSTRAINT fk_preparation_table_completions_table FOREIGN KEY (table_id) REFERENCES dining_tables (id),
+    CONSTRAINT fk_preparation_table_completions_completed_by FOREIGN KEY (completed_by_account_id) REFERENCES accounts (id)
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;

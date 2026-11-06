@@ -1,0 +1,1238 @@
+"use client";
+
+import { formatMoney as formatPrice } from "../../../lib/format-money";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { CategoryNavigation } from "../../../app/(customer)/(ordering)/menu/category-navigation";
+import {
+  CustomerInformationFormFields,
+  type CustomerInformation,
+} from "../../customer/customer-information-form-fields";
+import {
+  AddToCartOptionDialog,
+  type AddToCartPayload,
+  type MenuOptionGroup,
+} from "../../customer/add-to-cart-option-dialog";
+import { CasIcon } from "../../ui/cas-icon";
+import { CasButton } from "../../ui/cas-button";
+import { useToast } from "../../ui/toast-provider";
+import { useOperatorCatalogQuery } from "../../../lib/api/catalog/catalog.query";
+import {
+  cancelOperatorSalesSession,
+  createOperatorOrder,
+  loadOperatorSessionListing,
+  openOperatorSalesSession,
+} from "../../../lib/api/ordering/ordering.api";
+import {
+  operatorTablesQueryKey,
+  useOperatorTablesQuery,
+} from "../../../lib/api/ordering/ordering.query";
+import { type CartItem, OperatorCartPanel } from "./operator-cart-panel";
+import { OperatorTableSelectModal, type TableOption } from "./operator-table-select-modal";
+
+const categories = [
+  { id: "mon-noi-bat", label: "Món nổi bật" },
+  { id: "my-cay", label: "Mỳ cay" },
+  { id: "ga-ran", label: "Gà rán" },
+  { id: "tra-sua", label: "Trà sữa" },
+  { id: "ca-phe", label: "Cà phê" },
+  { id: "nuoc-giai-khat", label: "Nước giải khát" },
+  { id: "an-vat", label: "Ăn vặt" },
+  { id: "additional-services", label: "Khác" },
+];
+
+const spiceLevels = Array.from({ length: 8 }, (_, level) => ({
+  id: `level-${level}`,
+  label: `Cấp ${level}`,
+  priceDelta: 0,
+}));
+
+const drinkOptionGroups: MenuOptionGroup[] = [
+  {
+    id: "size",
+    label: "Kích thước",
+    selectionType: "SINGLE",
+    options: [
+      { id: "size-m", label: "Size M", priceDelta: 0 },
+      { id: "size-l", label: "Size L", priceDelta: 10000 },
+    ],
+  },
+  {
+    id: "sweetness",
+    label: "Độ ngọt",
+    selectionType: "SINGLE",
+    options: [
+      { id: "sweetness-30", label: "30%", priceDelta: 0 },
+      { id: "sweetness-50", label: "50%", priceDelta: 0 },
+      { id: "sweetness-100", label: "100%", priceDelta: 0 },
+    ],
+  },
+  {
+    id: "toppings",
+    label: "Topping",
+    selectionType: "MULTIPLE",
+    options: [
+      { id: "black-pearl", label: "Trân châu đen", priceDelta: 8000 },
+      { id: "white-pearl", label: "Trân châu trắng", priceDelta: 8000 },
+      { id: "pudding", label: "Pudding trứng", priceDelta: 10000 },
+      { id: "cheese-jelly", label: "Thạch phô mai", priceDelta: 10000 },
+    ],
+  },
+];
+
+type MenuItemData = {
+  availabilityStatus?: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
+  id: number | string;
+  categoryId: string;
+  name: string;
+  description: string;
+  imageSrc: string;
+  imageAlt: string;
+  price: string;
+  basePrice: number;
+  badges: string[];
+  optionGroups?: MenuOptionGroup[];
+};
+
+const menuItems: MenuItemData[] = [
+  {
+    id: "my-cay-dac-biet",
+    categoryId: "mon-noi-bat",
+    name: "Mỳ cay đặc biệt 7 cấp độ",
+    description:
+      "Sợi mỳ dai ngon quyện cùng nước dùng chua cay đậm đà, rau nấm và topping hấp dẫn.",
+    imageSrc: "/images/welcome/spicy-noodles.jpg",
+    imageAlt: "Tô mỳ cay đặc biệt với rau nấm và nhiều topping",
+    price: "55.000đ",
+    basePrice: 55000,
+    badges: ["Bán chạy", "Cực cay"],
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ],
+  },
+  {
+    id: "tra-sua-tran-chau-duong-den",
+    categoryId: "mon-noi-bat",
+    name: "Trà sữa Trân châu Đường đen",
+    description: "Vị trà thơm dịu, sữa béo vừa phải cùng trân châu đường đen mềm dẻo.",
+    imageSrc: "/images/welcome/milk-tea.jpg",
+    imageAlt: "Ly trà sữa trân châu đường đen mát lạnh",
+    price: "45.000đ",
+    basePrice: 45000,
+    badges: [],
+    optionGroups: drinkOptionGroups,
+  },
+  {
+    id: "ga-ran-gion-rum-noi-bat",
+    categoryId: "mon-noi-bat",
+    name: "Gà rán giòn rụm",
+    description: "Lớp vỏ vàng giòn, thịt gà mềm mọng, dùng kèm sốt cay đặc trưng của quán.",
+    imageSrc: "/images/welcome/fried-chicken.jpg",
+    imageAlt: "Phần gà rán vàng giòn dùng kèm sốt cay",
+    price: "35.000đ",
+    basePrice: 35000,
+    badges: [],
+  },
+  {
+    id: "my-cay-xuc-xich-pho-mai",
+    categoryId: "my-cay",
+    name: "Mỳ cay xúc xích phô mai",
+    description: "Mỳ cay thơm béo với xúc xích, phô mai tan chảy, rau nấm và nước dùng đậm vị.",
+    imageSrc: "/images/welcome/spicy-noodles.jpg",
+    imageAlt: "Tô mỳ cay xúc xích phủ phô mai",
+    price: "49.000đ",
+    basePrice: 49000,
+    badges: ["Món mới"],
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ],
+  },
+  {
+    id: "my-cay-nam-rau-cu",
+    categoryId: "my-cay",
+    name: "Mỳ cay nấm rau củ",
+    description: "Phiên bản thanh nhẹ với nhiều loại nấm, rau xanh và nước dùng chua cay vừa vị.",
+    imageSrc: "/images/welcome/spicy-noodles.jpg",
+    imageAlt: "Tô mỳ cay nấm và rau củ",
+    price: "42.000đ",
+    basePrice: 42000,
+    badges: [],
+    optionGroups: [
+      {
+        id: "spice-level",
+        label: "Cấp độ cay",
+        selectionType: "SINGLE",
+        options: spiceLevels,
+      },
+    ],
+  },
+  {
+    id: "ga-sot-cay-han-quoc",
+    categoryId: "ga-ran",
+    name: "Gà sốt cay Hàn Quốc",
+    description: "Gà rán giòn áo sốt cay ngọt, phủ mè rang thơm và hành lá.",
+    imageSrc: "/images/welcome/fried-chicken.jpg",
+    imageAlt: "Gà rán phủ sốt cay và mè rang",
+    price: "39.000đ",
+    basePrice: 39000,
+    badges: ["Bán chạy"],
+  },
+  {
+    id: "ga-popcorn-lac-pho-mai",
+    categoryId: "ga-ran",
+    name: "Gà popcorn lắc phô mai",
+    description: "Gà viên nhỏ giòn tan, phủ bột phô mai đậm đà, tiện dùng cùng bạn bè.",
+    imageSrc: "/images/welcome/fried-chicken.jpg",
+    imageAlt: "Gà popcorn phủ bột phô mai",
+    price: "32.000đ",
+    basePrice: 32000,
+    badges: [],
+  },
+  {
+    id: "tra-sua-truyen-thong",
+    categoryId: "tra-sua",
+    name: "Trà sữa truyền thống",
+    description: "Trà đậm thơm kết hợp cùng sữa béo nhẹ, vị ngọt hài hòa và dễ uống.",
+    imageSrc: "/images/welcome/milk-tea.jpg",
+    imageAlt: "Ly trà sữa truyền thống",
+    price: "35.000đ",
+    basePrice: 35000,
+    badges: [],
+    optionGroups: drinkOptionGroups,
+  },
+  {
+    id: "tra-sua-matcha",
+    categoryId: "tra-sua",
+    name: "Trà sữa matcha",
+    description: "Matcha thơm dịu hòa cùng sữa tươi và lớp kem béo mịn.",
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    imageAlt: "Ly trà sữa matcha xanh mát",
+    price: "42.000đ",
+    basePrice: 42000,
+    badges: ["Món mới"],
+    optionGroups: drinkOptionGroups,
+  },
+  {
+    id: "ca-phe-sua-da",
+    categoryId: "ca-phe",
+    name: "Cà phê sữa đá",
+    description: "Cà phê rang đậm pha cùng sữa đặc, phục vụ với đá mát lạnh.",
+    imageSrc: "/images/welcome/iced-coffee.jpg",
+    imageAlt: "Ly cà phê sữa đá",
+    price: "29.000đ",
+    basePrice: 29000,
+    badges: [],
+    optionGroups: drinkOptionGroups,
+  },
+  {
+    id: "bac-xiu",
+    categoryId: "ca-phe",
+    name: "Bạc xỉu",
+    description: "Vị sữa thơm béo nổi bật, điểm thêm cà phê nhẹ nhàng và đá lạnh.",
+    imageSrc: "/images/welcome/iced-coffee.jpg",
+    imageAlt: "Ly bạc xỉu mát lạnh",
+    price: "32.000đ",
+    basePrice: 32000,
+    badges: [],
+  },
+  {
+    id: "matcha-latte",
+    categoryId: "nuoc-giai-khat",
+    name: "Matcha latte",
+    description: "Matcha thanh nhẹ kết hợp sữa tươi, tạo vị béo dịu và hậu vị thơm.",
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    imageAlt: "Ly matcha latte",
+    price: "39.000đ",
+    basePrice: 39000,
+    badges: [],
+    optionGroups: drinkOptionGroups,
+  },
+  {
+    id: "nuoc-chanh-day",
+    categoryId: "nuoc-giai-khat",
+    name: "Nước chanh dây",
+    description: "Chanh dây chua ngọt, thơm mát, thích hợp dùng cùng các món cay.",
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    imageAlt: "Ly nước giải khát mát lạnh",
+    price: "25.000đ",
+    basePrice: 25000,
+    badges: [],
+  },
+  {
+    id: "soda-dau",
+    categoryId: "nuoc-giai-khat",
+    name: "Soda dâu",
+    description: "Soda mát lạnh hòa cùng vị dâu chua ngọt và hương thơm trái cây.",
+    imageSrc: "/images/welcome/matcha-drink.jpg",
+    imageAlt: "Ly soda trái cây mát lạnh",
+    price: "29.000đ",
+    basePrice: 29000,
+    badges: [],
+  },
+  {
+    id: "an-vat-thap-cam",
+    categoryId: "an-vat",
+    name: "Ăn vặt thập cẩm",
+    description: "Phần ăn vặt gồm khoai tây chiên, cá viên và các món xiên chiên giòn.",
+    imageSrc: "/images/welcome/street-snacks.jpg",
+    imageAlt: "Phần ăn vặt thập cẩm với khoai tây và xiên chiên",
+    price: "45.000đ",
+    basePrice: 45000,
+    badges: ["Đề xuất"],
+  },
+];
+
+const unselectedTable: TableOption = {
+  activeOrdersCount: 0,
+  code: "--",
+  id: "",
+  label: "Chọn bàn",
+  status: "EMPTY",
+};
+
+type OrderSuccessData = {
+  orderNumber: string;
+  tableLabel: string;
+  itemCount: number;
+  totalAmount: number;
+  originalAmount: number;
+  discountAmount: number;
+  orderNote?: string;
+  createdAt: string;
+  items: CartItem[];
+};
+
+type OperatorOrderCreationViewProps = {
+  defaultTableId?: string;
+};
+
+export function OperatorOrderCreationView({
+  defaultTableId = "table-05",
+}: OperatorOrderCreationViewProps) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: catalog, error: catalogQueryError } = useOperatorCatalogQuery();
+  const { data: tables = [] } = useOperatorTablesQuery();
+  const catalogError = catalogQueryError?.message ?? null;
+  const catalogCategories = useMemo(
+    () =>
+      (catalog?.categories ?? []).map((category) => ({
+        id: String(category.id),
+        label: category.name,
+      })),
+    [catalog],
+  );
+  const catalogItems = useMemo(() => {
+    const optionGroupsById = new Map(
+      (catalog?.optionGroups ?? []).map((group) => [group.id, group]),
+    );
+    return (catalog?.items ?? []).map((item) => ({
+      availabilityStatus: item.availabilityStatus,
+      badges: (item.tags ?? []).map((tag) => tag.name),
+      basePrice: item.price,
+      categoryId: String(item.categoryId),
+      description: item.description ?? "",
+      id: item.id,
+      imageAlt: item.name,
+      imageSrc: item.imageUrl ?? "/images/welcome/spicy-noodles.jpg",
+      name: item.name,
+      optionGroups: (item.optionGroups ?? []).map((group) => {
+        const optionGroup = optionGroupsById.get(group.id);
+        return {
+          id: String(group.id),
+          label: group.name,
+          maxSelect: optionGroup?.maxSelect,
+          minSelect: optionGroup?.minSelect,
+          options: (optionGroup?.values ?? []).map((value) => ({
+            id: String(value.id),
+            isDefault: value.isDefault,
+            label: value.name,
+            priceDelta: value.extraPrice,
+          })),
+          selectionType: optionGroup?.selectionType ?? "SINGLE",
+        };
+      }),
+      price: formatPrice(item.price),
+    }));
+  }, [catalog]);
+  const operatorTables = useMemo<TableOption[]>(
+    () =>
+      tables.map((table) => ({
+        activeOrdersCount: 0,
+        code: String(table.tableCode).padStart(2, "0"),
+        id: String(table.tableId),
+        label: `Bàn ${String(table.tableCode).padStart(2, "0")}`,
+        sessions: table.sessions,
+        status: table.sessions.some((session) => session.status === "OPEN")
+          ? "OPEN"
+          : table.sessions.some((session) => session.status === "PAYMENT_PENDING")
+            ? "PAYMENT_PENDING"
+            : "EMPTY",
+      })),
+    [tables],
+  );
+  const [selectedTable, setSelectedTable] = useState<TableOption>(unselectedTable);
+
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const { data: sessionListing } = useQuery({
+    queryKey: ["operator", "sales-sessions", "takeaway"],
+    queryFn: loadOperatorSessionListing,
+    enabled: isTableModalOpen,
+  });
+  const takeawayTables: TableOption[] = (sessionListing?.takeawaySessions ?? []).map((session) => ({
+    id: `takeaway:${session.sessionId}`,
+    code: "MV",
+    label: `Mang về · ${session.customerName} · ${session.sessionId.slice(0, 8)}`,
+    customerName: session.customerName,
+    sessionPublicId: session.sessionId,
+    activeOrdersCount: 0,
+    status: session.status,
+  }));
+  const [sessionSelectionTable, setSessionSelectionTable] = useState<TableOption | null>(null);
+  const [pendingSessionTable, setPendingSessionTable] = useState<TableOption | null>(null);
+  const [isCustomerInformationFormOpen, setIsCustomerInformationFormOpen] = useState(false);
+  const [newlyOpenedTableIds, setNewlyOpenedTableIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [orderNote, setOrderNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<MenuItemData | null>(null);
+  const [successOrderData, setSuccessOrderData] = useState<OrderSuccessData | null>(null);
+  const [isCancelSessionDialogOpen, setIsCancelSessionDialogOpen] = useState(false);
+  const [isCancellingSession, setIsCancellingSession] = useState(false);
+
+  useEffect(() => {
+    const selected =
+      operatorTables.find((table) => table.id === defaultTableId) ??
+      operatorTables.find((table) => table.status === "OPEN") ??
+      operatorTables[0];
+    const selectedSession = selected?.sessions?.find((session) => session.status === "OPEN");
+    setSelectedTable((current) => {
+      if (current.id.startsWith("takeaway:")) return current;
+      if (selected && selectedSession)
+        return {
+          ...selected,
+          customerName: selectedSession.customerName,
+          label: `${selected.label} · ${selectedSession.customerName}`,
+          sessionPublicId: selectedSession.sessionId,
+          status: selectedSession.status,
+        };
+      return selected ?? current;
+    });
+  }, [defaultTableId, operatorTables]);
+
+  const filteredMenuItems = useMemo(() => {
+    if (!searchQuery.trim()) return catalogItems;
+    const q = searchQuery.toLowerCase().trim();
+    return catalogItems.filter(
+      (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
+    );
+  }, [catalogItems, searchQuery]);
+
+  const totalCartCount = useMemo(
+    () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
+    [cartItems],
+  );
+
+  const totalCartAmount = useMemo(
+    () => cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0),
+    [cartItems],
+  );
+
+  const handleAddItemToCart = (item: MenuItemData, payload: AddToCartPayload) => {
+    const cartItemId = `${item.id}-${payload.optionsSummary}`;
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.cartItemId === cartItemId);
+      if (existing) {
+        return prev.map((i) =>
+          i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i,
+        );
+      }
+      return [
+        ...prev,
+        {
+          cartItemId,
+          menuItemId: Number(item.id),
+          optionValueIds: Object.values(payload.selectedOptionIds).flat().map(Number),
+          name: item.name,
+          imageSrc: item.imageSrc,
+          imageAlt: item.imageAlt,
+          basePrice: item.basePrice,
+          optionSelections: (item.optionGroups ?? []).flatMap((group) =>
+            group.options
+              .filter((option) => payload.selectedOptionIds[group.id]?.includes(option.id))
+              .map((option) => ({ name: option.label, price: option.priceDelta })),
+          ),
+          optionsSummary: payload.optionsSummary,
+          unitPrice: payload.totalUnitPrice,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const handleUpdateQuantity = (cartItemId: string, delta: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) => {
+          if (item.cartItemId === cartItemId) {
+            const nextQty = item.quantity + delta;
+            return nextQty > 0 ? { ...item, quantity: nextQty } : null;
+          }
+          return item;
+        })
+        .filter((item): item is CartItem => item !== null),
+    );
+  };
+
+  const handleRemoveItem = (cartItemId: string) => {
+    setCartItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
+
+  const handleSubmitOrder = async () => {
+    if (cartItems.length === 0 || isSubmitting) return;
+    if (!selectedTable.sessionPublicId) {
+      showToast({
+        type: "error",
+        message: "Vui lòng chọn phiên đang phục vụ trước khi gửi món.",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const created = await createOperatorOrder(selectedTable.sessionPublicId, {
+        note: orderNote.trim() || null,
+        items: cartItems.map(({ menuItemId, optionValueIds, quantity }) => ({
+          menuItemId,
+          optionValueIds,
+          quantity,
+        })),
+      });
+      const now = new Date();
+      setSuccessOrderData({
+        orderNumber: created.orderId,
+        tableLabel: selectedTable.label,
+        itemCount: totalCartCount,
+        totalAmount: created.payableAmount,
+        originalAmount: totalCartAmount,
+        discountAmount: 0,
+        orderNote: orderNote.trim() || undefined,
+        createdAt: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+        items: cartItems,
+      });
+      setCartItems([]);
+      setOrderNote("");
+      setIsMobileDrawerOpen(false);
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+      showToast({ type: "success", message: "Đã gửi món xuống bếp." });
+    } catch (cause) {
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể tạo order.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelSalesSession = async () => {
+    if (!selectedTable.sessionPublicId || isCancellingSession) return;
+    setIsCancellingSession(true);
+    try {
+      await cancelOperatorSalesSession(selectedTable.sessionPublicId);
+      await queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+      setSelectedTable(unselectedTable);
+      setCartItems([]);
+      setOrderNote("");
+      setIsCancelSessionDialogOpen(false);
+      showToast({ type: "success", message: "Đã hủy phiên." });
+    } catch (cause) {
+      showToast({
+        type: "error",
+        message: cause instanceof Error ? cause.message : "Không thể hủy phiên.",
+      });
+    } finally {
+      setIsCancellingSession(false);
+    }
+  };
+
+  return (
+    <div className="relative pb-24 lg:pb-0">
+      <header className="mb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-cas-on-surface sm:text-3xl">
+          Tạo order hộ
+        </h1>
+      </header>
+      {isCancelSessionDialogOpen ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isCancellingSession) {
+              setIsCancelSessionDialogOpen(false);
+            }
+          }}
+          role="presentation"
+        >
+          <section
+            aria-labelledby="operator-cancel-session-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl"
+            role="dialog"
+          >
+            <h2 className="text-xl font-extrabold" id="operator-cancel-session-title">
+              Hủy phiên {selectedTable.label}?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-cas-on-surface-variant">
+              Chỉ có thể hủy khi phiên chưa gửi món nào xuống bếp. Hệ thống sẽ kiểm tra lại điều
+              kiện này trước khi đóng phiên.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => setIsCancelSessionDialogOpen(false)}
+                type="button"
+                variant="outline"
+              >
+                Quay lại
+              </CasButton>
+              <CasButton
+                disabled={isCancellingSession}
+                onClick={() => void handleCancelSalesSession()}
+                type="button"
+                variant="danger"
+              >
+                {isCancellingSession ? "Đang hủy..." : "Xác nhận hủy phiên"}
+              </CasButton>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {/* Main Content Layout (2 Columns on Desktop) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left Column: Menu Catalog (min-w-0 ensures no grid track overflow) */}
+        <div className="min-w-0 space-y-4 lg:col-span-7 xl:col-span-8">
+          {/* Search bar matching customer design */}
+          <label className="relative block" htmlFor="menu-search">
+            <span className="sr-only">Tìm kiếm món ăn</span>
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-cas-on-surface-variant">
+              <CasIcon className="size-4.5" name="search" />
+            </span>
+            <input
+              id="menu-search"
+              type="text"
+              className="h-12 w-full rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container pl-11 pr-4 text-sm text-cas-on-surface outline-none placeholder:text-cas-on-surface-variant/65 focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
+              placeholder="Tìm kiếm món trong thực đơn..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </label>
+
+          {/* Sticky Category Navigation with Drag & Scroll-spy - Constrained in left column */}
+          <CategoryNavigation
+            categories={catalogCategories}
+            className="w-full max-w-full rounded-2xl border border-cas-outline-variant/30 px-2 py-2.5 mt-2 mx-0 shadow-sm"
+            stickyTopClass="top-36"
+          />
+
+          {/* Continuous Long Menu List divided by Categories */}
+          <div className="mt-2" id="menu-list">
+            {catalogError ? <p className="py-8 text-sm text-cas-error">{catalogError}</p> : null}
+            {!catalogError && catalogCategories.length === 0 ? (
+              <p className="py-8 text-sm text-cas-on-surface-variant">Đang tải thực đơn…</p>
+            ) : null}
+            {catalogCategories.map((category) => {
+              const categoryItems = filteredMenuItems.filter(
+                (item) => item.categoryId === category.id,
+              );
+
+              if (categoryItems.length === 0) return null;
+
+              return (
+                <section
+                  className="scroll-mt-52 border-t border-cas-outline-variant/55 py-5 first:border-t-0 md:py-6"
+                  id={category.id}
+                  key={category.id}
+                  aria-labelledby={`${category.id}-title`}
+                >
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <h2 className="text-xl font-extrabold" id={`${category.id}-title`}>
+                      {category.label}
+                    </h2>
+                    <span className="text-xs font-semibold text-cas-on-surface-variant">
+                      {categoryItems.length} món
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {categoryItems.map((item, itemIndex) => (
+                      <article
+                        className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:p-4"
+                        key={item.id}
+                      >
+                        <div className="relative min-h-32 overflow-hidden rounded-2xl md:h-full md:min-h-0">
+                          <Image
+                            className="object-cover transition-transform duration-500 hover:scale-105"
+                            src={item.imageSrc}
+                            alt={item.imageAlt}
+                            fill
+                            loading={
+                              category.id === "mon-noi-bat" && itemIndex === 0 ? "eager" : "lazy"
+                            }
+                            sizes="(max-width: 767px) 7.25rem, (max-width: 1023px) 45vw, 30vw"
+                          />
+                          {item.badges.length > 0 ? (
+                            <div className="absolute top-2 left-2 flex flex-wrap items-start gap-1">
+                              {item.badges.map((badge, index) => (
+                                <span
+                                  className={`rounded-full px-2 py-1 text-[0.55rem] font-extrabold ${index === 0 ? "bg-cas-primary text-cas-on-primary" : "bg-cas-error text-cas-on-error"}`}
+                                  key={badge}
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="flex min-w-0 flex-col">
+                          <h3>
+                            <button
+                              className="line-clamp-2 text-left text-sm leading-snug font-extrabold transition hover:text-cas-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring md:text-base"
+                              type="button"
+                              onClick={() => setDetailItem(item)}
+                            >
+                              {item.name}
+                            </button>
+                          </h3>
+                          <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                            {item.description}
+                          </p>
+                          <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+                            <strong className="text-sm text-cas-primary md:text-base">
+                              {item.price}
+                            </strong>
+                            <AddToCartOptionDialog
+                              basePrice={item.basePrice}
+                              disabled={item.availabilityStatus === "SOLD_OUT"}
+                              itemName={item.name}
+                              optionGroups={item.optionGroups}
+                              onAddToCart={(payload) => handleAddItemToCart(item, payload)}
+                            />
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+
+            <section
+              className="scroll-mt-52 border-t border-cas-outline-variant/55 py-5 md:py-6"
+              id="additional-services"
+              aria-labelledby="additional-services-title"
+            >
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <h2 className="text-xl font-extrabold" id="additional-services-title">
+                  Dịch vụ thêm
+                </h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <article className="grid grid-cols-[7.25rem_1fr] gap-4 rounded-[1.2rem] bg-cas-surface-container p-3 shadow-[0_5px_18px_var(--cas-shadow-color)] md:grid-cols-1 md:p-4">
+                  <div className="grid min-h-32 place-items-center rounded-2xl bg-cas-primary/10 text-cas-primary md:aspect-[4/3] md:min-h-0">
+                    <CasIcon className="size-10" name="sparkle" />
+                  </div>
+                  <div className="flex min-w-0 flex-col">
+                    <h3 className="line-clamp-2 text-sm leading-snug font-extrabold md:text-base">
+                      Đặt dịch vụ theo yêu cầu
+                    </h3>
+                    <p className="mt-1.5 line-clamp-3 text-[0.7rem] leading-relaxed text-cas-on-surface-variant md:text-xs">
+                      Liên hệ nhân viên để trao đổi dịch vụ và chốt giá trước khi đặt.
+                    </p>
+                    <div className="mt-auto pt-3">
+                      <p className="text-xs font-semibold text-cas-on-surface-variant md:text-sm">
+                        Chốt giá qua Zalo
+                      </p>
+                      <span className="mt-2 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-cas-primary/10 px-3 text-xs font-extrabold text-cas-primary">
+                        <CasIcon className="size-3.5" name="phone" />
+                        Liên hệ: 0901 234 567
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* Right Column: Persistent Cart Panel on Desktop */}
+        <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
+          <div className="sticky top-36 h-[calc(100vh-9rem)] min-h-0 self-start lg:-mt-22">
+            <OperatorCartPanel
+              selectedTable={selectedTable}
+              cartItems={cartItems}
+              orderNote={orderNote}
+              isSubmitting={isSubmitting}
+              onChangeTableClick={() => setIsTableModalOpen(true)}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onClearCart={handleClearCart}
+              onOrderNoteChange={setOrderNote}
+              onSubmitOrder={handleSubmitOrder}
+            />
+          </div>
+        </aside>
+      </div>
+
+      {/* Mobile Floating Bottom Bar - Matching Customer Menu */}
+      <div className="fixed inset-x-5 bottom-6 z-40 mx-auto max-w-[34rem] lg:hidden">
+        <button
+          type="button"
+          onClick={() => setIsMobileDrawerOpen(true)}
+          className="flex min-h-15 w-full items-center justify-between rounded-2xl bg-cas-primary px-5 text-left text-cas-on-primary shadow-[0_12px_30px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
+        >
+          <span className="inline-flex items-center gap-3 font-extrabold">
+            <span className="grid size-9 place-items-center rounded-full bg-cas-on-scrim/15">
+              <CasIcon className="size-5" name="basket" />
+            </span>
+            Xem món đã chọn
+          </span>
+          <span className="text-xs font-semibold">
+            {totalCartCount} món • {formatPrice(totalCartAmount)}
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Cart Drawer */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-cas-on-surface/60 backdrop-blur-xs lg:hidden">
+          <div className="flex-1" onClick={() => setIsMobileDrawerOpen(false)} />
+          <div className="h-[85vh] max-h-[85vh] overflow-hidden rounded-t-[2rem] bg-cas-surface shadow-2xl">
+            <OperatorCartPanel
+              selectedTable={selectedTable}
+              cartItems={cartItems}
+              orderNote={orderNote}
+              isSubmitting={isSubmitting}
+              onChangeTableClick={() => {
+                setIsMobileDrawerOpen(false);
+                setIsTableModalOpen(true);
+              }}
+              onCancelSalesSession={() => setIsCancelSessionDialogOpen(true)}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onClearCart={handleClearCart}
+              onOrderNoteChange={setOrderNote}
+              onSubmitOrder={handleSubmitOrder}
+              onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Table Selector Modal */}
+      <OperatorTableSelectModal
+        isOpen={isTableModalOpen}
+        tables={[...operatorTables, ...takeawayTables]}
+        newlyOpenedTableIds={newlyOpenedTableIds}
+        selectedTableId={selectedTable.id}
+        onClose={() => setIsTableModalOpen(false)}
+        onRequestNewSession={(table) => {
+          setPendingSessionTable(table);
+          setIsTableModalOpen(false);
+        }}
+        onSelectTable={(table) => {
+          if (table.sessionPublicId) {
+            setSelectedTable(table);
+            setIsTableModalOpen(false);
+            return;
+          }
+          setSessionSelectionTable(table);
+          setIsTableModalOpen(false);
+        }}
+      />
+
+      {sessionSelectionTable ? (
+        <div
+          className="fixed inset-0 z-100 grid place-items-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-session-selection-title"
+        >
+          <section className="w-full max-w-md rounded-2xl bg-cas-surface p-6 shadow-2xl">
+            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              {sessionSelectionTable.label}
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold" id="operator-session-selection-title">
+              Chọn khách cần gọi món
+            </h2>
+            <div className="mt-5 space-y-2">
+              {(sessionSelectionTable.sessions ?? []).map((session) => (
+                <button
+                  className="flex w-full items-center justify-between rounded-xl border border-cas-outline-variant/35 p-4 text-left transition hover:border-cas-primary disabled:cursor-not-allowed disabled:opacity-55"
+                  disabled={session.status !== "OPEN"}
+                  key={session.sessionId}
+                  onClick={() => {
+                    setSelectedTable({
+                      ...sessionSelectionTable,
+                      customerName: session.customerName,
+                      label: `${sessionSelectionTable.label} · ${session.customerName}`,
+                      sessionPublicId: session.sessionId,
+                      status: session.status,
+                    });
+                    setSessionSelectionTable(null);
+                  }}
+                  type="button"
+                >
+                  <span className="font-extrabold">{session.customerName}</span>
+                  <span className="text-xs text-cas-on-surface-variant">
+                    {session.status === "OPEN" ? "Đang mở" : "Chờ thanh toán"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <CasButton
+              className="mt-4 w-full"
+              onClick={() => {
+                setPendingSessionTable(sessionSelectionTable);
+                setSessionSelectionTable(null);
+              }}
+              type="button"
+              variant="outline"
+            >
+              Không chung bàn · tạo phiên mới
+            </CasButton>
+            <CasButton
+              className="mt-3 w-full"
+              onClick={() => setSessionSelectionTable(null)}
+              type="button"
+              variant="ghost"
+            >
+              Đóng
+            </CasButton>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingSessionTable && !isCustomerInformationFormOpen && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-sales-session-title"
+        >
+          <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
+            <span className="grid size-12 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
+              <CasIcon className="size-6" name="table" />
+            </span>
+            <p className="mt-4 text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Phiên bàn mới
+            </p>
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="new-sales-session-title"
+            >
+              Tạo phiên mới cho {pendingSessionTable.label}?
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
+              Nhân viên sẽ bắt đầu phiên phục vụ mới tại bàn này trước khi tạo order hộ.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                className="min-h-12 rounded-xl border border-cas-outline-variant/45 px-4 text-sm font-bold text-cas-on-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                onClick={() => setPendingSessionTable(null)}
+              >
+                Quay lại
+              </button>
+              <button
+                type="button"
+                className="min-h-12 rounded-xl bg-cas-primary px-4 text-sm font-extrabold text-cas-on-primary shadow-[0_8px_20px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                onClick={() => {
+                  setIsCustomerInformationFormOpen(true);
+                }}
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingSessionTable && isCustomerInformationFormOpen && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-customer-information-title"
+        >
+          <div className="w-full max-w-md rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
+            <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+              Tạo phiên bàn mới
+            </p>
+            <h2
+              className="mt-1 text-xl font-extrabold text-cas-on-surface"
+              id="operator-customer-information-title"
+            >
+              Thông tin khách tại {pendingSessionTable.label}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-cas-on-surface-variant">
+              Nhập thông tin người đại diện để bắt đầu phiên phục vụ.
+            </p>
+            <div className="mt-5">
+              <CustomerInformationFormFields
+                idPrefix="operator-customer"
+                submitLabel="Tạo phiên bàn và chọn món"
+                onSubmitCustomerInfo={(information: CustomerInformation) => {
+                  void openOperatorSalesSession(Number(pendingSessionTable.id), information)
+                    .then((session) => {
+                      const openedTable = {
+                        ...pendingSessionTable,
+                        customerName: information.customerName,
+                        customerPhone: information.customerPhone,
+                        sessionPublicId: session.sessionId,
+                        sessions: [
+                          ...(pendingSessionTable.sessions ?? []),
+                          {
+                            customerName: information.customerName,
+                            sessionId: session.sessionId,
+                            status: "OPEN" as const,
+                          },
+                        ],
+                        status: "OPEN" as const,
+                      };
+                      setSelectedTable(openedTable);
+                      void queryClient.invalidateQueries({ queryKey: operatorTablesQueryKey });
+                      setNewlyOpenedTableIds((current) => [...current, openedTable.id]);
+                      setIsCustomerInformationFormOpen(false);
+                      setPendingSessionTable(null);
+                    })
+                    .catch((cause) =>
+                      showToast({
+                        type: "error",
+                        message: cause instanceof Error ? cause.message : "Không thể mở phiên bàn.",
+                      }),
+                    );
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              className="mt-3 w-full rounded-xl px-4 py-2 text-sm font-bold text-cas-on-surface-variant hover:text-cas-on-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              onClick={() => setIsCustomerInformationFormOpen(false)}
+            >
+              Quay lại
+            </button>
+          </div>
+        </div>
+      )}
+
+      {detailItem && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-menu-item-detail-title"
+        >
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.6rem] bg-cas-surface shadow-2xl">
+            <div className="relative aspect-[16/9] overflow-hidden bg-cas-surface-container">
+              <Image
+                className="object-cover"
+                src={detailItem.imageSrc}
+                alt={detailItem.imageAlt}
+                fill
+                sizes="(max-width: 767px) calc(100vw - 2rem), 42rem"
+              />
+              <button
+                className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-cas-glass text-cas-on-surface shadow-lg backdrop-blur-xl focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                type="button"
+                aria-label="Đóng chi tiết món"
+                onClick={() => setDetailItem(null)}
+              >
+                <CasIcon className="size-5" name="close" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
+                    Chi tiết món
+                  </p>
+                  <h2
+                    className="mt-2 text-2xl leading-tight font-extrabold tracking-tight text-cas-on-surface"
+                    id="operator-menu-item-detail-title"
+                  >
+                    {detailItem.name}
+                  </h2>
+                </div>
+                <strong className="shrink-0 text-xl text-cas-primary">{detailItem.price}</strong>
+              </div>
+
+              {detailItem.description ? (
+                <p className="mt-4 text-sm leading-relaxed text-cas-on-surface-variant">
+                  {detailItem.description}
+                </p>
+              ) : null}
+
+              <div className="mt-6 border-t border-cas-outline-variant/45 pt-5">
+                {detailItem.availabilityStatus === "SOLD_OUT" ? (
+                  <p className="text-sm font-bold text-cas-error">Món này hiện đã hết hàng.</p>
+                ) : (
+                  <AddToCartOptionDialog
+                    basePrice={detailItem.basePrice}
+                    itemName={detailItem.name}
+                    optionGroups={detailItem.optionGroups}
+                    onAddToCart={(payload) => {
+                      handleAddItemToCart(detailItem, payload);
+                      setDetailItem(null);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Success Dialog */}
+      {successOrderData && (
+        <div
+          className="fixed inset-0 z-100 flex items-center justify-center bg-cas-on-surface/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="operator-order-success-title"
+        >
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.6rem] bg-cas-surface p-5 shadow-2xl sm:p-6">
+            <div className="flex flex-col items-center text-center">
+              <span className="grid size-14 place-items-center rounded-2xl bg-cas-secondary-container/30 text-cas-secondary">
+                <CasIcon className="size-8" name="check" />
+              </span>
+              <h3
+                className="mt-4 text-xl font-extrabold text-cas-on-surface"
+                id="operator-order-success-title"
+              >
+                Tạo order thành công!
+              </h3>
+              <p className="mt-1 text-xs text-cas-on-surface-variant">
+                Đơn đã được thêm vào hàng đợi chế biến FIFO của Bếp
+              </p>
+            </div>
+
+            <section className="mt-5 grid grid-cols-2 gap-3" aria-label="Thông tin order vừa gửi">
+              <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+                <CasIcon className="size-6 text-cas-secondary" name="table" />
+                <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+                  Phiên phục vụ
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
+                  {successOrderData.tableLabel}
+                </p>
+              </article>
+              <article className="rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+                <CasIcon className="size-6 text-cas-tertiary" name="clock" />
+                <p className="mt-5 text-[0.65rem] font-extrabold tracking-[0.12em] text-cas-on-surface-variant uppercase">
+                  Thời gian gửi
+                </p>
+                <p className="mt-1 text-lg font-extrabold text-cas-on-surface">
+                  {successOrderData.createdAt}
+                </p>
+              </article>
+            </section>
+
+            <article className="mt-4 rounded-2xl bg-cas-surface-container p-4 shadow-[0_5px_18px_var(--cas-shadow-color)]">
+              <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/40 pb-3">
+                <h4 className="text-base font-extrabold text-cas-on-surface">
+                  Chi tiết món đã gọi
+                </h4>
+                <span className="rounded-full bg-cas-secondary-container/30 px-3 py-1 text-xs font-extrabold text-cas-secondary">
+                  {successOrderData.itemCount} món
+                </span>
+              </div>
+              <ul className="divide-y divide-cas-outline-variant/35">
+                {successOrderData.items.map((item) => (
+                  <li className="flex items-start justify-between gap-4 py-3" key={item.cartItemId}>
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-sm font-extrabold text-cas-on-surface">
+                        {item.name}
+                      </p>
+                      <p className="mt-1 text-xs text-cas-on-surface-variant">
+                        x{item.quantity} · {item.optionsSummary}
+                      </p>
+                    </div>
+                    <strong className="shrink-0 text-sm text-cas-primary">
+                      {formatPrice(item.unitPrice * item.quantity)}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <div className="mt-4 space-y-2 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-4 text-xs">
+              <div className="flex justify-between">
+                <span className="text-cas-on-surface-variant">Mã đơn:</span>
+                <span className="font-mono font-bold text-cas-on-surface">
+                  {successOrderData.orderNumber}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cas-on-surface-variant">Phiên phục vụ:</span>
+                <span className="font-bold text-cas-on-surface">{successOrderData.tableLabel}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cas-on-surface-variant">Số lượng:</span>
+                <span className="font-bold text-cas-on-surface">
+                  {successOrderData.itemCount} món
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-cas-on-surface-variant">Thời gian:</span>
+                <span className="font-bold text-cas-on-surface">{successOrderData.createdAt}</span>
+              </div>
+              {successOrderData.orderNote && (
+                <div className="border-t border-cas-outline-variant/20 pt-2 text-left">
+                  <span className="text-cas-on-surface-variant">Ghi chú: </span>
+                  <span className="font-medium text-cas-on-surface">
+                    &ldquo;{successOrderData.orderNote}&rdquo;
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-cas-outline-variant/20 pt-2 text-sm font-extrabold">
+                <span>Tổng tiền:</span>
+                <span className="text-cas-primary">
+                  {formatPrice(successOrderData.totalAmount)}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSuccessOrderData(null)}
+              className="mt-5 w-full rounded-xl bg-cas-primary py-3 text-center text-sm font-extrabold text-cas-on-primary shadow-md transition hover:bg-cas-primary-hover focus-visible:outline-2 focus-visible:outline-cas-focus-ring"
+            >
+              Tiếp tục tạo order
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

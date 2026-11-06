@@ -1,0 +1,19 @@
+.scanLine {
+  box-shadow: 0 0 18px var(--cas-primary);
+  animation: scan 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes scan {
+  from {
+    top: 5%;
+  }
+  to {
+    top: 95%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanLine {
+    animation: none;
+  }
+}

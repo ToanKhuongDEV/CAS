@@ -1,0 +1,20 @@
+import type { Metadata } from "next";
+
+import { CustomerBottomNavigation } from "../../../components/customer/customer-bottom-navigation";
+import { CustomerOrdersLiveView } from "../../../components/customer/customer-orders-live-view";
+
+export const metadata: Metadata = {
+  title: "Đơn hàng | CAS",
+  description: "Theo dõi món đã gọi và tiếp tục thanh toán tại CAS.",
+};
+
+export default function OrdersPage() {
+  return (
+    <div className="min-h-screen text-cas-on-surface transition-colors duration-200">
+      <div className="mx-auto flex w-full max-w-[85rem] items-start gap-8 px-4 pt-20 pb-28 md:gap-12 md:px-8 md:pt-24 md:pb-16 lg:gap-14">
+        <CustomerBottomNavigation activeItem="orders" />
+        <CustomerOrdersLiveView />
+      </div>
+    </div>
+  );
+}

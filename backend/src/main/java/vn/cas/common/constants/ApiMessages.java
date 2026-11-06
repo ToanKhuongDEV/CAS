@@ -1,0 +1,78 @@
+package vn.cas.common.constants;
+
+public final class ApiMessages {
+
+    public static final String SERVICE_STATUS_UP = "UP";
+    public static final String SERVICE_STATUS_RETRIEVED = "Đã lấy trạng thái hoạt động của hệ thống.";
+    public static final String LONG_WAIT_WARNING_SETTING_RETRIEVED = "Đã lấy cấu hình cảnh báo bàn chờ lâu.";
+    public static final String LONG_WAIT_WARNING_SETTING_UPDATED = "Đã cập nhật cấu hình cảnh báo bàn chờ lâu.";
+    public static final String DINING_TABLE_CREATED = "Đã tạo bàn ăn.";
+    public static final String DINING_TABLE_CODE_ALREADY_EXISTS = "Mã bàn đã tồn tại.";
+    public static final String DINING_TABLES_RETRIEVED = "Đã lấy danh sách bàn ăn.";
+    public static final String ACTIVE_TABLE_QR_CODE_RETRIEVED = "Đã lấy mã QR đang hoạt động của bàn.";
+    public static final String TABLE_QR_CODE_REISSUED = "Đã cấp lại mã QR cho bàn.";
+    public static final String DINING_TABLE_DELETED = "Đã xóa bàn ăn và các mã QR liên quan.";
+    public static final String DINING_TABLE_NOT_FOUND = "Không tìm thấy bàn ăn.";
+    public static final String DINING_TABLE_IN_USE = "Bàn ăn đã có dữ liệu phiên, không thể xóa.";
+    public static final String OPERATOR_CREATED = "Đã tạo tài khoản nhân viên.";
+    public static final String OPERATOR_DEACTIVATED = "Đã vô hiệu hóa tài khoản nhân viên.";
+    public static final String OPERATOR_ACTIVATED = "Đã kích hoạt tài khoản nhân viên.";
+    public static final String OPERATORS_RETRIEVED = "Đã lấy danh sách tài khoản nhân viên.";
+    public static final String CUSTOMERS_RETRIEVED = "Đã lấy danh sách khách hàng.";
+    public static final String CUSTOMER_RETRIEVED = "Đã lấy chi tiết khách hàng.";
+    public static final String AUDIT_LOGS_RETRIEVED = "Đã lấy nhật ký thao tác.";
+    public static final String OPERATOR_NOT_FOUND = "Không tìm thấy tài khoản nhân viên.";
+    public static final String OPERATOR_EMAIL_ALREADY_EXISTS = "Email này đã được đăng ký trên Firebase.";
+    public static final String FIREBASE_UID_ALREADY_EXISTS = "Tài khoản Firebase này đã được đăng ký.";
+    public static final String ADMIN_CREATED = "Đã tạo tài khoản quản trị viên.";
+    public static final String CUSTOMER_SALES_SESSION_RESOLVED = "Đã xác thực phiên bàn của khách.";
+    public static final String INVALID_TABLE_QR_CODE = "Mã QR của bàn không hợp lệ hoặc đã ngừng hoạt động.";
+    public static final String CUSTOMER_SALES_SESSION_REQUIRED = "Vui lòng quét mã QR của bàn để tiếp tục.";
+    public static final String CUSTOMER_SALES_SESSION_CANCELLED = "Đã hủy phiên bàn.";
+    public static final String CUSTOMER_SALES_SESSION_CANNOT_BE_CANCELLED = "Phiên bàn đã có món, không thể hủy.";
+    public static final String OPERATOR_SALES_SESSION_READY = "Phiên bàn đã sẵn sàng để gọi món.";
+    public static final String OPERATOR_SALES_SESSION_CANCELLED = "Đã hủy phiên bàn.";
+    public static final String OPERATOR_SALES_SESSION_CANNOT_BE_CANCELLED = "Phiên bàn đã có món hoặc không còn mở, không thể hủy.";
+    public static final String OPERATOR_ORDER_CREATED = "Đã gửi món xuống bếp.";
+    public static final String PREPARATION_LONG_WAIT_TABLES_RETRIEVED = "Đã lấy danh sách bàn chờ lâu.";
+    public static final String PREPARATION_GROUPS_RETRIEVED = "Đã lấy danh sách món cần chế biến.";
+    public static final String PREPARATION_PENDING_TABLE_COUNT_RETRIEVED = "Đã lấy số phiên đang chờ món.";
+    public static final String PREPARATION_BATCH_COMPLETED = "Đã ghi nhận hoàn thành món theo mẻ.";
+    public static final String CATALOG_RESOURCE_NOT_FOUND = "Không tìm thấy dữ liệu thực đơn.";
+    public static final String MENU_ITEM_SOLD_OUT = "Món \"%s\" vừa hết hàng. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";
+    public static final String MENU_ITEM_UNAVAILABLE = "Món \"%s\" hiện không còn bán. Vui lòng bỏ món này khỏi giỏ và chọn món khác.";
+    public static final String CATALOG_RESOURCE_IN_USE = "Dữ liệu thực đơn đang được sử dụng nên không thể xóa.";
+    public static final String INVALID_CATALOG_IMAGE = "Ảnh món không thuộc Cloudinary của cửa hàng.";
+    public static final String CLOUDINARY_NOT_CONFIGURED = "Cloudinary chưa được cấu hình.";
+    public static final String NOTIFICATION_CREATED = "Đã tạo thông báo hệ thống.";
+    public static final String NOTIFICATION_DELETED = "Đã xóa thông báo hệ thống.";
+    public static final String NOTIFICATIONS_RETRIEVED = "Đã lấy danh sách thông báo.";
+    public static final String NOTIFICATION_MARKED_READ = "Đã đánh dấu thông báo là đã đọc.";
+    public static final String NOTIFICATIONS_MARKED_READ = "Đã đánh dấu tất cả thông báo là đã đọc.";
+    public static final String NOTIFICATION_NOT_FOUND = "Không tìm thấy thông báo.";
+
+    public static final String VALIDATION_FAILED = "Dữ liệu gửi lên chưa hợp lệ.";
+    public static final String INVALID_REQUEST = "Yêu cầu không hợp lệ.";
+    public static final String UNAUTHENTICATED = "Vui lòng đăng nhập để tiếp tục.";
+    public static final String FORBIDDEN = "Bạn không có quyền thực hiện thao tác này.";
+    public static final String INTERNAL_ERROR = "Hệ thống gặp sự cố. Vui lòng thử lại sau.";
+
+    public static final String INVALID_FIREBASE_TOKEN = "Phiên đăng nhập không hợp lệ.";
+    public static final String FIREBASE_CREDENTIALS_UNAVAILABLE = "Dịch vụ xác thực hiện chưa sẵn sàng.";
+    public static final String FIREBASE_AUTH_UNAVAILABLE = "Không thể kết nối dịch vụ xác thực. Vui lòng thử lại sau.";
+    public static final String OPERATIONAL_ACCOUNT_UNAVAILABLE = "Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.";
+
+    public static final String SERVICE_BOOKINGS_RETRIEVED = "Đã lấy danh sách dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_CREATED = "Đã tạo dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_UPDATED = "Đã cập nhật dịch vụ đặt trước.";
+    public static final String SERVICE_BOOKING_PAYMENT_REQUESTED = "Dịch vụ đã chuyển sang chờ xác nhận thanh toán.";
+    public static final String SERVICE_BOOKING_PAYMENT_CONFIRMED = "Đã xác nhận thanh toán dịch vụ.";
+    public static final String SERVICE_BOOKING_CANCELLED = "Đã hủy dịch vụ đặt trước.";
+    public static final String OPERATIONAL_INCIDENT_CREATED = "Đã gửi báo cáo sự cố.";
+    public static final String OPERATIONAL_INCIDENTS_RETRIEVED = "Đã lấy danh sách báo cáo sự cố.";
+    public static final String ADMIN_DASHBOARD_RETRIEVED = "Đã lấy báo cáo hoạt động.";
+    public static final String OPERATOR_DASHBOARD_SUMMARY_RETRIEVED = "Đã lấy tổng quan vận hành.";
+
+    private ApiMessages() {
+    }
+}
