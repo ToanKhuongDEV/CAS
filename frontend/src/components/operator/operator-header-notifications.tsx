@@ -53,13 +53,13 @@ export function OperatorHeaderNotifications({
     <div className="relative z-30" ref={notifRef}>
       <button
         aria-label="Thông báo vận hành"
-        className="relative grid size-10 place-items-center rounded-xl border border-cas-outline-variant/20 bg-cas-glass text-cas-on-surface transition hover:bg-cas-surface-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+        className="relative grid size-10 place-items-center rounded-xl border border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary transition hover:bg-cas-on-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         onClick={() => setShowNotif((value) => !value)}
         type="button"
       >
         <CasIcon className="size-5" name="bell" />
         {unreadCount > 0 ? (
-          <span className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-cas-primary text-[0.65rem] font-black text-cas-on-primary">
+          <span className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-cas-surface text-[0.65rem] font-black text-cas-error motion-safe:animate-pulse">
             {unreadCount}
           </span>
         ) : null}

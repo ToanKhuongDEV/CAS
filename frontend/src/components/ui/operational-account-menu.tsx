@@ -94,20 +94,16 @@ export function OperationalAccountMenu({
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${area === "ADMIN" ? "border border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary hover:bg-cas-on-primary/20" : "bg-cas-surface text-cas-on-surface hover:bg-cas-surface-container"}`}
+        className="flex items-center gap-3 rounded-xl border border-cas-on-primary/20 bg-cas-on-primary/10 px-3 py-2 text-left text-cas-on-primary transition hover:bg-cas-on-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         onClick={() => setIsOpen((currentValue) => !currentValue)}
         type="button"
       >
-        <span
-          className={`grid size-8 place-items-center rounded-lg ${area === "ADMIN" ? "bg-cas-on-primary/15 text-cas-on-primary" : avatarClasses}`}
-        >
+        <span className="grid size-8 place-items-center rounded-lg bg-cas-on-primary/15 text-cas-on-primary">
           <CasIcon className="size-4.5" name="user" />
         </span>
         <span className="hidden sm:block">
           <span className="block text-xs font-extrabold">{accountName}</span>
-          <span
-            className={`block text-[0.68rem] ${area === "ADMIN" ? "text-cas-on-primary/75" : "text-cas-on-surface-variant"}`}
-          >
+          <span className="block text-[0.68rem] text-cas-on-primary/75">
             {account?.role === "SUPER_ADMIN"
               ? "Super Admin"
               : area === "ADMIN"
@@ -116,7 +112,7 @@ export function OperationalAccountMenu({
           </span>
         </span>
         <CasIcon
-          className={`hidden size-4 transition-transform sm:block ${area === "ADMIN" ? "text-cas-on-primary/75" : "text-cas-on-surface-variant"} ${isOpen ? "rotate-90" : ""}`}
+          className={`hidden size-4 text-cas-on-primary/75 transition-transform sm:block ${isOpen ? "rotate-90" : ""}`}
           name="arrow"
         />
       </button>

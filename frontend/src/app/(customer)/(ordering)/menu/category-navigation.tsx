@@ -46,7 +46,14 @@ export function CategoryNavigation({
           return [];
         }
 
-        return [{ id: category.id, top: sectionRect.top }];
+        return [
+          {
+            id: category.id,
+            top: sectionRect.top,
+            scrollMarginTop:
+              Number.parseFloat(window.getComputedStyle(section).scrollMarginTop) || 0,
+          },
+        ];
       });
 
       if (sectionPositions.length === 0) {
@@ -61,7 +68,7 @@ export function CategoryNavigation({
         nextCategoryId = sectionPositions.at(-1)?.id ?? nextCategoryId;
       } else {
         for (const sectionPosition of sectionPositions) {
-          if (sectionPosition.top > activationLine) {
+          if (sectionPosition.top > Math.max(activationLine, sectionPosition.scrollMarginTop + 2)) {
             break;
           }
 

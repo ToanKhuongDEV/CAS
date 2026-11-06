@@ -105,11 +105,7 @@ export function OperatorTabNavigation({
                         ? "yêu cầu hủy món chờ xử lý"
                         : "yêu cầu thanh toán chờ xác nhận"
                   }`}
-                  className={`inline-flex size-5 items-center justify-center rounded-full text-[0.65rem] font-black leading-none ${
-                    isActive
-                      ? "bg-cas-secondary text-cas-on-secondary"
-                      : "bg-cas-primary text-cas-on-primary"
-                  }`}
+                  className="inline-flex size-5 items-center justify-center rounded-full bg-cas-surface text-[0.65rem] font-black leading-none text-cas-error motion-safe:animate-pulse"
                 >
                   {tab.badge}
                 </span>

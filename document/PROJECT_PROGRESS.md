@@ -2,6 +2,15 @@
 
 Ngày cập nhật gần nhất: 2026-11-06
 
+- 2026-11-06: Badge thông báo và số việc chờ trên header/menu Operator dùng số đỏ và nhấp nháy nhẹ.
+- 2026-11-06: Đồng bộ màu nút thông báo, tài khoản và đổi giao diện trên header Operator với Admin.
+- 2026-11-06: Badge thông báo Customer dùng màu và hiệu ứng giống badge giỏ hàng.
+- 2026-11-06: Số trên badge giỏ hàng Customer dùng màu lỗi có sẵn.
+- 2026-11-06: Badge số lượng giỏ hàng trên header Customer nhấp nháy nhẹ khi có món.
+- 2026-11-06: Thay hai hình nền Customer lớn bằng nhiều hình nhỏ di chuyển nhẹ.
+- 2026-11-06: Đồng bộ mục đang chọn trên menu ngang Customer với vị trí cuộn tới danh mục món.
+- 2026-11-06: Thêm các hình xanh mờ chuyển động nhẹ trên nền các trang Customer; tôn trọng cài đặt giảm chuyển động.
+- 2026-11-06: Áp dụng nền kẻ ô của trang chủ cho các trang Customer qua layout chung.
 - 2026-11-06: Ô nhập giá trị option và giá thêm dùng một viền khi focus.
 - 2026-11-06: Lỗi thao tác tạo, sửa và xóa nhóm/giá trị option Admin dùng toast; không chèn lỗi trùng tên vào trang.
 - 2026-11-06: Đồng bộ toast lỗi Admin/Operator với Customer; chuyển lỗi thao tác hủy món, thanh toán, điều chỉnh hóa đơn và báo cáo sự cố Operator sang toast.

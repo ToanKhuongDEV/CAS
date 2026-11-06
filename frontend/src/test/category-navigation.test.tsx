@@ -78,4 +78,27 @@ describe("CategoryNavigation", () => {
       );
     });
   });
+
+  it("keeps the selected category active at its scroll margin", async () => {
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(800);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(500);
+    vi.spyOn(document.documentElement, "scrollHeight", "get").mockReturnValue(2_000);
+    renderCategoryNavigation();
+    const navigation = screen.getByRole("navigation");
+    const firstSection = document.getElementById("first-category")!;
+    const lastSection = document.getElementById("last-category")!;
+    lastSection.style.scrollMarginTop = "160px";
+    vi.spyOn(navigation, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 76, 390, 56));
+    vi.spyOn(firstSection, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -400, 390, 520));
+    const lastPosition = vi
+      .spyOn(lastSection, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(0, 160, 390, 220));
+    fireEvent.click(screen.getByRole("link", { name: "Last category" }));
+    fireEvent.scroll(window);
+    await waitFor(() => expect(lastPosition).toHaveBeenCalled());
+    expect(screen.getByRole("link", { name: "Last category" })).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+  });
 });

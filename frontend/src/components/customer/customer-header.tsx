@@ -200,7 +200,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
             >
               <CasIcon className="size-5.5" name="bell" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-primary animate-pulse">
+                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-error motion-safe:animate-pulse">
                   {unreadCount}
                 </span>
               )}
@@ -275,7 +275,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
               aria-label={`Giỏ hàng có ${liveCartCount} món`}
             >
               <CasIcon className="size-5.5" name="cart" />
-              <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-primary">
+              <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-cas-surface text-[0.6rem] font-bold text-cas-error motion-safe:animate-pulse">
                 {liveCartCount}
               </span>
             </Link>

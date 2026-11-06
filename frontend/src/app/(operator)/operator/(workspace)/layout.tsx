@@ -21,7 +21,7 @@ export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceL
               <OperatorStoreIdentity inHeader subtitle="Vận hành" />
 
               <div className="flex items-center gap-3">
-                <ThemeToggle />
+                <ThemeToggle inHeader />
                 <OperatorHeaderNotifications />
 
                 <OperationalAccountMenu
