@@ -1,7 +1,9 @@
 # CAS — Theo dõi tiến độ dự án
 
-Ngày cập nhật gần nhất: 2026-11-06
+Ngày cập nhật gần nhất: 2026-11-10
 
+- 2026-11-10: Thống nhất viền focus cho các ô nhập và lựa chọn, giữ chỉ báo focus khi dùng bàn phím.
+- 2026-11-10: Super Admin tạo chi nhánh trống, sao chép thực đơn vào chi nhánh chưa có thực đơn; sửa luồng nhập mã QR bàn không hỏi lại hình thức dùng bữa.
 - 2026-11-10: Đồng bộ seed demo với schema Flyway, giữ thông tin thương hiệu.
 - 2026-11-10: Cấu hình rewrite Vercel cho API /api/v1 và sửa lỗi build Next.js khi đọc tham số URL.
 - 2026-11-06: Chuẩn bị Docker multi-stage và cổng chạy backend cho Render.
@@ -83,6 +85,8 @@ Ngày cập nhật gần nhất: 2026-11-06
 
 ### Các api đã làm
 
+- [x] `POST /api/v1/admin/stores`: Super Admin tạo chi nhánh trống với thông tin liên hệ và giờ hoạt động.
+- [x] `POST /api/v1/admin/stores/{targetStoreId}/menu-copy`: Super Admin sao chép danh mục, món, nhãn và tùy chọn vào chi nhánh chưa có thực đơn, dùng chung ảnh.
 - [x] `POST /api/v1/admin/catalog/option-groups/{id}/values` và `PUT /api/v1/admin/catalog/option-values/{id}`: trả 409 kèm tên option khi trùng trong cùng nhóm.
 - [x] `GET /api/v1/customer/orders/bill`: mỗi món trả thêm `latestCancellationIsRemade` của yêu cầu hủy gần nhất.
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: hỗ trợ món đã chế biến trong phiên OPEN và kiểm tra số lượng đã hủy hoặc đang chờ hủy.

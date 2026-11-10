@@ -3,6 +3,8 @@ package vn.cas.store.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
@@ -61,6 +63,24 @@ public class StoreSettingsController {
         var data = service.update(p, b.toModel(p.storeId()),
                 (UUID) r.getAttribute(RequestId.ATTRIBUTE_NAME));
         return ApiResponses.success(HttpStatus.OK, "Đã cập nhật thông tin cửa hàng.", data, r);
+    }
+
+    @PostMapping(ApiPaths.Store.LIST)
+    public ResponseEntity<ApiResponse<StoreSettings>> create(
+            @AuthenticationPrincipal OperationalPrincipal p,
+            @Valid @RequestBody CreateStoreRequest b, HttpServletRequest r) {
+        var settings = new StoreSettings(0, b.branchName(), b.address(), b.phone(), b.email(), null,
+                null, b.googleMapsLocation(), null, null, b.openTime(), b.closeTime(), null,
+                "ACTIVE", null);
+        return ApiResponses.success(HttpStatus.CREATED, "Đã tạo cơ sở.",
+                service.create(p, settings, (UUID) r.getAttribute(RequestId.ATTRIBUTE_NAME)), r);
+    }
+
+    public record CreateStoreRequest(@NotBlank @Size(max = 150) String branchName,
+            @NotBlank @Size(max = 500) String address, @NotBlank @Size(max = 20) String phone,
+            @NotBlank @Email @Size(max = 254) String email,
+            @Size(max = 2048) String googleMapsLocation, @NotNull LocalTime openTime,
+            @NotNull LocalTime closeTime) {
     }
 
     public record UpdateStoreSettingsRequest(@NotBlank @Size(max = 150) String branchName,

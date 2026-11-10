@@ -2,6 +2,7 @@ package vn.cas.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -30,6 +31,10 @@ public class SecurityConfiguration {
                                 ApiPaths.ACTUATOR_INFO)
                         .permitAll().requestMatchers(ApiPaths.AUTH_PATTERN)
                         .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.Store.LIST)
+                        .hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.Store.LIST + "/*/menu-copy")
+                        .hasRole("SUPER_ADMIN")
                         .requestMatchers(ApiPaths.AdminAccount.ADMIN_COMMON,
                                 ApiPaths.AdminAccount.ADMIN_COMMON + "/**")
                         .hasRole("SUPER_ADMIN").requestMatchers(ApiPaths.ADMIN_PATTERN)

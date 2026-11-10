@@ -28,6 +28,8 @@ vi.mock("../lib/api/store/public-store.api", () => ({
 describe("ScanTableQrPage", () => {
   beforeEach(() => {
     replace.mockClear();
+    vi.mocked(resolveCustomerSalesSession).mockReset();
+    vi.mocked(resolveCustomerSalesSessionByTable).mockReset();
     searchParams.delete("storeId");
     window.sessionStorage.clear();
     vi.mocked(loadPublicStores).mockResolvedValue([
@@ -106,6 +108,84 @@ describe("ScanTableQrPage", () => {
     expect(replace).not.toHaveBeenCalled();
     expect(input).toHaveValue("Q00000000");
     expect(input).toHaveFocus();
+  });
+
+  it("asks for customer information without asking for the order type again after entering a QR", async () => {
+    vi.mocked(resolveCustomerSalesSession)
+      .mockResolvedValueOnce({
+        customerInformationRequired: true,
+        joinSessionRequired: false,
+        joinableSessions: [],
+        sessionStatus: "CUSTOMER_INFORMATION_REQUIRED",
+        tableCode: 1,
+      })
+      .mockResolvedValueOnce({
+        customerInformationRequired: false,
+        joinSessionRequired: false,
+        joinableSessions: [],
+        sessionStatus: "OPEN",
+        tableCode: 1,
+      });
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
+    await screen.findByRole("button", { name: "Cơ sở Bến Thành — 1 Đường A" });
+    fireEvent.change(screen.getByRole("textbox", { name: /Nhập mã QR của bàn/ }), {
+      target: { value: "Q00000001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận vào bàn gọi món" }));
+
+    fireEvent.change(await screen.findByLabelText(/Tên của bạn/), { target: { value: "Khách" } });
+    expect(screen.queryByRole("button", { name: "Mang về" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mở phiên và xem thực đơn" }));
+    await vi.waitFor(() =>
+      expect(resolveCustomerSalesSession).toHaveBeenLastCalledWith("Q00000001", {
+        storeId: 1,
+        customerName: "Khách",
+        customerPhone: null,
+        sessionType: "DINE_IN",
+      }),
+    );
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/menu"));
+  });
+
+  it("joins an existing table session after entering a QR without returning to order type", async () => {
+    vi.mocked(resolveCustomerSalesSession)
+      .mockResolvedValueOnce({
+        customerInformationRequired: false,
+        joinSessionRequired: true,
+        joinableSessions: [{ sessionId: "session-1", customerName: "An", sessionStatus: "OPEN" }],
+        sessionStatus: "JOIN_SESSION_REQUIRED",
+        tableCode: 1,
+      })
+      .mockResolvedValueOnce({
+        customerInformationRequired: false,
+        joinSessionRequired: false,
+        joinableSessions: [],
+        sessionStatus: "OPEN",
+        tableCode: 1,
+      });
+    render(
+      <ToastProvider>
+        <ScanTableQrPage />
+      </ToastProvider>,
+    );
+    await screen.findByRole("button", { name: "Cơ sở Bến Thành — 1 Đường A" });
+    fireEvent.change(screen.getByRole("textbox", { name: /Nhập mã QR của bàn/ }), {
+      target: { value: "Q00000001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận vào bàn gọi món" }));
+    fireEvent.click(await screen.findByRole("button", { name: /An.*Chung bàn/ }));
+    await vi.waitFor(() =>
+      expect(resolveCustomerSalesSession).toHaveBeenLastCalledWith("Q00000001", {
+        storeId: 1,
+        joinSessionId: "session-1",
+        sessionType: "DINE_IN",
+      }),
+    );
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/menu"));
   });
 
   it("normalizes a manual table number before resolving it", async () => {

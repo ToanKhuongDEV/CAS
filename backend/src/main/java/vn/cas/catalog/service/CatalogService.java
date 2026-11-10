@@ -60,6 +60,7 @@ public class CatalogService {
     @Transactional
     public void createCategory(OperationalPrincipal p, String n, String d, String t, int o,
             String s, UUID r) {
+        mapper.lockStore(p.storeId());
         mapper.insertCategory(p.storeId(), n, d, t, o, s, p.accountId());
         log(p, r, "CREATE", "CATEGORY", n);
     }
@@ -67,12 +68,14 @@ public class CatalogService {
     @Transactional
     public void updateCategory(OperationalPrincipal p, long id, String n, String d, int o, String s,
             UUID r) {
+        mapper.lockStore(p.storeId());
         required(mapper.updateCategory(p.storeId(), id, n, d, o, s, p.accountId()));
         log(p, r, "UPDATE", "CATEGORY", n);
     }
 
     @Transactional
     public void deleteCategory(OperationalPrincipal p, long id, UUID r) {
+        mapper.lockStore(p.storeId());
         try {
             required(mapper.deleteCategory(p.storeId(), id));
             log(p, r, "DELETE", "CATEGORY", String.valueOf(id));
@@ -83,18 +86,21 @@ public class CatalogService {
 
     @Transactional
     public void createTag(OperationalPrincipal p, String n, String s, UUID r) {
+        mapper.lockStore(p.storeId());
         mapper.insertTag(p.storeId(), n, s);
         log(p, r, "CREATE", "TAG", n);
     }
 
     @Transactional
     public void updateTag(OperationalPrincipal p, long id, String n, String s, UUID r) {
+        mapper.lockStore(p.storeId());
         required(mapper.updateTag(p.storeId(), id, n, s));
         log(p, r, "UPDATE", "TAG", n);
     }
 
     @Transactional
     public void deleteTag(OperationalPrincipal p, long id, UUID r) {
+        mapper.lockStore(p.storeId());
         try {
             required(mapper.deleteTag(p.storeId(), id));
             log(p, r, "DELETE", "TAG", String.valueOf(id));
@@ -106,6 +112,7 @@ public class CatalogService {
     @Transactional
     public void createGroup(OperationalPrincipal p, String n, String t, int min, Integer max, int o,
             String s, UUID r) {
+        mapper.lockStore(p.storeId());
         validGroup(t, min, max);
         mapper.insertOptionGroup(p.storeId(), n, t, min, max, o, s, p.accountId());
         log(p, r, "CREATE", "OPTION_GROUP", n);
@@ -114,6 +121,7 @@ public class CatalogService {
     @Transactional
     public void updateGroup(OperationalPrincipal p, long id, String n, String t, int min,
             Integer max, int o, String s, UUID r) {
+        mapper.lockStore(p.storeId());
         validGroup(t, min, max);
         required(mapper.updateOptionGroup(p.storeId(), id, n, t, min, max, o, s, p.accountId()));
         log(p, r, "UPDATE", "OPTION_GROUP", n);
@@ -121,6 +129,7 @@ public class CatalogService {
 
     @Transactional
     public void deleteGroup(OperationalPrincipal p, long id, UUID r) {
+        mapper.lockStore(p.storeId());
         try {
             required(mapper.deleteOptionGroup(p.storeId(), id));
             log(p, r, "DELETE", "OPTION_GROUP", String.valueOf(id));
@@ -132,6 +141,7 @@ public class CatalogService {
     @Transactional
     public void createValue(OperationalPrincipal p, long groupId, String n, BigDecimal price,
             boolean def, int o, String s, UUID r) {
+        mapper.lockStore(p.storeId());
         if (mapper.findOptionGroup(p.storeId(), groupId) == null)
             throw notFound();
         try {
@@ -146,6 +156,7 @@ public class CatalogService {
     @Transactional
     public void updateValue(OperationalPrincipal p, long id, String n, BigDecimal price,
             boolean def, int o, String s, UUID r) {
+        mapper.lockStore(p.storeId());
         try {
             required(mapper.updateOptionValue(p.storeId(), id, n, price, def, o, s, p.accountId()));
         } catch (DuplicateKeyException e) {
@@ -157,6 +168,7 @@ public class CatalogService {
 
     @Transactional
     public void deleteValue(OperationalPrincipal p, long id, UUID r) {
+        mapper.lockStore(p.storeId());
         try {
             required(mapper.deleteOptionValue(p.storeId(), id));
             log(p, r, "DELETE", "OPTION_VALUE", String.valueOf(id));
@@ -167,7 +179,8 @@ public class CatalogService {
 
     @Transactional
     public void createItem(OperationalPrincipal p, MenuCommand c, UUID r) {
-        validItem(p.storeId(), c);
+        mapper.lockStore(p.storeId());
+        validItem(p.storeId(), c, null);
         mapper.insertMenuItem(p.storeId(), c.categoryId(), c.name(), c.description(), c.price(),
                 c.imageUrl(), c.imageStorageKey(), c.availabilityStatus(), c.displayOrder(),
                 p.accountId());
@@ -177,10 +190,11 @@ public class CatalogService {
 
     @Transactional
     public void updateItem(OperationalPrincipal p, long id, MenuCommand c, UUID r) {
+        mapper.lockStore(p.storeId());
         var current = mapper.findMenuItem(p.storeId(), id, false);
         if (current == null)
             throw notFound();
-        validItem(p.storeId(), c);
+        validItem(p.storeId(), c, current);
         required(mapper.updateMenuItem(p.storeId(), id, c.categoryId(), c.name(), c.description(),
                 c.price(), c.imageUrl(), c.imageStorageKey(), c.availabilityStatus(),
                 c.displayOrder(), p.accountId()));
@@ -193,6 +207,7 @@ public class CatalogService {
 
     @Transactional
     public void bulkStatus(OperationalPrincipal p, List<Long> ids, String status, UUID r) {
+        mapper.lockStore(p.storeId());
         if (ids.isEmpty())
             throw new ApiException(HttpStatus.BAD_REQUEST, ApiMessages.INVALID_REQUEST);
         mapper.bulkUpdateMenuItemStatus(p.storeId(), ids, status, p.accountId());
@@ -202,6 +217,7 @@ public class CatalogService {
     @Transactional
     public void updateOperatorItemAvailability(OperationalPrincipal p, long id, String status,
             UUID r) {
+        mapper.lockStore(p.storeId());
         var current = mapper.findMenuItem(p.storeId(), id, false);
         if (current == null)
             throw notFound();
@@ -212,10 +228,12 @@ public class CatalogService {
         log(p, r, "UPDATE_AVAILABILITY", "MENU_ITEM", current.name());
     }
 
-    private void validItem(long storeId, MenuCommand c) {
+    private void validItem(long storeId, MenuCommand c, CatalogMenuItem current) {
         if (mapper.findCategory(storeId, c.categoryId()) == null)
             throw notFound();
-        cloudinary.validateAsset(storeId, c.imageUrl(), c.imageStorageKey());
+        if (current == null || !Objects.equals(current.imageUrl(), c.imageUrl())
+                || !Objects.equals(current.imageStorageKey(), c.imageStorageKey()))
+            cloudinary.validateAsset(storeId, c.imageUrl(), c.imageStorageKey());
         for (Long tag : c.tagIds())
             if (mapper.findTag(storeId, tag) == null)
                 throw notFound();

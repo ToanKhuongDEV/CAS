@@ -1,0 +1,26 @@
+$kind: http-request
+name: Create empty store
+method: POST
+url: "{{baseUrl}}/api/v1/admin/stores"
+order: 1000
+headers:
+  - key: Authorization
+    value: "Bearer {{firebaseIdToken}}"
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"branchName":"Chi nhanh thu nghiem","address":"Dia chi thu nghiem","phone":"0901234567","email":"store@example.com","openTime":"08:00","closeTime":"22:00"}
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Created empty store", () => {
+        pm.response.to.have.status(201);
+        const data = pm.response.json().data;
+        pm.expect(data.id).to.be.a("number");
+        pm.expect(data.branchName).to.eql("Chi nhanh thu nghiem");
+        pm.expect(data.status).to.eql("ACTIVE");
+        pm.environment.set("createdStoreId", data.id);
+      });

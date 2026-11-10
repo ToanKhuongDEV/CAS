@@ -54,6 +54,12 @@
         ORDER BY s.branch_name ASC, s.id ASC
     </select>
 
+    <insert id="insertStore" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stores (branch_name, address, phone, email, google_maps_location, open_time, close_time)
+        VALUES (#{settings.branchName}, #{settings.address}, #{settings.phone}, #{settings.email},
+                #{settings.googleMapsLocation}, #{settings.openTime}, #{settings.closeTime})
+    </insert>
+
     <update id="updateStoreSettings">
         UPDATE stores
         SET branch_name = #{branchName}, address = #{address}, phone = #{phone}, email = #{email},

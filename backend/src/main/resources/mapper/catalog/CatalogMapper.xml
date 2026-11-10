@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="vn.cas.catalog.mapper.CatalogMapper">
+    <select id="lockStore" resultType="java.lang.Long">SELECT id FROM stores WHERE id = #{storeId} FOR UPDATE</select>
+    <select id="isAssetInUse" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM menu_items WHERE image_storage_key = #{storageKey})
+            OR EXISTS(SELECT 1 FROM store_banners WHERE #{storageKey} IN (
+                hero_primary_image_storage_key, hero_secondary_image_storage_key,
+                menu_preview_1_image_storage_key, menu_preview_2_image_storage_key,
+                menu_preview_3_image_storage_key, menu_preview_4_image_storage_key,
+                menu_preview_5_image_storage_key, banner_image_storage_key))
+            OR EXISTS(SELECT 1 FROM brand_settings WHERE logo_storage_key = #{storageKey})
+    </select>
     <sql id="categoryColumns">id, name, description, category_type AS categoryType, display_order AS displayOrder, status</sql>
     <sql id="tagColumns">id, name, status</sql>
     <sql id="groupColumns">id, name, selection_type AS selectionType, min_select AS minSelect, max_select AS maxSelect, display_order AS displayOrder, status</sql>

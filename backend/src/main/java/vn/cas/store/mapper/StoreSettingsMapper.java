@@ -21,6 +21,8 @@ public interface StoreSettingsMapper {
 
     java.util.List<StoreSettings> findAll();
 
+    int insertStore(vn.cas.store.dto.CreateStoreCommand command);
+
     int updateStoreSettings(@Param("storeId") long storeId, @Param("branchName") String branchName,
             @Param("address") String address, @Param("phone") String phone,
             @Param("email") String email, @Param("googleMapsLocation") String googleMapsLocation,

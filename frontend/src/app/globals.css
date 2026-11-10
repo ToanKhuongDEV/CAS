@@ -303,6 +303,25 @@ html[data-theme="dark"] {
   outline-offset: 2px;
 }
 
+/* Keep one visible focus border on form fields, including keyboard focus. */
+input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="file"],
+    [type="color"],
+    [type="button"],
+    [type="submit"],
+    [type="reset"]
+  ):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--cas-primary);
+  outline: 2px solid var(--cas-primary);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
 /* Disabled controls */
 :where(button, input, select, textarea):disabled {
   cursor: not-allowed;

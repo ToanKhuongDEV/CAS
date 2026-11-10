@@ -11,6 +11,9 @@ vi.mock("../components/admin/store-welcome-config-section", () => ({
 vi.mock("../components/admin/brand-settings-section", () => ({
   BrandSettingsSection: () => null,
 }));
+vi.mock("../components/admin/create-store-section", () => ({
+  CreateStoreSection: () => null,
+}));
 vi.mock("../components/ui/toast-provider", () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));

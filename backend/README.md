@@ -225,6 +225,10 @@ curl.exe http://localhost:8080/api/v1/auth/me -H "Authorization: Bearer $env:CAS
 # Thoát phiên khách; phiên chưa có order được đóng, phiên có order phải thanh toán thành công.
 curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/logout -b customer-session-cookie.txt -c customer-session-cookie.txt
 curl.exe http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# SUPER_ADMIN tạo chi nhánh trống; không tạo bàn hoặc sao chép thực đơn.
+curl.exe -X POST http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"branchName\":\"Chi nhanh moi\",\"address\":\"Dia chi\",\"phone\":\"0901234567\",\"email\":\"store@example.com\",\"openTime\":\"08:00\",\"closeTime\":\"22:00\"}'
+# Sao chép thực đơn từ cơ sở 1 sang cơ sở 2 chưa có thực đơn.
+curl.exe -X POST http://localhost:8080/api/v1/admin/stores/2/menu-copy -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"sourceStoreId\":1}'
 # SUPER_ADMIN chọn cơ sở cho API Admin/Operator bằng header này.
 # Thời gian chờ lấy các món đã làm xong theo ngày gọi món, không phụ thuộc thanh toán.
 # customers.sessionCount và series[].sessionCount đếm phiên có order theo ngày tạo, không phụ thuộc thanh toán.

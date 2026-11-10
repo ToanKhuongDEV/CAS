@@ -21,6 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import vn.cas.common.constants.ApiMessages;
 import vn.cas.common.exception.ApiException;
+import vn.cas.catalog.mapper.CatalogMapper;
 
 @Service
 public class CloudinarySignatureService {
@@ -31,17 +32,20 @@ public class CloudinarySignatureService {
     private final String apiSecret;
     private final String preset;
     private final String rootFolder;
+    private final CatalogMapper mapper;
 
     public CloudinarySignatureService(@Value("${cas.cloudinary.cloud-name:}") String cloudName,
             @Value("${cas.cloudinary.api-key:}") String apiKey,
             @Value("${cas.cloudinary.api-secret:}") String apiSecret,
             @Value("${cas.cloudinary.upload-preset:}") String preset,
-            @Value("${cas.cloudinary.root-folder:cas/menu}") String rootFolder) {
+            @Value("${cas.cloudinary.root-folder:cas/menu}") String rootFolder,
+            CatalogMapper mapper) {
         this.cloudName = cloudName;
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
         this.preset = preset;
         this.rootFolder = rootFolder;
+        this.mapper = mapper;
     }
 
     public UploadSignature sign(long storeId, UploadPurpose purpose) {
@@ -127,7 +131,12 @@ public class CloudinarySignatureService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                delete(storeId, oldStorageKey);
+                try {
+                    if (!mapper.isAssetInUse(oldStorageKey))
+                        delete(storeId, oldStorageKey);
+                } catch (RuntimeException exception) {
+                    log.warn("Skipping Cloudinary asset deletion: unable to check references");
+                }
             }
         });
     }
@@ -152,6 +161,8 @@ public class CloudinarySignatureService {
     }
 
     private void delete(long storeId, String storageKey) {
+        // shortcut: last copied references may leave an unused asset until ownership is
+        // tracked.
         if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()
                 || !isStoreAsset(storeId, storageKey)) {
             log.warn("Skipping Cloudinary asset deletion for storeId={}, storageKey={}", storeId,

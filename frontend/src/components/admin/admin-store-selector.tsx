@@ -97,6 +97,17 @@ export function AdminStoreSelector() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    function refreshStores() {
+      void loadAdminStores()
+        .then(setStores)
+        .catch(() => setLoadError("Không thể tải danh sách cơ sở."));
+    }
+    window.addEventListener("cas:stores-updated", refreshStores);
+    return () => window.removeEventListener("cas:stores-updated", refreshStores);
+  }, [isSuperAdmin]);
+
   if (loadError)
     return (
       <span role="alert" className="text-xs font-bold text-cas-on-primary">

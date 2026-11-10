@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { StoreWelcomeConfigSection } from "../../../components/admin/store-welcome-config-section";
 import { BrandSettingsSection } from "../../../components/admin/brand-settings-section";
+import { CreateStoreSection } from "../../../components/admin/create-store-section";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
@@ -297,6 +298,7 @@ export default function AdminSettingsPage() {
         {/* Column 1 & 2: Form Cấu hình Thông tin Cửa hàng */}
         <div className="lg:col-span-2 space-y-8">
           <BrandSettingsSection />
+          <CreateStoreSection />
           <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">

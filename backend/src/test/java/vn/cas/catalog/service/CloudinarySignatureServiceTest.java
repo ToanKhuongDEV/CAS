@@ -7,12 +7,30 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.*;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import vn.cas.catalog.mapper.CatalogMapper;
 import vn.cas.common.exception.ApiException;
 
 class CloudinarySignatureServiceTest {
 
+    private final CatalogMapper mapper = mock(CatalogMapper.class);
     private final CloudinarySignatureService service = new CloudinarySignatureService("cas-cloud",
-            "api-key", "api-secret", "catalog-signed", "cas/menu");
+            "api-key", "api-secret", "catalog-signed", "cas/menu", mapper);
+
+    @Test
+    void checksForRemainingReferencesBeforeDeletingAnImage() {
+        when(mapper.isAssetInUse("cas/menu/8/8_item")).thenReturn(true);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.deleteAfterCommit(8, "cas/menu/8/8_item", null);
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCommit());
+            verify(mapper).isAssetInUse("cas/menu/8/8_item");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
 
     @Test
     void signsEveryUploadParameterSentByTheBrowser() throws Exception {

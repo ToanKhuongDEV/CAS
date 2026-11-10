@@ -53,6 +53,7 @@ export default function ScanTableQrPage() {
   const [storeId, setStoreId] = useState<number | null>(null);
   const [tableCode, setTableCode] = useState("");
   const [tableResolution, setTableResolution] = useState<SalesSessionResolution | null>(null);
+  const [resolvedQrToken, setResolvedQrToken] = useState<string | null>(null);
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
   const storeDropdownReference = useRef<HTMLDivElement>(null);
 
@@ -71,6 +72,11 @@ export default function ScanTableQrPage() {
         ...(storeId ? { storeId } : {}),
       });
       window.sessionStorage.setItem("cas.tableQrToken", token);
+      if (resolution.customerInformationRequired || resolution.joinSessionRequired) {
+        setResolvedQrToken(token);
+        setTableResolution(resolution);
+        return;
+      }
       if (resolution.sessionStatus === "PAYMENT_PENDING") {
         router.replace("/payment");
         return;
@@ -79,9 +85,6 @@ export default function ScanTableQrPage() {
         router.replace(params.get("returnTo") ?? "/menu");
         return;
       }
-      router.replace(
-        `/table/${encodeURIComponent(token)}?returnTo=${encodeURIComponent(params.get("returnTo") ?? "/menu")}`,
-      );
     } catch (error) {
       showToast({
         type: "error",
@@ -102,17 +105,33 @@ export default function ScanTableQrPage() {
     customerPhone?: string | null;
     joinSessionId?: string;
   }) {
+    if (isResolving.current) return;
     const normalizedTableCode = Number(tableCode);
-    if (!storeId || !Number.isSafeInteger(normalizedTableCode) || normalizedTableCode <= 0) {
+    if (
+      !resolvedQrToken &&
+      (!storeId || !Number.isSafeInteger(normalizedTableCode) || normalizedTableCode <= 0)
+    ) {
       showToast({ type: "error", message: "Vui lòng nhập số bàn hợp lệ." });
       return;
     }
     try {
-      const resolution = await resolveCustomerSalesSessionByTable({
-        storeId,
-        tableCode: normalizedTableCode,
-        ...input,
-      });
+      isResolving.current = true;
+      setSubmitting(true);
+      let resolution: SalesSessionResolution;
+      if (resolvedQrToken) {
+        resolution = await resolveCustomerSalesSession(resolvedQrToken, {
+          ...(storeId ? { storeId } : {}),
+          ...input,
+          sessionType: "DINE_IN",
+        });
+      } else {
+        if (!storeId) return;
+        resolution = await resolveCustomerSalesSessionByTable({
+          storeId,
+          tableCode: normalizedTableCode,
+          ...input,
+        });
+      }
       if (resolution.customerInformationRequired || resolution.joinSessionRequired) {
         setTableResolution(resolution);
         return;
@@ -128,11 +147,14 @@ export default function ScanTableQrPage() {
         type: "error",
         message: cause instanceof Error ? cause.message : "Không thể xác thực bàn đã chọn.",
       });
+    } finally {
+      isResolving.current = false;
+      setSubmitting(false);
     }
   }
 
   useEffect(() => {
-    if (!scanMode) return;
+    if (!scanMode || tableResolution) return;
     let stream: MediaStream | null = null;
     let timer = 0;
     let active = true;
@@ -169,7 +191,7 @@ export default function ScanTableQrPage() {
       window.clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [scanMode, storeId]);
+  }, [scanMode, storeId, tableResolution]);
 
   useEffect(() => {
     if (storeId || stores.length < 2 || !navigator.geolocation) return;
@@ -315,6 +337,7 @@ export default function ScanTableQrPage() {
                     setStoreId(store.id);
                     setIsStoreDropdownOpen(false);
                     setTableResolution(null);
+                    setResolvedQrToken(null);
                   }}
                   role="option"
                   type="button"

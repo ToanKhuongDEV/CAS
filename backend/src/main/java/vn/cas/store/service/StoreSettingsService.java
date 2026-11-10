@@ -8,6 +8,7 @@ import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
+import vn.cas.store.dto.CreateStoreCommand;
 import vn.cas.store.mapper.StoreSettingsMapper;
 import vn.cas.store.model.StoreSettings;
 
@@ -48,6 +49,19 @@ public class StoreSettingsService {
             throw new ApiException(HttpStatus.FORBIDDEN,
                     "Chỉ SUPER_ADMIN có quyền xem toàn bộ cơ sở.");
         return mapper.findAll();
+    }
+
+    @Transactional
+    public StoreSettings create(OperationalPrincipal principal, StoreSettings settings,
+            UUID requestId) {
+        if (!"SUPER_ADMIN".equals(principal.role()))
+            throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ SUPER_ADMIN có quyền tạo cơ sở.");
+        var command = new CreateStoreCommand(settings);
+        mapper.insertStore(command);
+        auditLogs.record(new AuditLogCommand(command.getId(), requestId, "CREATE", "STORE",
+                command.getId(), settings.branchName(), "{}", principal.accountId(),
+                principal.displayName(), "Created store"));
+        return get(command.getId());
     }
 
     @Transactional

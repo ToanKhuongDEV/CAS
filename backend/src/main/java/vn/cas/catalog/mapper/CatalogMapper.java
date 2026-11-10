@@ -7,6 +7,10 @@ import vn.cas.catalog.model.*;
 
 @Mapper
 public interface CatalogMapper {
+    Long lockStore(@Param("storeId") long storeId);
+
+    boolean isAssetInUse(@Param("storageKey") String storageKey);
+
     List<CatalogCategory> findCategories(@Param("storeId") long storeId,
             @Param("activeOnly") boolean activeOnly, @Param("regularOnly") boolean regularOnly);
 

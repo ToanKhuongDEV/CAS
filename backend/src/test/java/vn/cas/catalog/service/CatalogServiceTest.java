@@ -12,6 +12,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import vn.cas.catalog.mapper.CatalogMapper;
 import vn.cas.catalog.model.CatalogMenuItem;
+import vn.cas.catalog.model.CatalogCategory;
 import vn.cas.catalog.model.CatalogOptionGroup;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
@@ -20,10 +21,26 @@ import vn.cas.operation.service.AuditLogService;
 class CatalogServiceTest {
     private final CatalogMapper mapper = mock(CatalogMapper.class);
     private final AuditLogService audit = mock(AuditLogService.class);
-    private final CatalogService service = new CatalogService(mapper, audit,
-            mock(CloudinarySignatureService.class));
+    private final CloudinarySignatureService cloudinary = mock(CloudinarySignatureService.class);
+    private final CatalogService service = new CatalogService(mapper, audit, cloudinary);
     private final OperationalPrincipal operator = new OperationalPrincipal(2L, 3L, "firebase-uid",
             "Operator One", "OPERATOR");
+
+    @Test
+    void allowsEditingAnItemWithItsUnchangedSharedImage() {
+        String image = "https://res.cloudinary.com/cas/image/upload/cas/menu/1/1_item.jpg";
+        String key = "cas/menu/1/1_item";
+        when(mapper.findMenuItem(3, 10, false)).thenReturn(new CatalogMenuItem(10, 1, "Item", null,
+                BigDecimal.TEN, image, key, "ACTIVE", 0, LocalDateTime.now()));
+        when(mapper.findCategory(3, 1))
+                .thenReturn(new CatalogCategory(1, "Food", null, "REGULAR", 0, "ACTIVE"));
+        when(mapper.updateMenuItem(anyLong(), anyLong(), anyLong(), anyString(), any(), any(),
+                any(), any(), anyString(), anyInt(), anyLong())).thenReturn(1);
+        var command = new CatalogService.MenuCommand(1, "Item", null, BigDecimal.TEN, image, key,
+                "ACTIVE", 0, List.of(), List.of());
+        service.updateItem(operator, 10, command, UUID.randomUUID());
+        verify(cloudinary, never()).validateAsset(anyLong(), any(), any());
+    }
 
     @Test
     void reportsDuplicateOptionNameOnCreateAndUpdate() {

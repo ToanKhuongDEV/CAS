@@ -1,0 +1,39 @@
+$kind: http-request
+name: Copy menu to empty store
+method: POST
+url: "{{baseUrl}}/api/v1/admin/stores/{{createdStoreId}}/menu-copy"
+order: 2000
+headers:
+  - key: Authorization
+    value: "Bearer {{firebaseIdToken}}"
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"sourceStoreId":{{storeId}}}
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Menu copied", () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().status).to.eql(200);
+      });
+      const url = pm.variables.get("baseUrl") + "/api/v1/admin/catalog/items";
+      const token = "Bearer " + pm.variables.get("firebaseIdToken");
+      const getItems = (store, done) => pm.sendRequest({
+        url, method: "GET", header: {Authorization: token, "X-CAS-Store-Id": store}
+      }, done);
+      getItems(pm.variables.get("storeId"), (sourceError, source) => {
+        getItems(pm.variables.get("createdStoreId"), (targetError, target) => {
+          pm.test("Copied items match the source", () => {
+            pm.expect(sourceError).to.be.null;
+            pm.expect(targetError).to.be.null;
+            pm.expect(source.code).to.eql(200);
+            pm.expect(target.code).to.eql(200);
+            const names = response => response.json().data.map(item => item.name).sort();
+            pm.expect(names(target)).to.eql(names(source));
+          });
+        });
+      });

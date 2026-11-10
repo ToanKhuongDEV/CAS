@@ -15,8 +15,10 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import vn.cas.store.dto.CreateStoreCommand;
+import vn.cas.store.model.StoreSettings;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 class StoreSettingsMapperIntegrationTest {
 
@@ -54,6 +56,19 @@ class StoreSettingsMapperIntegrationTest {
     void clear() {
         jdbc.update("DELETE FROM brand_settings");
         jdbc.update("DELETE FROM stores");
+    }
+
+    @Test
+    void createsAStoreWithoutCopyingExistingStoreData() {
+        var command = new CreateStoreCommand(new StoreSettings(0, "New branch", "Address", "0903",
+                "new@example.com", null, null, null, null, null, LocalTime.of(8, 0),
+                LocalTime.of(22, 0), null, "ACTIVE", null));
+        stores.insertStore(command);
+        assertEquals("New branch", stores.findByStoreId(command.getId()).branchName());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM categories WHERE store_id = ?",
+                Integer.class, command.getId()));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM dining_tables WHERE store_id = ?",
+                Integer.class, command.getId()));
     }
 
     @Test
