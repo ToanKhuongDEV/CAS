@@ -2,6 +2,10 @@
 
 Ngày cập nhật gần nhất: 2026-11-06
 
+- 2026-11-06: Chuẩn bị Docker multi-stage và cổng chạy backend cho Render.
+- 2026-11-06: Đưa cấu trúc cuối cùng vào các lệnh tạo bảng của baseline Flyway.
+- 2026-11-06: Sửa lỗi trùng khóa ngoại khi tạo baseline Flyway.
+- 2026-11-06: Hợp nhất migration Flyway V1–V10 thành một baseline cho cơ sở dữ liệu mới.
 - 2026-11-06: Badge thông báo và số việc chờ trên header/menu Operator dùng số đỏ và nhấp nháy nhẹ.
 - 2026-11-06: Đồng bộ màu nút thông báo, tài khoản và đổi giao diện trên header Operator với Admin.
 - 2026-11-06: Badge thông báo Customer dùng màu và hiệu ứng giống badge giỏ hàng.
