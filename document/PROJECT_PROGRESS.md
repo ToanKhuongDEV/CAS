@@ -2,6 +2,7 @@
 
 Ngày cập nhật gần nhất: 2026-11-06
 
+- 2026-11-10: Cấu hình rewrite Vercel cho API /api/v1 và sửa lỗi build Next.js khi đọc tham số URL.
 - 2026-11-06: Chuẩn bị Docker multi-stage và cổng chạy backend cho Render.
 - 2026-11-06: Đưa cấu trúc cuối cùng vào các lệnh tạo bảng của baseline Flyway.
 - 2026-11-06: Sửa lỗi trùng khóa ngoại khi tạo baseline Flyway.
