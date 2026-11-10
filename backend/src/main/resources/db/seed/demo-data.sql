@@ -3,28 +3,25 @@
 -- Demo customer QR URL: http://localhost:3000/table/<token below>
 -- Menu items and Welcome banners use the demo Cloudinary image URLs below.
 
-CREATE USER 'cas_codex_ro'@'localhost' IDENTIFIED BY '123456';
-
-GRANT SELECT, SHOW VIEW
-ON cas_db.*
-TO 'cas_codex_ro'@'localhost';
-
-FLUSH PRIVILEGES;
-
-
 START TRANSACTION;
 
 INSERT INTO stores (
-    name, address, phone, email, logo_url, google_maps_location, open_time, close_time,
-    welcome_slogan, long_wait_warning_minutes, timezone, status
+    branch_name, address, phone, email, google_maps_location, open_time, close_time,
+    long_wait_warning_minutes, timezone, status
 ) VALUES (
     'CAS Mì Cay', '123 Đường Ẩm Thực, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-    '0900000000', 'hello@cas.local', 'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787647789/cas/stores/1/1_20bbe6e4-5482-47d1-8018-6e4e25b9cff8.svg',
+    '0900000000', 'hello@cas.local',
     'https://maps.google.com/?q=10.7769,106.7009',
-    '09:00:00', '22:00:00', 'Món ngon gọi nhanh, vui trọn từng bàn.', 25,
+    '09:00:00', '22:00:00', 25,
     'Asia/Ho_Chi_Minh', 'ACTIVE'
 );
 SET @store_id = LAST_INSERT_ID();
+
+INSERT INTO brand_settings (id, name, logo_url, welcome_slogan) VALUES (
+    1, 'CAS Mì Cay',
+    'https://res.cloudinary.com/dh6qzqf73/image/upload/v1787647789/cas/stores/1/1_20bbe6e4-5482-47d1-8018-6e4e25b9cff8.svg',
+    'Món ngon gọi nhanh, vui trọn từng bàn.'
+);
 
 -- Các Firebase user với UID tương ứng phải được tạo trước khi đăng nhập bằng các account demo này.
 INSERT INTO accounts (
