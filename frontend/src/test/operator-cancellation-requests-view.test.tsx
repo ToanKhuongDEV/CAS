@@ -60,6 +60,18 @@ describe("OperatorCancellationRequestsView", () => {
     expect(screen.getByText("Mì cay đặc biệt 7 cấp độ")).toBeInTheDocument();
   });
 
+  it("polls for new requests and keeps the last list when a refresh fails", async () => {
+    vi.mocked(loadOperatorCancellationRequests)
+      .mockResolvedValueOnce([request])
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValue([{ ...request, cancellationRequestId: "request-2", tableCode: 9 }]);
+    render(<OperatorCancellationRequestsView pollIntervalMs={50} />);
+    expect(await screen.findByText("Bàn 08")).toBeInTheDocument();
+    await vi.waitFor(() => expect(loadOperatorCancellationRequests).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Bàn 08")).toBeInTheDocument();
+    expect(await screen.findByText("Bàn 09")).toBeInTheDocument();
+  });
+
   it("approves a request through the API", async () => {
     render(<OperatorCancellationRequestsView />);
 

@@ -427,6 +427,49 @@ describe("OperatorPaymentsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Tạo yêu cầu thanh toán" })).toBeInTheDocument();
   });
+
+  it("does not restore a paid-request session when refreshing the list fails", async () => {
+    vi.mocked(loadOperatorPayments).mockResolvedValue([]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 2,
+      displayName: "Operator",
+      role: "OPERATOR",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không thể tải cơ sở"));
+    vi.mocked(loadOperatorSessionListing)
+      .mockResolvedValueOnce({
+        tables: [
+          {
+            tableId: 1,
+            tableCode: 1,
+            sessions: [{ sessionId: "session-1", customerName: "An", status: "OPEN" }],
+          },
+        ],
+        takeawaySessions: [],
+      })
+      .mockRejectedValue(new Error("Không thể tải phiên"));
+    vi.mocked(loadOperatorBill).mockResolvedValue({
+      tableCode: 1,
+      sessionStatus: "OPEN",
+      originalAmount: 100,
+      payableAmount: 100,
+      orders: [],
+    });
+    vi.mocked(createOperatorPayment).mockResolvedValue(payment);
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Kiểm soát thanh toán" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Tạo yêu cầu thanh toán" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Gửi yêu cầu thanh toán" }))[0]);
+    expect(await screen.findByText("Không thể tải phiên")).toBeInTheDocument();
+    expect(screen.queryByText(/Bàn 01/)).not.toBeInTheDocument();
+  });
   it("loads a real pending payment and requires confirmation before marking it as paid", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(loadOperatorPayments).mockResolvedValue([payment]);

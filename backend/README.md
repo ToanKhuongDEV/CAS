@@ -60,6 +60,11 @@ curl.exe -X POST http://localhost:8080/api/v1/admin/catalog/categories -H "Autho
 curl.exe http://localhost:8080/api/v1/admin/catalog/items -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/customer/catalog/categories
 curl.exe http://localhost:8080/api/v1/customer/catalog/items
+curl.exe "http://localhost:8080/api/v1/customer/catalog/categories?storeId=2"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/items?storeId=2"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/tags?storeId=2"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/option-groups?storeId=2"
+curl.exe "http://localhost:8080/api/v1/customer/catalog/items/1?storeId=2"
 # Response `GET /api/v1/public/stores` includes `latitude` and `longitude`; Customer uses them
 # with browser location to select the nearest branch. A counter QR may link to `/start?storeId=<store-id>`.
 curl.exe http://localhost:8080/api/v1/public/stores

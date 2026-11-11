@@ -103,6 +103,23 @@ describe("PaymentRequestPanel", () => {
     expect(replace).toHaveBeenCalledWith("/");
   });
 
+  it("stops polling after payment is confirmed", async () => {
+    vi.mocked(loadCustomerPayment).mockResolvedValue({
+      amount: 55_000,
+      billSnapshot: "{}",
+      confirmedAt: null,
+      createdAt: "2026-09-01T20:00:00+07:00",
+      publicId: "payment-1",
+      status: "PAID",
+      tableCode: 8,
+    });
+    render(<PaymentRequestPanel pollIntervalMs={30} />);
+    await screen.findByRole("heading", { name: "Thanh toán thành công" });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(loadCustomerPayment).toHaveBeenCalledTimes(1);
+    expect(loadCustomerBill).toHaveBeenCalledTimes(1);
+  });
+
   it("shows takeaway instead of a table number on the success screen", async () => {
     vi.mocked(loadCustomerBill).mockRejectedValue(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),

@@ -238,7 +238,7 @@ Khách hàng xem danh mục, món và tùy chọn món đang bán.
 - Frontend hiển thị option group `SINGLE` bằng radio và `MULTIPLE` bằng checkbox, dựa trên `selectionType` do backend trả về.
 - Mỗi món chỉ có một ảnh.
 - Giá tại thời điểm khách gửi order sẽ được ghi lại vào `order_items`, không phụ thuộc vào giá menu thay đổi sau đó.
-- Khi chưa có session QR hợp lệ, Catalog Customer hiển thị menu của store mặc định `1`. Sau khi quét hoặc nhập QR, Catalog ưu tiên store của sales session để bảo đảm đúng menu của bàn.
+- Khi chưa có session hợp lệ, Catalog Customer hiển thị menu của cơ sở đã chọn, hoặc store mặc định `1` nếu chưa chọn. Sau khi mở phiên, Catalog ưu tiên store của sales session để bảo đảm đúng menu của bàn.
 
 ## 7. Luồng gọi món
 

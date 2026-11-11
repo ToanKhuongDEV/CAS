@@ -17,6 +17,12 @@ export type SalesSessionResolution = {
   }[];
 };
 
+function rememberCatalogSession(resolution: SalesSessionResolution) {
+  if (resolution.sessionStatus === "OPEN" || resolution.sessionStatus === "PAYMENT_PENDING") {
+    window.sessionStorage.setItem("cas.catalogSession", crypto.randomUUID());
+  }
+}
+
 export async function resolveCustomerSalesSession(
   qrToken: string,
   input?: {
@@ -38,6 +44,7 @@ export async function resolveCustomerSalesSession(
     throw new Error(getBackendErrorMessage(body, "Không thể xác thực phiên bàn từ mã QR."));
   }
 
+  rememberCatalogSession(body.data);
   return body.data;
 }
 
@@ -59,6 +66,7 @@ export async function resolveCustomerSalesSessionByTable(input: {
     throw new Error(getBackendErrorMessage(body, "KhÃ´ng thá»ƒ xÃ¡c thá»±c bÃ n Ä‘Ã£ chá»n."));
   }
 
+  rememberCatalogSession(body.data);
   return body.data;
 }
 
@@ -77,6 +85,7 @@ export async function openCustomerTakeawaySalesSession(input: {
   if (!response.ok || !isSalesSessionResolutionResponse(body)) {
     throw new Error(getBackendErrorMessage(body, "Không thể tạo đơn mang về."));
   }
+  rememberCatalogSession(body.data);
   return body.data;
 }
 
@@ -102,6 +111,7 @@ export async function logoutCustomer() {
     const body: unknown = await response.json().catch(() => undefined);
     throw new Error(getBackendErrorMessage(body, "Không thể thoát phiên. Vui lòng thử lại."));
   }
+  window.sessionStorage.removeItem("cas.catalogSession");
 }
 
 export async function hasOpenCustomerSalesSession(): Promise<boolean> {

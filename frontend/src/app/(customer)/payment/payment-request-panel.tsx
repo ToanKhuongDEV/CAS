@@ -82,6 +82,7 @@ export function PaymentRequestPanel({
         if (paymentResult.status === "fulfilled" && paymentResult.value?.status === "PAID") {
           setPayment(paymentResult.value);
           setError(null);
+          window.clearInterval(timer);
           return;
         }
 

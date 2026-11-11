@@ -1,13 +1,11 @@
 "use client";
 
 import { formatMoney as money } from "../../lib/format-money";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
-import {
-  type CustomerBill,
-  loadOperatorBill,
-  loadOperatorSessionListing,
-} from "../../lib/api/ordering/ordering.api";
+import { loadOperatorBill, loadOperatorSessionListing } from "../../lib/api/ordering/ordering.api";
+import { operatorBillQueryKey } from "../../lib/api/ordering/ordering.query";
 import { formatOrderDestination } from "../../lib/ordering/order-destination";
 import {
   createOperatorPayment,
@@ -30,31 +28,49 @@ import { CasIcon } from "../ui/cas-icon";
 import { useToast } from "../ui/toast-provider";
 
 type ActiveTable = { sessionId: string; tableCode: number | null; customerName: string };
+const sessionListingKey = ["operator", "sales-sessions", "listing"] as const;
 
 export function OperatorPaymentControlView({
   onPaymentRequested,
+  pollIntervalMs = 10_000,
 }: {
   onPaymentRequested: () => void;
+  pollIntervalMs?: number;
 }) {
   const { showToast } = useToast();
-  const [tables, setTables] = useState<ActiveTable[]>([]);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<ActiveTable | null>(null);
-  const [bill, setBill] = useState<CustomerBill | null>(null);
   const [voucherSummary, setVoucherSummary] = useState<VoucherSummary | null>(null);
   const [vouchers, setVouchers] = useState<EligiblePromotion[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<EligiblePromotion | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [unpaidTable, setUnpaidTable] = useState<ActiveTable | null>(null);
   const [voucherRefreshKey, setVoucherRefreshKey] = useState(0);
 
-  async function refresh() {
-    setIsLoading(true);
-    try {
-      const result = await loadOperatorSessionListing();
-      setTables([
-        ...result.tables.flatMap((table) =>
+  const {
+    data: listing,
+    error: listingError,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: sessionListingKey,
+    queryFn: loadOperatorSessionListing,
+    refetchInterval: pollIntervalMs,
+    refetchIntervalInBackground: false,
+    retry: false,
+  });
+  const { data: bill, error: billError } = useQuery({
+    queryKey: operatorBillQueryKey(selected?.sessionId ?? "none"),
+    queryFn: () => loadOperatorBill(selected!.sessionId),
+    enabled: selected !== null,
+    refetchInterval: pollIntervalMs,
+    refetchIntervalInBackground: false,
+    retry: false,
+  });
+  const tables: ActiveTable[] = listing
+    ? [
+        ...listing.tables.flatMap((table) =>
           table.sessions
             .filter((session) => session.status === "OPEN")
             .map((session) => ({
@@ -63,37 +79,37 @@ export function OperatorPaymentControlView({
               customerName: session.customerName,
             })),
         ),
-        ...result.takeawaySessions
+        ...listing.takeawaySessions
           .filter((session) => session.status === "OPEN")
           .map((session) => ({
             sessionId: session.sessionId,
             tableCode: null,
             customerName: session.customerName,
           })),
-      ]);
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể tải các bàn đang hoạt động.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      ]
+    : [];
 
-  useEffect(() => {
-    void refresh();
-  }, []);
-
-  async function openPaymentRequest(table: ActiveTable) {
+  function openPaymentRequest(table: ActiveTable) {
     setSelected(table);
-    setBill(null);
     setVoucherSummary(null);
     setError(null);
-    try {
-      const nextBill = await loadOperatorBill(table.sessionId);
-      setBill(nextBill);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không thể tải hóa đơn.");
-    }
+  }
+
+  function removeSession(sessionId: string) {
+    queryClient.setQueryData<Awaited<ReturnType<typeof loadOperatorSessionListing>>>(
+      sessionListingKey,
+      (current) =>
+        current && {
+          ...current,
+          tables: current.tables.map((table) => ({
+            ...table,
+            sessions: table.sessions.filter((session) => session.sessionId !== sessionId),
+          })),
+          takeawaySessions: current.takeawaySessions.filter(
+            (session) => session.sessionId !== sessionId,
+          ),
+        },
+    );
   }
 
   async function chooseVoucher(voucher: EligiblePromotion | null) {
@@ -122,10 +138,10 @@ export function OperatorPaymentControlView({
     setError(null);
     try {
       await createOperatorPayment(selected.sessionId);
+      removeSession(selected.sessionId);
       setSelected(null);
-      setTables((current) => current.filter((table) => table.sessionId !== selected.sessionId));
       onPaymentRequested();
-      await refresh();
+      await refetch();
     } catch (cause) {
       if (cause instanceof Error && cause.message === promotionUnavailableMessage)
         setVoucherRefreshKey((value) => value + 1);
@@ -143,8 +159,9 @@ export function OperatorPaymentControlView({
     setIsSaving(true);
     try {
       await recordOperatorUnpaid({ sessionId: unpaidTable.sessionId, reason: null });
+      removeSession(unpaidTable.sessionId);
       setUnpaidTable(null);
-      await refresh();
+      await refetch();
     } catch (cause) {
       showToast({
         type: "error",
@@ -163,9 +180,9 @@ export function OperatorPaymentControlView({
           Chọn phiên đang phục vụ để tạo yêu cầu thanh toán hộ hoặc ghi nhận chưa thanh toán.
         </p>
       </header>
-      {error ? (
+      {error || listingError || billError ? (
         <p className="rounded-xl border border-cas-error/25 bg-cas-error-container/20 p-4 text-sm font-bold text-cas-error">
-          {error}
+          {error ?? listingError?.message ?? billError?.message}
         </p>
       ) : null}
       {isLoading ? (
@@ -228,13 +245,15 @@ export function OperatorPaymentControlView({
               </button>
             </div>
             {!bill ? (
-              <p className="mt-6 text-sm text-cas-on-surface-variant">Đang tải hóa đơn...</p>
+              <p className="mt-6 text-sm text-cas-on-surface-variant">
+                {billError?.message ?? "Đang tải hóa đơn..."}
+              </p>
             ) : (
               <>
                 <div className="pt-5">
                   <PaymentRequestForm
                     bill={bill}
-                    error={error}
+                    error={error ?? billError?.message}
                     isRequesting={isSaving}
                     onRequest={() => void requestPayment()}
                     operatorSessionId={selected.sessionId}

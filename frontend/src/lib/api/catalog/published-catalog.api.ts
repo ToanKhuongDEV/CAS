@@ -1,4 +1,5 @@
 import { getFirebaseAuth } from "../../auth/firebase";
+import { getRememberedPublicStoreId } from "../store/public-store.api";
 import type {
   CatalogCategory,
   CatalogMenuItem,
@@ -18,14 +19,17 @@ export type PublishedCatalog = {
   tags: CatalogTag[];
 };
 
-export function loadCustomerCatalog() {
-  return loadCatalog("customer");
+export function loadCustomerCatalog(storeId = getRememberedPublicStoreId() ?? 1) {
+  return loadCatalog("customer", storeId);
 }
 
-export async function loadCustomerCatalogItem(id: number) {
+export async function loadCustomerCatalogItem(
+  id: number,
+  storeId = getRememberedPublicStoreId() ?? 1,
+) {
   const [item, optionGroups] = await Promise.all([
-    request<CatalogMenuItem>("customer", `/items/${id}`),
-    request<CatalogOptionGroup[]>("customer", "/option-groups"),
+    request<CatalogMenuItem>("customer", `/items/${id}`, {}, storeId),
+    request<CatalogOptionGroup[]>("customer", "/option-groups", {}, storeId),
   ]);
   return { item, optionGroups };
 }
@@ -41,17 +45,22 @@ export function updateOperatorItemAvailability(id: number, status: "ACTIVE" | "S
   });
 }
 
-async function loadCatalog(audience: CatalogAudience): Promise<PublishedCatalog> {
+async function loadCatalog(audience: CatalogAudience, storeId?: number): Promise<PublishedCatalog> {
   const [categories, items, optionGroups, tags] = await Promise.all([
-    request<CatalogCategory[]>(audience, "/categories"),
-    request<CatalogMenuItem[]>(audience, "/items"),
-    request<CatalogOptionGroup[]>(audience, "/option-groups"),
-    request<CatalogTag[]>(audience, "/tags"),
+    request<CatalogCategory[]>(audience, "/categories", {}, storeId),
+    request<CatalogMenuItem[]>(audience, "/items", {}, storeId),
+    request<CatalogOptionGroup[]>(audience, "/option-groups", {}, storeId),
+    request<CatalogTag[]>(audience, "/tags", {}, storeId),
   ]);
   return { categories, items, optionGroups, tags };
 }
 
-async function request<T>(audience: CatalogAudience, path: string, init: RequestInit = {}) {
+async function request<T>(
+  audience: CatalogAudience,
+  path: string,
+  init: RequestInit = {},
+  storeId?: number,
+) {
   const headers: HeadersInit = {};
   if (audience === "operator") {
     const user = getFirebaseAuth().currentUser;
@@ -59,7 +68,8 @@ async function request<T>(audience: CatalogAudience, path: string, init: Request
     headers.Authorization = `Bearer ${await user.getIdToken()}`;
   }
 
-  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}`, {
+  const query = storeId === undefined ? "" : `?storeId=${storeId}`;
+  const response = await fetch(`${apiUrl}/api/v1/${audience}/catalog${path}${query}`, {
     ...init,
     cache: "no-store",
     credentials: audience === "customer" ? "include" : "same-origin",

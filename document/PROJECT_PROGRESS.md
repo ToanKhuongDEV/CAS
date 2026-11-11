@@ -109,6 +109,8 @@ Ngày cập nhật gần nhất: 2026-11-10
 
 ### Các api đã làm
 
+- [x] Các GET `/api/v1/customer/catalog` nhận `storeId` tùy chọn để xem menu công khai theo cơ sở; phiên khách hợp lệ luôn được ưu tiên.
+
 - [x] `POST /api/v1/admin/stores`: Super Admin tạo chi nhánh trống với thông tin liên hệ và giờ hoạt động.
 - [x] `POST /api/v1/admin/stores/{targetStoreId}/menu-copy`: Super Admin sao chép danh mục, món, nhãn và tùy chọn vào chi nhánh chưa có thực đơn, dùng chung ảnh.
 - [x] `POST /api/v1/admin/catalog/option-groups/{id}/values` và `PUT /api/v1/admin/catalog/option-values/{id}`: trả 409 kèm tên option khi trùng trong cùng nhóm.
@@ -176,6 +178,12 @@ Ngày cập nhật gần nhất: 2026-11-10
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Màn hình kiểm soát thanh toán tự làm mới danh sách phiên và hóa đơn đang chọn mỗi 10 giây, giữ dữ liệu gần nhất khi tải lỗi.
+
+- [x] Phân tách cache menu Customer theo cơ sở và phiên; gửi mã cơ sở khi tải menu công khai.
+
+- [x] Đồng bộ danh sách yêu cầu hủy Operator mỗi 10 giây, giữ dữ liệu gần nhất khi tải lỗi; dừng polling thanh toán Customer sau khi hoàn tất và chỉ polling bill khi có phiên.
 
 - [x] Sửa tab danh mục thực đơn bị chọn nhầm mục trước khi cuộn xuống danh mục đã nhấn.
 

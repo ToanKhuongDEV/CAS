@@ -27,7 +27,10 @@ export function useCustomerBillQuery(pollIntervalMs?: number) {
     queryKey: customerBillQueryKey,
     queryFn: loadCustomerBill,
     retry: false,
-    refetchInterval: pollIntervalMs,
+    refetchInterval: (query) =>
+      query.state.data && query.state.error?.message !== "Vui lòng quét mã QR của bàn để tiếp tục."
+        ? pollIntervalMs
+        : false,
     refetchIntervalInBackground: true,
   });
 }

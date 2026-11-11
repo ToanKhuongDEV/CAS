@@ -17,6 +17,7 @@ import vn.cas.common.response.*;
 import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.common.web.RequestId;
 import vn.cas.store.service.SalesSessionService;
+import vn.cas.store.service.StoreSettingsService;
 
 @RestController
 public class CatalogController {
@@ -24,10 +25,13 @@ public class CatalogController {
 
     private final CatalogService catalog;
     private final SalesSessionService sessions;
+    private final StoreSettingsService stores;
 
-    public CatalogController(CatalogService catalog, SalesSessionService sessions) {
+    public CatalogController(CatalogService catalog, SalesSessionService sessions,
+            StoreSettingsService stores) {
         this.catalog = catalog;
         this.sessions = sessions;
+        this.stores = stores;
     }
 
     @GetMapping(ApiPaths.Catalog.ADMIN + "/categories")
@@ -228,46 +232,51 @@ public class CatalogController {
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/items")
     public ResponseEntity<ApiResponse<List<CatalogMenuItem>>> customerItems(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            HttpServletRequest r) {
-        return ok(catalog.items(customerStoreId(s), true), r);
+            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
+        return ok(catalog.items(customerStoreId(s, storeId), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/categories")
     public ResponseEntity<ApiResponse<List<CatalogCategory>>> customerCategories(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            HttpServletRequest r) {
-        return ok(catalog.categories(customerStoreId(s), true), r);
+            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
+        return ok(catalog.categories(customerStoreId(s, storeId), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/tags")
     public ResponseEntity<ApiResponse<List<CatalogTag>>> customerTags(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            HttpServletRequest r) {
-        return ok(catalog.tags(customerStoreId(s), true), r);
+            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
+        return ok(catalog.tags(customerStoreId(s, storeId), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/option-groups")
     public ResponseEntity<ApiResponse<List<CatalogOptionGroup>>> customerOptionGroups(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            HttpServletRequest r) {
-        return ok(catalog.optionGroups(customerStoreId(s), true), r);
+            @RequestParam(required = false) @Positive Long storeId, HttpServletRequest r) {
+        return ok(catalog.optionGroups(customerStoreId(s, storeId), true), r);
     }
 
     @GetMapping(ApiPaths.Catalog.CUSTOMER + "/items/{id}")
     public ResponseEntity<ApiResponse<CatalogMenuItem>> customerItem(
             @CookieValue(name = "cas_customer_session", required = false) String s,
-            @Positive @PathVariable long id, HttpServletRequest r) {
-        return ok(catalog.item(customerStoreId(s), id, true), r);
+            @RequestParam(required = false) @Positive Long storeId, @Positive @PathVariable long id,
+            HttpServletRequest r) {
+        return ok(catalog.item(customerStoreId(s, storeId), id, true), r);
     }
 
-    private long customerStoreId(String sessionPublicId) {
-        if (sessionPublicId == null || sessionPublicId.isBlank())
-            return DEFAULT_CUSTOMER_STORE_ID;
-        try {
-            return sessions.getCurrentStoreId(sessionPublicId);
-        } catch (ApiException exception) {
-            return DEFAULT_CUSTOMER_STORE_ID;
+    private long customerStoreId(String sessionPublicId, Long storeId) {
+        if (sessionPublicId != null && !sessionPublicId.isBlank()) {
+            try {
+                return sessions.getCurrentStoreId(sessionPublicId);
+            } catch (ApiException exception) {
+                // An expired session can still browse the public menu.
+            }
         }
+        if (storeId == null)
+            return DEFAULT_CUSTOMER_STORE_ID;
+        stores.getPublic(storeId);
+        return storeId;
     }
 
     private static UUID rid(HttpServletRequest r) {

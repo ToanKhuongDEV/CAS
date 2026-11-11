@@ -201,6 +201,22 @@ describe("OrdersPage", () => {
     expect(screen.queryByText("Vui lòng quét mã QR của bàn để tiếp tục.")).not.toBeInTheDocument();
   });
 
+  it("does not poll the bill when no sales session exists", async () => {
+    vi.mocked(loadCustomerBill).mockRejectedValue(
+      new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
+    );
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <CustomerOrdersLiveView pollIntervalMs={30} />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    await screen.findByRole("heading", { name: "Xem đơn hàng theo bàn" });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(loadCustomerBill).toHaveBeenCalledTimes(1);
+  });
+
   it("polls the bill to receive changes made from another device", async () => {
     vi.useFakeTimers();
     try {
