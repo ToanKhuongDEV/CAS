@@ -123,7 +123,10 @@ describe("CartPage", () => {
     expect(screen.getByRole("button", { name: "Xóa tất cả" })).toBeInTheDocument();
     const submitButton = screen.getByRole("button", { name: "Gửi món xuống bếp" });
     expect(submitButton).toBeInTheDocument();
-    expect(submitButton.parentElement?.parentElement).toHaveClass("bottom-20", "md:bottom-0");
+    expect(submitButton.parentElement?.parentElement).toHaveClass(
+      "bottom-[calc(5rem+env(safe-area-inset-bottom))]",
+      "md:bottom-0",
+    );
     expect(screen.queryByText(/đang chuẩn bị/i)).not.toBeInTheDocument();
   });
 

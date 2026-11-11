@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { OperatorUnpaidView } from "../../../components/operator/operator-unpaid-view";
 
 export const metadata: Metadata = {
-  title: "Khoản chưa thanh toán | CAS Admin",
+  title: "Khoản chưa thanh toán | Bambu Garden Admin",
 };
 
 export default function AdminUnpaidPage() {

@@ -4,8 +4,8 @@ import { OperatorLoginForm } from "../../(operator)/operator/login/operator-logi
 import { StoreIdentity } from "../../../components/ui/store-identity";
 
 export const metadata: Metadata = {
-  title: "Đăng nhập quản trị | CAS",
-  description: "Đăng nhập quản trị CAS.",
+  title: "Đăng nhập quản trị | Bambu Garden",
+  description: "Đăng nhập quản trị Bambu Garden.",
 };
 
 export default function AdminLoginPage() {

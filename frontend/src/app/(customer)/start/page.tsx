@@ -157,7 +157,7 @@ export default function StartOrderPage() {
       <div className="flex items-center gap-4 rounded-2xl border border-cas-outline-variant/40 bg-cas-surface-container p-4">
         <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-lg font-extrabold text-cas-primary">
           <img
-            alt={`Logo ${store?.brandName ?? store?.branchName ?? "CAS"}`}
+            alt={`Logo ${store?.brandName ?? store?.branchName ?? "Bambu Garden"}`}
             className="size-full object-cover"
             src={STORE_LOGO}
           />

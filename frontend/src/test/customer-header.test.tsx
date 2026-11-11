@@ -75,9 +75,9 @@ describe("CustomerHeader", () => {
     render(<CustomerHeader />);
 
     expect(await screen.findByText("Bàn 05")).toBeInTheDocument();
-    expect(screen.getByText("Bàn 05").nextElementSibling).toContainElement(
+    expect(
       screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" }),
-    );
+    ).toBeInTheDocument();
   });
 
   it("shows the slogan and branch instead of the brand name", async () => {
@@ -86,7 +86,13 @@ describe("CustomerHeader", () => {
       "src",
       "/images/bambu-garden-wordmark.svg",
     );
-    expect(await screen.findByText("Cơ sở Chi nhánh 1")).toBeInTheDocument();
+    const branch = await screen.findByRole("button", { name: "Cơ sở hiện tại" });
+    expect(branch).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(branch);
+    expect(screen.getByText("Bạn đang ở cơ sở Chi nhánh 1")).toBeInTheDocument();
+    expect(branch).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(branch);
+    expect(branch).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Vui trọn từng bàn")).toBeInTheDocument();
     expect(screen.queryByText("Thương hiệu CAS")).not.toBeInTheDocument();
   });
@@ -95,15 +101,15 @@ describe("CustomerHeader", () => {
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
     render(<CustomerHeader />);
     expect(await screen.findByText("Vui trọn từng bàn")).toBeInTheDocument();
-    expect(screen.queryByText("Cơ sở Chi nhánh 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cơ sở hiện tại" })).not.toBeInTheDocument();
   });
 
   it("clears the branch on logout", async () => {
     render(<CustomerHeader />);
-    expect(await screen.findByText("Cơ sở Chi nhánh 1")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Cơ sở hiện tại" })).toBeInTheDocument();
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
     fireEvent(window, new Event("cas-customer-logout"));
-    expect(screen.queryByText("Cơ sở Chi nhánh 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cơ sở hiện tại" })).not.toBeInTheDocument();
   });
 
   it("redirects a payment-pending session to payment", async () => {

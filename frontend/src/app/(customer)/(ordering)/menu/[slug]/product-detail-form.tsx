@@ -136,7 +136,7 @@ export function ProductDetailForm({
         ))}
       </div>
       {error ? <p className="mt-4 text-sm text-cas-error">{error}</p> : null}
-      <div className="fixed inset-x-0 bottom-20 z-40 border-t border-cas-outline-variant/30 bg-cas-navigation px-5 py-3 shadow-[0_-8px_24px_var(--cas-shadow-color)] backdrop-blur-xl md:bottom-0">
+      <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 border-t border-cas-outline-variant/30 bg-cas-navigation px-5 py-3 shadow-[0_-8px_24px_var(--cas-shadow-color)] backdrop-blur-xl md:bottom-0">
         <div className="mx-auto flex w-full max-w-[42rem] items-center gap-3">
           <div className="flex h-13 shrink-0 items-center rounded-full bg-cas-surface-container p-1">
             <button

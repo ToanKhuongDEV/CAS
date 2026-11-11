@@ -203,7 +203,7 @@ export function PaymentRequestPanel({
               Thanh toán thành công
             </h1>
             <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-cas-on-surface-variant">
-              Cảm ơn bạn đã sử dụng dịch vụ tại CAS.
+              Cảm ơn bạn đã sử dụng dịch vụ tại Bambu Garden.
             </p>
             <dl className="mt-7 overflow-hidden rounded-2xl border border-cas-outline-variant/25 bg-cas-glass text-left shadow-[0_8px_24px_var(--cas-shadow-color)]">
               <div className="flex items-center justify-between gap-4 border-b border-cas-outline-variant/25 px-5 py-4">

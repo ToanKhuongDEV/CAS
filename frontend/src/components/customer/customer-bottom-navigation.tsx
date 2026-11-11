@@ -24,7 +24,7 @@ const navigationItems: NavigationItem[] = [
 export function CustomerBottomNavigation({ activeItem }: CustomerBottomNavigationProps) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 grid min-h-20 grid-cols-4 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:sticky md:top-24 md:z-20 md:w-52 md:shrink-0 md:grid-cols-1 md:content-start md:gap-2.5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none lg:w-56"
+      className="fixed inset-x-0 bottom-0 z-50 grid min-h-[calc(5rem+env(safe-area-inset-bottom))] grid-cols-4 rounded-t-xl border-t border-cas-outline-variant/30 bg-cas-navigation px-3 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_var(--cas-shadow-color)] backdrop-blur-xl md:sticky md:top-24 md:z-20 md:w-52 md:shrink-0 md:grid-cols-1 md:content-start md:gap-2.5 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none lg:w-56"
       aria-label="Điều hướng chính"
     >
       {navigationItems.map((item) => {

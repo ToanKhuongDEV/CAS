@@ -156,9 +156,9 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
 export default function AdminSettingsPage() {
   const { showToast } = useToast();
   // State cho Thông tin Cửa hàng
-  const [storeName, setStoreName] = useState<string>("Tiệm Ăn Vặt & Mỳ Cay CAS");
+  const [storeName, setStoreName] = useState<string>("Bambu Garden");
   const [phone, setPhone] = useState<string>("0901 234 567");
-  const [email, setEmail] = useState<string>("contact@cas-restaurant.vn");
+  const [email, setEmail] = useState<string>("");
   const [address, setAddress] = useState<string>(
     "123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh",
   );
@@ -591,7 +591,7 @@ export default function AdminSettingsPage() {
             <div className="mt-4 rounded-2xl border border-cas-outline-variant/20 bg-cas-surface p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="rounded-md bg-cas-primary/10 px-2 py-0.5 text-[0.65rem] font-black text-cas-primary">
-                  CAS Store
+                  Bambu Garden Store
                 </span>
               </div>
 

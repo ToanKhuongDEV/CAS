@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { OperatorOrderCreationView } from "../../../../../../components/operator/order-creation/operator-order-creation-view";
 
 export const metadata: Metadata = {
-  title: "Tạo order hộ tại bàn | CAS",
+  title: "Tạo order hộ tại bàn | Bambu Garden",
   description: "Nhân viên tiếp nhận và tạo order hộ cho khách tại bàn.",
 };
 

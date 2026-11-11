@@ -22,6 +22,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
+  const [showBranch, setShowBranch] = useState(false);
   const [notifications, setNotifications] = useState<
     Awaited<ReturnType<typeof loadCustomerNotifications>>["notifications"]
   >([]);
@@ -31,6 +32,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   const [tableCode, setTableCode] = useState<number | null>(null);
   const [liveCartCount, setLiveCartCount] = useState(cartCount ?? 0);
   const notifRef = useRef<HTMLDivElement>(null);
+  const branchRef = useRef<HTMLDivElement>(null);
 
   const clearExpiredNotifications = (error: unknown) => {
     if (error && typeof error === "object" && "status" in error && error.status === 401) {
@@ -46,6 +48,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
       setShowNotif(false);
       setTableCode(null);
       setBranchName(null);
+      setShowBranch(false);
     }
     window.addEventListener("cas-customer-logout", clearCustomerHeader);
     return () => window.removeEventListener("cas-customer-logout", clearCustomerHeader);
@@ -89,6 +92,9 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     function handleClickOutside(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotif(false);
+      }
+      if (branchRef.current && !branchRef.current.contains(e.target as Node)) {
+        setShowBranch(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -152,7 +158,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   }, [pathname]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-19 bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">
+    <header className="fixed inset-x-0 top-0 z-50 h-[calc(4.75rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <span className="absolute -top-12 left-[35%] size-24 rounded-full bg-cas-on-primary/8 motion-safe:animate-cas-float" />
         <span className="absolute -bottom-14 left-[58%] size-28 rotate-45 rounded-3xl bg-cas-on-primary/6" />
@@ -162,21 +168,14 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
         <Link
           className="inline-flex min-w-0 items-center gap-2 text-xl font-bold text-cas-on-primary focus-visible:rounded-full focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/"
-          aria-label="CAS - Trang chào mừng"
+          aria-label="Bambu Garden - Trang chào mừng"
         >
           <img
             alt="Logo cửa hàng"
             className="h-16.5 w-[113px] shrink-0 object-contain brightness-0 invert"
             src="/images/bambu-garden-wordmark.svg"
           />
-          <span className="flex min-w-0 flex-col">
-            {slogan ? <span className="truncate text-sm">{slogan}</span> : null}
-            {branchName ? (
-              <span className="truncate text-xs font-semibold text-cas-on-primary">
-                Cơ sở {branchName}
-              </span>
-            ) : null}
-          </span>
+          {slogan ? <span className="line-clamp-2 min-w-0 text-sm">{slogan}</span> : null}
         </Link>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2.5">
@@ -185,6 +184,31 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
               {/* <CasIcon className="size-4" name="table" /> */}
               {`Bàn ${String(tableCode).padStart(2, "0")}`}
             </span>
+          ) : null}
+
+          {branchName ? (
+            <div className="group relative" ref={branchRef}>
+              <button
+                type="button"
+                aria-label="Cơ sở hiện tại"
+                aria-expanded={showBranch}
+                aria-describedby="customer-current-branch"
+                onClick={() => setShowBranch((current) => !current)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setShowBranch(false);
+                }}
+                className="grid size-10 place-items-center rounded-full text-cas-on-primary transition hover:bg-cas-on-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+              >
+                <CasIcon className="size-5.5" name="location" />
+              </button>
+              <div
+                id="customer-current-branch"
+                role="tooltip"
+                className={`${showBranch ? "block" : "hidden"} absolute top-full right-0 z-50 mt-2 w-max max-w-[min(18rem,85vw)] rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-3 text-sm font-semibold text-cas-on-surface shadow-xl group-hover:block`}
+              >
+                Bạn đang ở cơ sở {branchName}
+              </div>
+            </div>
           ) : null}
 
           {/* Customer Notification Bell */}

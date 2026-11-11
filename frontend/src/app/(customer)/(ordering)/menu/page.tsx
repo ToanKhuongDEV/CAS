@@ -154,7 +154,7 @@ export default function MenuPage() {
       <main className="w-full">
         <section aria-labelledby="menu-heading">
           <h1 className="sr-only" id="menu-heading">
-            Thực đơn CAS
+            Thực đơn Bambu Garden
           </h1>
 
           <label className="relative block" htmlFor="menu-search">
@@ -371,7 +371,7 @@ export default function MenuPage() {
         </div>
       </main>
 
-      <div className="fixed inset-x-5 bottom-24 z-40 mx-auto max-w-[34rem] md:bottom-6">
+      <div className="fixed inset-x-5 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-[34rem] md:bottom-6">
         <Link
           className="flex min-h-15 w-full items-center justify-between rounded-2xl bg-cas-primary px-5 text-left text-cas-on-primary shadow-[0_12px_30px_var(--cas-shadow-color)] transition hover:bg-cas-primary-hover focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-cas-focus-ring"
           href="/cart"

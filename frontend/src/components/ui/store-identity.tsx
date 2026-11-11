@@ -25,7 +25,7 @@ export function StoreIdentity({
   showBranchName = false,
   inHeader = false,
 }: StoreIdentityProps) {
-  const [name, setName] = useState("CAS");
+  const [name, setName] = useState("Bambu Garden");
   const [branchName, setBranchName] = useState<string | null>(null);
   const [slogan, setSlogan] = useState<string | null>(null);
   useEffect(() => {
@@ -36,7 +36,7 @@ export function StoreIdentity({
     void loadPublicStore(effectiveStoreId)
       .then((store) => {
         if (!active) return;
-        setName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
+        setName(store.brandName ?? store.branchName ?? store.name ?? "Bambu Garden");
         setBranchName(store.branchName ?? store.name ?? null);
         setSlogan(store.welcomeSlogan);
       })

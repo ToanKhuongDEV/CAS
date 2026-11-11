@@ -1,6 +1,6 @@
 {
-  "name": "CAS | Gọi món tại bàn",
-  "short_name": "CAS",
+  "name": "Bambu Garden",
+  "short_name": "Bambu Garden",
   "description": "Xem menu và gọi món ngay tại bàn.",
   "lang": "vi",
   "start_url": "/",
@@ -8,7 +8,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f8f9ff",
-  "theme_color": "#b61722",
+  "theme_color": "#167d54",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

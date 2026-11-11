@@ -5,8 +5,8 @@ import { CasIcon } from "../../../../components/ui/cas-icon";
 import { CustomerInformationForm } from "./customer-information-form";
 
 export const metadata: Metadata = {
-  title: "Thông tin bàn | CAS",
-  description: "Nhập thông tin khách hàng để bắt đầu gọi món tại CAS.",
+  title: "Thông tin bàn | Bambu Garden",
+  description: "Nhập thông tin khách hàng để bắt đầu gọi món tại Bambu Garden.",
 };
 
 export default function CustomerInformationPage() {
@@ -15,7 +15,7 @@ export default function CustomerInformationPage() {
       <main className="mx-auto flex w-full max-w-[75rem] flex-col px-5 pt-24 pb-12 md:px-10 md:pt-28">
         <header className="mx-auto max-w-[30rem] text-center">
           <p className="text-xs font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-            Chào mừng đến CAS
+            Chào mừng đến Bambu Garden
           </p>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
             Bắt đầu gọi món
@@ -46,7 +46,7 @@ export default function CustomerInformationPage() {
           <Image
             className="object-cover"
             src="/images/welcome/street-snacks.jpg"
-            alt="Các món ăn vặt nổi bật tại CAS"
+            alt="Các món ăn vặt nổi bật tại Bambu Garden"
             fill
             loading="eager"
             priority

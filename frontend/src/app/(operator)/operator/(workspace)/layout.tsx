@@ -26,7 +26,7 @@ export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceL
 
                 <OperationalAccountMenu
                   area="OPERATOR"
-                  fallbackName="Nhân viên CAS"
+                  fallbackName="Nhân viên Bambu Garden"
                   loginPath="/operator/login"
                 />
               </div>

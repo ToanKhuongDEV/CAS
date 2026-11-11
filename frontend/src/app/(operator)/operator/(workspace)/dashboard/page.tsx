@@ -8,8 +8,8 @@ import { CasButton } from "../../../../../components/ui/cas-button";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
 
 export const metadata: Metadata = {
-  title: "Tổng quan | CAS",
-  description: "Theo dõi tổng quan và bàn chờ lâu tại CAS.",
+  title: "Tổng quan | Bambu Garden",
+  description: "Theo dõi tổng quan và bàn chờ lâu tại Bambu Garden.",
 };
 
 export default function OperatorDashboardPage() {

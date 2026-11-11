@@ -131,6 +131,14 @@ html[data-theme="dark"] [data-drag-scroll-axis="x"] {
   --color-cas-scrim: var(--cas-scrim);
   --color-cas-on-scrim: var(--cas-on-scrim);
 
+  /* Bambu Garden */
+  --color-cas-garden-deep: var(--cas-garden-deep);
+  --color-cas-garden-mid: var(--cas-garden-mid);
+  --color-cas-garden-dark: var(--cas-garden-dark);
+  --color-cas-garden-green: var(--cas-garden-green);
+  --color-cas-garden-mint: var(--cas-garden-mint);
+  --color-cas-garden-peach: var(--cas-garden-peach);
+
   /* QR */
   --color-cas-qr-background: var(--cas-qr-background);
   --color-cas-qr-foreground: var(--cas-qr-foreground);
@@ -168,6 +176,13 @@ html[data-theme="light"] {
   --cas-primary-gradient-end: #020617;
   --cas-on-primary: #ffffff;
   --cas-on-primary-container: #022918;
+
+  --cas-garden-deep: #042814;
+  --cas-garden-mid: #094825;
+  --cas-garden-dark: #011a0d;
+  --cas-garden-green: #0e6a38;
+  --cas-garden-mint: #a1f5b5;
+  --cas-garden-peach: #ffdcbb;
 
   /* Secondary - Blue */
   --cas-secondary: #276c73;

@@ -8,8 +8,8 @@ import { CasIcon } from "../../../../components/ui/cas-icon";
 import { CustomerCartView } from "../../../../components/customer/customer-cart-view";
 
 export const metadata: Metadata = {
-  title: "Giỏ hàng | CAS",
-  description: "Kiểm tra món đã chọn trước khi gửi order tại CAS.",
+  title: "Giỏ hàng | Bambu Garden",
+  description: "Kiểm tra món đã chọn trước khi gửi order tại Bambu Garden.",
 };
 
 const cartItems = [
@@ -168,7 +168,7 @@ export default function CartPage() {
         </section>
       </main>
 
-      <div className="fixed inset-x-0 bottom-20 z-40 border-t border-cas-outline-variant/30 bg-cas-navigation px-5 py-3 shadow-[0_-8px_24px_var(--cas-shadow-color)] backdrop-blur-xl md:bottom-0">
+      <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 border-t border-cas-outline-variant/30 bg-cas-navigation px-5 py-3 shadow-[0_-8px_24px_var(--cas-shadow-color)] backdrop-blur-xl md:bottom-0">
         <div className="mx-auto w-full max-w-[34rem]">
           <div className="flex items-center justify-between gap-4">
             <div>

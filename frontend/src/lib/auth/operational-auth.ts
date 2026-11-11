@@ -66,7 +66,7 @@ export async function getCurrentOperationalAccount(user: User): Promise<CurrentO
   }
 
   if (!isCurrentOperationalAccountResponse(body)) {
-    throw new Error("Phản hồi xác thực từ CAS không hợp lệ.");
+    throw new Error("Phản hồi xác thực từ Bambu Garden không hợp lệ.");
   }
 
   return body.data;

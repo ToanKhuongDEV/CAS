@@ -1,5 +1,29 @@
 # CAS — Theo dõi tiến độ dự án
 
+
+- 2026-11-11: Đồng bộ kiểm thử giỏ hàng với khoảng an toàn cho thanh điều hướng Android.
+- 2026-11-11: Đổi các tiêu đề và nội dung hiển thị CAS sang Bambu Garden, giữ nguyên tên kỹ thuật.
+- 2026-11-11: Đổi tên PWA và tiêu đề mặc định thành Bambu Garden.
+- 2026-11-11: Hoàn tất duyệt Splash và khôi phục tự chuyển vào ứng dụng khi trang tải xong.
+- 2026-11-11: Tăng nhẹ kích thước và nâng dấu tích cạnh logo Splash.
+- 2026-11-11: Cập nhật dòng giới thiệu trên cùng của màn Splash.
+- 2026-11-11: Khôi phục dấu tích nét viền bo mềm tự vẽ trên màn Splash.
+- 2026-11-11: Dùng biểu tượng dấu tích viền có sẵn của Phosphor cho màn Splash.
+- 2026-11-11: Làm mềm các góc dấu tích nét viền cạnh logo Splash.
+- 2026-11-11: Đổi dấu tích cạnh logo Splash thành nét viền, trong suốt bên trong.
+- 2026-11-11: Điều chỉnh dấu tích cạnh logo Splash thành nét bo đậm, không có nền.
+- 2026-11-11: Bỏ dấu ngoặc kép ở slogan và đổi biểu tượng cạnh logo Splash thành dấu tích.
+- 2026-11-11: Rà soát convention màn Splash và bổ sung thông tin tiến độ cho trình đọc màn hình.
+- 2026-11-11: Bỏ dòng “Ẩm thực hương sắc Việt” khỏi màn Splash.
+- 2026-11-11: Cập nhật các nhãn giới thiệu trên màn Splash.
+- 2026-11-11: Bỏ dòng giới thiệu đồng bộ thực đơn khỏi màn Splash.
+- 2026-11-11: Đồng bộ kiểu chữ, cỡ chữ và màu của tên Bambu Garden trên Splash.
+- 2026-11-11: Tạm giữ màn Splash ở 100% để xem trước giao diện.
+- 2026-11-11: Cập nhật giao diện Splash theo thiết kế Bambu Garden và bổ sung token màu dùng chung.
+- 2026-11-11: Đổi tên thương hiệu dự phòng thành Bambu Garden và bỏ email CAS mẫu khi thiếu dữ liệu cửa hàng.
+- 2026-11-11: Thêm màn hình chờ khi mở web và PWA, hoàn tất tiến trình sau khi trang tải xong.
+- 2026-11-11: Chuyển tên cơ sở trên header khách hàng vào biểu tượng địa chỉ; slogan hiển thị tối đa hai dòng.
+- 2026-11-11: Update PWA system bar colors and safe-area spacing.
 Ngày cập nhật gần nhất: 2026-11-10
 
 - 2026-11-10: Thống nhất viền focus cho các ô nhập và lựa chọn, giữ chỉ báo focus khi dùng bàn phím.

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { QueryProvider } from "../components/providers/query-provider";
 import { ToastProvider } from "../components/ui/toast-provider";
+import { SplashScreen } from "../components/ui/splash-screen";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,7 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CAS | Chào mừng bạn",
+  title: "Bambu Garden | Chào mừng bạn",
   description: "Khám phá mỳ cay, món ăn vặt, cà phê, trà sữa và gà rán ngay tại bàn.",
   manifest: "/site.webmanifest",
   icons: {
@@ -39,6 +40,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen min-w-80 bg-cas-surface font-sans text-cas-on-surface antialiased">
+        <SplashScreen />
         <QueryProvider>
           <ToastProvider>
             <Suspense fallback={<p>Đang tải...</p>}>{children}</Suspense>

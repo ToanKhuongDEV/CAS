@@ -5,12 +5,12 @@ import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store
 import { STORE_LOGO } from "../../lib/store-logo";
 
 export function StoreBrand({ storeId }: { storeId?: number }) {
-  const [name, setName] = useState("CAS");
+  const [name, setName] = useState("Bambu Garden");
   useEffect(() => {
     const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
     void loadPublicStore(effectiveStoreId)
       .then((store) => {
-        setName(store.brandName ?? store.branchName ?? store.name ?? "CAS");
+        setName(store.brandName ?? store.branchName ?? store.name ?? "Bambu Garden");
       })
       .catch(() => undefined);
   }, [storeId]);

@@ -65,7 +65,9 @@ describe("Home", () => {
       </CustomerLayout>,
     );
 
-    expect(screen.getByRole("heading", { name: /chào mừng bạn đến cas/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /chào mừng bạn đến bambu garden/i }),
+    ).toBeInTheDocument();
     expect(await screen.findAllByText("Món ngon gọi nhanh, vui trọn từng bàn.")).toHaveLength(2);
     expect(await screen.findByText("Bàn 12")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /bắt đầu gọi món/i })).toBeInTheDocument();
@@ -88,13 +90,23 @@ describe("Home", () => {
       "src",
       "https://example.test/banner.jpg",
     );
-    expect(screen.getByRole("img", { name: "Tô mỳ cay nóng nổi bật tại CAS" })).toHaveAttribute(
-      "src",
-      "https://example.test/hero-primary.jpg",
-    );
+    expect(
+      screen.getByRole("img", { name: "Tô mỳ cay nóng nổi bật tại Bambu Garden" }),
+    ).toHaveAttribute("src", "https://example.test/hero-primary.jpg");
     expect(
       screen.getByRole("img", { name: "Tô mỳ cay nóng với rau nấm và nhiều topping" }),
     ).toHaveAttribute("src", "https://example.test/menu-1.jpg");
+  });
+
+  it("uses Bambu Garden and no invented email when store data cannot load", async () => {
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Unavailable"));
+    render(<Home />);
+
+    expect(
+      screen.getByRole("heading", { name: /chào mừng bạn đến bambu garden/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /contact@cas-restaurant/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(loadPublicStore).toHaveBeenCalled());
   });
 
   it.each([

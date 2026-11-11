@@ -5,8 +5,8 @@ import { CustomerSalesSessionSettings } from "../../../components/customer/custo
 import { ThemeToggle } from "../../../components/ui/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Cài đặt | CAS",
-  description: "Điều chỉnh giao diện sử dụng CAS.",
+  title: "Cài đặt | Bambu Garden",
+  description: "Điều chỉnh giao diện sử dụng Bambu Garden.",
 };
 
 export default function CustomerSettingsPage() {

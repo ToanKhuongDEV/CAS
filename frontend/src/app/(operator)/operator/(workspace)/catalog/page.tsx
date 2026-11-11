@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { OperatorCatalogAvailabilityView } from "../../../../../components/operator/operator-catalog-availability-view";
 
 export const metadata: Metadata = {
-  title: "Món hàng | CAS",
+  title: "Món hàng | Bambu Garden",
 };
 
 export default function OperatorCatalogPage() {

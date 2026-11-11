@@ -4,8 +4,8 @@ import { CustomerBottomNavigation } from "../../../components/customer/customer-
 import { CustomerOrdersLiveView } from "../../../components/customer/customer-orders-live-view";
 
 export const metadata: Metadata = {
-  title: "Đơn hàng | CAS",
-  description: "Theo dõi món đã gọi và tiếp tục thanh toán tại CAS.",
+  title: "Đơn hàng | Bambu Garden",
+  description: "Theo dõi món đã gọi và tiếp tục thanh toán tại Bambu Garden.",
 };
 
 export default function OrdersPage() {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { OperatorCancellationRequestsView } from "../../../../../components/operator/operator-cancellation-requests-view";
 
 export const metadata: Metadata = {
-  title: "Yêu cầu hủy món | CAS",
+  title: "Yêu cầu hủy món | Bambu Garden",
 };
 
 export default function OperatorCancellationsPage() {

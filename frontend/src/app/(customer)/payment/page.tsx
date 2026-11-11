@@ -5,8 +5,8 @@ import { CasIcon } from "../../../components/ui/cas-icon";
 import { PaymentRequestPanel } from "./payment-request-panel";
 
 export const metadata: Metadata = {
-  title: "Thanh toán | CAS",
-  description: "Kiểm tra hóa đơn và gửi yêu cầu thanh toán tại CAS.",
+  title: "Thanh toán | Bambu Garden",
+  description: "Kiểm tra hóa đơn và gửi yêu cầu thanh toán tại Bambu Garden.",
 };
 
 export default function PaymentPage() {

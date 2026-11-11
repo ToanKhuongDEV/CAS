@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { OperatorOrderDetailView } from "../../../../../../components/operator/operator-order-detail-view";
 
 export const metadata: Metadata = {
-  title: "Chi tiết order | CAS",
+  title: "Chi tiết order | Bambu Garden",
 };
 
 export default async function OperatorOrderDetailPage({

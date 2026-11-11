@@ -52,11 +52,11 @@ const fallbackMenuCategories = [
 const fallbackStore: StoreSettings = {
   address: "123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh",
   closeTime: "22:30:00",
-  email: "contact@cas-restaurant.vn",
+  email: "",
   googleMapsLocation: "https://maps.google.com/?q=10.7554,106.6781",
   logoStorageKey: null,
   logoUrl: null,
-  name: "Tiệm Ăn Vặt & Mỳ Cay CAS",
+  name: "Bambu Garden",
   openTime: "08:00:00",
   phone: "0901234567",
   status: "ACTIVE",
@@ -146,7 +146,7 @@ export default function Home() {
 
               <h1 className="m-0 text-[clamp(2rem,9vw,3rem)] leading-[1.2] font-extrabold tracking-[-0.035em] md:text-[clamp(2.8rem,5vw,4rem)] md:leading-[1.1]">
                 Chào mừng bạn <br className="hidden md:block" />
-                đến <em className="text-cas-primary">{store.brandName ?? "CAS"}</em>
+                đến <em className="text-cas-primary">{store.brandName ?? "Bambu Garden"}</em>
               </h1>
 
               <p className="mt-4 max-w-124 text-[0.93rem] leading-[1.65] text-cas-on-surface-variant md:text-[1.05rem]">
@@ -184,7 +184,7 @@ export default function Home() {
                 <img
                   className="absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-105"
                   src={heroPrimaryImage}
-                  alt="Tô mỳ cay nóng nổi bật tại CAS"
+                  alt="Tô mỳ cay nóng nổi bật tại Bambu Garden"
                   loading="eager"
                 />
                 <span className="absolute inset-0 bg-linear-to-t from-cas-scrim/40 to-transparent" />
@@ -304,13 +304,15 @@ export default function Home() {
                     <CasIcon className="size-4" name="phone" />
                     {store.phone}
                   </a>
-                  <a
-                    className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
-                    href={`mailto:${store.email}`}
-                  >
-                    <CasIcon className="size-4" name="mail" />
-                    {store.email}
-                  </a>
+                  {store.email ? (
+                    <a
+                      className="inline-flex items-center gap-2 font-bold text-cas-primary focus-visible:rounded focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+                      href={`mailto:${store.email}`}
+                    >
+                      <CasIcon className="size-4" name="mail" />
+                      {store.email}
+                    </a>
+                  ) : null}
                   <p className="inline-flex items-center gap-2">
                     <CasIcon className="size-4 text-cas-primary" name="clock" />
                     {formatOpeningHours(store.openTime, store.closeTime)}
