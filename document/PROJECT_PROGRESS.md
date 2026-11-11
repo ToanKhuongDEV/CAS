@@ -109,6 +109,9 @@ Ngày cập nhật gần nhất: 2026-11-10
 
 ### Các api đã làm
 
+- [x] `GET /api/v1/admin/reports?type&from&to&page&size`: tra cứu phân trang doanh thu theo ngày, lịch sử order hoặc món làm lại theo cơ sở và khoảng ngày.
+- [x] `GET /api/v1/admin/reports/export?type&from&to`: xuất Excel toàn bộ dữ liệu phù hợp; `ALL` xuất ba loại vào các sheet riêng.
+
 - [x] Các GET `/api/v1/customer/catalog` nhận `storeId` tùy chọn để xem menu công khai theo cơ sở; phiên khách hợp lệ luôn được ưu tiên.
 
 - [x] `POST /api/v1/admin/stores`: Super Admin tạo chi nhánh trống với thông tin liên hệ và giờ hoạt động.
@@ -178,6 +181,12 @@ Ngày cập nhật gần nhất: 2026-11-10
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Dùng chung bộ lọc khoảng ngày giữa Báo cáo và Dashboard Admin; giữ lựa chọn khi chuyển trang và lưu khoảng ngày, loại báo cáo trên URL.
+
+- [x] Trang Báo cáo Admin lọc ba loại theo khoảng ngày, hiển thị tổng và phân trang từng loại, xuất Excel toàn bộ kết quả theo bộ lọc.
+
+- [x] Đổi nút khóa tài khoản Admin/Operator sang nền sáng, chữ và viền màu lỗi.
 
 - [x] Màn hình kiểm soát thanh toán tự làm mới danh sách phiên và hóa đơn đang chọn mỗi 10 giây, giữ dữ liệu gần nhất khi tải lỗi.
 

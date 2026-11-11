@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vn.cas.operation.mapper.AdminReportMapper">
+    <sql id="revenueSource">
+        FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+        WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
+          AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+    </sql>
+    <select id="revenue" resultType="vn.cas.operation.model.AdminReport$Revenue">
+        SELECT DATE(payments.confirmed_at) AS date, COUNT(*) AS paidSessionCount,
+               SUM(payments.amount) AS revenue
+        <include refid="revenueSource"/>
+        GROUP BY DATE(payments.confirmed_at) ORDER BY DATE(payments.confirmed_at) DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countRevenue" resultType="long">
+        SELECT COUNT(DISTINCT DATE(payments.confirmed_at)) <include refid="revenueSource"/>
+    </select>
+    <sql id="orderSource">
+        FROM orders INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND orders.created_at &gt;= #{from} AND orders.created_at &lt; #{to}
+    </sql>
+    <select id="orders" resultType="vn.cas.operation.model.AdminReport$Order">
+        SELECT orders.created_at AS createdAt, orders.order_number AS orderNumber,
+               dining_tables.code AS tableCode, sales_sessions.opened_by_customer_name AS customerName,
+               orders.original_amount AS originalAmount, orders.payable_amount AS payableAmount
+        <include refid="orderSource"/>
+        ORDER BY orders.created_at DESC, orders.id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countOrders" resultType="long">SELECT COUNT(*) <include refid="orderSource"/></select>
+    <sql id="remadeSource">
+        FROM order_item_cancellation_requests
+        INNER JOIN order_items ON order_items.id = order_item_cancellation_requests.order_item_id
+        INNER JOIN orders ON orders.id = order_items.order_id
+        INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id
+        LEFT JOIN dining_tables ON dining_tables.id = sales_sessions.table_id
+        WHERE sales_sessions.store_id = #{storeId}
+          AND order_item_cancellation_requests.status = 'APPROVED'
+          AND order_item_cancellation_requests.is_remade = TRUE
+          AND order_item_cancellation_requests.resolved_at &gt;= #{from}
+          AND order_item_cancellation_requests.resolved_at &lt; #{to}
+    </sql>
+    <select id="remade" resultType="vn.cas.operation.model.AdminReport$Remade">
+        SELECT order_item_cancellation_requests.resolved_at AS resolvedAt,
+               orders.order_number AS orderNumber, dining_tables.code AS tableCode,
+               order_items.item_name AS itemName,
+               order_item_cancellation_requests.requested_quantity AS quantity,
+               order_item_cancellation_requests.reason AS reason,
+               order_item_cancellation_requests.resolved_by_name AS resolvedByName
+        <include refid="remadeSource"/>
+        ORDER BY order_item_cancellation_requests.resolved_at DESC, order_item_cancellation_requests.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countRemade" resultType="long">SELECT COUNT(*) <include refid="remadeSource"/></select>
+</mapper>

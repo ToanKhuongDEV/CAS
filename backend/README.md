@@ -251,6 +251,10 @@ curl.exe "http://localhost:8080/api/v1/admin/customers?query=Nguyen&page=0&size=
 curl.exe http://localhost:8080/api/v1/admin/customers/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/audit-logs?query=PAYMENT&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/dashboard?from=2026-10-01&to=2026-10-10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=REVENUE&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=ORDERS&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=REMADE&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports/export?type=ALL&from=2026-10-01&to=2026-10-31" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" --output bao-cao.xlsx
 ```
 
 ## Kiểm thử

@@ -160,7 +160,12 @@ export function AdminTabNavigation() {
           // Single Link Item (e.g. "Tổng quan")
           if (group.href && !group.items) {
             const isActive = pathname === group.href;
-            const href = group.href === "/admin" ? dashboardHref : group.href;
+            const href =
+              group.href === "/admin"
+                ? dashboardHref
+                : group.href === "/admin/reports"
+                  ? `/admin/reports${dashboardHref.slice("/admin".length)}`
+                  : group.href;
 
             return (
               <Link
