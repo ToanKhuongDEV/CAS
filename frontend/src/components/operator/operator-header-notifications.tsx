@@ -53,7 +53,7 @@ export function OperatorHeaderNotifications({
     <div className="relative z-30" ref={notifRef}>
       <button
         aria-label="Thông báo vận hành"
-        className="relative grid size-10 place-items-center rounded-xl border border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary transition hover:bg-cas-on-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+        className="relative grid size-10 place-items-center rounded-full text-cas-on-primary transition hover:bg-cas-on-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
         onClick={() => setShowNotif((value) => !value)}
         type="button"
       >

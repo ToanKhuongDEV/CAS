@@ -94,12 +94,14 @@ export function OperationalAccountMenu({
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className="flex items-center gap-3 rounded-xl border border-cas-on-primary/20 bg-cas-on-primary/10 px-3 py-2 text-left text-cas-on-primary transition hover:bg-cas-on-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+        className={`flex items-center gap-3 rounded-xl py-2 text-left text-cas-on-primary transition focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${area === "ADMIN" ? "border border-cas-on-primary/20 bg-cas-on-primary/10 px-3 hover:bg-cas-on-primary/20" : "px-1 hover:bg-cas-on-primary/15"}`}
         onClick={() => setIsOpen((currentValue) => !currentValue)}
         type="button"
       >
-        <span className="grid size-8 place-items-center rounded-lg bg-cas-on-primary/15 text-cas-on-primary">
-          <CasIcon className="size-4.5" name="user" />
+        <span
+          className={`grid size-8 place-items-center rounded-lg text-cas-on-primary ${area === "ADMIN" ? "bg-cas-on-primary/15" : ""}`}
+        >
+          <CasIcon className={area === "ADMIN" ? "size-4.5" : "size-5"} name="user" />
         </span>
         <span className="hidden sm:block">
           <span className="block text-xs font-extrabold">{accountName}</span>

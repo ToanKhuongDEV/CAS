@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 import { STORE_LOGO } from "../../lib/store-logo";
+import { CasIcon } from "./cas-icon";
 
 export type StoreIdentityProps = {
   storeId?: number;
@@ -12,6 +13,7 @@ export type StoreIdentityProps = {
   nameClassName?: string;
   logoOnly?: boolean;
   showBranchName?: boolean;
+  branchAsLocation?: boolean;
   inHeader?: boolean;
 };
 
@@ -23,11 +25,13 @@ export function StoreIdentity({
   nameClassName = "text-xl font-black tracking-tight text-cas-primary",
   logoOnly = false,
   showBranchName = false,
+  branchAsLocation = false,
   inHeader = false,
 }: StoreIdentityProps) {
   const [name, setName] = useState("Bambu Garden");
   const [branchName, setBranchName] = useState<string | null>(null);
   const [slogan, setSlogan] = useState<string | null>(null);
+  const [showBranch, setShowBranch] = useState(false);
   useEffect(() => {
     let active = true;
     const effectiveStoreId =
@@ -60,7 +64,7 @@ export function StoreIdentity({
   );
   if (logoOnly) return logo;
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <div className={`flex min-w-0 items-center gap-3 ${branchAsLocation ? "flex-1" : ""}`}>
       {logo}
       <div className="flex min-w-0 flex-col">
         {inHeader ? (
@@ -70,7 +74,7 @@ export function StoreIdentity({
         ) : (
           <span className={nameClassName}>{name}</span>
         )}
-        {showBranchName && branchName ? (
+        {showBranchName && branchName && !branchAsLocation ? (
           <span
             className={`truncate text-xs font-semibold ${inHeader ? "text-cas-on-primary" : "text-cas-on-surface-variant"}`}
           >
@@ -85,6 +89,31 @@ export function StoreIdentity({
           </span>
         ) : null}
       </div>
+      {branchAsLocation && branchName ? (
+        <div className="group relative ml-auto shrink-0">
+          <button
+            type="button"
+            aria-label="Cơ sở hiện tại"
+            aria-expanded={showBranch}
+            aria-describedby="operator-current-branch"
+            onClick={() => setShowBranch((current) => !current)}
+            onBlur={() => setShowBranch(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setShowBranch(false);
+            }}
+            className="grid size-10 place-items-center rounded-full text-cas-on-primary transition hover:bg-cas-on-primary/15 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+          >
+            <CasIcon className="size-5.5" name="location" />
+          </button>
+          <div
+            id="operator-current-branch"
+            role="tooltip"
+            className={`${showBranch ? "block" : "hidden"} absolute top-full right-0 z-50 mt-2 w-max max-w-[min(18rem,85vw)] rounded-xl border border-cas-outline-variant/30 bg-cas-surface p-3 text-sm font-semibold text-cas-on-surface shadow-xl group-hover:block`}
+          >
+            Bạn đang ở cơ sở {branchName}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

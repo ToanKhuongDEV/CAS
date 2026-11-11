@@ -177,6 +177,20 @@ Ngày cập nhật gần nhất: 2026-11-10
 
 ## 6. Frontend
 
+- [x] Sửa tab danh mục thực đơn bị chọn nhầm mục trước khi cuộn xuống danh mục đã nhấn.
+
+- [x] Căn popup cơ sở của Operator theo cạnh phải biểu tượng vị trí, giống Customer.
+
+- [x] Cập nhật biểu tượng thùng rác dùng chung với kiểu bo tròn, đồng bộ trên các màn hình.
+
+- [x] Căn kích thước biểu tượng tài khoản và thu hẹp khoảng cách nút trên header Operator.
+
+- [x] Thêm biểu tượng vị trí trên header Operator, hiển thị chi nhánh gắn với tài khoản như giao diện Customer.
+
+- [x] Bỏ nền và viền mặc định của nút thông báo và tài khoản trên header Operator, đồng bộ với giao diện Customer.
+
+- [x] Thêm tab Cài đặt cho Operator và chuyển nút đổi giao diện sáng/tối vào trang này; giữ giao diện đã chọn khi chuyển trang.
+
 - [x] Đồng bộ màu nút đổi giao diện và tài khoản ở header Admin với mẫu Stitch bằng token màu hiện có.
 
 - [x] Bộ lọc ngày màn Thanh toán Admin có lựa chọn nhanh như Dashboard và lưu khoảng ngày trên URL.

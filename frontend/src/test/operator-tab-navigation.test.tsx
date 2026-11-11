@@ -24,7 +24,7 @@ vi.mock("../lib/api/ordering/preparation.api", () => ({
 }));
 
 describe("OperatorTabNavigation", () => {
-  it("renders six routes and shows the live pending preparation, payment, and cancellation counts", async () => {
+  it("renders routes and shows the live pending preparation, payment, and cancellation counts", async () => {
     vi.mocked(loadOperatorPendingPaymentCount).mockResolvedValue(2);
     vi.mocked(loadOperatorPendingCancellationCount).mockResolvedValue(3);
     vi.mocked(loadOperatorPendingPreparationTableCount).mockResolvedValue(4);
@@ -41,6 +41,7 @@ describe("OperatorTabNavigation", () => {
       [/Thanh toán/, "/operator/payments"],
       [/Menu/, "/operator/catalog"],
       [/Dịch vụ thêm/, "/operator/services"],
+      [/Cài đặt/, "/operator/settings"],
     ] as const;
 
     expectedTabs.forEach(([nameRegex, href]) => {

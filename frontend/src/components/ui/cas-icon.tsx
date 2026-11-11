@@ -150,7 +150,7 @@ const iconPaths: Record<CasIconName, ReactNode> = {
   ),
   trash: (
     <>
-      <path d="M4 7h16M9 3h6l1 4H8l1-4ZM7 7l1 14h8l1-14" />
+      <path d="M4 7h16M10 3h4a2 2 0 0 1 2 2v2H8V5a2 2 0 0 1 2-2ZM6.5 7l.8 11.1A3 3 0 0 0 10.3 21h3.4a3 3 0 0 0 3-2.9L17.5 7" />
       <path d="M10 11v6M14 11v6" />
     </>
   ),

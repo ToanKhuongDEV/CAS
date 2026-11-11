@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { OperatorStoreIdentity } from "../components/operator/operator-store-identity";
@@ -42,7 +42,8 @@ describe("OperatorStoreIdentity", () => {
 
     await waitFor(() => expect(loadPublicStore).toHaveBeenCalledWith(2));
     expect(await screen.findByText("Vui trọn từng bàn")).toBeInTheDocument();
-    expect(screen.getByText("Cơ sở Chi nhánh 2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cơ sở hiện tại" }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Bạn đang ở cơ sở Chi nhánh 2");
     expect(screen.queryByText("Thương hiệu CAS")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
       "src",

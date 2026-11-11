@@ -68,7 +68,9 @@ export function CategoryNavigation({
         nextCategoryId = sectionPositions.at(-1)?.id ?? nextCategoryId;
       } else {
         for (const sectionPosition of sectionPositions) {
-          if (sectionPosition.top > Math.max(activationLine, sectionPosition.scrollMarginTop + 2)) {
+          if (
+            sectionPosition.top > Math.max(activationLine, sectionPosition.scrollMarginTop + 16)
+          ) {
             break;
           }
 

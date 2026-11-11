@@ -21,11 +21,15 @@ function applyTheme(theme: ColorTheme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-export function ThemeToggle({ inHeader = false }: { inHeader?: boolean }) {
+export function ThemeInitializer() {
   useEffect(() => {
     applyTheme(getInitialTheme());
   }, []);
 
+  return null;
+}
+
+export function ThemeToggle({ inHeader = false }: { inHeader?: boolean }) {
   function handleThemeToggle() {
     const currentTheme = document.documentElement.dataset.theme;
     const nextTheme: ColorTheme = currentTheme === "dark" ? "light" : "dark";
@@ -35,28 +39,31 @@ export function ThemeToggle({ inHeader = false }: { inHeader?: boolean }) {
   }
 
   return (
-    <button
-      className={`grid size-10 cursor-pointer place-items-center border p-0 transition duration-200 hover:-translate-y-px focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${inHeader ? "rounded-xl border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary hover:bg-cas-on-primary/20" : "rounded-full border-cas-outline-variant bg-cas-surface-container text-cas-on-surface hover:text-cas-primary"}`}
-      type="button"
-      onClick={handleThemeToggle}
-      aria-label="Chuyển đổi giao diện sáng hoặc tối"
-      title="Đổi giao diện sáng/tối"
-    >
-      <svg
-        className="size-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8] dark:hidden"
-        aria-hidden="true"
-        viewBox="0 0 24 24"
+    <>
+      <ThemeInitializer />
+      <button
+        className={`grid size-10 cursor-pointer place-items-center border p-0 transition duration-200 hover:-translate-y-px focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring ${inHeader ? "rounded-xl border-cas-on-primary/20 bg-cas-on-primary/10 text-cas-on-primary hover:bg-cas-on-primary/20" : "rounded-full border-cas-outline-variant bg-cas-surface-container text-cas-on-surface hover:text-cas-primary"}`}
+        type="button"
+        onClick={handleThemeToggle}
+        aria-label="Chuyển đổi giao diện sáng hoặc tối"
+        title="Đổi giao diện sáng/tối"
       >
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
-      </svg>
-      <svg
-        className="hidden size-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8] dark:block"
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-      >
-        <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z" />
-      </svg>
-    </button>
+        <svg
+          className="size-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8] dark:hidden"
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+        </svg>
+        <svg
+          className="hidden size-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8] dark:block"
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+        >
+          <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z" />
+        </svg>
+      </button>
+    </>
   );
 }

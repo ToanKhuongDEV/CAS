@@ -92,7 +92,7 @@ describe("CategoryNavigation", () => {
     vi.spyOn(firstSection, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -400, 390, 520));
     const lastPosition = vi
       .spyOn(lastSection, "getBoundingClientRect")
-      .mockReturnValue(new DOMRect(0, 160, 390, 220));
+      .mockReturnValue(new DOMRect(0, 169, 390, 220));
     fireEvent.click(screen.getByRole("link", { name: "Last category" }));
     fireEvent.scroll(window);
     await waitFor(() => expect(lastPosition).toHaveBeenCalled());

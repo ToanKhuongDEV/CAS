@@ -33,6 +33,7 @@ const operatorTabs: OperatorTab[] = [
   { href: "/operator/payments", icon: "payment", label: "Thanh toán" },
   { href: "/operator/catalog", icon: "restaurant", label: "Menu" },
   { href: "/operator/services", icon: "service", label: "Dịch vụ thêm" },
+  { href: "/operator/settings", icon: "settings", label: "Cài đặt" },
 ];
 
 export function OperatorTabNavigation({
@@ -79,7 +80,7 @@ export function OperatorTabNavigation({
       className="overflow-x-auto border-y border-cas-outline-variant/25 bg-cas-navigation px-4 backdrop-blur-xl sm:px-8 xl:px-12"
       aria-label="Điều hướng nhân viên"
     >
-      <div className="mx-auto flex min-w-max max-w-[100rem] gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-6">
+      <div className="mx-auto flex min-w-max max-w-[100rem] gap-1 py-2 lg:grid lg:min-w-0 lg:grid-cols-7">
         {tabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 

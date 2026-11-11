@@ -5,7 +5,7 @@ import { OperatorHeaderNotifications } from "../../../../components/operator/ope
 import { OperatorStoreIdentity } from "../../../../components/operator/operator-store-identity";
 import { OperatorTabNavigation } from "../../../../components/operator/operator-tab-navigation";
 import { OperationalAccountMenu } from "../../../../components/ui/operational-account-menu";
-import { ThemeToggle } from "../../../../components/ui/theme-toggle";
+import { ThemeInitializer } from "../../../../components/ui/theme-toggle";
 
 type OperatorWorkspaceLayoutProps = {
   children: ReactNode;
@@ -14,14 +14,14 @@ type OperatorWorkspaceLayoutProps = {
 export default function OperatorWorkspaceLayout({ children }: OperatorWorkspaceLayoutProps) {
   return (
     <OperationalRouteGuard area="OPERATOR">
+      <ThemeInitializer />
       <main className="min-h-screen bg-cas-surface text-cas-on-surface">
         <div className="sticky top-0 z-40 shadow-xs">
           <header className="relative z-50 bg-cas-primary px-4 py-2 sm:px-8 xl:px-12">
-            <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4">
+            <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-1">
               <OperatorStoreIdentity inHeader subtitle="Vận hành" />
 
-              <div className="flex items-center gap-3">
-                <ThemeToggle inHeader />
+              <div className="flex items-center gap-1">
                 <OperatorHeaderNotifications />
 
                 <OperationalAccountMenu

@@ -31,6 +31,7 @@ export function OperatorStoreIdentity(props: OperatorStoreIdentityProps) {
     <StoreIdentity
       {...props}
       showBranchName
+      branchAsLocation
       fallbackToPublicStore={false}
       storeId={storeId ?? undefined}
     />
