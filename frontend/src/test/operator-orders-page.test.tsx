@@ -138,6 +138,32 @@ describe("OperatorOrdersPage", () => {
     expect(completePreparationBatch).not.toHaveBeenCalled();
   });
 
+  it("defaults completed portions to one and submits that value", async () => {
+    vi.mocked(loadPreparationGroups).mockResolvedValue([group]);
+    vi.mocked(completePreparationBatch).mockResolvedValue({
+      allocations: [],
+      groupKey: group.groupKey,
+      remainingQuantity: 11,
+      requestedQuantity: 1,
+    });
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <OperatorOrdersPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+    const input = await screen.findByRole("spinbutton", { name: "Số phần vừa làm xong" });
+    expect(input).toHaveValue(1);
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận hoàn thành" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã ghi nhận 1 phần");
+    expect(completePreparationBatch).toHaveBeenCalledWith(
+      group.groupKey,
+      expect.objectContaining({ quantity: 1 }),
+    );
+    expect(input).toHaveValue(1);
+  });
+
   it("explains that a negative completed quantity is invalid", async () => {
     vi.mocked(loadPreparationGroups).mockResolvedValue([group]);
     render(

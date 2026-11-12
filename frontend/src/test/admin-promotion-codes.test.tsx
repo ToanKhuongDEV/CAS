@@ -62,6 +62,30 @@ it("keeps the form and identifies a code rejected as duplicate by the server", a
   expect(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫")).toHaveValue("Ưu đãi");
 });
 
+it("blocks repeated confirmation while saving and allows retry after failure", async () => {
+  let rejectSave!: (error: Error) => void;
+  vi.mocked(createPromotion).mockReturnValueOnce(
+    new Promise((_resolve, reject) => {
+      rejectSave = reject;
+    }),
+  );
+  render(<AdminPromotionsPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
+  fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
+    target: { value: "Ưu đãi" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Lưu promotion" }));
+  const confirm = screen.getByRole("button", { name: "Xác nhận lưu" });
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  expect(createPromotion).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "Đang xử lý..." })).toBeDisabled();
+  rejectSave(new Error("Không thể lưu"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Không thể lưu");
+  fireEvent.click(screen.getByRole("button", { name: "Lưu promotion" }));
+  expect(screen.getByRole("button", { name: "Xác nhận lưu" })).toBeEnabled();
+});
+
 it("keeps all inputs when one code is duplicated within the entered list", async () => {
   render(<AdminPromotionsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
