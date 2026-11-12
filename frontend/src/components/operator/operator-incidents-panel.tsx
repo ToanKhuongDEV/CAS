@@ -17,6 +17,7 @@ export function OperatorIncidentsPanel() {
 
   const handleOpenModal = () => {
     setDescription("");
+    setReporterName("Nhân viên ca trực");
     setIsModalOpen(true);
   };
 
