@@ -16,27 +16,26 @@ import {
   YAxis,
 } from "recharts";
 import { CasIcon } from "../../components/ui/cas-icon";
+import { AdminDateRangeFilter } from "../../components/admin/admin-date-range-filter";
 import {
   adminDashboardFilterStorageKey,
   adminDashboardFilterUpdatedEvent,
+  filterFromSearchParams,
+  rangeFor,
+  validateDateRange,
+  type Period,
 } from "../../lib/admin/dashboard-filter";
 import type { AdminDashboard } from "../../lib/api/operation/admin-dashboard.api";
 import { useAdminDashboardQuery } from "../../lib/api/operation/operation.query";
 
-type Period = "threeDays" | "oneWeek" | "oneMonth" | "custom";
 type ReportTab = "revenue" | "customers" | "menu" | "promotions";
 type IconName = "bill" | "cart" | "payment" | "users" | "clock" | "fire" | "sparkle" | "close";
 
-const periodLabels: Record<Exclude<Period, "custom">, string> = {
-  threeDays: "3 ngày",
-  oneWeek: "1 tuần",
-  oneMonth: "1 tháng",
-};
-const reportTabs: { id: ReportTab; label: string }[] = [
-  { id: "revenue", label: "Doanh thu" },
-  { id: "customers", label: "Khách hàng" },
-  { id: "menu", label: "Menu & Order" },
-  { id: "promotions", label: "Khuyến mãi" },
+const reportTabs: { id: ReportTab; label: string; icon: string }[] = [
+  { id: "revenue", label: "Doanh thu", icon: "payments" },
+  { id: "customers", label: "Khách hàng", icon: "person" },
+  { id: "menu", label: "Menu & Order", icon: "lunch_dining" },
+  { id: "promotions", label: "Khuyến mãi", icon: "loyalty" },
 ];
 
 export default function AdminDashboardPage() {
@@ -59,14 +58,16 @@ export default function AdminDashboardPage() {
   const isDebouncing = debouncedRange.from !== startDate || debouncedRange.to !== endDate;
 
   useEffect(() => {
-    if (rangeError || !shouldPersistFilter) return;
+    if (rangeError) return;
+    const dateParams = new URLSearchParams({ period, from: startDate, to: endDate });
+    window.sessionStorage.setItem(adminDashboardFilterStorageKey, dateParams.toString());
+    window.dispatchEvent(new Event(adminDashboardFilterUpdatedEvent));
+    if (!shouldPersistFilter) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set("period", period);
     params.set("from", startDate);
     params.set("to", endDate);
     const query = params.toString();
-    window.sessionStorage.setItem(adminDashboardFilterStorageKey, query);
-    window.dispatchEvent(new Event(adminDashboardFilterUpdatedEvent));
     if (query !== searchParams.toString()) router.replace(`/admin?${query}`, { scroll: false });
   }, [endDate, period, rangeError, router, searchParams, shouldPersistFilter, startDate]);
 
@@ -107,88 +108,73 @@ export default function AdminDashboardPage() {
           Báo cáo hoạt động
         </h1>
       </header>
-      <section className="border-b border-cas-outline-variant/70 pb-5">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex overflow-hidden rounded-sm border border-cas-outline-variant/60 bg-cas-surface">
-            {(Object.keys(periodLabels) as Exclude<Period, "custom">[]).map((item) => (
-              <button
-                className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${period === item ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
-                key={item}
-                onClick={() => selectPeriod(item)}
-                type="button"
-              >
-                {periodLabels[item]}
-              </button>
-            ))}
+      <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
+        <AdminDateRangeFilter
+          period={period}
+          from={startDate}
+          to={endDate}
+          onPeriodChange={selectPeriod}
+          onFromChange={(value) => {
+            const error = validateDateRange(value, endDate);
+            setRangeError(error);
+            if (error) return;
+            setShouldPersistFilter(true);
+            setPeriod("custom");
+            setStartDate(value);
+          }}
+          onToChange={(value) => {
+            const error = validateDateRange(startDate, value);
+            setRangeError(error);
+            if (error) return;
+            setShouldPersistFilter(true);
+            setPeriod("custom");
+            setEndDate(value);
+          }}
+        />
+      </section>
+      <div className="space-y-7 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
+        <nav
+          aria-label="Nhóm báo cáo"
+          className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
+        >
+          {reportTabs.map((tab) => (
             <button
-              className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${period === "custom" ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
-              onClick={() => selectPeriod("custom")}
+              className={`flex cursor-pointer items-center justify-center gap-2 border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               type="button"
             >
-              Tùy chỉnh
+              <span
+                aria-hidden="true"
+                className="size-5 shrink-0 bg-current [mask-size:contain] [mask-repeat:no-repeat]"
+                style={{
+                  maskImage: `url(/icons/material-symbols/${tab.icon === "payments" && activeTab === tab.id ? "payments-filled" : tab.icon}.svg)`,
+                }}
+              />
+              {tab.label}
             </button>
-          </div>
-          <DateInput
-            label="Ngày bắt đầu"
-            onChange={(value) => {
-              const error = validateDateRange(value, endDate);
-              setRangeError(error);
-              if (error) return;
-              setShouldPersistFilter(true);
-              setPeriod("custom");
-              setStartDate(value);
-            }}
-            value={startDate}
-          />
-          <span className="text-xs font-bold text-cas-on-surface-variant">đến</span>
-          <DateInput
-            label="Ngày kết thúc"
-            onChange={(value) => {
-              const error = validateDateRange(startDate, value);
-              setRangeError(error);
-              if (error) return;
-              setShouldPersistFilter(true);
-              setPeriod("custom");
-              setEndDate(value);
-            }}
-            value={endDate}
-          />
-        </div>
-      </section>
-      <nav
-        aria-label="Nhóm báo cáo"
-        className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
-      >
-        {reportTabs.map((tab) => (
-          <button
-            className={`cursor-pointer border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            type="button"
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-      {isLoading ? (
-        <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
-      ) : null}
-      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
-      {dashboard ? (
-        <>
-          {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
-          {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
-          {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
-          {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
-        </>
-      ) : null}
+          ))}
+        </nav>
+        {isLoading ? (
+          <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
+        ) : null}
+        {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+        {dashboard ? (
+          <>
+            {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
+            {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
+            {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
+            {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
   const average = dashboard.revenue.paidSessionCount
-    ? dashboard.revenue.total / dashboard.revenue.paidSessionCount
+    ? dashboard.revenue.salesRevenue / dashboard.revenue.paidSessionCount
     : 0;
   const trend = dashboard.revenue.series.map((item) => ({
     label: shortDate(item.date),
@@ -202,7 +188,7 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
             "payment",
             "Doanh thu",
             money(dashboard.revenue.total),
-            "Chỉ gồm phiên khách đã thanh toán",
+            `Bán hàng: ${money(dashboard.revenue.salesRevenue)} · Dịch vụ: ${money(dashboard.revenue.serviceRevenue)}`,
           ],
           [
             "users",
@@ -214,7 +200,7 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
             "bill",
             "Giá trị phiên khách trung bình",
             money(average),
-            "Doanh thu / phiên khách đã thanh toán",
+            "Doanh thu bán hàng / phiên khách đã thanh toán",
           ],
         ]}
       />
@@ -458,56 +444,6 @@ function SectionHeading({ icon, title }: { icon: IconName; title: string }) {
       <h2 className="text-sm font-black">{title}</h2>
     </div>
   );
-}
-function DateInput({
-  label,
-  onChange,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
-      <span className="sr-only">{label}</span>
-      <input
-        className="min-w-30 bg-transparent outline-none"
-        onChange={(event) => onChange(event.target.value)}
-        type="date"
-        value={value}
-      />
-    </label>
-  );
-}
-function rangeFor(days: number) {
-  const to = new Date();
-  const from = new Date(to);
-  from.setDate(from.getDate() - days + 1);
-  return { from: dateInputValue(from), to: dateInputValue(to) };
-}
-function dateInputValue(value: Date) {
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-}
-function validateDateRange(from: string, to: string) {
-  if (!from || !to) return "Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc.";
-  return from > to ? "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." : null;
-}
-function filterFromSearchParams(searchParams: Pick<URLSearchParams, "get">) {
-  const from = searchParams.get("from") ?? "";
-  const to = searchParams.get("to") ?? "";
-  const hasValidRange = !validateDateRange(from, to);
-  const period = searchParams.get("period");
-  if (hasValidRange)
-    return {
-      from,
-      to,
-      period: period && isPeriod(period) ? period : "custom",
-    };
-  return { ...rangeFor(7), period: "oneWeek" as const };
-}
-function isPeriod(value: string): value is Period {
-  return value === "threeDays" || value === "oneWeek" || value === "oneMonth" || value === "custom";
 }
 function shortDate(value: string) {
   const [year, month, day] = value.split("-");

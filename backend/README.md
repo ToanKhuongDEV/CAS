@@ -7,6 +7,10 @@ Backend modular monolith sử dụng Java 21, Spring Boot, Maven, MyBatis, MySQL
 Môi trường phát triển dùng MySQL local và Redis Cloud. Cấu hình `DB_*` và
 `REDIS_*` được đặt trong `backend/.env` local, không được commit.
 
+Backend dùng múi giờ `Asia/Ho_Chi_Minh`; mỗi kết nối MySQL đặt múi giờ phiên
+`+07:00` để các thời điểm MySQL tạo cho dữ liệu mới thống nhất với giờ backend.
+Các thời điểm đã lưu trước đó không tự thay đổi.
+
 Chạy backend:
 
 ```bash
@@ -192,6 +196,7 @@ Khi payment đã được ghi nhận qua API `unpaid-records`, bill snapshot và
 nhóm; giữ nguyên `idempotencyKey` khi retry cùng thao tác hoàn thành mẻ:
 
 ```powershell
+# Cảnh báo chỉ xét order chưa làm xong trong phiên đang OPEN.
 curl.exe http://localhost:8080/api/v1/operator/preparation/long-wait-tables -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe http://localhost:8080/api/v1/operator/preparation/groups -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # Allocation mang về có tableCode null và customerName; hoàn thành theo mẻ áp dụng FIFO cho cả hai loại đơn.
@@ -207,6 +212,7 @@ xóa, các recipient liên quan được database tự xóa. Customer dùng cook
 bàn, còn `OPERATOR` dùng Firebase ID Token:
 
 ```powershell
+# Danh sách Admin trả adminContent nếu có nội dung riêng, gồm bàn và khách mở phiên trong kết quả hủy món; content vẫn là nội dung gốc.
 curl.exe http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/admin/notifications -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d "{\"title\":\"Bảo trì hệ thống\",\"content\":\"Hệ thống tạm dừng lúc 22:00.\",\"type\":\"WARNING\",\"targetRole\":\"BOTH\"}"
 # Thông báo Customer được phân phối cho phiên tại bàn và mang về đang OPEN/PAYMENT_PENDING.
@@ -232,8 +238,8 @@ curl.exe -X POST http://localhost:8080/api/v1/customer/sales-sessions/logout -b 
 curl.exe http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # SUPER_ADMIN tạo chi nhánh trống; không tạo bàn hoặc sao chép thực đơn.
 curl.exe -X POST http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"branchName\":\"Chi nhanh moi\",\"address\":\"Dia chi\",\"phone\":\"0901234567\",\"email\":\"store@example.com\",\"openTime\":\"08:00\",\"closeTime\":\"22:00\"}'
-# Sao chép thực đơn từ cơ sở 1 sang cơ sở 2 chưa có thực đơn.
-curl.exe -X POST http://localhost:8080/api/v1/admin/stores/2/menu-copy -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"sourceStoreId\":1}'
+# SUPER_ADMIN tạo chi nhánh và sao chép thực đơn từ cơ sở 1 trong cùng giao dịch.
+curl.exe -X POST http://localhost:8080/api/v1/admin/stores -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" -H "Content-Type: application/json" -d '{\"branchName\":\"Chi nhanh moi\",\"address\":\"Dia chi\",\"phone\":\"0901234567\",\"email\":\"store@example.com\",\"openTime\":\"08:00\",\"closeTime\":\"22:00\",\"sourceStoreId\":1}'
 # SUPER_ADMIN chọn cơ sở cho API Admin/Operator bằng header này.
 # Thời gian chờ lấy các món đã làm xong theo ngày gọi món, không phụ thuộc thanh toán.
 # customers.sessionCount và series[].sessionCount đếm phiên có order theo ngày tạo, không phụ thuộc thanh toán.
@@ -247,10 +253,19 @@ curl.exe -X DELETE http://localhost:8080/api/v1/admin/operators/1 -H "Authorizat
 curl.exe http://localhost:8080/api/v1/admin/operators -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe -X POST http://localhost:8080/api/v1/admin/operators/1/activate -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/customers?query=Nguyen&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/customers?query=%25&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Lọc theo ngày mở phiên, sắp xếp tổng tiền PAID hoặc số phiên trước khi phân trang.
+curl.exe "http://localhost:8080/api/v1/admin/customers?from=2026-10-01&to=2026-10-31&sort=AMOUNT_DESC&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 # Chi tiết bao gồm cả phiên mang về; trường tableCode sẽ là null cho phiên này.
 curl.exe http://localhost:8080/api/v1/admin/customers/1 -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/audit-logs?query=PAYMENT&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/audit-logs?query=%25&page=0&size=20" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
 curl.exe "http://localhost:8080/api/v1/admin/dashboard?from=2026-10-01&to=2026-10-10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+# Dashboard và báo cáo doanh thu gồm tiền phiên bán hàng và dịch vụ đặt trước đã xác nhận PAID.
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=REVENUE&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=ORDERS&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports?type=REMADE&from=2026-10-01&to=2026-10-31&page=0&size=10" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN"
+curl.exe "http://localhost:8080/api/v1/admin/reports/export?type=ALL&from=2026-10-01&to=2026-10-31" -H "Authorization: Bearer $env:CAS_FIREBASE_ID_TOKEN" --output bao-cao.xlsx
 ```
 
 ## Kiểm thử

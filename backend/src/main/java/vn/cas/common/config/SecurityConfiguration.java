@@ -33,8 +33,6 @@ public class SecurityConfiguration {
                         .hasAnyRole("ADMIN", "SUPER_ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.POST, ApiPaths.Store.LIST)
                         .hasRole("SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, ApiPaths.Store.LIST + "/*/menu-copy")
-                        .hasRole("SUPER_ADMIN")
                         .requestMatchers(ApiPaths.AdminAccount.ADMIN_COMMON,
                                 ApiPaths.AdminAccount.ADMIN_COMMON + "/**")
                         .hasRole("SUPER_ADMIN").requestMatchers(ApiPaths.ADMIN_PATTERN)

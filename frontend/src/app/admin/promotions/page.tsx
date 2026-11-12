@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMoney as formatVnd } from "../../../lib/format-money";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { loadAdminCatalog } from "../../../lib/api/catalog/catalog.api";
@@ -174,6 +174,8 @@ export default function AdminPromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const isConfirmingRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -479,72 +481,79 @@ export default function AdminPromotionsPage() {
   };
 
   const handleConfirm = async () => {
-    if (!confirmTarget) return;
-    if (confirmTarget.action === "save") {
-      const trimmed = form.name.trim();
-      const normalized = { ...form, name: trimmed, code: form.code.trim().toUpperCase() };
-      const command = {
-        ...normalized,
-        startAt: normalized.startAt || null,
-        endAt: normalized.endAt || null,
-        codes: normalized.code
-          ? normalized.code
-              .split(",")
-              .map((entry) => entry.trim())
-              .filter(Boolean)
-              .map((entry) => {
-                const [value, quota] = entry.split(":", 2).map((part) => part.trim());
-                return {
-                  value,
-                  maxRedemptions: quota ? Number(quota) : null,
-                };
-              })
-          : [],
-        targets: normalized.targets.map((target) => ({
-          type: target.targetType,
-          id: Number(target.targetId),
-        })),
-      };
-      try {
-        const saved = editingId
-          ? await updatePromotion(editingId, command)
-          : await createPromotion(command);
-        const next = {
+    if (!confirmTarget || isConfirmingRef.current) return;
+    isConfirmingRef.current = true;
+    setIsConfirming(true);
+    try {
+      if (confirmTarget.action === "save") {
+        const trimmed = form.name.trim();
+        const normalized = { ...form, name: trimmed, code: form.code.trim().toUpperCase() };
+        const command = {
           ...normalized,
-          ...saved.promotion,
-          completedRedemptionCount: saved.completedRedemptionCount,
-          id: saved.promotion.publicId,
-          code: saved.codes
-            .map(
-              (code) =>
-                `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
-            )
-            .join(", "),
-          startAt: saved.promotion.startAt?.slice(0, 16) ?? "",
-          endAt: saved.promotion.endAt?.slice(0, 16) ?? "",
-          targets: saved.targets.map((target) => ({
-            id: String(target.id),
-            targetType: target.targetType,
-            targetId: String(target.targetId),
+          startAt: normalized.startAt || null,
+          endAt: normalized.endAt || null,
+          codes: normalized.code
+            ? normalized.code
+                .split(",")
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+                .map((entry) => {
+                  const [value, quota] = entry.split(":", 2).map((part) => part.trim());
+                  return {
+                    value,
+                    maxRedemptions: quota ? Number(quota) : null,
+                  };
+                })
+            : [],
+          targets: normalized.targets.map((target) => ({
+            type: target.targetType,
+            id: Number(target.targetId),
           })),
-          redemptions: [],
         };
-        setPromotions((current) =>
-          editingId
-            ? current.map((item) => (item.id === editingId ? next : item))
-            : [next, ...current],
-        );
-        setApiError(null);
-      } catch (cause) {
-        setFormErrors([cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi."]);
+        try {
+          const saved = editingId
+            ? await updatePromotion(editingId, command)
+            : await createPromotion(command);
+          const next = {
+            ...normalized,
+            ...saved.promotion,
+            completedRedemptionCount: saved.completedRedemptionCount,
+            id: saved.promotion.publicId,
+            code: saved.codes
+              .map(
+                (code) =>
+                  `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+              )
+              .join(", "),
+            startAt: saved.promotion.startAt?.slice(0, 16) ?? "",
+            endAt: saved.promotion.endAt?.slice(0, 16) ?? "",
+            targets: saved.targets.map((target) => ({
+              id: String(target.id),
+              targetType: target.targetType,
+              targetId: String(target.targetId),
+            })),
+            redemptions: [],
+          };
+          setPromotions((current) =>
+            editingId
+              ? current.map((item) => (item.id === editingId ? next : item))
+              : [next, ...current],
+          );
+          setApiError(null);
+        } catch (cause) {
+          setFormErrors([cause instanceof Error ? cause.message : "Không thể lưu khuyến mãi."]);
+          setConfirmTarget(null);
+          return;
+        }
         setConfirmTarget(null);
-        return;
+        closeForm();
+      } else if (confirmTarget.action === "status" && confirmTarget.promotionId) {
+        await updateStatus(confirmTarget.promotionId);
+        setConfirmTarget(null);
       }
-      setConfirmTarget(null);
-      closeForm();
-    } else if (confirmTarget.action === "status" && confirmTarget.promotionId) {
-      await updateStatus(confirmTarget.promotionId);
-      setConfirmTarget(null);
+    } finally {
+      isConfirmingRef.current = false;
+      setIsConfirming(false);
     }
   };
 
@@ -1125,7 +1134,9 @@ export default function AdminPromotionsPage() {
             <div className="fixed inset-0 z-[60] flex items-center justify-center">
               <div
                 className="absolute inset-0 bg-cas-scrim/40 backdrop-blur-sm"
-                onClick={() => setConfirmTarget(null)}
+                onClick={() => {
+                  if (!isConfirming) setConfirmTarget(null);
+                }}
               />
               <div className="relative z-10 w-full max-w-sm rounded-2xl border border-cas-outline-variant/25 bg-cas-surface p-6 shadow-2xl">
                 <div className="mb-1 flex items-center gap-3">
@@ -1167,6 +1178,7 @@ export default function AdminPromotionsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={isConfirming}
                     onClick={() => setConfirmTarget(null)}
                   >
                     Hủy
@@ -1175,15 +1187,18 @@ export default function AdminPromotionsPage() {
                     type="button"
                     size="sm"
                     variant={isDeactivate ? "danger" : "primary"}
+                    disabled={isConfirming}
                     onClick={handleConfirm}
                   >
-                    {isSave
-                      ? form.status === "ACTIVE"
-                        ? "Lưu & phát hành"
-                        : "Xác nhận lưu"
-                      : isDeactivate
-                        ? "Ngừng áp dụng"
-                        : "Kích hoạt"}
+                    {isConfirming
+                      ? "Đang xử lý..."
+                      : isSave
+                        ? form.status === "ACTIVE"
+                          ? "Lưu & phát hành"
+                          : "Xác nhận lưu"
+                        : isDeactivate
+                          ? "Ngừng áp dụng"
+                          : "Kích hoạt"}
                   </CasButton>
                 </div>
               </div>

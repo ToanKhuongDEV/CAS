@@ -1,6 +1,7 @@
 package vn.cas.operation.mapper;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import vn.cas.operation.model.AdminCustomerSession;
@@ -10,9 +11,12 @@ import vn.cas.operation.model.AuditLogView;
 @Mapper
 public interface AdminLookupMapper {
     List<AdminCustomerSummary> findCustomers(@Param("storeId") long storeId,
-            @Param("query") String query, @Param("limit") int limit, @Param("offset") int offset);
+            @Param("query") String query, @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to, @Param("sort") String sort, @Param("limit") int limit,
+            @Param("offset") long offset);
 
-    long countCustomers(@Param("storeId") long storeId, @Param("query") String query);
+    long countCustomers(@Param("storeId") long storeId, @Param("query") String query,
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     AdminCustomerSummary findCustomer(@Param("storeId") long storeId,
             @Param("customerId") long customerId);

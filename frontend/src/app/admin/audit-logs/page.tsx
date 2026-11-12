@@ -31,7 +31,7 @@ export default function AdminAuditLogsPage() {
       <header>
         <h1 className="text-2xl font-black">Nhật ký Audit Logs</h1>
       </header>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 md:grid-cols-3">
         <input
           className="rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-sm md:col-span-1"
           value={query}
@@ -60,51 +60,53 @@ export default function AdminAuditLogsPage() {
           placeholder="Lọc đối tượng, ví dụ: PAYMENT"
         />
       </div>
-      {error ? <p className="text-cas-error">{error}</p> : null}
-      <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr>
-              <th className="p-4">Thời gian</th>
-              <th className="p-4">Tài khoản</th>
-              <th className="p-4">Hành động</th>
-              <th className="p-4">Đối tượng</th>
-              <th className="p-4">Mô tả</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.items.map((log) => (
-              <tr key={log.id} className="border-t border-cas-outline-variant/20">
-                <td className="p-4">{new Date(log.createdAt).toLocaleString("vi-VN")}</td>
-                <td className="p-4">{log.actorName}</td>
-                <td className="p-4 font-bold text-cas-primary">{log.action}</td>
-                <td className="p-4">
-                  {log.entityType} · {log.entityName ?? log.entityId}
-                </td>
-                <td className="p-4">{log.description ?? "—"}</td>
+      <div className="space-y-6 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
+        {error ? <p className="text-cas-error">{error}</p> : null}
+        <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr>
+                <th className="p-4">Thời gian</th>
+                <th className="p-4">Tài khoản</th>
+                <th className="p-4">Hành động</th>
+                <th className="p-4">Đối tượng</th>
+                <th className="p-4">Mô tả</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          disabled={page === 0}
-          onClick={() => setPage((current) => current - 1)}
-          type="button"
-        >
-          ← Trước
-        </button>
-        <span className="text-sm">
-          Trang {page + 1} / {data ? Math.max(1, Math.ceil(data.total / data.size)) : 1}
-        </span>
-        <button
-          disabled={!data || (page + 1) * data.size >= data.total}
-          onClick={() => setPage((current) => current + 1)}
-          type="button"
-        >
-          Sau →
-        </button>
+            </thead>
+            <tbody>
+              {data?.items.map((log) => (
+                <tr key={log.id} className="border-t border-cas-outline-variant/20">
+                  <td className="p-4">{new Date(log.createdAt).toLocaleString("vi-VN")}</td>
+                  <td className="p-4">{log.actorName}</td>
+                  <td className="p-4 font-bold text-cas-primary">{log.action}</td>
+                  <td className="p-4">
+                    {log.entityType} · {log.entityName ?? log.entityId}
+                  </td>
+                  <td className="p-4">{log.description ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            disabled={page === 0}
+            onClick={() => setPage((current) => current - 1)}
+            type="button"
+          >
+            ← Trước
+          </button>
+          <span className="text-sm">
+            Trang {page + 1} / {data ? Math.max(1, Math.ceil(data.total / data.size)) : 1}
+          </span>
+          <button
+            disabled={!data || (page + 1) * data.size >= data.total}
+            onClick={() => setPage((current) => current + 1)}
+            type="button"
+          >
+            Sau →
+          </button>
+        </div>
       </div>
     </div>
   );

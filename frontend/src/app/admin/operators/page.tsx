@@ -362,7 +362,8 @@ export default function AdminOperatorsPage() {
                   {op.status === "ACTIVE" ? (
                     <CasButton
                       onClick={() => void deactivate(op.id, op.role)}
-                      variant="danger"
+                      variant="outline"
+                      className="border border-cas-error !bg-cas-surface-container !text-cas-error !ring-0"
                       size="sm"
                     >
                       Khóa tài khoản

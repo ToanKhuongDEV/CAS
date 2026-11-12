@@ -76,9 +76,10 @@ export function StoreIdentity({
         )}
         {showBranchName && branchName && !branchAsLocation ? (
           <span
-            className={`truncate text-xs font-semibold ${inHeader ? "text-cas-on-primary" : "text-cas-on-surface-variant"}`}
+            className={`flex min-w-0 items-center gap-1 text-xs font-semibold ${inHeader ? "text-cas-on-primary" : "text-cas-on-surface-variant"}`}
           >
-            {inHeader ? `Cơ sở ${branchName}` : branchName}
+            {inHeader && <CasIcon name="location" className="size-3.5 shrink-0" />}
+            <span className="truncate">{branchName}</span>
           </span>
         ) : null}
         {subtitle ? (

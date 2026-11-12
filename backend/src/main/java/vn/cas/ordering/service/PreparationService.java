@@ -52,7 +52,7 @@ public class PreparationService {
         if (threshold == 0)
             return List.of();
         Map<Long, PreparationItemRow> oldestByTable = new LinkedHashMap<>();
-        for (var item : mapper.findPendingPreparationItems(principal.storeId())) {
+        for (var item : mapper.findPreparationItems(principal.storeId())) {
             if (item.tableId() == null || remainingQuantity(item) <= 0)
                 continue;
             oldestByTable.putIfAbsent(item.tableId(), item);

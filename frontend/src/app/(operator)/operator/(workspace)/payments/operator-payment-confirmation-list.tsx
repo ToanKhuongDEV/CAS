@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { CasIcon } from "../../../../../components/ui/cas-icon";
+import { CompactPagination } from "../../../../../components/ui/compact-pagination";
+import { AdminDateRangeFilter } from "../../../../../components/admin/admin-date-range-filter";
 import { useToast } from "../../../../../components/ui/toast-provider";
 import { OperatorPaymentControlView } from "../../../../../components/operator/operator-payment-control-view";
 import { OperatorBillAdjustmentForm } from "../../../../../components/operator/operator-bill-adjustment-form";
@@ -86,6 +88,7 @@ type OperatorPayment = {
 };
 
 const defaultPaymentPollIntervalMs = 10_000;
+const adminPageSize = 20;
 type PaymentPeriod = "threeDays" | "oneWeek" | "oneMonth" | "custom";
 const paymentPeriods: { value: Exclude<PaymentPeriod, "custom">; label: string; days: number }[] = [
   { value: "threeDays", label: "3 ngày", days: 3 },
@@ -204,6 +207,7 @@ export function OperatorPaymentConfirmationList({
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<PaymentListMode>(adminView ? "PAID" : "PENDING");
+  const [page, setPage] = useState(0);
   const [initialFilter] = useState(paymentFilterFromUrl);
   const [from, setFrom] = useState(initialFilter.from);
   const [to, setTo] = useState(initialFilter.to);
@@ -220,6 +224,10 @@ export function OperatorPaymentConfirmationList({
   const activePaymentQuery =
     mode === "PENDING" ? pendingPayments : adminView ? adminPayments : paidPayments;
   const payments = (activePaymentQuery.data ?? []).map(toOperatorPayment);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(payments.length / adminPageSize) - 1));
+  const visiblePayments = adminView
+    ? payments.slice(currentPage * adminPageSize, (currentPage + 1) * adminPageSize)
+    : payments;
   const isLoading = activePaymentQuery.isLoading;
   const loadError =
     adminView && mode === "PAID" && (!from || !to || from > to)
@@ -242,12 +250,14 @@ export function OperatorPaymentConfirmationList({
       setFrom(filter.from);
       setTo(filter.to);
       setPeriod(filter.period);
+      setPage(0);
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
   }, [adminView]);
 
   function selectPeriod(value: PaymentPeriod) {
+    setPage(0);
     setPeriod(value);
     const preset = paymentPeriods.find((item) => item.value === value);
     if (!preset) return;
@@ -463,6 +473,7 @@ export function OperatorPaymentConfirmationList({
               }`}
               onClick={() => {
                 setMode("PENDING");
+                setPage(0);
                 closePaymentDialog();
               }}
               type="button"
@@ -480,6 +491,7 @@ export function OperatorPaymentConfirmationList({
               }`}
               onClick={() => {
                 setMode("PAID");
+                setPage(0);
                 closePaymentDialog();
               }}
               type="button"
@@ -499,50 +511,22 @@ export function OperatorPaymentConfirmationList({
 
         {adminView && mode === "PAID" && (
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-cas-outline-variant/25 pt-4 text-sm font-bold text-cas-on-surface">
-            <div className="flex overflow-hidden rounded-sm border border-cas-outline-variant/60 bg-cas-surface">
-              {paymentPeriods.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => selectPeriod(item.value)}
-                  className={`cursor-pointer px-3 py-2 text-xs font-bold transition ${period === item.value ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => selectPeriod("custom")}
-                className={`cursor-pointer border-l border-cas-outline-variant/40 px-3 py-2 text-xs font-bold transition ${period === "custom" ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface-variant hover:bg-cas-surface-container/50"}`}
-              >
-                Tùy chỉnh
-              </button>
-            </div>
-            <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
-              <span className="sr-only">Từ ngày</span>
-              <input
-                type="date"
-                value={from}
-                onChange={(event) => {
-                  setPeriod("custom");
-                  setFrom(event.target.value);
-                }}
-                className="min-w-30 bg-transparent outline-none"
-              />
-            </label>
-            <span className="text-xs font-bold text-cas-on-surface-variant">đến</span>
-            <label className="rounded-sm border border-cas-outline-variant/60 bg-cas-surface px-2.5 py-1.5 text-xs font-semibold text-cas-on-surface">
-              <span className="sr-only">Đến ngày</span>
-              <input
-                type="date"
-                value={to}
-                onChange={(event) => {
-                  setPeriod("custom");
-                  setTo(event.target.value);
-                }}
-                className="min-w-30 bg-transparent outline-none"
-              />
-            </label>
+            <AdminDateRangeFilter
+              period={period}
+              from={from}
+              to={to}
+              onPeriodChange={selectPeriod}
+              onFromChange={(value) => {
+                setPeriod("custom");
+                setFrom(value);
+                setPage(0);
+              }}
+              onToChange={(value) => {
+                setPeriod("custom");
+                setTo(value);
+                setPage(0);
+              }}
+            />
           </div>
         )}
       </section>
@@ -571,7 +555,7 @@ export function OperatorPaymentConfirmationList({
                 : "Danh sách thanh toán đã xác nhận trong ngày"
           }
         >
-          {payments.map((payment) => (
+          {visiblePayments.map((payment) => (
             <li
               className={
                 adminView
@@ -683,6 +667,17 @@ export function OperatorPaymentConfirmationList({
                   : "Các hóa đơn được xác nhận hôm nay sẽ hiển thị tại đây."}
             </p>
           </div>
+        </div>
+      )}
+
+      {adminView && !loadError && !isLoading && payments.length > 0 && (
+        <div className="mt-4">
+          <CompactPagination
+            page={currentPage}
+            size={adminPageSize}
+            total={payments.length}
+            onPageChange={setPage}
+          />
         </div>
       )}
 

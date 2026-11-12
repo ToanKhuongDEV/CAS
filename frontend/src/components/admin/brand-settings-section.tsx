@@ -13,7 +13,7 @@ import {
 } from "../../lib/api/store/store-settings.api";
 import { STORE_LOGO } from "../../lib/store-logo";
 import { CasButton } from "../ui/cas-button";
-import { CasIcon } from "../ui/cas-icon";
+import { MaterialSymbol } from "../ui/material-symbol";
 import { useToast } from "../ui/toast-provider";
 
 export function BrandSettingsSection() {
@@ -120,10 +120,10 @@ export function BrandSettingsSection() {
   if (!isLoaded) return null;
 
   return (
-    <section className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sm:p-8">
+    <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 shadow-xs sm:p-6">
       <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">
-          <CasIcon className="size-5" name="restaurant" />
+          <MaterialSymbol name="corporate_fare" />
         </div>
         <div>
           <h2 className="text-lg font-black text-cas-on-surface">Thương hiệu chung</h2>
@@ -134,33 +134,42 @@ export function BrandSettingsSection() {
       </div>
 
       <form className="mt-6 space-y-5 text-xs" onSubmit={save}>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 rounded-xl bg-cas-surface p-4">
           <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cas-primary/10 text-cas-primary">
             <img alt="Logo thương hiệu" className="size-full object-cover" src={STORE_LOGO} />
           </span>
-          <label className="cursor-not-allowed rounded-xl border border-cas-outline-variant/40 px-3 py-2 font-extrabold text-cas-on-surface-variant opacity-60">
-            Tải logo chung
-            <input
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              className="sr-only"
-              disabled
-              onChange={uploadLogo}
-              type="file"
-            />
-          </label>
-          {logoUrl ? (
-            <button
-              className="cursor-not-allowed font-bold text-cas-on-surface-variant opacity-60"
-              disabled
-              onClick={() => {
-                setLogoUrl(null);
-                setLogoStorageKey(null);
-              }}
-              type="button"
-            >
-              Bỏ logo
-            </button>
-          ) : null}
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-cas-outline-variant/40 px-3 py-2 font-extrabold text-cas-on-surface-variant opacity-60">
+                <MaterialSymbol name="upload_file" className="size-4" />
+                Tải logo chung
+                <input
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="sr-only"
+                  disabled
+                  onChange={uploadLogo}
+                  type="file"
+                />
+              </label>
+              {logoUrl ? (
+                <button
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-cas-error opacity-60"
+                  disabled
+                  onClick={() => {
+                    setLogoUrl(null);
+                    setLogoStorageKey(null);
+                  }}
+                  type="button"
+                >
+                  <MaterialSymbol name="delete" className="size-4" />
+                  Bỏ logo
+                </button>
+              ) : null}
+            </div>
+            <p className="text-xs text-cas-on-surface-variant">
+              Định dạng: PNG, JPEG, WebP, SVG. Tỷ lệ đề xuất 1:1.
+            </p>
+          </div>
         </div>
         <div>
           <label className="mb-1 block font-extrabold text-cas-on-surface" htmlFor="brand-name">
@@ -191,7 +200,7 @@ export function BrandSettingsSection() {
         </div>
         <CasButton
           disabled={!isSuperAdmin || isSaving}
-          icon={isSaving ? undefined : "check"}
+          icon={isSaving ? undefined : <MaterialSymbol name="check_circle" className="size-4" />}
           size="sm"
           type="submit"
           variant="primary"

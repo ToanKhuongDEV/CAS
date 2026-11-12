@@ -10,6 +10,7 @@ import {
 } from "../../lib/api/store/store-welcome-config.api";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
+import { MaterialSymbol } from "../ui/material-symbol";
 import { useToast } from "../ui/toast-provider";
 
 type ImageSlot = {
@@ -140,11 +141,11 @@ export function StoreWelcomeConfigSection() {
   };
 
   return (
-    <section className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sm:p-8">
+    <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 shadow-xs sm:p-6">
       <div className="flex flex-col gap-3 border-b border-cas-outline-variant/15 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">
-            <CasIcon name="sparkle" className="size-5" />
+            <MaterialSymbol name="photo_library" />
           </div>
           <div>
             <h2 className="text-lg font-black text-cas-on-surface">Trang Welcome</h2>
@@ -156,13 +157,13 @@ export function StoreWelcomeConfigSection() {
       </div>
 
       <form className="mt-6 space-y-6" onSubmit={handleSave}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
           {imageSlots.map((slot) => {
             const imageUrl = config[slot.urlKey] as string | null;
             const isUploading = uploadingSlots.has(String(slot.urlKey));
             return (
               <article
-                className={`overflow-hidden rounded-2xl border border-cas-outline-variant/35 bg-cas-surface ${slot.urlKey === "bannerImageUrl" ? "sm:col-span-2" : ""}`}
+                className={`overflow-hidden rounded-2xl border border-cas-outline-variant/35 bg-cas-surface ${slot.urlKey === "bannerImageUrl" ? "sm:col-span-6" : slot.urlKey === "heroPrimaryImageUrl" || slot.urlKey === "heroSecondaryImageUrl" ? "sm:col-span-3" : "sm:col-span-2"}`}
                 key={String(slot.urlKey)}
               >
                 <div

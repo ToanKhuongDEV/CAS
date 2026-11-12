@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { onIdTokenChanged } from "firebase/auth";
 
@@ -12,6 +12,7 @@ import {
 } from "../../lib/auth/operational-auth";
 import { getFirebaseAuth } from "../../lib/auth/firebase";
 import { loadAdminStores, type AdminStore } from "../../lib/api/store/store-settings.api";
+import { CasIcon } from "../ui/cas-icon";
 
 const storeHeader = "X-CAS-Store-Id";
 
@@ -21,6 +22,8 @@ export function AdminStoreSelector() {
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(() => getSelectedAdminStoreId() !== null);
   const [loadError, setLoadError] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const originalFetch = window.fetch;
@@ -108,6 +111,21 @@ export function AdminStoreSelector() {
     return () => window.removeEventListener("cas:stores-updated", refreshStores);
   }, [isSuperAdmin]);
 
+  useEffect(() => {
+    function dismiss(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    document.addEventListener("mousedown", dismiss);
+    return () => document.removeEventListener("mousedown", dismiss);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen)
+      menuRef.current
+        ?.querySelector<HTMLButtonElement>('[role="menuitemradio"][aria-checked="true"]')
+        ?.focus();
+  }, [isOpen]);
+
   if (loadError)
     return (
       <span role="alert" className="text-xs font-bold text-cas-on-primary">
@@ -115,27 +133,74 @@ export function AdminStoreSelector() {
       </span>
     );
   if (stores.length === 0 || selectedStoreId === null) return null;
+  const selectedStore = stores.find((store) => store.id === selectedStoreId);
+  const selectedName = selectedStore?.branchName ?? selectedStore?.name ?? "";
 
   return (
-    <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-cas-on-primary">
-      Cơ sở
-      <select
-        className="max-w-28 rounded-lg border border-cas-outline-variant/60 bg-cas-surface px-2 py-1.5 text-cas-on-surface sm:max-w-none"
-        onChange={(event) => {
-          const storeId = Number(event.target.value);
-          window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(storeId));
-          setSelectedStoreId(storeId);
-          queryClient.clear();
-          window.location.reload();
-        }}
-        value={selectedStoreId}
+    <div
+      className="relative min-w-0"
+      ref={menuRef}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setIsOpen(false);
+          event.currentTarget.querySelector("button")?.focus();
+        }
+      }}
+    >
+      <button
+        type="button"
+        aria-label={`Chọn cơ sở: ${selectedName}`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex h-10 max-w-44 items-center gap-2 rounded-xl border border-cas-on-primary/20 bg-cas-on-primary/10 px-3 text-xs font-bold text-cas-on-primary transition hover:bg-cas-on-primary/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring sm:max-w-60"
       >
-        {stores.map((store) => (
-          <option key={store.id} value={store.id}>
-            {store.branchName ?? store.name}
-          </option>
-        ))}
-      </select>
-    </label>
+        <CasIcon name="location" className="size-4 shrink-0" />
+        <span className="min-w-0 truncate">{selectedName}</span>
+        <CasIcon
+          name="arrow"
+          className={`size-4 shrink-0 rotate-90 transition-transform ${isOpen ? "rotate-270" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div
+          role="menu"
+          aria-label="Danh sách cơ sở"
+          className="absolute right-0 top-full z-50 mt-2 max-h-72 w-64 max-w-[85vw] overflow-y-auto rounded-xl border border-cas-outline-variant/40 bg-cas-surface-container p-1.5 text-cas-on-surface shadow-xl"
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'),
+            );
+            const index = items.indexOf(document.activeElement as HTMLButtonElement);
+            items[
+              (index + (event.key === "ArrowDown" ? 1 : items.length - 1)) % items.length
+            ]?.focus();
+          }}
+        >
+          {stores.map((store) => (
+            <button
+              key={store.id}
+              type="button"
+              role="menuitemradio"
+              aria-checked={store.id === selectedStoreId}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition hover:bg-cas-primary/10 focus-visible:outline-2 focus-visible:outline-cas-focus-ring ${store.id === selectedStoreId ? "bg-cas-primary/10 text-cas-primary" : "text-cas-on-surface"}`}
+              onClick={() => {
+                setIsOpen(false);
+                if (store.id === selectedStoreId) return;
+                window.sessionStorage.setItem(selectedAdminStoreStorageKey, String(store.id));
+                setSelectedStoreId(store.id);
+                queryClient.clear();
+                window.location.reload();
+              }}
+            >
+              <span className="min-w-0 break-words">{store.branchName ?? store.name}</span>
+              {store.id === selectedStoreId && <CasIcon name="check" className="size-4 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

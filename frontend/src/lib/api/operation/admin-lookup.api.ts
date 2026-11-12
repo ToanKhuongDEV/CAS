@@ -8,7 +8,10 @@ export type CustomerSummary = {
   maskedPhone: string | null;
   sessionCount: number;
   lastVisitedAt: string | null;
+  totalPaid: number;
 };
+export type CustomerSort =
+  "RECENT" | "AMOUNT_DESC" | "AMOUNT_ASC" | "SESSIONS_DESC" | "SESSIONS_ASC";
 export type CustomerPage = {
   items: CustomerSummary[];
   total: number;
@@ -48,12 +51,22 @@ export function loadCustomers({
   page = 0,
   query = "",
   size = 10,
+  from,
+  to,
+  sort = "RECENT",
 }: {
   page?: number;
   query?: string;
   size?: number;
+  from?: string;
+  to?: string;
+  sort?: CustomerSort;
 }) {
-  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  const params = new URLSearchParams({ page: String(page), size: String(size), sort });
+  if (from && to) {
+    params.set("from", from);
+    params.set("to", to);
+  }
   if (query.trim()) params.set("query", query.trim());
   return request<CustomerPage>(`/api/v1/admin/customers?${params}`);
 }

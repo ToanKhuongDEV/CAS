@@ -387,28 +387,24 @@ có nhiều order và mỗi order có thể đã hoàn thành một phần hoặ
 
 ## 21.2. Admin xem danh sách report
 
-**Trạng thái:** Cần chốt
+**Trạng thái:** Đã chốt phạm vi ba báo cáo hiện tại
 
 ### Tình huống
 
-`ADMIN` cần xem danh sách `report`, nhưng định nghĩa report và vòng đời dữ liệu
-chưa được xác định.
+`ADMIN` tra cứu doanh thu, lịch sử order và món làm lại theo khoảng ngày và cơ sở đang được phân quyền.
 
 ### Nội dung đã chốt
 
 - Chỉ `ADMIN` được truy cập chức năng.
-- Phạm vi hiện tại chỉ yêu cầu xem danh sách.
+- Hỗ trợ xem phân trang và xuất toàn bộ kết quả phù hợp ra Excel.
 - `OPERATOR` không được truy cập.
 - Chưa bao gồm báo cáo phân tích nâng cao.
 
-### Nội dung cần chốt
+### Cách xử lý
 
-- Report đại diện cho nội dung gì và được tạo từ đâu.
-- Các trạng thái, trường bắt buộc và dữ liệu nhạy cảm cần che giấu.
-- Cách xử lý report trùng lặp, đã mất nguồn tham chiếu hoặc người dùng không còn
-  quyền xem.
-- Hành vi khi danh sách trống, dữ liệu lớn hoặc report không còn tồn tại.
-- Có cần bảng dữ liệu mới hay chỉ là kết quả tổng hợp từ dữ liệu hiện có.
+- Dữ liệu được truy vấn từ bảng nghiệp vụ hiện có, không tạo bảng report riêng.
+- Khoảng ngày rỗng hoặc đảo ngược bị từ chối; không có kết quả thì trả danh sách rỗng và tổng số 0.
+- Excel bao gồm toàn bộ dữ liệu theo bộ lọc, bất kể trang đang xem; file lớn được chia thành nhiều sheet khi vượt giới hạn số dòng của Excel.
 
 ## 21.3. Hai order có cùng thời điểm trong hàng ưu tiên lên món
 

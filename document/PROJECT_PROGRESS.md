@@ -1,5 +1,53 @@
 # CAS — Theo dõi tiến độ dự án
 
+- 2026-11-12: Sửa tìm kiếm khách hàng và audit log để ký tự đặc biệt được tìm chính xác trước phân trang.
+- 2026-11-12: Đồng bộ phân trang khách hàng Admin, mặc định 20 kết quả mỗi trang.
+- 2026-11-12: Đặt lại tên người báo cáo mặc định khi mở lại form sự cố của Operator.
+- 2026-11-12: Cải thiện phân cấp, độ rộng cột và khả năng đọc của bảng sự cố ca trực.
+- 2026-11-12: Trình bày báo cáo sự cố ca trực Admin theo bảng, nhóm từng ngày.
+- 2026-11-12: Thêm phân trang 20 kết quả mỗi trang cho danh sách thanh toán Admin.
+- 2026-11-12: Căn phải số kết quả cùng cụm phân trang báo cáo.
+- 2026-11-12: Tách số kết quả và điều hướng phân trang báo cáo thành hai panel.
+- 2026-11-12: Đổi số trang hiện tại sang màu chữ thông thường trên nền phân trang.
+- 2026-11-12: Đưa số kết quả vào cụm phân trang báo cáo.
+- 2026-11-12: Thêm nền cho cụm phân trang báo cáo.
+- 2026-11-12: Thu gọn phân trang báo cáo và đổi nút điều hướng thành dấu mũi tên đơn.
+- 2026-11-12: Thêm component phân trang gọn có nút trước, sau và chỉ báo trang cho báo cáo Admin.
+- 2026-11-12: Trang báo cáo chỉ chọn một trong ba loại, mặc định doanh thu và giữ phân trang theo loại.
+- 2026-11-12: Tách bộ lọc và bảng nhật ký Audit Logs thành hai panel có nền và khoảng đệm.
+- 2026-11-12: Cập nhật phần xem trước điện thoại trong cấu hình Admin theo thiết kế Stitch.
+- 2026-11-12: Đặt ô sao chép thực đơn cùng hàng với email khi tạo chi nhánh.
+- 2026-11-12: Điều chỉnh độ rộng các ô trong form tạo chi nhánh theo nội dung.
+- 2026-11-12: Đồng bộ icon tải, bỏ và lưu logo thương hiệu theo Stitch; thêm chú thích định dạng ảnh.
+- 2026-11-12: Sắp xếp giao diện cấu hình Admin theo Stitch, dùng các chức năng và token sẵn có.
+- 2026-11-12: Gộp sao chép thực đơn vào tạo chi nhánh trong một giao dịch và bỏ API sao chép độc lập.
+- 2026-11-12: Cải thiện menu chọn cơ sở trên header Super Admin theo giao diện nút tài khoản.
+- 2026-11-12: Dùng biểu tượng vị trí và đồng bộ kiểu chọn cơ sở trên header Admin, Super Admin.
+- 2026-11-12: Lọc khách hàng theo ngày mở phiên, sắp xếp theo tiền đã thanh toán hoặc số phiên và phân trang phía server.
+- 2026-11-12: Tách bộ lọc và bảng khách hàng Admin thành hai panel có nền và khoảng đệm.
+- 2026-11-12: Đặt mặc định một phần cho ô xác nhận hoàn thành món của Operator.
+- 2026-11-12: Căn giữa form chọn voucher trên mobile và đưa modal ra cấp trang.
+- 2026-11-12: Thêm nút làm mới danh sách khuyến mãi trong form chọn voucher Customer và Operator.
+- 2026-11-12: Chặn xác nhận promotion lặp khi yêu cầu đang xử lý và hiển thị trạng thái chờ.
+- 2026-11-12: Đồng bộ múi giờ JVM và phiên kết nối MySQL về giờ Việt Nam để tránh lệch thời điểm order và thời gian chờ.
+- 2026-11-12: Sửa cảnh báo bàn chờ lâu chỉ tính order chưa hoàn thành trong phiên OPEN, tránh lấy thời gian của phiên đã đóng.
+- 2026-11-12: Bổ sung tên khách mở phiên vào nội dung Admin của thông báo hủy món.
+- 2026-11-12: Lưu nội dung riêng cho Admin trong admin_content, chuyển thông báo hủy món sang lưu số bàn và bổ sung dữ liệu lịch sử xác định được.
+- 2026-11-12: Bổ sung bàn hoặc Mang về vào nội dung kết quả hủy món khi Admin xem thông báo; nội dung khách hàng giữ nguyên.
+- 2026-11-12: Đồng bộ bộ lọc ngày thanh toán Admin với bộ lọc dùng chung và định dạng ngày Việt Nam.
+- 2026-11-12: Cộng dịch vụ đặt trước đã thanh toán vào doanh thu dashboard, báo cáo và Excel; tách doanh thu bán hàng và dịch vụ.
+- 2026-11-12: Sắp xếp bộ lọc báo cáo Admin theo thiết kế Stitch, bỏ nhãn và ghi chú không cần thiết.
+- 2026-11-12: Thêm nút bo góc có biểu tượng cho thao tác tìm kiếm và xuất báo cáo.
+- 2026-11-12: Giảm kích thước nút tìm kiếm và xuất Excel trong bộ lọc báo cáo.
+- 2026-11-12: Tách nút bo góc thành component độc lập với CasButton.
+- 2026-11-12: Cập nhật giao diện bộ chọn khoảng ngày dùng chung theo thiết kế Stitch.
+- 2026-11-12: Thu nhỏ bộ chọn khoảng ngày và đồng nhất chiều cao hai ô ngày.
+- 2026-11-12: Hiển thị ngày trong bộ lọc Admin theo định dạng dd/mm/yyyy.
+- 2026-11-12: Hiển thị nhãn loại báo cáo cạnh bộ chọn trên trang báo cáo Admin.
+- 2026-11-12: Thêm panel nền trắng cho bộ lọc ngày trên dashboard Admin.
+- 2026-11-12: Thêm biểu tượng cho các tab báo cáo trên dashboard Admin.
+- 2026-11-12: Dùng SVG Material Symbols theo thiết kế Stitch cho các tab dashboard Admin.
+- 2026-11-12: Bọc nội dung báo cáo dưới bộ lọc dashboard Admin trong panel có nền và khoảng đệm.
 
 - 2026-11-11: Đồng bộ kiểm thử giỏ hàng với khoảng an toàn cho thanh điều hướng Android.
 - 2026-11-11: Đổi các tiêu đề và nội dung hiển thị CAS sang Bambu Garden, giữ nguyên tên kỹ thuật.
@@ -109,10 +157,17 @@ Ngày cập nhật gần nhất: 2026-11-10
 
 ### Các api đã làm
 
+- [x] `GET /api/v1/admin/customers` và `GET /api/v1/admin/audit-logs`: tìm chính xác ký tự `%`, `_`, `!` trong từ khóa và phân trang kết quả phù hợp.
+- [x] `GET /api/v1/admin/customers?from&to&sort&page&size`: lọc phiên theo ngày mở, sắp xếp tổng payment PAID hoặc số phiên và trả `totalPaid` cùng phân trang.
+- [x] `GET /api/v1/operator/preparation/long-wait-tables`: chỉ tính thời gian chờ từ order chưa hoàn thành trong phiên OPEN của cơ sở.
+- [x] `GET /api/v1/admin/notifications`: trả `adminContent` riêng khi có, bao gồm bàn hoặc Mang về cho kết quả hủy món; `content` giữ nguyên cho khách.
+- [x] `GET /api/v1/admin/dashboard`, `GET /api/v1/admin/reports` và `GET /api/v1/admin/reports/export`: doanh thu gồm bán hàng và dịch vụ đặt trước PAID theo ngày xác nhận; trả hoặc xuất riêng từng nguồn.
+- [x] `GET /api/v1/admin/reports?type&from&to&page&size`: tra cứu phân trang doanh thu theo ngày, lịch sử order hoặc món làm lại theo cơ sở và khoảng ngày.
+- [x] `GET /api/v1/admin/reports/export?type&from&to`: xuất Excel toàn bộ dữ liệu phù hợp; `ALL` xuất ba loại vào các sheet riêng.
+
 - [x] Các GET `/api/v1/customer/catalog` nhận `storeId` tùy chọn để xem menu công khai theo cơ sở; phiên khách hợp lệ luôn được ưu tiên.
 
-- [x] `POST /api/v1/admin/stores`: Super Admin tạo chi nhánh trống với thông tin liên hệ và giờ hoạt động.
-- [x] `POST /api/v1/admin/stores/{targetStoreId}/menu-copy`: Super Admin sao chép danh mục, món, nhãn và tùy chọn vào chi nhánh chưa có thực đơn, dùng chung ảnh.
+- [x] `POST /api/v1/admin/stores`: Super Admin tạo chi nhánh, có thể truyền `sourceStoreId` để sao chép thực đơn trong cùng giao dịch; ảnh được dùng chung.
 - [x] `POST /api/v1/admin/catalog/option-groups/{id}/values` và `PUT /api/v1/admin/catalog/option-values/{id}`: trả 409 kèm tên option khi trùng trong cùng nhóm.
 - [x] `GET /api/v1/customer/orders/bill`: mỗi món trả thêm `latestCancellationIsRemade` của yêu cầu hủy gần nhất.
 - [x] `POST /api/v1/operator/cancellation-requests/incidents`: hỗ trợ món đã chế biến trong phiên OPEN và kiểm tra số lượng đã hủy hoặc đang chờ hủy.
@@ -178,6 +233,12 @@ Ngày cập nhật gần nhất: 2026-11-10
 - [ ] Bổ sung/hoàn thiện unit test và integration test theo các luồng nghiệp vụ còn lại.
 
 ## 6. Frontend
+
+- [x] Dùng chung bộ lọc khoảng ngày giữa Báo cáo và Dashboard Admin; giữ lựa chọn khi chuyển trang và lưu khoảng ngày, loại báo cáo trên URL.
+
+- [x] Trang Báo cáo Admin lọc ba loại theo khoảng ngày, hiển thị tổng và phân trang từng loại, xuất Excel toàn bộ kết quả theo bộ lọc.
+
+- [x] Đổi nút khóa tài khoản Admin/Operator sang nền sáng, chữ và viền màu lỗi.
 
 - [x] Màn hình kiểm soát thanh toán tự làm mới danh sách phiên và hóa đơn đang chọn mỗi 10 giây, giữ dữ liệu gần nhất khi tải lỗi.
 

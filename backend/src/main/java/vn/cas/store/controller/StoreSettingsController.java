@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.UUID;
@@ -72,15 +73,15 @@ public class StoreSettingsController {
         var settings = new StoreSettings(0, b.branchName(), b.address(), b.phone(), b.email(), null,
                 null, b.googleMapsLocation(), null, null, b.openTime(), b.closeTime(), null,
                 "ACTIVE", null);
-        return ApiResponses.success(HttpStatus.CREATED, "Đã tạo cơ sở.",
-                service.create(p, settings, (UUID) r.getAttribute(RequestId.ATTRIBUTE_NAME)), r);
+        return ApiResponses.success(HttpStatus.CREATED, "Đã tạo cơ sở.", service.create(p, settings,
+                b.sourceStoreId(), (UUID) r.getAttribute(RequestId.ATTRIBUTE_NAME)), r);
     }
 
     public record CreateStoreRequest(@NotBlank @Size(max = 150) String branchName,
             @NotBlank @Size(max = 500) String address, @NotBlank @Size(max = 20) String phone,
             @NotBlank @Email @Size(max = 254) String email,
             @Size(max = 2048) String googleMapsLocation, @NotNull LocalTime openTime,
-            @NotNull LocalTime closeTime) {
+            @NotNull LocalTime closeTime, @Positive Long sourceStoreId) {
     }
 
     public record UpdateStoreSettingsRequest(@NotBlank @Size(max = 150) String branchName,

@@ -9,7 +9,8 @@ public record AdminDashboard(DateRange range, Revenue revenue, Customers custome
     public record DateRange(LocalDate from, LocalDate to) {
     }
 
-    public record Revenue(BigDecimal total, long paidSessionCount, List<RevenuePoint> series) {
+    public record Revenue(BigDecimal total, BigDecimal salesRevenue, BigDecimal serviceRevenue,
+            long paidSessionCount, List<RevenuePoint> series) {
     }
 
     public record RevenuePoint(LocalDate date, BigDecimal revenue, long paidSessionCount) {
@@ -30,7 +31,8 @@ public record AdminDashboard(DateRange range, Revenue revenue, Customers custome
             long remadeQuantity) {
     }
 
-    public record RevenueSummary(BigDecimal total, long paidSessionCount) {
+    public record RevenueSummary(BigDecimal total, BigDecimal salesRevenue,
+            BigDecimal serviceRevenue, long paidSessionCount) {
     }
 
     public record CustomerSummary(long sessionCount, BigDecimal averageWaitMinutes) {

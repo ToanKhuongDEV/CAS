@@ -77,6 +77,9 @@ describe("Admin settings sections", () => {
     );
     expect(screen.getByLabelText("Tải logo chung")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Bỏ logo" })).toBeDisabled();
+    expect(
+      screen.getByText("Định dạng: PNG, JPEG, WebP, SVG. Tỷ lệ đề xuất 1:1."),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Lưu thương hiệu chung" }));
     await vi.waitFor(() =>
       expect(updateBrandSettings).toHaveBeenCalledWith({

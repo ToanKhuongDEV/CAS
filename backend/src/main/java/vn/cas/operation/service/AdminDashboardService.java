@@ -34,7 +34,8 @@ public class AdminDashboardService {
             customerSummary = new AdminDashboard.CustomerSummary(0, null);
         var promotionSummary = dashboard.findPromotionSummary(storeId, start, end);
         return new AdminDashboard(new AdminDashboard.DateRange(from, to),
-                new AdminDashboard.Revenue(revenue.total(), revenue.paidSessionCount(),
+                new AdminDashboard.Revenue(revenue.total(), revenue.salesRevenue(),
+                        revenue.serviceRevenue(), revenue.paidSessionCount(),
                         dashboard.findRevenueSeries(storeId, start, end)),
                 new AdminDashboard.Customers(revenue.paidSessionCount(),
                         customerSummary.sessionCount(), customerSummary.averageWaitMinutes(),

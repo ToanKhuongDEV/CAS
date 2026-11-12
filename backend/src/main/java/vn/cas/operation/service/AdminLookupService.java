@@ -1,5 +1,6 @@
 package vn.cas.operation.service;
 
+import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +10,7 @@ import vn.cas.operation.mapper.AdminLookupMapper;
 import vn.cas.operation.model.AdminCustomerDetail;
 import vn.cas.operation.model.AdminCustomerPage;
 import vn.cas.operation.model.AuditLogPage;
+import vn.cas.operation.model.CustomerSort;
 
 @Service
 public class AdminLookupService {
@@ -19,12 +21,19 @@ public class AdminLookupService {
     }
 
     @Transactional(readOnly = true)
-    public AdminCustomerPage customers(OperationalPrincipal principal, String query, int page,
-            int size) {
+    public AdminCustomerPage customers(OperationalPrincipal principal, String query, LocalDate from,
+            LocalDate to, CustomerSort sort, int page, int size) {
+        if ((from == null) != (to == null)
+                || (from != null && (from.isAfter(to) || to.equals(LocalDate.MAX))))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Khoảng ngày không hợp lệ.");
         String normalizedQuery = normalize(query);
+        var start = from == null ? null : from.atStartOfDay();
+        var end = to == null ? null : to.plusDays(1).atStartOfDay();
         return new AdminCustomerPage(
-                mapper.findCustomers(principal.storeId(), normalizedQuery, size, page * size),
-                mapper.countCustomers(principal.storeId(), normalizedQuery), page, size);
+                mapper.findCustomers(principal.storeId(), normalizedQuery, start, end, sort.name(),
+                        size, (long) page * size),
+                mapper.countCustomers(principal.storeId(), normalizedQuery, start, end), page,
+                size);
     }
 
     @Transactional(readOnly = true)

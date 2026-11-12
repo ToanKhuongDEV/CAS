@@ -26,7 +26,13 @@ describe("AdminDashboardPage", () => {
   it("loads dashboard data from the API", async () => {
     vi.mocked(loadAdminDashboard).mockResolvedValue({
       range: { from: "2026-10-01", to: "2026-10-10" },
-      revenue: { total: 120000, paidSessionCount: 2, series: [] },
+      revenue: {
+        total: 150000,
+        salesRevenue: 120000,
+        serviceRevenue: 30000,
+        paidSessionCount: 2,
+        series: [],
+      },
       customers: { paidSessionCount: 2, sessionCount: 5, averageWaitMinutes: 12, series: [] },
       menu: { soldQuantity: 4, remadeQuantity: 1, topItems: [] },
       promotions: {
@@ -43,7 +49,9 @@ describe("AdminDashboardPage", () => {
       </QueryProvider>,
     );
 
-    expect(await screen.findByText("120.000 ₫")).toBeInTheDocument();
+    expect(await screen.findByText("150.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText("60.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText(/Dịch vụ: 30.000/)).toBeInTheDocument();
     expect(loadAdminDashboard).toHaveBeenCalled();
   });
 
@@ -52,7 +60,7 @@ describe("AdminDashboardPage", () => {
     try {
       vi.mocked(loadAdminDashboard).mockResolvedValue({
         range: { from: "2026-10-01", to: "2026-10-10" },
-        revenue: { total: 0, paidSessionCount: 0, series: [] },
+        revenue: { total: 0, salesRevenue: 0, serviceRevenue: 0, paidSessionCount: 0, series: [] },
         customers: { paidSessionCount: 0, sessionCount: 0, averageWaitMinutes: null, series: [] },
         menu: { soldQuantity: 0, remadeQuantity: 0, topItems: [] },
         promotions: {
@@ -107,7 +115,7 @@ describe("AdminDashboardPage", () => {
   it("restores the previous date and keeps the customer report when a date is invalid", async () => {
     vi.mocked(loadAdminDashboard).mockResolvedValue({
       range: { from: "2026-10-01", to: "2026-10-10" },
-      revenue: { total: 0, paidSessionCount: 2, series: [] },
+      revenue: { total: 0, salesRevenue: 0, serviceRevenue: 0, paidSessionCount: 2, series: [] },
       customers: { paidSessionCount: 2, sessionCount: 5, averageWaitMinutes: 12, series: [] },
       menu: { soldQuantity: 0, remadeQuantity: 0, topItems: [] },
       promotions: {
@@ -145,7 +153,7 @@ describe("AdminDashboardPage", () => {
     searchParams.set("to", "2026-09-30");
     vi.mocked(loadAdminDashboard).mockResolvedValue({
       range: { from: "2026-09-01", to: "2026-09-30" },
-      revenue: { total: 0, paidSessionCount: 0, series: [] },
+      revenue: { total: 0, salesRevenue: 0, serviceRevenue: 0, paidSessionCount: 0, series: [] },
       customers: { paidSessionCount: 0, sessionCount: 0, averageWaitMinutes: null, series: [] },
       menu: { soldQuantity: 0, remadeQuantity: 0, topItems: [] },
       promotions: {
