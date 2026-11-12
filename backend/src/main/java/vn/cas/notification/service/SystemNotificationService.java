@@ -40,7 +40,7 @@ public class SystemNotificationService {
             String type, String targetRole, UUID requestId) {
         requireSupported(type, targetRole);
         var command = new CreateSystemNotificationCommand(principal.storeId(), title.trim(),
-                content.trim(), type, targetRole, principal.accountId());
+                content.trim(), type, targetRole, principal.accountId(), null);
         mapper.insert(command);
         if ("OPERATOR".equals(targetRole) || "BOTH".equals(targetRole))
             mapper.insertRecipientsForActiveOperators(command.getId(), principal.storeId());
@@ -51,14 +51,14 @@ public class SystemNotificationService {
                 "{\"type\":\"" + type + "\",\"targetRole\":\"" + targetRole + "\"}",
                 principal.accountId(), principal.displayName(), "Created system notification"));
         return new SystemNotification(command.getId(), command.getTitle(), command.getContent(),
-                type, targetRole, LocalDateTime.now(), LocalDateTime.now());
+                null, type, targetRole, LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Transactional
     public void createForCustomerSession(OperationalPrincipal principal, long salesSessionId,
-            String title, String content) {
+            String title, String content, String adminContent) {
         var command = new CreateSystemNotificationCommand(principal.storeId(), title, content,
-                "INFO", "CUSTOMER", principal.accountId());
+                "INFO", "CUSTOMER", principal.accountId(), adminContent);
         mapper.insert(command);
         mapper.insertRecipientForCustomerSession(command.getId(), salesSessionId);
     }

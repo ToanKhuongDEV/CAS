@@ -54,6 +54,14 @@ class TakeawayCancellationIntegrationTest {
     AdminDashboardMapper adminDashboard;
 
     @Test
+    void initializesMysqlConnectionsInVietnamTime() {
+        assertThat(jdbc.queryForObject("SELECT @@session.time_zone", String.class))
+                .isEqualTo("+07:00");
+        assertThat(jdbc.queryForObject("SELECT TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(), NOW())",
+                Integer.class)).isEqualTo(7);
+    }
+
+    @Test
     @Transactional
     void reportsWaitByOrderDateWithoutPayment() {
         insertStore(1);

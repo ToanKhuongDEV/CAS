@@ -34,7 +34,12 @@ class SystemNotificationServiceTest {
             invocation.getArgument(0, CreateSystemNotificationCommand.class).setId(12L);
             return 1;
         }).when(mapper).insert(any());
-        service.createForCustomerSession(principal, 45L, "Kết quả hủy món", "Đã đồng ý");
+        service.createForCustomerSession(principal, 45L, "Kết quả hủy món", "Đã đồng ý",
+                "Đã đồng ý (Bàn 5)");
+        var command = org.mockito.ArgumentCaptor.forClass(CreateSystemNotificationCommand.class);
+        verify(mapper).insert(command.capture());
+        assertThat(command.getValue().getContent()).isEqualTo("Đã đồng ý");
+        assertThat(command.getValue().getAdminContent()).isEqualTo("Đã đồng ý (Bàn 5)");
         verify(mapper).insertRecipientForCustomerSession(12L, 45L);
         verify(mapper, org.mockito.Mockito.never()).insertRecipientsForActiveCustomerSessions(
                 org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong());

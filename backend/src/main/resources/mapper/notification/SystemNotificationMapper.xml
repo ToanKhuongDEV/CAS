@@ -9,6 +9,7 @@
             store_id,
             title,
             content,
+            admin_content,
             type,
             target_role,
             created_by
@@ -16,6 +17,7 @@
             #{storeId},
             #{title},
             #{content},
+            #{adminContent},
             #{type},
             #{targetRole},
             #{createdBy}
@@ -71,6 +73,7 @@
             system_notifications.id AS id,
             system_notifications.title AS title,
             system_notifications.content AS content,
+            system_notifications.admin_content AS adminContent,
             system_notifications.type AS type,
             system_notifications.target_role AS targetRole,
             system_notifications.created_at AS createdAt,

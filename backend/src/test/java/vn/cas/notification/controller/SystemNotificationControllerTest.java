@@ -26,8 +26,8 @@ class SystemNotificationControllerTest {
 
     @Test
     void shouldCreateNotification() {
-        var notification = new SystemNotification(12L, "Bảo trì", "Tạm dừng phục vụ", "WARNING",
-                "BOTH", LocalDateTime.now(), LocalDateTime.now());
+        var notification = new SystemNotification(12L, "Bảo trì", "Tạm dừng phục vụ", null,
+                "WARNING", "BOTH", LocalDateTime.now(), LocalDateTime.now());
         when(service.create(any(), any(), any(), any(), any(), any())).thenReturn(notification);
 
         var response = controller.create(principal,
