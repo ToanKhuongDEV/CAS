@@ -21,6 +21,7 @@ import vn.cas.ordering.model.StoredPreparationTableCompletion;
 import vn.cas.store.service.LongWaitWarningSettingService;
 import vn.cas.store.service.SalesSessionService;
 import vn.cas.store.model.SalesSessionLookup;
+import vn.cas.store.model.LongWaitWarningSetting;
 
 class PreparationServiceTest {
 
@@ -28,12 +29,33 @@ class PreparationServiceTest {
             + "27ae41e4649b934ca495991b7852b855";
 
     private final OrderingMapper mapper = mock(OrderingMapper.class);
+    private final LongWaitWarningSettingService settings = mock(
+            LongWaitWarningSettingService.class);
     private final SalesSessionService sessions = mock(SalesSessionService.class);
-    private final PreparationService service = new PreparationService(mapper,
-            mock(LongWaitWarningSettingService.class), mock(AuditLogService.class),
-            new ObjectMapper(), sessions);
+    private final PreparationService service = new PreparationService(mapper, settings,
+            mock(AuditLogService.class), new ObjectMapper(), sessions);
     private final OperationalPrincipal operator = new OperationalPrincipal(3L, 2L, "firebase",
             "Operator One", "OPERATOR");
+
+    @Test
+    void longWaitOnlyUsesOpenSessionsAndOldestUnfinishedOrder() {
+        when(settings.get(2L)).thenReturn(new LongWaitWarningSetting(25));
+        var closedOrder = item(1L, "old", "closed-order", 5, 1, LocalDateTime.now().minusHours(7));
+        var recentOrder = item(2L, "new", "open-order", 5, 1, LocalDateTime.now().minusMinutes(1));
+        when(mapper.findPendingPreparationItems(2L)).thenReturn(List.of(closedOrder, recentOrder));
+        when(mapper.findPreparationItems(2L)).thenReturn(List.of(recentOrder));
+
+        assertThat(service.longWaitTables(operator)).isEmpty();
+        verify(mapper).findPreparationItems(2L);
+
+        var waitingOrder = item(3L, "waiting", "waiting-order", 5, 1,
+                LocalDateTime.now().minusMinutes(30));
+        when(mapper.findPreparationItems(2L)).thenReturn(List.of(waitingOrder, recentOrder));
+        assertThat(service.longWaitTables(operator)).singleElement().satisfies(table -> {
+            assertThat(table.orderId()).isEqualTo("waiting-order");
+            assertThat(table.waitingMinutes()).isBetween(30L, 31L);
+        });
+    }
 
     @Test
     void shouldAllocateBatchCompletionInFifoOrder() {
