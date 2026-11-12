@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -33,7 +33,7 @@ describe("AdminStoreSelector", () => {
     vi.clearAllMocks();
   });
 
-  it("shows the store selector after a super admin signs in, including for one store", async () => {
+  it("shows the store selector and supports keyboard navigation", async () => {
     vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
       accountId: 1,
       displayName: "Super Admin",
@@ -42,6 +42,7 @@ describe("AdminStoreSelector", () => {
     });
     vi.mocked(loadAdminStores).mockResolvedValue([
       { id: 2, branchName: "Cơ sở 2", status: "ACTIVE" },
+      { id: 3, branchName: "Cơ sở 3", status: "ACTIVE" },
     ]);
     render(
       <QueryClientProvider client={new QueryClient()}>
@@ -53,8 +54,18 @@ describe("AdminStoreSelector", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     act(() => auth.listener?.({}));
 
-    expect(await screen.findByRole("combobox", { name: "Cơ sở" })).toHaveValue("2");
-    expect(screen.getByRole("option", { name: "Cơ sở 2" })).toBeInTheDocument();
+    const selector = await screen.findByRole("button", { name: "Chọn cơ sở: Cơ sở 2" });
+    expect(selector).toHaveTextContent("Cơ sở 2");
+    fireEvent.click(selector);
+    expect(screen.getByRole("menuitemradio", { name: "Cơ sở 2" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    fireEvent.keyDown(screen.getByRole("menuitemradio", { name: "Cơ sở 2" }), { key: "ArrowDown" });
+    expect(screen.getByRole("menuitemradio", { name: "Cơ sở 3" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("menuitemradio", { name: "Cơ sở 3" }), { key: "Escape" });
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(selector).toHaveFocus();
   });
 
   it("reports a store list loading error", async () => {

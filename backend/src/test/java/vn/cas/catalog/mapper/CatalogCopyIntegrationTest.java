@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.UUID;
+import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +18,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import vn.cas.catalog.service.CatalogCopyService;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.store.service.StoreSettingsService;
+import vn.cas.store.model.StoreSettings;
 
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
@@ -37,6 +40,29 @@ class CatalogCopyIntegrationTest {
     CatalogCopyService service;
     @Autowired
     CatalogMapper mapper;
+    @Autowired
+    StoreSettingsService stores;
+
+    @Test
+    void createsStoreAndCopiesAtomically() {
+        jdbc.update(
+                "INSERT INTO stores (id, branch_name, address, phone, email, open_time, close_time) VALUES (10, 'Source', 'Address', '01', 's10@example.com', '08:00', '22:00')");
+        jdbc.update(
+                "INSERT INTO accounts (id, store_id, firebase_uid, email, phone, display_name, role) VALUES (10, 10, 'uid-10', 'a10@example.com', '0310', 'Admin', 'SUPER_ADMIN')");
+        jdbc.update(
+                "INSERT INTO categories (store_id, name, category_type) VALUES (10, 'Food', 'REGULAR')");
+        var principal = new OperationalPrincipal(10, 10, "uid-10", "Admin", "SUPER_ADMIN");
+        var settings = new StoreSettings(0, "New", "Address", "0900", "new@example.com", null, null,
+                null, null, null, LocalTime.of(8, 0), LocalTime.of(22, 0), null, "ACTIVE", null);
+        var created = stores.create(principal, settings, 10L, UUID.randomUUID());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM categories WHERE store_id = ?",
+                Integer.class, created.id())).isEqualTo(1);
+        int before = jdbc.queryForObject("SELECT COUNT(*) FROM stores", Integer.class);
+        assertThatThrownBy(() -> stores.create(principal, settings, 99999L, UUID.randomUUID()))
+                .isInstanceOf(ApiException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM stores", Integer.class))
+                .isEqualTo(before);
+    }
 
     @Test
     @Transactional

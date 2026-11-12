@@ -110,7 +110,7 @@ Operator và lưu tài khoản `ADMIN` cho cơ sở đang chọn.
 
 ## 4.1. Luồng Admin xem danh sách report
 
-**Trạng thái:** Cần chốt chi tiết
+**Trạng thái:** Đã chốt các báo cáo và bộ lọc bên dưới
 
 ### Mục tiêu
 
@@ -130,23 +130,26 @@ của hệ thống.
 
 - Chức năng này chỉ dành cho `ADMIN`; `OPERATOR` không được truy cập.
 - Backend là nơi bắt buộc kiểm tra quyền, frontend chỉ hỗ trợ trải nghiệm.
-- Đây là chức năng xem danh sách, chưa bao gồm tạo, sửa, xóa, duyệt hoặc thay
-  đổi trạng thái report.
+- Admin có thể tra cứu theo loại và khoảng ngày, xem phân trang kèm tổng số kết quả và xuất toàn bộ kết quả phù hợp ra Excel; không tạo, sửa, xóa hoặc duyệt report.
 - Không coi đây là chức năng báo cáo và phân tích nâng cao.
+
+### Loại báo cáo và dữ liệu
+
+- Doanh thu: một dòng cho mỗi ngày có thanh toán phiên hoặc dịch vụ đặt trước `PAID`, theo thời điểm xác nhận; gồm ngày, số phiên đã thanh toán, doanh thu bán hàng, doanh thu dịch vụ và tổng hai khoản. Dịch vụ không tạo phiên; doanh thu trung bình mỗi phiên chỉ dùng doanh thu bán hàng.
+- Lịch sử order: một dòng cho mỗi order theo thời điểm tạo; gồm thời điểm, mã order, bàn hoặc mang về, khách mở phiên, tiền gốc và số tiền order sau hủy. Đây không phải tổng hóa đơn cuối sau khuyến mãi hoặc điều chỉnh.
+- Món làm lại: một dòng cho mỗi yêu cầu hủy `APPROVED` có `is_remade = TRUE`, theo thời điểm xử lý; gồm thời điểm, mã order, bàn hoặc mang về, tên món, số lượng, lý do và người xử lý.
+- Danh sách khách hàng Admin có thể lọc theo ngày mở phiên, tìm tên hoặc số điện thoại, sắp xếp theo tổng payment `PAID` của các phiên trong khoảng ngày hoặc số phiên, sau đó phân trang. Khách không có phiên trong khoảng ngày được loại khỏi kết quả.
+- Khoảng ngày bao gồm cả ngày bắt đầu lẫn ngày kết thúc. Lọc theo cơ sở của tài khoản hoặc cơ sở Super Admin đang chọn; khi chọn tất cả, mỗi loại có bảng và phân trang riêng, Excel có sheet riêng cho từng loại.
+- Xuất Excel bao gồm mọi dòng thỏa bộ lọc, không giới hạn ở trang đang xem. Tiền trong file được giữ nguyên chính xác dưới dạng văn bản thập phân.
 
 - Promotion quota is reserved at payment-request creation. `RESERVED`, `COMPLETED`, and
   `FORFEITED` redemptions consume quota; only `REVERSED` does not. A recorded unpaid session
   loses its discount and forfeits the reservation, while payment confirmation changes the same
   reservation to `COMPLETED` without checking quota or the promotion period again.
 
-### Nội dung cần chốt
+### Nội dung còn lại
 
-- Khái niệm và các loại `report` trong phạm vi CAS.
-- Tác nhân hoặc quy trình tạo report.
-- Trường dữ liệu và trạng thái của report.
-- Bộ lọc, tìm kiếm, sắp xếp và phân trang.
-- Quyền xem chi tiết và các thao tác xử lý sau khi mở report.
-- API contract và nhu cầu bổ sung mô hình dữ liệu.
+- Các báo cáo và thao tác khác ngoài ba loại trên chưa được chốt.
 
 ## 4.2. Luồng Admin tra cứu khách hàng
 

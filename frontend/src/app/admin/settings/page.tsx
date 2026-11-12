@@ -6,6 +6,8 @@ import { BrandSettingsSection } from "../../../components/admin/brand-settings-s
 import { CreateStoreSection } from "../../../components/admin/create-store-section";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
+import { MaterialSymbol } from "../../../components/ui/material-symbol";
+import { STORE_LOGO } from "../../../lib/store-logo";
 import { useToast } from "../../../components/ui/toast-provider";
 import {
   loadLongWaitWarningMinutes,
@@ -96,7 +98,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
                       key={n}
                       type="button"
                       onClick={() => setHour(n)}
-                      className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
+                      className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-primary/10 text-cas-on-surface"}`}
                     >
                       {n < 10 ? `0${n}` : n}
                     </button>
@@ -119,7 +121,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
                         key={min}
                         type="button"
                         onClick={() => setMinute(min)}
-                        className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-surface-variant/60 text-cas-on-surface"}`}
+                        className={`w-full text-center py-1 rounded-lg font-extrabold transition text-xs cursor-pointer ${isSelected ? "bg-cas-primary text-cas-on-primary shadow-xs" : "hover:bg-cas-primary/10 text-cas-on-surface"}`}
                       >
                         {min}
                       </button>
@@ -274,7 +276,7 @@ export default function AdminSettingsPage() {
   }, []);
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Page Header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -294,15 +296,15 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         {/* Column 1 & 2: Form Cấu hình Thông tin Cửa hàng */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <BrandSettingsSection />
           <CreateStoreSection />
-          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
+          <div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 shadow-xs sm:p-6">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-primary/10 text-cas-primary">
-                <CasIcon name="restaurant" className="h-5 w-5" />
+                <MaterialSymbol name="storefront" />
               </div>
               <div>
                 <h2 className="text-lg font-black text-cas-on-surface">Thông tin Cửa hàng</h2>
@@ -423,7 +425,7 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                   <input
                     type="text"
                     value={googleMapUrl}
@@ -441,7 +443,7 @@ export default function AdminSettingsPage() {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-cas-outline-variant/40 bg-cas-surface-variant/30 px-3.5 py-2.5 font-bold text-cas-primary hover:bg-cas-primary/10 transition"
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3.5 py-2.5 font-bold text-cas-primary hover:bg-cas-primary/10 transition"
                   >
                     <CasIcon name="sparkle" className="h-4 w-4" />
                     <span>{googleMapUrl ? "Xem vị trí" : "Mở Google Maps"}</span>
@@ -519,10 +521,10 @@ export default function AdminSettingsPage() {
           <StoreWelcomeConfigSection />
 
           {/* Form Cấu hình Ngưỡng cảnh báo Vận hành */}
-          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 sm:p-8 shadow-xs">
+          <div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 shadow-xs sm:p-6">
             <div className="flex items-center gap-3 border-b border-cas-outline-variant/15 pb-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cas-tertiary/10 text-cas-tertiary">
-                <CasIcon name="clock" className="h-5 w-5" />
+                <MaterialSymbol name="timer" />
               </div>
               <div>
                 <h2 className="text-lg font-black text-cas-on-surface">
@@ -535,7 +537,7 @@ export default function AdminSettingsPage() {
             </div>
 
             <form onSubmit={handleSaveOpsSettings} className="mt-6 space-y-5 text-xs">
-              <div>
+              <div className="rounded-xl bg-cas-surface p-4">
                 <label className="block font-extrabold text-cas-on-surface">
                   Ngưỡng thời gian Cảnh báo bàn chờ lâu (Phút):
                 </label>
@@ -543,7 +545,7 @@ export default function AdminSettingsPage() {
                   Nếu một bàn có order còn món chưa làm xong quá thời gian này, hệ thống sẽ bật cảnh
                   báo màu đỏ trên Dashboard Operator.
                 </p>
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <input
                     type="number"
                     min={0}
@@ -581,75 +583,113 @@ export default function AdminSettingsPage() {
 
         {/* Column 3: Live Preview & Summary Widget */}
         <div className="space-y-6">
-          <div className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-6 shadow-xs sticky top-6">
+          <div className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5 shadow-xs lg:sticky lg:top-28">
             <h3 className="text-sm font-black text-cas-on-surface border-b border-cas-outline-variant/15 pb-3 flex items-center gap-2">
-              <CasIcon name="info" className="h-4 w-4 text-cas-primary" />
+              <MaterialSymbol name="preview" className="size-4 text-cas-primary" />
               <span>Xem trước Thông tin Cửa hàng</span>
             </h3>
 
             {/* Mock Preview Card */}
-            <div className="mt-4 rounded-2xl border border-cas-outline-variant/20 bg-cas-surface p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="rounded-md bg-cas-primary/10 px-2 py-0.5 text-[0.65rem] font-black text-cas-primary">
-                  Bambu Garden Store
-                </span>
-              </div>
-
-              <div>
-                <h4 className="text-base font-black text-cas-on-surface">
-                  {storeName || "Tên cơ sở"}
-                </h4>
-              </div>
-
-              <div className="space-y-1.5 pt-2 border-t border-cas-outline-variant/15 text-[0.75rem]">
-                <div className="flex items-start gap-2 text-cas-on-surface">
-                  <CasIcon name="phone" className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5" />
-                  <span className="font-extrabold">{phone || "Chưa nhập SĐT"}</span>
+            <div className="mx-auto mt-4 max-w-xs rounded-[2.5rem] bg-cas-on-surface p-3 shadow-xl">
+              <div
+                className="mx-auto mb-2 h-3 w-20 rounded-full bg-cas-on-surface-variant/50"
+                aria-hidden="true"
+              />
+              <div className="overflow-hidden rounded-[1.75rem] bg-cas-surface">
+                <div className="relative h-28 overflow-hidden bg-cas-primary">
+                  <img
+                    src="/images/settings/store-preview.jpg"
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-cas-primary/90 via-cas-primary/30 to-transparent" />
+                  <div className="absolute inset-x-3 bottom-3 flex items-center gap-2 text-cas-on-primary">
+                    <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-cas-surface-container shadow-md">
+                      <img src={STORE_LOGO} alt="" className="size-full object-cover" />
+                    </span>
+                    <span className="text-xs font-extrabold">Bambu Garden Store</span>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2 text-cas-on-surface">
-                  <CasIcon name="user" className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5" />
-                  <span className="font-extrabold">{email || "Chưa nhập Email"}</span>
-                </div>
-                <div className="flex items-start gap-2 text-cas-on-surface">
-                  <CasIcon name="table" className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5" />
-                  <span className="text-cas-on-surface-variant">
-                    {address || "Chưa nhập địa chỉ"}
-                  </span>
-                </div>
-                {googleMapUrl && (
-                  <div className="flex items-start gap-2 text-cas-on-surface">
-                    <CasIcon
-                      name="sparkle"
-                      className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5"
-                    />
-                    <a
-                      href={
-                        googleMapUrl.startsWith("http")
-                          ? googleMapUrl
-                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapUrl)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cas-primary underline font-bold hover:opacity-80"
+                <div className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-base font-black text-cas-on-surface">
+                      {storeName || "Tên cơ sở"}
+                    </h4>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-1 text-[0.65rem] font-bold ${storeStatus === "ACTIVE" ? "bg-cas-primary/10 text-cas-primary" : "bg-cas-error-container text-cas-error"}`}
                     >
-                      Xem vị trí trên Google Maps
-                    </a>
+                      {storeStatus === "ACTIVE" ? "Đang mở" : "Tạm ngưng"}
+                    </span>
                   </div>
-                )}
-                <div className="flex items-center gap-2 text-cas-on-surface">
-                  <CasIcon name="clock" className="h-3.5 w-3.5 shrink-0 text-cas-primary" />
-                  <span className="font-extrabold">
-                    {openTime} - {closeTime}
-                  </span>
-                </div>
-              </div>
 
-              <div className="pt-2">
-                <div className="rounded-xl bg-cas-surface-variant/40 p-2.5 text-[0.7rem] text-cas-on-surface-variant space-y-1">
-                  <div className="flex justify-between font-bold">
-                    <span>Ngưỡng chờ lâu:</span>
-                    <span className="text-cas-tertiary font-extrabold">{warningMins} Phút</span>
+                  <div className="space-y-1.5 pt-2 border-t border-cas-outline-variant/15 text-[0.75rem]">
+                    <div className="flex items-start gap-2 text-cas-on-surface">
+                      <CasIcon
+                        name="phone"
+                        className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5"
+                      />
+                      <span className="font-extrabold">{phone || "Chưa nhập SĐT"}</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-cas-on-surface">
+                      <CasIcon
+                        name="mail"
+                        className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5"
+                      />
+                      <span className="min-w-0 break-all font-extrabold">
+                        {email || "Chưa nhập Email"}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2 text-cas-on-surface">
+                      <CasIcon
+                        name="location"
+                        className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5"
+                      />
+                      <span className="text-cas-on-surface-variant">
+                        {address || "Chưa nhập địa chỉ"}
+                      </span>
+                    </div>
+                    {googleMapUrl && (
+                      <div className="flex items-start gap-2 text-cas-on-surface">
+                        <CasIcon
+                          name="sparkle"
+                          className="h-3.5 w-3.5 shrink-0 text-cas-primary mt-0.5"
+                        />
+                        <a
+                          href={
+                            googleMapUrl.startsWith("http")
+                              ? googleMapUrl
+                              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapUrl)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cas-primary underline font-bold hover:opacity-80"
+                        >
+                          Xem vị trí trên Google Maps
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-cas-on-surface">
+                      <CasIcon name="clock" className="h-3.5 w-3.5 shrink-0 text-cas-primary" />
+                      <span className="font-extrabold">
+                        {openTime} - {closeTime}
+                      </span>
+                    </div>
                   </div>
+
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-cas-surface-container p-2.5 text-[0.7rem] text-cas-on-surface-variant">
+                      <span className="font-bold">Ngưỡng chờ lâu</span>
+                      <span className="rounded-lg bg-cas-surface px-2 py-1 font-extrabold text-cas-tertiary">
+                        {warningMins} phút
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="block rounded-xl bg-cas-primary px-3 py-2 text-center text-xs font-extrabold text-cas-on-primary"
+                  >
+                    Bắt đầu gọi món tại bàn
+                  </span>
                 </div>
               </div>
             </div>

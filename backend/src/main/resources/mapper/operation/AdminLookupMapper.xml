@@ -1,29 +1,49 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="vn.cas.operation.mapper.AdminLookupMapper">
+    <sql id="literalSearchPattern">CONCAT('%', REPLACE(REPLACE(REPLACE(#{query}, '!', '!!'), '%', '!%'), '_', '!_'), '%')</sql>
     <sql id="customerFilter">
         <if test="query != null and query != ''">
-            AND (client_accounts.display_name LIKE CONCAT('%', #{query}, '%') OR client_accounts.phone LIKE CONCAT('%', #{query}, '%'))
+            AND (client_accounts.display_name LIKE <include refid="literalSearchPattern"/> ESCAPE '!'
+              OR client_accounts.phone LIKE <include refid="literalSearchPattern"/> ESCAPE '!')
         </if>
     </sql>
     <select id="findCustomers" resultType="vn.cas.operation.model.AdminCustomerSummary">
         SELECT client_accounts.id, client_accounts.display_name AS displayName,
                CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '***', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
-               COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt
+               COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt,
+               COALESCE(SUM(payments.amount), 0) AS totalPaid
         FROM client_accounts LEFT JOIN sales_sessions ON sales_sessions.client_account_id = client_accounts.id
+          AND sales_sessions.store_id = client_accounts.store_id
+          <if test="from != null">AND sales_sessions.created_at &gt;= #{from} AND sales_sessions.created_at &lt; #{to}</if>
+        LEFT JOIN payments ON payments.sales_session_id = sales_sessions.id AND payments.status = 'PAID'
         WHERE client_accounts.store_id = #{storeId}<include refid="customerFilter"/>
+        <if test="from != null">AND sales_sessions.id IS NOT NULL</if>
         GROUP BY client_accounts.id, client_accounts.display_name, client_accounts.phone
-        ORDER BY lastVisitedAt DESC, client_accounts.id DESC LIMIT #{limit} OFFSET #{offset}
+        ORDER BY
+        <choose>
+            <when test="sort == 'AMOUNT_DESC'">totalPaid DESC,</when>
+            <when test="sort == 'AMOUNT_ASC'">totalPaid ASC,</when>
+            <when test="sort == 'SESSIONS_DESC'">sessionCount DESC,</when>
+            <when test="sort == 'SESSIONS_ASC'">sessionCount ASC,</when>
+        </choose>
+        lastVisitedAt DESC, client_accounts.id DESC LIMIT #{limit} OFFSET #{offset}
     </select>
     <select id="countCustomers" resultType="long">
         SELECT COUNT(*) FROM client_accounts
         WHERE client_accounts.store_id = #{storeId}<include refid="customerFilter"/>
+        <if test="from != null">AND EXISTS (SELECT 1 FROM sales_sessions
+            WHERE sales_sessions.client_account_id = client_accounts.id
+              AND sales_sessions.store_id = client_accounts.store_id
+              AND sales_sessions.created_at &gt;= #{from} AND sales_sessions.created_at &lt; #{to})</if>
     </select>
     <select id="findCustomer" resultType="vn.cas.operation.model.AdminCustomerSummary">
         SELECT client_accounts.id, client_accounts.display_name AS displayName,
                CASE WHEN client_accounts.phone IS NULL THEN NULL ELSE CONCAT(LEFT(client_accounts.phone, 3), '***', RIGHT(client_accounts.phone, 3)) END AS maskedPhone,
-               COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt
+               COUNT(sales_sessions.id) AS sessionCount, MAX(sales_sessions.created_at) AS lastVisitedAt,
+               COALESCE(SUM(payments.amount), 0) AS totalPaid
         FROM client_accounts LEFT JOIN sales_sessions ON sales_sessions.client_account_id = client_accounts.id
+        LEFT JOIN payments ON payments.sales_session_id = sales_sessions.id AND payments.status = 'PAID'
         WHERE client_accounts.store_id = #{storeId} AND client_accounts.id = #{customerId}
         GROUP BY client_accounts.id, client_accounts.display_name, client_accounts.phone
     </select>
@@ -41,7 +61,11 @@
         ORDER BY sales_sessions.created_at DESC, sales_sessions.id DESC
     </select>
     <sql id="auditFilter">
-        <if test="query != null and query != ''">AND (audit_logs.actor_name LIKE CONCAT('%',#{query},'%') OR audit_logs.action LIKE CONCAT('%',#{query},'%') OR audit_logs.entity_type LIKE CONCAT('%',#{query},'%') OR audit_logs.entity_name LIKE CONCAT('%',#{query},'%') OR audit_logs.description LIKE CONCAT('%',#{query},'%'))</if>
+        <if test="query != null and query != ''">AND (audit_logs.actor_name LIKE <include refid="literalSearchPattern"/> ESCAPE '!'
+          OR audit_logs.action LIKE <include refid="literalSearchPattern"/> ESCAPE '!'
+          OR audit_logs.entity_type LIKE <include refid="literalSearchPattern"/> ESCAPE '!'
+          OR audit_logs.entity_name LIKE <include refid="literalSearchPattern"/> ESCAPE '!'
+          OR audit_logs.description LIKE <include refid="literalSearchPattern"/> ESCAPE '!')</if>
         <if test="action != null and action != ''">AND audit_logs.action=#{action}</if>
         <if test="entityType != null and entityType != ''">AND audit_logs.entity_type=#{entityType}</if>
     </sql>

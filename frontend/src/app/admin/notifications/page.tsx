@@ -272,7 +272,9 @@ export default function AdminNotificationsPage() {
                     </span>
                     <h3 className="text-sm font-black text-cas-on-surface">{n.title}</h3>
                   </div>
-                  <p className="text-xs leading-relaxed text-cas-on-surface-variant">{n.content}</p>
+                  <p className="text-xs leading-relaxed text-cas-on-surface-variant">
+                    {n.adminContent ?? n.content}
+                  </p>
                   <div className="flex items-center gap-3 text-[0.7rem] font-medium text-cas-on-surface-variant">
                     <span>Thời gian: {new Date(n.createdAt).toLocaleString("vi-VN")}</span>
                   </div>

@@ -79,7 +79,8 @@ class CancellationServiceTest {
         assertThat(result.status()).isEqualTo("REJECTED");
         verify(mapper).resolveCancellationRequest(91L, "REJECTED", false, 3L, "Operator One");
         verify(notifications).createForCustomerSession(operator, 7L, "Yêu cầu hủy món bị từ chối",
-                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến");
+                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến",
+                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến (Bàn 12, Khách: Khách)");
         var command = ArgumentCaptor.forClass(AuditLogCommand.class);
         verify(auditLogs).record(command.capture());
         assertThat(command.getValue())
@@ -108,7 +109,8 @@ class CancellationServiceTest {
                         10L, 12, "Khách", 9L, "Bún bò", 2, 0, 0, LocalDateTime.now())));
         service.resolve(operator, "request-1", "APPROVE", false, null, 0, null, UUID.randomUUID());
         verify(notifications).createForCustomerSession(operator, 7L,
-                "Yêu cầu hủy món đã được đồng ý", "Yêu cầu hủy 1 phần Bún bò đã được đồng ý.");
+                "Yêu cầu hủy món đã được đồng ý", "Yêu cầu hủy 1 phần Bún bò đã được đồng ý.",
+                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý. (Bàn 12, Khách: Khách)");
     }
 
     @Test
@@ -127,7 +129,8 @@ class CancellationServiceTest {
 
         verify(notifications).createForCustomerSession(operator, 7L,
                 "Yêu cầu hủy món đã được đồng ý",
-                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý và món sẽ được làm lại.");
+                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý và món sẽ được làm lại.",
+                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý và món sẽ được làm lại. (Bàn 12, Khách: Khách)");
     }
 
     @Test
@@ -147,7 +150,8 @@ class CancellationServiceTest {
 
         assertThat(result.status()).isEqualTo("APPROVED");
         verify(notifications).createForCustomerSession(operator, 7L,
-                "Yêu cầu hủy món đã được đồng ý", "Yêu cầu hủy 1 phần Bún bò đã được đồng ý.");
+                "Yêu cầu hủy món đã được đồng ý", "Yêu cầu hủy 1 phần Bún bò đã được đồng ý.",
+                "Yêu cầu hủy 1 phần Bún bò đã được đồng ý. (Mang về, Khách: An)");
     }
 
     @Test
@@ -164,7 +168,8 @@ class CancellationServiceTest {
 
         assertThat(result.status()).isEqualTo("REJECTED");
         verify(notifications).createForCustomerSession(operator, 7L, "Yêu cầu hủy món bị từ chối",
-                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến");
+                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến",
+                "Yêu cầu hủy 1 phần Bún bò đã bị từ chối. Lý do: Đã chế biến (Mang về, Khách: An)");
     }
 
     private static OperatorCancellationRequestRow cancellationRequest() {

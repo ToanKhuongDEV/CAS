@@ -5,15 +5,17 @@ public class CreateSystemNotificationCommand {
     private final long storeId;
     private final String title;
     private final String content;
+    private final String adminContent;
     private final String type;
     private final String targetRole;
     private final long createdBy;
 
     public CreateSystemNotificationCommand(long storeId, String title, String content, String type,
-            String targetRole, long createdBy) {
+            String targetRole, long createdBy, String adminContent) {
         this.storeId = storeId;
         this.title = title;
         this.content = content;
+        this.adminContent = adminContent;
         this.type = type;
         this.targetRole = targetRole;
         this.createdBy = createdBy;
@@ -33,6 +35,9 @@ public class CreateSystemNotificationCommand {
     }
     public String getContent() {
         return content;
+    }
+    public String getAdminContent() {
+        return adminContent;
     }
     public String getType() {
         return type;

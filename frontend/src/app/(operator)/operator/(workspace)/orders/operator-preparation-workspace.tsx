@@ -131,7 +131,7 @@ export function OperatorPreparationWorkspace() {
   async function handlePreparedQuantitySubmit(event: FormEvent<HTMLFormElement>, groupKey: string) {
     event.preventDefault();
     const group = groups.find((item) => item.groupKey === groupKey);
-    const quantity = Number(inputValues[groupKey]);
+    const quantity = Number(inputValues[groupKey] ?? "1");
     if (
       !group ||
       !Number.isInteger(quantity) ||
@@ -157,7 +157,7 @@ export function OperatorPreparationWorkspace() {
         idempotencyKey: crypto.randomUUID(),
         quantity,
       });
-      setInputValues((values) => ({ ...values, [groupKey]: "" }));
+      setInputValues((values) => ({ ...values, [groupKey]: "1" }));
       showToast({
         message: `Đã ghi nhận ${completion.requestedQuantity} phần ${group.itemName} hoàn thành.`,
         type: "success",
@@ -305,7 +305,7 @@ export function OperatorPreparationWorkspace() {
                           required
                           step="1"
                           type="number"
-                          value={inputValues[group.groupKey] ?? ""}
+                          value={inputValues[group.groupKey] ?? "1"}
                         />
                       </label>
                       <button

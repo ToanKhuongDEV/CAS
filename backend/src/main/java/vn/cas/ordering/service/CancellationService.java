@@ -143,7 +143,9 @@ public class CancellationService {
                                 ? " đã được đồng ý và món sẽ được làm lại."
                                 : " đã được đồng ý.")
                         : " đã bị từ chối. Lý do: " + rejectionReason);
-        notifications.createForCustomerSession(principal, session.sessionId(), title, content);
+        String destination = request.tableCode() == null ? "Mang về" : "Bàn " + request.tableCode();
+        notifications.createForCustomerSession(principal, session.sessionId(), title, content,
+                content + " (" + destination + ", Khách: " + request.customerName() + ")");
     }
 
     @Transactional

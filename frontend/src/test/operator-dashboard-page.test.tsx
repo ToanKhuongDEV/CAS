@@ -133,6 +133,21 @@ describe("OperatorDashboardPage", () => {
     });
   });
 
+  it("resets the reporter name when reopening the incident form", () => {
+    render(
+      <QueryProvider>
+        <OperatorDashboardPage />
+      </QueryProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Báo cáo sự cố" }));
+    fireEvent.change(screen.getByLabelText("Người tạo báo cáo"), {
+      target: { value: "Nguyễn Văn A" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Báo cáo sự cố" }));
+    expect(screen.getByLabelText("Người tạo báo cáo")).toHaveValue("Nhân viên ca trực");
+  });
+
   it("shows the payment confirmation action for a table waiting for payment", async () => {
     vi.mocked(loadOperatorTables).mockResolvedValue([
       {

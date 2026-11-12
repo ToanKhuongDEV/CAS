@@ -18,5 +18,9 @@ describe("AdminTabNavigation", () => {
       "href",
       "/admin?period=custom&from=2026-09-01&to=2026-09-30",
     );
+    expect(screen.getByRole("link", { name: "Báo cáo" })).toHaveAttribute(
+      "href",
+      "/admin/reports?period=custom&from=2026-09-01&to=2026-09-30",
+    );
   });
 });

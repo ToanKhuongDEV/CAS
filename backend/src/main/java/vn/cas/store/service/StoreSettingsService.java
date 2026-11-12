@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.cas.common.exception.ApiException;
 import vn.cas.common.security.OperationalPrincipal;
+import vn.cas.catalog.service.CatalogCopyService;
 import vn.cas.operation.dto.AuditLogCommand;
 import vn.cas.operation.service.AuditLogService;
 import vn.cas.store.dto.CreateStoreCommand;
@@ -16,10 +17,13 @@ import vn.cas.store.model.StoreSettings;
 public class StoreSettingsService {
     private final StoreSettingsMapper mapper;
     private final AuditLogService auditLogs;
+    private final CatalogCopyService catalogCopy;
 
-    public StoreSettingsService(StoreSettingsMapper mapper, AuditLogService auditLogs) {
+    public StoreSettingsService(StoreSettingsMapper mapper, AuditLogService auditLogs,
+            CatalogCopyService catalogCopy) {
         this.mapper = mapper;
         this.auditLogs = auditLogs;
+        this.catalogCopy = catalogCopy;
     }
 
     @Transactional(readOnly = true)
@@ -53,11 +57,13 @@ public class StoreSettingsService {
 
     @Transactional
     public StoreSettings create(OperationalPrincipal principal, StoreSettings settings,
-            UUID requestId) {
+            Long sourceStoreId, UUID requestId) {
         if (!"SUPER_ADMIN".equals(principal.role()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ SUPER_ADMIN có quyền tạo cơ sở.");
         var command = new CreateStoreCommand(settings);
         mapper.insertStore(command);
+        if (sourceStoreId != null)
+            catalogCopy.copy(principal, sourceStoreId, command.getId(), requestId);
         auditLogs.record(new AuditLogCommand(command.getId(), requestId, "CREATE", "STORE",
                 command.getId(), settings.branchName(), "{}", principal.accountId(),
                 principal.displayName(), "Created store"));
