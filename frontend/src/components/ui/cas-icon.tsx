@@ -5,10 +5,12 @@ export type CasIconName =
   | "basket"
   | "bell"
   | "bill"
+  | "calendar"
   | "cart"
   | "check"
   | "clock"
   | "close"
+  | "download"
   | "edit"
   | "eye"
   | "fire"
@@ -53,6 +55,12 @@ const iconPaths: Record<CasIconName, ReactNode> = {
       <path d="M9 8h6M9 12h6" />
     </>
   ),
+  calendar: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M7 3v4M17 3v4M3 10h18" />
+    </>
+  ),
   cart: (
     <>
       <path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20.5 8H6" />
@@ -68,6 +76,7 @@ const iconPaths: Record<CasIconName, ReactNode> = {
     </>
   ),
   close: <path d="M18 6 6 18M6 6l12 12" />,
+  download: <path d="M12 3v12m-4-4 4 4 4-4M5 17v3h14v-3" />,
   edit: <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />,
   eye: (
     <>

@@ -203,7 +203,7 @@ html[data-theme="light"] {
   --cas-on-error-container: #8b2424;
 
   /* Surface */
-  --cas-surface:   #FAF8FF;
+  --cas-surface: #faf8ff;
   --cas-surface-container: #ffffff;
   --cas-on-surface: #1d2939;
   --cas-on-surface-variant: #64746b;
