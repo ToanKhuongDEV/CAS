@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ import vn.cas.common.security.OperationalPrincipal;
 import vn.cas.operation.model.AdminCustomerDetail;
 import vn.cas.operation.model.AdminCustomerPage;
 import vn.cas.operation.model.AuditLogPage;
+import vn.cas.operation.model.CustomerSort;
 import vn.cas.operation.service.AdminLookupService;
 
 @RestController
@@ -35,11 +37,14 @@ public class AdminLookupController {
     public ResponseEntity<ApiResponse<AdminCustomerPage>> customers(
             @AuthenticationPrincipal OperationalPrincipal principal,
             @RequestParam(required = false) @Size(max = 150) String query,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(defaultValue = "RECENT") CustomerSort sort,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             HttpServletRequest request) {
         return ApiResponses.success(HttpStatus.OK, ApiMessages.CUSTOMERS_RETRIEVED,
-                lookup.customers(principal, query, page, size), request);
+                lookup.customers(principal, query, from, to, sort, page, size), request);
     }
 
     @GetMapping(ApiPaths.CustomerAccount.DETAIL)
