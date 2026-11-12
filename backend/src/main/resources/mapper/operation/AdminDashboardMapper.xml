@@ -4,29 +4,33 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="vn.cas.operation.mapper.AdminDashboardMapper">
 
+    <sql id="revenueSource">
+        SELECT DATE(payments.confirmed_at) AS date, payments.amount AS salesRevenue,
+                   CAST(0 AS DECIMAL(15,2)) AS serviceRevenue, 1 AS paidSessionCount
+            FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+            WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
+              AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+            UNION ALL
+            SELECT DATE(service_bookings.confirmed_at) AS date, CAST(0 AS DECIMAL(15,2)) AS salesRevenue,
+                   service_bookings.agreed_price AS serviceRevenue, 0 AS paidSessionCount
+            FROM service_bookings
+            WHERE service_bookings.store_id = #{storeId} AND service_bookings.payment_status = 'PAID'
+              AND service_bookings.confirmed_at &gt;= #{from} AND service_bookings.confirmed_at &lt; #{to}
+    </sql>
+
     <select id="findRevenueSummary" resultType="vn.cas.operation.model.AdminDashboard$RevenueSummary">
-        SELECT COALESCE(SUM(payments.amount), 0) AS total,
-               COUNT(*) AS paidSessionCount
-        FROM payments
-        INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
-        WHERE sales_sessions.store_id = #{storeId}
-          AND payments.status = 'PAID'
-          AND payments.confirmed_at &gt;= #{from}
-          AND payments.confirmed_at &lt; #{to}
+        SELECT COALESCE(SUM(salesRevenue + serviceRevenue), 0) AS total,
+               COALESCE(SUM(salesRevenue), 0) AS salesRevenue,
+               COALESCE(SUM(serviceRevenue), 0) AS serviceRevenue,
+               COALESCE(SUM(paidSessionCount), 0) AS paidSessionCount
+        FROM (<include refid="revenueSource"/>) revenue_data
     </select>
 
     <select id="findRevenueSeries" resultType="vn.cas.operation.model.AdminDashboard$RevenuePoint">
-        SELECT DATE(payments.confirmed_at) AS date,
-               SUM(payments.amount) AS revenue,
-               COUNT(*) AS paidSessionCount
-        FROM payments
-        INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
-        WHERE sales_sessions.store_id = #{storeId}
-          AND payments.status = 'PAID'
-          AND payments.confirmed_at &gt;= #{from}
-          AND payments.confirmed_at &lt; #{to}
-        GROUP BY DATE(payments.confirmed_at)
-        ORDER BY DATE(payments.confirmed_at) ASC
+        SELECT date, SUM(salesRevenue + serviceRevenue) AS revenue,
+               SUM(paidSessionCount) AS paidSessionCount
+        FROM (<include refid="revenueSource"/>) revenue_data
+        GROUP BY date ORDER BY date ASC
     </select>
 
     <select id="findCustomerSummary" resultType="vn.cas.operation.model.AdminDashboard$CustomerSummary">

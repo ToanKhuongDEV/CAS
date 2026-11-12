@@ -2,19 +2,27 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="vn.cas.operation.mapper.AdminReportMapper">
     <sql id="revenueSource">
-        FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
-        WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
-          AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+        SELECT DATE(payments.confirmed_at) AS date, payments.amount AS salesRevenue,
+                   CAST(0 AS DECIMAL(15,2)) AS serviceRevenue, 1 AS paidSessionCount
+            FROM payments INNER JOIN sales_sessions ON sales_sessions.id = payments.sales_session_id
+            WHERE sales_sessions.store_id = #{storeId} AND payments.status = 'PAID'
+              AND payments.confirmed_at &gt;= #{from} AND payments.confirmed_at &lt; #{to}
+            UNION ALL
+            SELECT DATE(service_bookings.confirmed_at) AS date, CAST(0 AS DECIMAL(15,2)) AS salesRevenue,
+                   service_bookings.agreed_price AS serviceRevenue, 0 AS paidSessionCount
+            FROM service_bookings
+            WHERE service_bookings.store_id = #{storeId} AND service_bookings.payment_status = 'PAID'
+              AND service_bookings.confirmed_at &gt;= #{from} AND service_bookings.confirmed_at &lt; #{to}
     </sql>
     <select id="revenue" resultType="vn.cas.operation.model.AdminReport$Revenue">
-        SELECT DATE(payments.confirmed_at) AS date, COUNT(*) AS paidSessionCount,
-               SUM(payments.amount) AS revenue
-        <include refid="revenueSource"/>
-        GROUP BY DATE(payments.confirmed_at) ORDER BY DATE(payments.confirmed_at) DESC
-        LIMIT #{limit} OFFSET #{offset}
+        SELECT date, SUM(paidSessionCount) AS paidSessionCount,
+               SUM(salesRevenue) AS salesRevenue, SUM(serviceRevenue) AS serviceRevenue,
+               SUM(salesRevenue + serviceRevenue) AS revenue
+        FROM (<include refid="revenueSource"/>) revenue_data
+        GROUP BY date ORDER BY date DESC LIMIT #{limit} OFFSET #{offset}
     </select>
     <select id="countRevenue" resultType="long">
-        SELECT COUNT(DISTINCT DATE(payments.confirmed_at)) <include refid="revenueSource"/>
+        SELECT COUNT(DISTINCT date) FROM (<include refid="revenueSource"/>) revenue_data
     </select>
     <sql id="orderSource">
         FROM orders INNER JOIN sales_sessions ON sales_sessions.id = orders.sales_session_id

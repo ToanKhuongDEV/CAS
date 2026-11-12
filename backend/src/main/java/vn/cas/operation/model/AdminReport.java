@@ -16,7 +16,8 @@ public final class AdminReport {
     public record Page(List<?> items, long total, int page, int size) {
     }
 
-    public record Revenue(LocalDate date, long paidSessionCount, BigDecimal revenue) {
+    public record Revenue(LocalDate date, long paidSessionCount, BigDecimal salesRevenue,
+            BigDecimal serviceRevenue, BigDecimal revenue) {
     }
 
     public record Order(LocalDateTime createdAt, String orderNumber, Long tableCode,

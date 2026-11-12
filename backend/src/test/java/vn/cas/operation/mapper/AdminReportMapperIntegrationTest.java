@@ -30,6 +30,8 @@ class AdminReportMapperIntegrationTest {
     JdbcTemplate jdbc;
     @Autowired
     AdminReportMapper reports;
+    @Autowired
+    AdminDashboardMapper dashboard;
 
     @Test
     @Transactional
@@ -65,13 +67,29 @@ class AdminReportMapperIntegrationTest {
                     "INSERT INTO payments (public_id, sales_session_id, amount, bill_snapshot, status, confirmed_at) VALUES (?, ?, 15000, '{}', ?, '2026-10-31 23:59:59')",
                     "payment-" + id, id, id == 2 ? "PENDING" : "PAID");
         }
+        jdbc.update(
+                "INSERT INTO accounts (id, store_id, firebase_uid, email, phone, display_name, role) VALUES (1, 1, 'uid-1', 'admin@example.com', '0901', 'Admin', 'ADMIN')");
+        jdbc.update(
+                "INSERT INTO service_bookings (public_id, store_id, client_account_id, service_name, agreed_price, payment_status, created_by_account_id, created_by_name, confirmed_at) VALUES ('paid-same-day', 1, 1, 'Service', 2500.50, 'PAID', 1, 'Admin', '2026-10-31 10:00:00'), ('paid-other-day', 1, 1, 'Service', 1000, 'PAID', 1, 'Admin', '2026-10-30 10:00:00'), ('pending', 1, 1, 'Service', 9999, 'PENDING', 1, 'Admin', NULL), ('other-store', 2, 3, 'Service', 8000, 'PAID', 1, 'Admin', '2026-10-31 10:00:00'), ('outside-range', 1, 1, 'Service', 5000, 'PAID', 1, 'Admin', '2026-11-01 00:00:00')");
         var from = LocalDate.of(2026, 10, 1).atStartOfDay();
         var to = LocalDate.of(2026, 11, 1).atStartOfDay();
-        assertThat(reports.countRevenue(1, from, to)).isEqualTo(1);
-        assertThat(reports.revenue(1, from, to, 10, 0)).singleElement().satisfies(row -> {
+        assertThat(reports.countRevenue(1, from, to)).isEqualTo(2);
+        var revenueRows = reports.revenue(1, from, to, 10, 0);
+        assertThat(revenueRows).hasSize(2);
+        assertThat(revenueRows.get(0)).satisfies(row -> {
             assertThat(row.paidSessionCount()).isEqualTo(1);
-            assertThat(row.revenue()).isEqualByComparingTo("15000");
+            assertThat(row.salesRevenue()).isEqualByComparingTo("15000");
+            assertThat(row.serviceRevenue()).isEqualByComparingTo("2500.50");
+            assertThat(row.revenue()).isEqualByComparingTo("17500.50");
         });
+        assertThat(revenueRows.get(1).paidSessionCount()).isZero();
+        assertThat(revenueRows.get(1).revenue()).isEqualByComparingTo("1000");
+        var summary = dashboard.findRevenueSummary(1, from, to);
+        assertThat(summary.total()).isEqualByComparingTo("18500.50");
+        assertThat(summary.salesRevenue()).isEqualByComparingTo("15000");
+        assertThat(summary.serviceRevenue()).isEqualByComparingTo("3500.50");
+        assertThat(summary.paidSessionCount()).isEqualTo(1);
+        assertThat(dashboard.findRevenueSeries(1, from, to)).hasSize(2);
         assertThat(reports.countOrders(1, from, to)).isEqualTo(2);
         assertThat(reports.orders(1, from, to, 1, 1)).singleElement()
                 .satisfies(row -> assertThat(row.orderNumber()).isEqualTo("ORD-1"));

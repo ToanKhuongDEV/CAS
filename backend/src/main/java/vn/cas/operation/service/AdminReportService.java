@@ -115,8 +115,8 @@ public class AdminReportService {
         };
         Sheet sheet = workbook.createSheet(part == 1 ? name : name + " " + part);
         String[] headings = switch (type) {
-            case REVENUE ->
-                new String[]{"Ngày thanh toán", "Số phiên đã thanh toán", "Tổng doanh thu"};
+            case REVENUE -> new String[]{"Ngày thanh toán", "Số phiên đã thanh toán",
+                    "Doanh thu bán hàng", "Doanh thu dịch vụ", "Tổng doanh thu"};
             case ORDERS -> new String[]{"Thời điểm tạo", "Mã order", "Bàn / Mang về",
                     "Khách mở phiên", "Tổng tiền gốc", "Số tiền order sau hủy"};
             case REMADE -> new String[]{"Thời điểm xử lý", "Mã order", "Bàn / Mang về", "Tên món",
@@ -136,7 +136,9 @@ public class AdminReportService {
             row.createCell(0)
                     .setCellValue(value.date().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             row.createCell(1).setCellValue(value.paidSessionCount());
-            row.createCell(2).setCellValue(value.revenue().toPlainString());
+            row.createCell(2).setCellValue(value.salesRevenue().toPlainString());
+            row.createCell(3).setCellValue(value.serviceRevenue().toPlainString());
+            row.createCell(4).setCellValue(value.revenue().toPlainString());
         } else if (item instanceof AdminReport.Order value) {
             row.createCell(0).setCellValue(value.createdAt().format(DATE_TIME));
             row.createCell(1).setCellValue(value.orderNumber());

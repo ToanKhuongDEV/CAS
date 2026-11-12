@@ -58,13 +58,18 @@ class AdminReportServiceTest {
                 .thenReturn(Collections.nCopies(500, order));
         when(mapper.orders(eq(7L), any(), any(), eq(500), eq(500L))).thenReturn(List.of(order));
         when(mapper.revenue(eq(7L), any(), any(), eq(500), eq(0L)))
-                .thenReturn(List.of(new AdminReport.Revenue(from, 1, new BigDecimal("10.50"))));
+                .thenReturn(List.of(new AdminReport.Revenue(from, 1, new BigDecimal("10.50"),
+                        new BigDecimal("2.25"), new BigDecimal("12.75"))));
         when(mapper.remade(eq(7L), any(), any(), eq(500), eq(0L))).thenReturn(List.of());
         var output = new ByteArrayOutputStream();
         service.export(admin, AdminReport.Type.ALL, from, to, output);
 
         try (var workbook = new XSSFWorkbook(new ByteArrayInputStream(output.toByteArray()))) {
             assertThat(workbook.getNumberOfSheets()).isEqualTo(3);
+            var revenue = workbook.getSheet("Doanh thu").getRow(1);
+            assertThat(revenue.getCell(2).getStringCellValue()).isEqualTo("10.50");
+            assertThat(revenue.getCell(3).getStringCellValue()).isEqualTo("2.25");
+            assertThat(revenue.getCell(4).getStringCellValue()).isEqualTo("12.75");
             var orders = workbook.getSheet("Lich su order");
             assertThat(orders.getLastRowNum()).isEqualTo(501);
             assertThat(orders.getRow(1).getCell(3).getStringCellValue()).isEqualTo("=Tên khách");

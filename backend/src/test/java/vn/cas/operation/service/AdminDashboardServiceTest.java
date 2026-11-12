@@ -28,7 +28,8 @@ class AdminDashboardServiceTest {
         LocalDate from = LocalDate.of(2026, 10, 1);
         LocalDate to = LocalDate.of(2026, 10, 10);
         when(dashboard.findRevenueSummary(eq(3L), any(), any()))
-                .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.valueOf(120000), 2));
+                .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.valueOf(150000),
+                        BigDecimal.valueOf(120000), BigDecimal.valueOf(30000), 2));
         when(dashboard.findRevenueSeries(eq(3L), any(), any())).thenReturn(List.of());
         when(dashboard.findCustomerSummary(eq(3L), any(), any()))
                 .thenReturn(new AdminDashboard.CustomerSummary(5, BigDecimal.valueOf(12.5)));
@@ -44,6 +45,8 @@ class AdminDashboardServiceTest {
 
         assertThat(result.range()).isEqualTo(new AdminDashboard.DateRange(from, to));
         assertThat(result.revenue().paidSessionCount()).isEqualTo(2);
+        assertThat(result.revenue().total()).isEqualByComparingTo("150000");
+        assertThat(result.revenue().serviceRevenue()).isEqualByComparingTo("30000");
         assertThat(result.customers().sessionCount()).isEqualTo(5);
         assertThat(result.customers().averageWaitMinutes()).isEqualByComparingTo("12.5");
         assertThat(result.menu().soldQuantity()).isEqualTo(4);
@@ -65,7 +68,8 @@ class AdminDashboardServiceTest {
         LocalDate from = LocalDate.of(2026, 10, 13);
         LocalDate to = LocalDate.of(2026, 10, 19);
         when(dashboard.findRevenueSummary(eq(3L), any(), any()))
-                .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.ZERO, 0));
+                .thenReturn(new AdminDashboard.RevenueSummary(BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, 0));
         when(dashboard.findRevenueSeries(eq(3L), any(), any())).thenReturn(List.of());
         when(dashboard.findCustomerSummary(eq(3L), any(), any())).thenReturn(null);
         when(dashboard.findCustomerSeries(eq(3L), any(), any())).thenReturn(List.of());
