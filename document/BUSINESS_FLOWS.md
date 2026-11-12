@@ -135,9 +135,10 @@ của hệ thống.
 
 ### Loại báo cáo và dữ liệu
 
-- Doanh thu: một dòng cho mỗi ngày có thanh toán `PAID`, theo thời điểm xác nhận; gồm ngày, số phiên đã thanh toán và tổng số tiền thanh toán.
+- Doanh thu: một dòng cho mỗi ngày có thanh toán phiên hoặc dịch vụ đặt trước `PAID`, theo thời điểm xác nhận; gồm ngày, số phiên đã thanh toán, doanh thu bán hàng, doanh thu dịch vụ và tổng hai khoản. Dịch vụ không tạo phiên; doanh thu trung bình mỗi phiên chỉ dùng doanh thu bán hàng.
 - Lịch sử order: một dòng cho mỗi order theo thời điểm tạo; gồm thời điểm, mã order, bàn hoặc mang về, khách mở phiên, tiền gốc và số tiền order sau hủy. Đây không phải tổng hóa đơn cuối sau khuyến mãi hoặc điều chỉnh.
 - Món làm lại: một dòng cho mỗi yêu cầu hủy `APPROVED` có `is_remade = TRUE`, theo thời điểm xử lý; gồm thời điểm, mã order, bàn hoặc mang về, tên món, số lượng, lý do và người xử lý.
+- Danh sách khách hàng Admin có thể lọc theo ngày mở phiên, tìm tên hoặc số điện thoại, sắp xếp theo tổng payment `PAID` của các phiên trong khoảng ngày hoặc số phiên, sau đó phân trang. Khách không có phiên trong khoảng ngày được loại khỏi kết quả.
 - Khoảng ngày bao gồm cả ngày bắt đầu lẫn ngày kết thúc. Lọc theo cơ sở của tài khoản hoặc cơ sở Super Admin đang chọn; khi chọn tất cả, mỗi loại có bảng và phân trang riêng, Excel có sheet riêng cho từng loại.
 - Xuất Excel bao gồm mọi dòng thỏa bộ lọc, không giới hạn ở trang đang xem. Tiền trong file được giữ nguyên chính xác dưới dạng văn bản thập phân.
 

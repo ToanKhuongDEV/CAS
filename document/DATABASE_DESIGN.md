@@ -473,6 +473,7 @@ Lưu notification broadcast do `ADMIN` phát hành cho Operator, Customer hoặc
 | `store_id` | `BIGINT UNSIGNED NOT NULL` | Cửa hàng phát hành notification |
 | `title` | `VARCHAR(200) NOT NULL` | Tiêu đề |
 | `content` | `TEXT NOT NULL` | Nội dung |
+| `admin_content` | `TEXT NULL` | Nội dung riêng cho Admin nếu có; khách và nhân viên tiếp tục nhận `content` |
 | `type` | `VARCHAR(20) NOT NULL DEFAULT 'INFO'` | Mức độ notification |
 | `target_role` | `VARCHAR(20) NOT NULL DEFAULT 'BOTH'` | Đối tượng nhận: `OPERATOR`, `CUSTOMER` hoặc `BOTH` |
 | `created_by` | `BIGINT UNSIGNED NULL` | Tài khoản Admin phát hành |
