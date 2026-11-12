@@ -10,6 +10,7 @@ export type SystemNotification = {
   id: number;
   title: string;
   content: string;
+  adminContent?: string | null;
   type: NotificationType;
   targetRole: NotificationTargetRole;
   createdAt: string;
