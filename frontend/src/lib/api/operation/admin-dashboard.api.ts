@@ -7,6 +7,8 @@ export type AdminDashboard = {
   range: { from: string; to: string };
   revenue: {
     total: number;
+    salesRevenue: number;
+    serviceRevenue: number;
     paidSessionCount: number;
     series: { date: string; revenue: number; paidSessionCount: number }[];
   };

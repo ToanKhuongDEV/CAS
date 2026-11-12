@@ -99,6 +99,46 @@ describe("OperatorPaymentsPage", () => {
     window.history.replaceState({}, "", "/");
   });
 
+  it("paginates admin payments by 20 and resets the page when switching status", async () => {
+    vi.mocked(loadAdminPaidPayments).mockResolvedValue(
+      Array.from({ length: 21 }, (_, index) => ({
+        ...payment,
+        publicId: `paid-${index}`,
+        status: "PAID" as const,
+        tableCode: index + 1,
+      })),
+    );
+    vi.mocked(loadOperatorPayments).mockResolvedValue([
+      { ...payment, publicId: "pending", tableCode: 99 },
+    ]);
+    vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
+      accountId: 1,
+      displayName: "Admin",
+      role: "ADMIN",
+      storeId: 1,
+    });
+    vi.mocked(loadPublicStore).mockRejectedValue(new Error("Không tải được cơ sở"));
+    render(
+      <QueryProvider>
+        <ToastProvider>
+          <AdminPaymentsPage />
+        </ToastProvider>
+      </QueryProvider>,
+    );
+
+    const list = await screen.findByRole("list", { name: "Danh sách thanh toán theo khoảng ngày" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(20);
+    expect(screen.getByText("21 kết quả")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sau" }));
+    expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(list).getByText("Bàn 21")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Chờ xác nhận" }));
+    expect(await screen.findByText("Bàn 99")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Đã thanh toán" }));
+    expect(await screen.findByText("Bàn 01")).toBeInTheDocument();
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+  });
+
   it("loads a valid date range and rejects an inverted range", async () => {
     vi.mocked(loadAdminPaidPayments).mockResolvedValue([]);
     vi.mocked(getCurrentOperationalAccount).mockResolvedValue({
@@ -115,8 +155,8 @@ describe("OperatorPaymentsPage", () => {
         </ToastProvider>
       </QueryProvider>,
     );
-    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2025-12-01" } });
-    fireEvent.change(screen.getByLabelText("Đến ngày"), { target: { value: "2025-12-31" } });
+    fireEvent.change(screen.getByLabelText("Ngày bắt đầu"), { target: { value: "2025-12-01" } });
+    fireEvent.change(screen.getByLabelText("Ngày kết thúc"), { target: { value: "2025-12-31" } });
     await waitFor(() =>
       expect(loadAdminPaidPayments).toHaveBeenCalledWith("2025-12-01", "2025-12-31"),
     );
@@ -125,7 +165,7 @@ describe("OperatorPaymentsPage", () => {
     expect(
       await screen.findByText("Chưa có thanh toán trong khoảng ngày đã chọn"),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Từ ngày"), { target: { value: "2026-01-01" } });
+    fireEvent.change(screen.getByLabelText("Ngày bắt đầu"), { target: { value: "2026-01-01" } });
     expect(screen.getByRole("alert")).toHaveTextContent("khoảng ngày hợp lệ");
     expect(loadAdminPaidPayments).not.toHaveBeenCalledWith("2026-01-01", "2025-12-31");
   });
@@ -151,8 +191,10 @@ describe("OperatorPaymentsPage", () => {
         </ToastProvider>
       </QueryProvider>,
     );
-    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2025-12-01");
-    expect(screen.getByLabelText("Đến ngày")).toHaveValue("2025-12-31");
+    expect(screen.getByLabelText("Ngày bắt đầu")).toHaveValue("2025-12-01");
+    expect(screen.getByLabelText("Ngày kết thúc")).toHaveValue("2025-12-31");
+    expect(screen.getByText("01/12/2025")).toBeInTheDocument();
+    expect(screen.getByText("31/12/2025")).toBeInTheDocument();
     await waitFor(() =>
       expect(loadAdminPaidPayments).toHaveBeenCalledWith("2025-12-01", "2025-12-31"),
     );
@@ -161,7 +203,7 @@ describe("OperatorPaymentsPage", () => {
       expect(new URLSearchParams(window.location.search).get("period")).toBe("threeDays"),
     );
     expect(new URLSearchParams(window.location.search).get("from")).toBe(
-      (screen.getByLabelText("Từ ngày") as HTMLInputElement).value,
+      (screen.getByLabelText("Ngày bắt đầu") as HTMLInputElement).value,
     );
   });
 

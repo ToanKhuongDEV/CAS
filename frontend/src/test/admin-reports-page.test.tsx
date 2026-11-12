@@ -28,7 +28,15 @@ describe("AdminReportsPage", () => {
     vi.mocked(loadAdminReport).mockImplementation(async (_filter, type, page) => ({
       items:
         type === "REVENUE"
-          ? [{ date: "2026-10-01", paidSessionCount: 3, revenue: 55000 }]
+          ? [
+              {
+                date: "2026-10-01",
+                paidSessionCount: 3,
+                salesRevenue: 55000,
+                serviceRevenue: 10000,
+                revenue: 65000,
+              },
+            ]
           : type === "ORDERS"
             ? [
                 {
@@ -66,7 +74,7 @@ describe("AdminReportsPage", () => {
         <AdminReportsPage />
       </QueryProvider>,
     );
-    await screen.findByText("Mì cay");
+    await screen.findByText("65.000 ₫");
     const calls = vi.mocked(loadAdminReport).mock.calls.length;
     fireEvent.change(screen.getByLabelText("Ngày bắt đầu"), { target: { value: "2026-11-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
@@ -77,19 +85,32 @@ describe("AdminReportsPage", () => {
     expect(screen.getByRole("button", { name: "Xuất Excel" })).toBeDisabled();
   });
 
-  it("shows totals, pages independently and exports all matching records", async () => {
+  it("shows the default revenue report, pages the selected report and exports it", async () => {
     render(
       <QueryProvider>
         <AdminReportsPage />
       </QueryProvider>,
     );
     chooseDates();
+    expect(await screen.findByText("65.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText("10.000 ₫")).toBeInTheDocument();
+    expect(screen.getByLabelText("Loại báo cáo")).toHaveValue("REVENUE");
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    fireEvent.change(screen.getByLabelText("Loại báo cáo"), { target: { value: "ORDERS" } });
     fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
     const orders = await screen.findByRole("region", { name: "Lịch sử order" });
     expect(await within(orders).findByText("ORD-1")).toBeInTheDocument();
-    expect(within(orders).getByText("Tổng số: 11 kết quả")).toBeInTheDocument();
+    expect(
+      within(within(orders).getByRole("navigation", { name: "Phân trang" })).getByText(
+        "11 kết quả",
+      ),
+    ).toBeInTheDocument();
+    expect(within(orders).getByText("1/2")).toBeInTheDocument();
+    expect(within(orders).getByRole("button", { name: "Trước" })).toBeDisabled();
     fireEvent.click(within(orders).getByRole("button", { name: "Sau" }));
     expect(await within(orders).findByText("ORD-2")).toBeInTheDocument();
+    expect(within(orders).getByText("2/2")).toBeInTheDocument();
+    expect(within(orders).getByRole("button", { name: "Sau" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
     expect(
       await within(await screen.findByRole("region", { name: "Lịch sử order" })).findByText(
@@ -98,10 +119,27 @@ describe("AdminReportsPage", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Xuất Excel" }));
     expect(downloadAdminReports).toHaveBeenCalledWith({
-      type: "ALL",
+      type: "ORDERS",
       from: "2026-10-01",
       to: "2026-10-31",
     });
+  });
+
+  it("falls back to revenue for old ALL links", async () => {
+    searchParams.set("type", "ALL");
+    render(
+      <QueryProvider>
+        <AdminReportsPage />
+      </QueryProvider>,
+    );
+    expect(screen.getByLabelText("Loại báo cáo")).toHaveValue("REVENUE");
+    expect(await screen.findByText("65.000 ₫")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Lịch sử order" })).not.toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(replace).toHaveBeenLastCalledWith(expect.stringContaining("type=REVENUE"), {
+        scroll: false,
+      }),
+    );
   });
 
   it("shows only the selected report and invalidates the export after changing filters", async () => {
@@ -154,6 +192,8 @@ describe("AdminReportsPage", () => {
     );
     expect(screen.getByLabelText("Ngày bắt đầu")).toHaveValue("2026-10-01");
     expect(screen.getByLabelText("Ngày kết thúc")).toHaveValue("2026-10-31");
+    expect(screen.getByText("01/10/2026")).toBeInTheDocument();
+    expect(screen.getByText("31/10/2026")).toBeInTheDocument();
     expect(screen.getByLabelText("Loại báo cáo")).toHaveValue("ORDERS");
     expect(await screen.findByText("ORD-1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "3 ngày" }));

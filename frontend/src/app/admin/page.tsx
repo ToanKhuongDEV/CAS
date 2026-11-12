@@ -31,11 +31,11 @@ import { useAdminDashboardQuery } from "../../lib/api/operation/operation.query"
 type ReportTab = "revenue" | "customers" | "menu" | "promotions";
 type IconName = "bill" | "cart" | "payment" | "users" | "clock" | "fire" | "sparkle" | "close";
 
-const reportTabs: { id: ReportTab; label: string }[] = [
-  { id: "revenue", label: "Doanh thu" },
-  { id: "customers", label: "Khách hàng" },
-  { id: "menu", label: "Menu & Order" },
-  { id: "promotions", label: "Khuyến mãi" },
+const reportTabs: { id: ReportTab; label: string; icon: string }[] = [
+  { id: "revenue", label: "Doanh thu", icon: "payments" },
+  { id: "customers", label: "Khách hàng", icon: "person" },
+  { id: "menu", label: "Menu & Order", icon: "lunch_dining" },
+  { id: "promotions", label: "Khuyến mãi", icon: "loyalty" },
 ];
 
 export default function AdminDashboardPage() {
@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
           Báo cáo hoạt động
         </h1>
       </header>
-      <section className="border-b border-cas-outline-variant/70 pb-5">
+      <section className="rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
         <AdminDateRangeFilter
           period={period}
           from={startDate}
@@ -132,40 +132,49 @@ export default function AdminDashboardPage() {
           }}
         />
       </section>
-      <nav
-        aria-label="Nhóm báo cáo"
-        className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
-      >
-        {reportTabs.map((tab) => (
-          <button
-            className={`cursor-pointer border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            type="button"
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-      {isLoading ? (
-        <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
-      ) : null}
-      {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
-      {dashboard ? (
-        <>
-          {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
-          {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
-          {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
-          {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
-        </>
-      ) : null}
+      <div className="space-y-7 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
+        <nav
+          aria-label="Nhóm báo cáo"
+          className="grid grid-cols-2 border-b border-cas-outline-variant/70 sm:grid-cols-4"
+        >
+          {reportTabs.map((tab) => (
+            <button
+              className={`flex cursor-pointer items-center justify-center gap-2 border-b-2 px-3 py-3 text-center text-sm font-bold transition ${activeTab === tab.id ? "border-cas-primary text-cas-primary" : "border-transparent text-cas-on-surface-variant hover:text-cas-on-surface"}`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="size-5 shrink-0 bg-current [mask-size:contain] [mask-repeat:no-repeat]"
+                style={{
+                  maskImage: `url(/icons/material-symbols/${tab.icon === "payments" && activeTab === tab.id ? "payments-filled" : tab.icon}.svg)`,
+                }}
+              />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+        {isLoading ? (
+          <p className="text-sm text-cas-on-surface-variant">Đang tải báo cáo...</p>
+        ) : null}
+        {error ? <p className="text-sm font-bold text-cas-error">{error}</p> : null}
+        {dashboard ? (
+          <>
+            {activeTab === "revenue" ? <RevenueReport dashboard={dashboard} /> : null}
+            {activeTab === "customers" ? <CustomerReport dashboard={dashboard} /> : null}
+            {activeTab === "menu" ? <MenuReport dashboard={dashboard} /> : null}
+            {activeTab === "promotions" ? <PromotionReport dashboard={dashboard} /> : null}
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
   const average = dashboard.revenue.paidSessionCount
-    ? dashboard.revenue.total / dashboard.revenue.paidSessionCount
+    ? dashboard.revenue.salesRevenue / dashboard.revenue.paidSessionCount
     : 0;
   const trend = dashboard.revenue.series.map((item) => ({
     label: shortDate(item.date),
@@ -179,7 +188,7 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
             "payment",
             "Doanh thu",
             money(dashboard.revenue.total),
-            "Chỉ gồm phiên khách đã thanh toán",
+            `Bán hàng: ${money(dashboard.revenue.salesRevenue)} · Dịch vụ: ${money(dashboard.revenue.serviceRevenue)}`,
           ],
           [
             "users",
@@ -191,7 +200,7 @@ function RevenueReport({ dashboard }: { dashboard: AdminDashboard }) {
             "bill",
             "Giá trị phiên khách trung bình",
             money(average),
-            "Doanh thu / phiên khách đã thanh toán",
+            "Doanh thu bán hàng / phiên khách đã thanh toán",
           ],
         ]}
       />

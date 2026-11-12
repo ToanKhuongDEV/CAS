@@ -8,6 +8,8 @@ export type ReportRow = {
   date?: string;
   paidSessionCount?: number;
   revenue?: number;
+  salesRevenue?: number;
+  serviceRevenue?: number;
   createdAt?: string;
   resolvedAt?: string;
   orderNumber?: string;

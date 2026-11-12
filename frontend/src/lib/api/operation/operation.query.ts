@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { loadAdminDashboard } from "./admin-dashboard.api";
-import { loadCustomer, loadCustomers } from "./admin-lookup.api";
+import { loadCustomer, loadCustomers, type CustomerSort } from "./admin-lookup.api";
 import { loadAdminOperationalIncidents } from "./operational-incidents.api";
 import { loadAdmins, loadOperators } from "./operational-management.api";
 import { loadOperatorDashboardSummary } from "./operator-dashboard.api";
@@ -14,8 +14,14 @@ export const adminDashboardQueryKey = (from: string, to: string) =>
   ["admin", "dashboard", from, to] as const;
 export const adminOperatorsQueryKey = ["admin", "operators"] as const;
 export const adminAccountsQueryKey = ["admin", "admins"] as const;
-export const adminCustomersQueryKey = (page: number, query: string, size: number) =>
-  ["admin", "customers", page, query, size] as const;
+export const adminCustomersQueryKey = (
+  page: number,
+  query: string,
+  size: number,
+  from: string,
+  to: string,
+  sort: CustomerSort,
+) => ["admin", "customers", page, query, size, from, to, sort] as const;
 export const adminCustomerQueryKey = (id: number) => ["admin", "customers", id] as const;
 
 export function useOperatorDashboardSummaryQuery() {
@@ -53,10 +59,19 @@ export function useAdminAccountsQuery(enabled: boolean) {
   return useQuery({ queryKey: adminAccountsQueryKey, queryFn: loadAdmins, enabled });
 }
 
-export function useAdminCustomersQuery(page: number, query: string, size: number) {
+export function useAdminCustomersQuery(
+  page: number,
+  query: string,
+  size: number,
+  from: string,
+  to: string,
+  sort: CustomerSort,
+  enabled = true,
+) {
   return useQuery({
-    queryKey: adminCustomersQueryKey(page, query, size),
-    queryFn: () => loadCustomers({ page, query, size }),
+    queryKey: adminCustomersQueryKey(page, query, size, from, to, sort),
+    queryFn: () => loadCustomers({ page, query, size, from, to, sort }),
+    enabled,
   });
 }
 

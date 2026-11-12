@@ -6,7 +6,8 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { AdminDateRangeFilter } from "../../../components/admin/admin-date-range-filter";
 import { CasButton } from "../../../components/ui/cas-button";
-import { Pagination } from "../../../components/ui/pagination";
+import { CasRoundedButton } from "../../../components/ui/cas-rounded-button";
+import { CompactPagination } from "../../../components/ui/compact-pagination";
 import {
   adminDashboardFilterStorageKey,
   adminDashboardFilterUpdatedEvent,
@@ -28,7 +29,13 @@ const reportTypes: { type: ReportType; title: string; headings: string[] }[] = [
   {
     type: "REVENUE",
     title: "Tổng hợp doanh thu",
-    headings: ["Ngày thanh toán", "Số phiên đã thanh toán", "Tổng doanh thu"],
+    headings: [
+      "Ngày thanh toán",
+      "Số phiên đã thanh toán",
+      "Doanh thu bán hàng",
+      "Doanh thu dịch vụ",
+      "Tổng doanh thu",
+    ],
   },
   {
     type: "ORDERS",
@@ -72,7 +79,13 @@ function destination(code?: number | null) {
 
 function cells(type: ReportType, row: ReportRow): (string | number)[] {
   if (type === "REVENUE")
-    return [date(row.date), row.paidSessionCount ?? 0, formatMoney(row.revenue ?? 0)];
+    return [
+      date(row.date),
+      row.paidSessionCount ?? 0,
+      formatMoney(row.salesRevenue ?? 0),
+      formatMoney(row.serviceRevenue ?? 0),
+      formatMoney(row.revenue ?? 0),
+    ];
   if (type === "ORDERS")
     return [
       date(row.createdAt),
@@ -145,19 +158,21 @@ function ReportSection({
       </div>
       {data ? (
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-cas-on-surface-variant">
-            Tổng số: {data.total} kết quả
-          </p>
           {page > 0 && page * data.size >= data.total ? (
-            <CasButton
-              size="sm"
-              variant="outline"
-              onClick={() => setPage(Math.max(0, Math.ceil(data.total / data.size) - 1))}
-            >
-              Về trang còn dữ liệu
-            </CasButton>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="rounded-lg bg-cas-surface-container px-3 py-2 text-sm font-semibold text-cas-on-surface-variant">
+                {data.total} kết quả
+              </span>
+              <CasButton
+                size="sm"
+                variant="outline"
+                onClick={() => setPage(Math.max(0, Math.ceil(data.total / data.size) - 1))}
+              >
+                Về trang còn dữ liệu
+              </CasButton>
+            </div>
           ) : (
-            <Pagination
+            <CompactPagination
               onPageChange={setPage}
               page={data.page}
               size={data.size}
@@ -177,9 +192,9 @@ export default function AdminReportsPage() {
   const [from, setFrom] = useState(initialFilter.from);
   const [to, setTo] = useState(initialFilter.to);
   const [period, setPeriod] = useState<Period>(initialFilter.period);
-  const [type, setType] = useState<ReportFilter["type"]>(() => {
+  const [type, setType] = useState<ReportType>(() => {
     const value = searchParams.get("type");
-    return value === "REVENUE" || value === "ORDERS" || value === "REMADE" ? value : "ALL";
+    return value === "REVENUE" || value === "ORDERS" || value === "REMADE" ? value : "REVENUE";
   });
   const [filter, setFilter] = useState<ReportFilter>(() => ({
     from: initialFilter.from,
@@ -247,7 +262,7 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-black text-cas-on-surface">Báo cáo</h1>
       <form
-        className="rounded-sm border border-cas-outline-variant/30 bg-cas-glass p-5"
+        className="rounded-2xl border border-cas-outline-variant/30 bg-cas-glass p-5"
         onSubmit={search}
       >
         <AdminDateRangeFilter
@@ -270,17 +285,17 @@ export default function AdminReportsPage() {
             setTo(value);
           }}
         />
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="text-xs font-bold text-cas-on-surface">
-            Loại báo cáo
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-cas-outline-variant/20 pt-4">
+          <label className="flex flex-wrap items-center gap-3 text-xs font-semibold text-cas-on-surface-variant">
+            Loại báo cáo:
             <select
-              className="mt-1.5 w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2"
+              aria-label="Loại báo cáo"
+              className="w-full rounded-xl border border-cas-outline-variant/40 bg-cas-surface px-3 py-2 text-xs font-bold text-cas-on-surface sm:w-auto"
               value={type}
               onChange={(event) => {
-                setType(event.target.value as ReportFilter["type"]);
+                setType(event.target.value as ReportType);
               }}
             >
-              <option value="ALL">Tất cả</option>
               {reportTypes.map((report) => (
                 <option key={report.type} value={report.type}>
                   {report.title}
@@ -288,18 +303,20 @@ export default function AdminReportsPage() {
               ))}
             </select>
           </label>
-          <div className="flex items-end gap-2">
-            <CasButton type="submit" className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <CasRoundedButton type="submit" size="sm" icon="search" className="flex-1">
               Tìm kiếm
-            </CasButton>
-            <CasButton
+            </CasRoundedButton>
+            <CasRoundedButton
               type="button"
-              variant="outline"
+              size="sm"
+              variant="outline-primary"
+              icon="download"
               disabled={Boolean(rangeError) || isDebouncing || exporting}
               onClick={() => void exportReport()}
             >
               {exporting ? "Đang xuất..." : "Xuất Excel"}
-            </CasButton>
+            </CasRoundedButton>
           </div>
         </div>
         {rangeError || exportError ? (
@@ -307,12 +324,9 @@ export default function AdminReportsPage() {
             {rangeError ?? exportError}
           </p>
         ) : null}
-        <p className="mt-3 text-xs text-cas-on-surface-variant">
-          Số tiền trong Excel được lưu dạng văn bản để giữ nguyên độ chính xác.
-        </p>
       </form>
       {reportTypes
-        .filter((report) => filter.type === "ALL" || report.type === filter.type)
+        .filter((report) => report.type === filter.type)
         .map((report) => (
           <ReportSection
             key={report.type + "-" + filter.from + "-" + filter.to + "-" + searchRevision}
