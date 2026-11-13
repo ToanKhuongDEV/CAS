@@ -1,5 +1,6 @@
 # CAS — Theo dõi tiến độ dự án
 
+- 2026-11-12: Thêm thông báo bảo lưu bản quyền cho CAS và ghi nhận giấy phép riêng của các thành phần bên thứ ba.
 - 2026-11-12: Sửa tìm kiếm khách hàng và audit log để ký tự đặc biệt được tìm chính xác trước phân trang.
 - 2026-11-12: Đồng bộ phân trang khách hàng Admin, mặc định 20 kết quả mỗi trang.
 - 2026-11-12: Đặt lại tên người báo cáo mặc định khi mở lại form sự cố của Operator.
