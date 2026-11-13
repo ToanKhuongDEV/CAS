@@ -292,7 +292,7 @@ export default function MenuPage() {
                                 optionValueIds: Object.values(payload.selectedOptionIds)
                                   .flat()
                                   .map(Number),
-                                quantity: 1,
+                                quantity: payload.quantity,
                                 selectedOptions:
                                   item.optionGroups?.flatMap((group) =>
                                     group.options

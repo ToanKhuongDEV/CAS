@@ -24,6 +24,7 @@ export type MenuOptionGroup = {
 };
 
 export type AddToCartPayload = {
+  quantity: number;
   optionsSummary: string;
   extraPrice: number;
   totalUnitPrice: number;
@@ -50,6 +51,7 @@ export function AddToCartOptionDialog({
   onAddToCart,
 }: AddToCartOptionDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(
       optionGroups.map((group) => [
@@ -113,6 +115,7 @@ export function AddToCartOptionDialog({
       }
 
       onAddToCart({
+        quantity,
         optionsSummary: summaryParts.join(" • ") || "Món tiêu chuẩn",
         extraPrice: selectedOptionPrice,
         totalUnitPrice: basePrice + selectedOptionPrice,
@@ -128,15 +131,7 @@ export function AddToCartOptionDialog({
     if (beforeAddToCart && !(await beforeAddToCart())) {
       return;
     }
-    if (optionGroups.length === 0 && onAddToCart) {
-      onAddToCart({
-        optionsSummary: "Món tiêu chuẩn",
-        extraPrice: 0,
-        totalUnitPrice: basePrice,
-        selectedOptionIds: {},
-      });
-      return;
-    }
+    setQuantity(1);
     setIsOpen(true);
   }
 
@@ -173,9 +168,6 @@ export function AddToCartOptionDialog({
           <section className="mx-auto my-auto w-full max-w-lg rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_16px_36px_var(--cas-shadow-color)] md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-extrabold tracking-[0.12em] text-cas-secondary uppercase">
-                  Chọn tùy chọn
-                </p>
                 <h2 className="mt-1 text-xl font-extrabold" id={`${itemId}-options-title`}>
                   {itemName}
                 </h2>
@@ -185,19 +177,32 @@ export function AddToCartOptionDialog({
               </strong>
             </div>
 
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <span className="text-sm font-extrabold">Số lượng</span>
+              <ItemQuantityControl
+                itemName={itemName}
+                large
+                quantity={quantity}
+                quantityClassName="text-sm"
+                onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
+                onIncrease={() => setQuantity((value) => value + 1)}
+              />
+            </div>
+
             {optionGroups.length > 0 ? (
               <div className="mt-6 space-y-5">
                 {optionGroups.map((group) => (
                   <fieldset key={group.id}>
                     <legend className="text-sm font-extrabold">{group.label}</legend>
-                    <p className="mt-1 text-sm text-cas-on-surface-variant">
-                      {group.minSelect
-                        ? `Chọn ít nhất ${group.minSelect} lựa chọn.`
-                        : "Tùy chọn thêm."}
-                      {group.maxSelect !== null && group.maxSelect !== undefined
-                        ? ` Tối đa ${group.maxSelect} lựa chọn.`
-                        : ""}
-                    </p>
+                    {group.selectionType === "MULTIPLE" ? (
+                      <p className="mt-1 text-sm text-cas-on-surface-variant">
+                        Có thể chọn nhiều.
+                        {group.minSelect ? ` Chọn ít nhất ${group.minSelect} lựa chọn.` : ""}
+                        {group.maxSelect !== null && group.maxSelect !== undefined
+                          ? ` Tối đa ${group.maxSelect} lựa chọn.`
+                          : ""}
+                      </p>
+                    ) : null}
                     {group.id === "spice-level" ? (
                       <select
                         className="mt-3 h-12 w-full rounded-xl border border-cas-outline-variant/55 bg-cas-surface px-3 text-sm font-bold outline-none focus:border-cas-primary focus:ring-3 focus:ring-cas-primary/15"
@@ -240,11 +245,7 @@ export function AddToCartOptionDialog({
                   </fieldset>
                 ))}
               </div>
-            ) : (
-              <p className="mt-6 text-sm text-cas-on-surface-variant">
-                Món này không có tùy chọn thêm.
-              </p>
-            )}
+            ) : null}
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <CasButton
@@ -263,7 +264,7 @@ export function AddToCartOptionDialog({
                 )}
                 onClick={handleConfirm}
               >
-                Thêm vào giỏ · {formatPrice(basePrice + selectedOptionPrice)}
+                Thêm vào giỏ · {formatPrice((basePrice + selectedOptionPrice) * quantity)}
               </CasButton>
             </div>
           </section>

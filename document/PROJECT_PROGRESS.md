@@ -1,5 +1,12 @@
 # CAS — Theo dõi tiến độ dự án
 
+- 2026-11-13: Cập nhật hướng dẫn chọn một hoặc nhiều tùy chọn trong popup thêm món.
+- 2026-11-13: Tăng nhẹ kích thước nút chọn số lượng trong popup thêm món.
+- 2026-11-13: Tăng cỡ số lượng trong popup thêm món bằng cỡ chữ tiêu đề.
+- 2026-11-13: Đưa bộ chọn số lượng lên trước các tùy chọn trong popup thêm món.
+- 2026-11-13: Bỏ thông báo không có tùy chọn thêm trong popup thêm món của khách hàng.
+- 2026-11-13: Bỏ dòng chữ chọn tùy chọn trong popup thêm món của khách hàng.
+- 2026-11-13: Cho phép khách chọn số lượng trong popup thêm món từ danh sách thực đơn.
 - 2026-11-12: Thêm thông báo bảo lưu bản quyền cho CAS và ghi nhận giấy phép riêng của các thành phần bên thứ ba.
 - 2026-11-12: Sửa tìm kiếm khách hàng và audit log để ký tự đặc biệt được tìm chính xác trước phân trang.
 - 2026-11-12: Đồng bộ phân trang khách hàng Admin, mặc định 20 kết quả mỗi trang.

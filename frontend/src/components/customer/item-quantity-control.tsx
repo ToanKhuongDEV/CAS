@@ -5,6 +5,8 @@ type ItemQuantityControlProps = {
   onDecrease?: () => void;
   onIncrease?: () => void;
   quantity: number;
+  quantityClassName?: string;
+  large?: boolean;
 };
 
 export function ItemQuantityControl({
@@ -12,6 +14,8 @@ export function ItemQuantityControl({
   onDecrease,
   onIncrease,
   quantity,
+  quantityClassName = "text-xs",
+  large = false,
 }: ItemQuantityControlProps) {
   return (
     <div
@@ -19,16 +23,16 @@ export function ItemQuantityControl({
       aria-label={`Số lượng ${itemName}: ${quantity}`}
     >
       <button
-        className="grid size-7 place-items-center rounded-full text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring"
+        className={`grid ${large ? "size-9" : "size-7"} place-items-center rounded-full text-cas-primary focus-visible:outline-3 focus-visible:outline-cas-focus-ring`}
         type="button"
         aria-label={`Giảm số lượng ${itemName}`}
         onClick={onDecrease}
       >
         <CasIcon className="size-4" name="minus" />
       </button>
-      <span className="min-w-3 text-center text-xs font-extrabold">{quantity}</span>
+      <span className={`min-w-3 text-center font-extrabold ${quantityClassName}`}>{quantity}</span>
       <button
-        className="grid size-7 place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring"
+        className={`grid ${large ? "size-9" : "size-7"} place-items-center rounded-full bg-cas-primary text-cas-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-cas-focus-ring`}
         type="button"
         aria-label={`Tăng số lượng ${itemName}`}
         onClick={onIncrease}
