@@ -2,6 +2,7 @@
 
 import { formatMoney } from "../../../../lib/format-money";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -49,6 +50,7 @@ function zaloContactUrl(phone: string) {
 
 export default function MenuPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { data: catalog, error: catalogLoadError } = useCustomerCatalog();
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategoryNavigationItem[]>([]);
@@ -59,13 +61,21 @@ export default function MenuPage() {
 
   useEffect(() => {
     const storeId = getRememberedPublicStoreId() ?? 1;
-    void loadPublicStoreWelcomeConfig(storeId)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", storeId, "welcome"],
+        queryFn: () => loadPublicStoreWelcomeConfig(storeId),
+      })
       .then((config) => setWelcomeBannerImageUrl(config?.bannerImageUrl ?? null))
       .catch(() => undefined);
-    void loadPublicStore(storeId)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", storeId],
+        queryFn: () => loadPublicStore(storeId),
+      })
       .then((store) => setStorePhone(store.phone))
       .catch(() => undefined);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!catalog) return;
@@ -272,7 +282,19 @@ export default function MenuPage() {
                           <AddToCartOptionDialog
                             basePrice={item.basePrice}
                             beforeAddToCart={async () => {
-                              if (await hasOpenCustomerSalesSession()) return true;
+                              if (
+                                await queryClient.fetchQuery({
+                                  queryKey: [
+                                    "customer",
+                                    "sales-session",
+                                    "open-check",
+                                    window.sessionStorage.getItem("cas.catalogSession"),
+                                  ],
+                                  queryFn: hasOpenCustomerSalesSession,
+                                  staleTime: 0,
+                                })
+                              )
+                                return true;
                               router.push(
                                 `/start?returnTo=${encodeURIComponent(window.location.pathname)}`,
                               );
@@ -292,7 +314,7 @@ export default function MenuPage() {
                                 optionValueIds: Object.values(payload.selectedOptionIds)
                                   .flat()
                                   .map(Number),
-                                quantity: 1,
+                                quantity: payload.quantity,
                                 selectedOptions:
                                   item.optionGroups?.flatMap((group) =>
                                     group.options

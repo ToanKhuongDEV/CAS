@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { uploadImage } from "../../lib/api/catalog/cloudinary-upload";
 import {
   createEmptyStoreWelcomeConfig,
@@ -49,6 +50,7 @@ const imageSlots: ImageSlot[] = [
 
 export function StoreWelcomeConfigSection() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [config, setConfig] = useState<StoreWelcomeConfig>(createEmptyStoreWelcomeConfig);
   const [isLoading, setIsLoading] = useState(true);
   const [loadSucceeded, setLoadSucceeded] = useState(false);
@@ -57,7 +59,8 @@ export function StoreWelcomeConfigSection() {
 
   useEffect(() => {
     let active = true;
-    void loadStoreWelcomeConfig()
+    void queryClient
+      .fetchQuery({ queryKey: ["admin", "store-welcome"], queryFn: loadStoreWelcomeConfig })
       .then((savedConfig) => {
         if (active) {
           if (savedConfig) setConfig({ ...savedConfig, status: "ACTIVE" });
@@ -78,7 +81,7 @@ export function StoreWelcomeConfigSection() {
     return () => {
       active = false;
     };
-  }, [showToast]);
+  }, [showToast, queryClient]);
 
   const setSlotUploading = (slot: ImageSlot, isUploading: boolean) => {
     setUploadingSlots((current) => {
@@ -128,6 +131,9 @@ export function StoreWelcomeConfigSection() {
     setIsSaving(true);
     try {
       const savedConfig = await saveStoreWelcomeConfig({ ...config, status: "ACTIVE" });
+      await queryClient.cancelQueries({ queryKey: ["admin", "store-welcome"] });
+      queryClient.setQueryData(["admin", "store-welcome"], savedConfig);
+      void queryClient.invalidateQueries({ queryKey: ["public", "stores"] });
       setConfig(savedConfig);
       showToast({ message: "Đã lưu cấu hình trang Welcome.", type: "success" });
     } catch (error) {

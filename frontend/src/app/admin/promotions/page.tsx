@@ -1,10 +1,11 @@
 "use client";
 
 import { formatMoney as formatVnd } from "../../../lib/format-money";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
-import { loadAdminCatalog } from "../../../lib/api/catalog/catalog.api";
+import { useAdminCatalogQuery } from "../../../lib/api/catalog/catalog.query";
 import {
   createPromotion,
   loadAdminPromotions,
@@ -171,7 +172,40 @@ function getCompletedRedemptions(promotion: Promotion) {
 }
 
 export default function AdminPromotionsPage() {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const queryClient = useQueryClient();
+  const promotionsKey = ["admin", "promotions"] as const;
+  const { data: promotions = [], error: promotionsError } = useQuery({
+    queryKey: promotionsKey,
+    queryFn: async (): Promise<Promotion[]> =>
+      (await loadAdminPromotions()).map((item) => ({
+        ...item.promotion,
+        id: item.promotion.publicId,
+        code: item.codes
+          .map(
+            (code) =>
+              `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
+          )
+          .join(", "),
+        startAt: item.promotion.startAt?.slice(0, 16) ?? "",
+        endAt: item.promotion.endAt?.slice(0, 16) ?? "",
+        targets: item.targets.map((target) => ({
+          id: String(target.id),
+          targetType: target.targetType,
+          targetId: String(target.targetId),
+        })),
+        completedRedemptionCount: item.completedRedemptionCount,
+        redemptions: [],
+      })),
+  });
+  const { data: catalog, error: catalogError } = useAdminCatalogQuery();
+  const catalogMenuItems =
+    catalog?.items.map((item) => ({ id: String(item.id), name: item.name, category: "" })) ??
+    menuItems;
+  const catalogCategories =
+    catalog?.categories.map((category) => ({ id: String(category.id), name: category.name })) ??
+    categories;
+  const setPromotions = (update: (current: Promotion[]) => Promotion[]) =>
+    queryClient.setQueryData<Promotion[]>(promotionsKey, (current) => update(current ?? []));
   const [apiError, setApiError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -201,62 +235,6 @@ export default function AdminPromotionsPage() {
   const [codeInput, setCodeInput] = useState("");
   const [codeQuota, setCodeQuota] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
-  const [catalogMenuItems, setCatalogMenuItems] = useState(menuItems);
-  const [catalogCategories, setCatalogCategories] = useState(categories);
-
-  useEffect(() => {
-    void loadAdminPromotions()
-      .then((items) => {
-        setPromotions(
-          items.map((item) => ({
-            ...item.promotion,
-            id: item.promotion.publicId,
-            code: item.codes
-              .map(
-                (code) =>
-                  `${code.code}${code.maxRedemptions === null ? "" : `:${code.maxRedemptions}`}`,
-              )
-              .join(", "),
-            startAt: item.promotion.startAt?.slice(0, 16) ?? "",
-            endAt: item.promotion.endAt?.slice(0, 16) ?? "",
-            targets: item.targets.map((target) => ({
-              id: String(target.id),
-              targetType: target.targetType,
-              targetId: String(target.targetId),
-            })),
-            completedRedemptionCount: item.completedRedemptionCount,
-            redemptions: [],
-          })),
-        );
-        setApiError(null);
-      })
-      .catch((cause) =>
-        setApiError(cause instanceof Error ? cause.message : "Không thể tải khuyến mãi."),
-      );
-  }, []);
-
-  useEffect(() => {
-    void loadAdminCatalog()
-      .then((catalog) => {
-        const nextItems = catalog.items.map((item) => ({
-          id: String(item.id),
-          name: item.name,
-          category: "",
-        }));
-        const nextCategories = catalog.categories.map((category) => ({
-          id: String(category.id),
-          name: category.name,
-        }));
-        setCatalogMenuItems(nextItems);
-        setCatalogCategories(nextCategories);
-      })
-      .catch((cause) =>
-        setApiError(
-          cause instanceof Error ? cause.message : "Không thể tải danh mục để chọn phạm vi.",
-        ),
-      );
-  }, []);
-
   const filteredPromotions = useMemo(
     () =>
       promotions.filter((promotion) => {
@@ -326,7 +304,11 @@ export default function AdminPromotionsPage() {
       loading: true,
     }));
     try {
-      const result = await loadPromotionRedemptions(promotion.id, page);
+      const result = await queryClient.fetchQuery({
+        queryKey: [...promotionsKey, promotion.id, "redemptions", page],
+        queryFn: () => loadPromotionRedemptions(promotion.id, page),
+        staleTime: 0,
+      });
       setRedemptionHistory({ promotion, ...result, loading: false });
       setApiError(null);
     } catch (cause) {
@@ -450,6 +432,9 @@ export default function AdminPromotionsPage() {
     if (!current) return;
     try {
       const updated = await updatePromotionStatus(id, nextStatus(current.status));
+      await queryClient.cancelQueries({ queryKey: promotionsKey, exact: true });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "promotions"] });
+      void queryClient.invalidateQueries({ queryKey: ["operator", "promotions"] });
       setPromotions((items) =>
         items.map((item) =>
           item.id === id
@@ -514,6 +499,9 @@ export default function AdminPromotionsPage() {
           const saved = editingId
             ? await updatePromotion(editingId, command)
             : await createPromotion(command);
+          await queryClient.cancelQueries({ queryKey: promotionsKey, exact: true });
+          void queryClient.invalidateQueries({ queryKey: ["customer", "promotions"] });
+          void queryClient.invalidateQueries({ queryKey: ["operator", "promotions"] });
           const next = {
             ...normalized,
             ...saved.promotion,
@@ -585,7 +573,11 @@ export default function AdminPromotionsPage() {
           Tạo promotion
         </CasButton>
       </div>
-      {apiError && <p className="text-sm font-semibold text-cas-error">{apiError}</p>}
+      {(apiError || promotionsError || catalogError) && (
+        <p className="text-sm font-semibold text-cas-error">
+          {apiError ?? promotionsError?.message ?? catalogError?.message}
+        </p>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-2xl border border-cas-outline-variant/25 bg-cas-glass p-3 lg:flex-row lg:items-center">

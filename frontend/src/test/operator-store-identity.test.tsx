@@ -1,9 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryProvider } from "../components/providers/query-provider";
+import { fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { OperatorStoreIdentity } from "../components/operator/operator-store-identity";
 import { getCurrentOperationalAccount } from "../lib/auth/operational-auth";
 import { loadPublicStore } from "../lib/api/store/public-store.api";
+
+const render = (ui: ReactElement) => testingRender(<QueryProvider>{ui}</QueryProvider>);
 
 vi.mock("../lib/auth/firebase", () => ({
   getFirebaseAuth: () => ({ currentUser: { uid: "operator-1" } }),

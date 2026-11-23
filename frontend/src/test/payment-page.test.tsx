@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { QueryProvider } from "../components/providers/query-provider";
 import { PaymentRequestPanel } from "../app/(customer)/payment/payment-request-panel";
 import { loadCustomerBill } from "../lib/api/ordering/ordering.api";
 import {
@@ -73,7 +74,11 @@ describe("PaymentRequestPanel", () => {
   });
 
   it("renders the bill returned by the API", async () => {
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByText("Mỳ cay API")).toBeInTheDocument();
     expect(screen.queryByText("Giảm giá")).not.toBeInTheDocument();
@@ -92,7 +97,11 @@ describe("PaymentRequestPanel", () => {
       status: "PAID",
       tableCode: 8,
     });
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Thanh toán thành công" }),
@@ -113,7 +122,11 @@ describe("PaymentRequestPanel", () => {
       status: "PAID",
       tableCode: 8,
     });
-    render(<PaymentRequestPanel pollIntervalMs={30} />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel pollIntervalMs={30} />
+      </QueryProvider>,
+    );
     await screen.findByRole("heading", { name: "Thanh toán thành công" });
     await new Promise((resolve) => setTimeout(resolve, 120));
     expect(loadCustomerPayment).toHaveBeenCalledTimes(1);
@@ -133,7 +146,11 @@ describe("PaymentRequestPanel", () => {
       status: "PAID",
       tableCode: null,
     });
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Thanh toán thành công" }),
@@ -158,7 +175,11 @@ describe("PaymentRequestPanel", () => {
       .mockResolvedValueOnce(pending)
       .mockResolvedValueOnce(pending)
       .mockResolvedValue({ ...pending, status: "PAID", confirmedAt: "2026-09-01T20:05:00+07:00" });
-    render(<PaymentRequestPanel pollIntervalMs={50} />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel pollIntervalMs={50} />
+      </QueryProvider>,
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Chờ nhân viên xác nhận" }),
@@ -176,7 +197,11 @@ describe("PaymentRequestPanel", () => {
     vi.mocked(loadCustomerPayment).mockRejectedValue(
       new Error("Vui lòng quét mã QR của bàn để tiếp tục."),
     );
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     await waitFor(() => expect(loadCustomerBill).toHaveBeenCalledOnce());
     await waitFor(() =>
@@ -197,7 +222,11 @@ describe("PaymentRequestPanel", () => {
       status: "PENDING",
       tableCode: 8,
     });
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Gửi yêu cầu thanh toán" }));
     await waitFor(() => expect(createCustomerPayment).toHaveBeenCalledOnce());
@@ -227,7 +256,11 @@ describe("PaymentRequestPanel", () => {
     vi.mocked(loadCustomerPromotions).mockResolvedValueOnce([voucher]).mockResolvedValue([]);
     vi.mocked(selectCustomerPromotion).mockResolvedValue({ ...voucher, code: null, codeId: null });
     vi.mocked(createCustomerPayment).mockRejectedValue(new Error(promotionUnavailableMessage));
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: /Voucher \/ khuyến mãi/ }));
     fireEvent.click(await screen.findByRole("button", { name: /Ưu đãi công khai/ }));
@@ -272,7 +305,11 @@ describe("PaymentRequestPanel", () => {
         unavailableReason: "Khuyến mãi đã hết lượt sử dụng.",
       },
     ]);
-    render(<PaymentRequestPanel />);
+    render(
+      <QueryProvider>
+        <PaymentRequestPanel />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: /Voucher \/ khuyến mãi/ }));
 

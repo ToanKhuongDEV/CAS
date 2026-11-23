@@ -1,3 +1,4 @@
+import { QueryProvider } from "../components/providers/query-provider";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -52,7 +53,11 @@ describe("CustomerInformationPage", () => {
   }
 
   it("shows order types before resolving the table QR", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByRole("heading", { name: "Bắt đầu gọi món" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ăn tại quán" })).toBeInTheDocument();
@@ -71,7 +76,11 @@ describe("CustomerInformationPage", () => {
   });
 
   it("shows a name error and focuses the invalid input", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -83,7 +92,11 @@ describe("CustomerInformationPage", () => {
   });
 
   it("accepts spaces in a Vietnamese phone number and sends normalized digits", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -112,7 +125,11 @@ describe("CustomerInformationPage", () => {
   });
 
   it("rejects an invalid Vietnamese phone number", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -133,7 +150,11 @@ describe("CustomerInformationPage", () => {
   });
 
   it("continues to the menu when required information is present", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -162,7 +183,11 @@ describe("CustomerInformationPage", () => {
       tableCode: 5,
     });
 
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -189,7 +214,11 @@ describe("CustomerInformationPage", () => {
         tableCode: 5,
       });
 
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 
@@ -204,7 +233,11 @@ describe("CustomerInformationPage", () => {
   });
 
   it("requires a phone number when the customer chooses takeaway", async () => {
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Mang về" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Tên của bạn" }), {
@@ -218,7 +251,11 @@ describe("CustomerInformationPage", () => {
   it("shows a retry action when QR resolution fails", async () => {
     vi.mocked(resolveCustomerSalesSession).mockRejectedValue(new Error("QR không hợp lệ"));
 
-    render(<CustomerInformationPage />);
+    render(
+      <QueryProvider>
+        <CustomerInformationPage />
+      </QueryProvider>,
+    );
 
     await chooseDineIn();
 

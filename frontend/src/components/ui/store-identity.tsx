@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 import { STORE_LOGO } from "../../lib/store-logo";
 import { CasIcon } from "./cas-icon";
@@ -28,27 +29,18 @@ export function StoreIdentity({
   branchAsLocation = false,
   inHeader = false,
 }: StoreIdentityProps) {
-  const [name, setName] = useState("Bambu Garden");
-  const [branchName, setBranchName] = useState<string | null>(null);
-  const [slogan, setSlogan] = useState<string | null>(null);
+  const effectiveStoreId =
+    storeId ?? (fallbackToPublicStore ? (getRememberedPublicStoreId() ?? 1) : null);
+  const { data: store } = useQuery({
+    queryKey: ["public", "stores", effectiveStoreId],
+    queryFn: () => loadPublicStore(effectiveStoreId!),
+    enabled: effectiveStoreId !== null,
+    retry: false,
+  });
+  const name = store?.brandName ?? store?.branchName ?? store?.name ?? "Bambu Garden";
+  const branchName = store?.branchName ?? store?.name ?? null;
+  const slogan = store?.welcomeSlogan ?? null;
   const [showBranch, setShowBranch] = useState(false);
-  useEffect(() => {
-    let active = true;
-    const effectiveStoreId =
-      storeId ?? (fallbackToPublicStore ? (getRememberedPublicStoreId() ?? 1) : null);
-    if (!effectiveStoreId) return;
-    void loadPublicStore(effectiveStoreId)
-      .then((store) => {
-        if (!active) return;
-        setName(store.brandName ?? store.branchName ?? store.name ?? "Bambu Garden");
-        setBranchName(store.branchName ?? store.name ?? null);
-        setSlogan(store.welcomeSlogan);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [fallbackToPublicStore, storeId]);
   const logo = inHeader ? (
     <img
       alt="Logo cửa hàng"

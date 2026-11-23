@@ -12,7 +12,10 @@ export const currentCustomerSalesSessionQueryKey = [
 
 export function useCurrentCustomerSalesSessionQuery() {
   return useQuery({
-    queryKey: currentCustomerSalesSessionQueryKey,
+    queryKey: [
+      ...currentCustomerSalesSessionQueryKey,
+      typeof window === "undefined" ? null : window.sessionStorage.getItem("cas.catalogSession"),
+    ],
     queryFn: getCurrentCustomerSalesSession,
   });
 }

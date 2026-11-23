@@ -1,7 +1,8 @@
 "use client";
 
 import { QRCodeCanvas } from "qrcode.react";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { useToast } from "../../../components/ui/toast-provider";
@@ -41,7 +42,12 @@ function toTableItem(table: AdminDiningTable): TableItem {
 
 export default function AdminTablesPage() {
   const { showToast } = useToast();
-  const [tables, setTables] = useState<TableItem[]>([]);
+  const queryClient = useQueryClient();
+  const { data: tableData, error: tablesError } = useQuery({
+    queryKey: ["admin", "tables"],
+    queryFn: loadDiningTables,
+  });
+  const tables = (tableData ?? []).map(toTableItem);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTableCode, setNewTableCode] = useState<string>("");
   const [selectedQR, setSelectedQR] = useState<TableItem | null>(null);
@@ -54,20 +60,11 @@ export default function AdminTablesPage() {
   );
   const [qrColors, setQrColors] = useState<QrColors | null>(null);
 
-  const reloadTables = useCallback(async () => {
-    try {
-      setTables((await loadDiningTables()).map(toTableItem));
-    } catch (error) {
-      showToast({
-        message: error instanceof Error ? error.message : "Không thể tải danh sách bàn ăn.",
-        type: "error",
-      });
-    }
-  }, [showToast]);
+  const reloadTables = () => queryClient.invalidateQueries({ queryKey: ["admin", "tables"] });
 
   useEffect(() => {
-    void reloadTables();
-  }, [reloadTables]);
+    if (tablesError) showToast({ message: tablesError.message, type: "error" });
+  }, [tablesError, showToast]);
 
   useEffect(() => {
     const styles = window.getComputedStyle(document.documentElement);
@@ -107,6 +104,7 @@ export default function AdminTablesPage() {
   const handleDeleteTable = async (id: number) => {
     try {
       await deleteDiningTable(id);
+      queryClient.removeQueries({ queryKey: ["admin", "table-qr", id] });
       await reloadTables();
       setDeletingTable(null);
       showToast({ message: "Đã xóa bàn và mã QR liên quan.", type: "success" });
@@ -120,7 +118,11 @@ export default function AdminTablesPage() {
 
   const handleViewQr = async (table: TableItem) => {
     try {
-      const qrCode = await loadActiveTableQrCode(table.id);
+      const qrCode = await queryClient.fetchQuery({
+        queryKey: ["admin", "table-qr", table.id],
+        queryFn: () => loadActiveTableQrCode(table.id),
+        staleTime: 0,
+      });
       setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });
     } catch (error) {
       showToast({
@@ -133,6 +135,7 @@ export default function AdminTablesPage() {
   const handleReissueQr = async (table: TableItem) => {
     try {
       const qrCode = await reissueTableQrCode(table.id);
+      queryClient.removeQueries({ queryKey: ["admin", "table-qr", table.id] });
       await reloadTables();
       setReissuingTable(null);
       setSelectedQR({ ...table, code: qrCode.tableCode, qrToken: qrCode.token });

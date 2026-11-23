@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { CustomerInformationFormFields } from "../../../../components/customer/customer-information-form-fields";
@@ -12,6 +13,7 @@ import { loadCustomerNotifications } from "../../../../lib/api/notification/noti
 
 export function CustomerInformationForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const params = useParams<{ token: string }>();
   const [resolution, setResolution] = useState<SalesSessionResolution | null>(null);
@@ -28,7 +30,17 @@ export function CustomerInformationForm() {
   function loadNotificationsOnce() {
     if (hasLoadedNotifications.current) return;
     hasLoadedNotifications.current = true;
-    void loadCustomerNotifications().catch(() => undefined);
+    void queryClient
+      .fetchQuery({
+        queryKey: [
+          "customer",
+          "notifications",
+          window.sessionStorage.getItem("cas.catalogSession"),
+        ],
+        queryFn: loadCustomerNotifications,
+        staleTime: 0,
+      })
+      .catch(() => undefined);
   }
 
   function resolveDineIn() {

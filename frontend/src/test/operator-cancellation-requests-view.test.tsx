@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OperatorCancellationRequestsView } from "../components/operator/operator-cancellation-requests-view";
+import { QueryProvider } from "../components/providers/query-provider";
 import {
   loadOperatorCancellationRequest,
   loadOperatorCancellationRequests,
@@ -48,12 +49,20 @@ describe("OperatorCancellationRequestsView", () => {
         orderId: "12345678-1234",
       },
     ]);
-    render(<OperatorCancellationRequestsView />);
+    render(
+      <QueryProvider>
+        <OperatorCancellationRequestsView />
+      </QueryProvider>,
+    );
     expect(await screen.findByText("Mang về · An · 12345678")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Từ chối" })).toBeInTheDocument();
   });
   it("renders the list of pending cancellation requests from the API", async () => {
-    render(<OperatorCancellationRequestsView />);
+    render(
+      <QueryProvider>
+        <OperatorCancellationRequestsView />
+      </QueryProvider>,
+    );
 
     expect(screen.getByRole("heading", { name: "Yêu cầu hủy món" })).toBeInTheDocument();
     expect(await screen.findByText("Bàn 08")).toBeInTheDocument();
@@ -65,7 +74,11 @@ describe("OperatorCancellationRequestsView", () => {
       .mockResolvedValueOnce([request])
       .mockRejectedValueOnce(new Error("network"))
       .mockResolvedValue([{ ...request, cancellationRequestId: "request-2", tableCode: 9 }]);
-    render(<OperatorCancellationRequestsView pollIntervalMs={50} />);
+    render(
+      <QueryProvider>
+        <OperatorCancellationRequestsView pollIntervalMs={50} />
+      </QueryProvider>,
+    );
     expect(await screen.findByText("Bàn 08")).toBeInTheDocument();
     await vi.waitFor(() => expect(loadOperatorCancellationRequests).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Bàn 08")).toBeInTheDocument();
@@ -73,7 +86,14 @@ describe("OperatorCancellationRequestsView", () => {
   });
 
   it("approves a request through the API", async () => {
-    render(<OperatorCancellationRequestsView />);
+    vi.mocked(loadOperatorCancellationRequests)
+      .mockResolvedValueOnce([request])
+      .mockResolvedValue([]);
+    render(
+      <QueryProvider>
+        <OperatorCancellationRequestsView />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Đồng ý hủy" }));
     expect(screen.getByRole("heading", { name: "Đồng ý hủy món?" })).toBeInTheDocument();
@@ -93,10 +113,15 @@ describe("OperatorCancellationRequestsView", () => {
       type: "success",
       message: 'Đã đồng ý hủy món "Mì cay đặc biệt 7 cấp độ" của Bàn 08.',
     });
+    await vi.waitFor(() => expect(screen.queryByText("Bàn 08")).not.toBeInTheDocument());
   });
 
   it("rejects a request through the API", async () => {
-    render(<OperatorCancellationRequestsView />);
+    render(
+      <QueryProvider>
+        <OperatorCancellationRequestsView />
+      </QueryProvider>,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Từ chối" }));
     expect(screen.getByRole("heading", { name: "Từ chối hủy món?" })).toBeInTheDocument();

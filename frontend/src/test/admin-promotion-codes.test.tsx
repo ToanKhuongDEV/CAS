@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { QueryProvider } from "../components/providers/query-provider";
 import AdminPromotionsPage from "../app/admin/promotions/page";
 import { loadAdminCatalog } from "../lib/api/catalog/catalog.api";
 import { createPromotion, loadAdminPromotions } from "../lib/api/promotion/promotion.api";
@@ -26,7 +27,11 @@ beforeEach(() => {
 });
 
 it("uses the default discount for each unit and preserves values when the unit stays the same", () => {
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   const type = screen.getByLabelText("Loại promotion");
   fireEvent.change(type, { target: { value: "PERCENT_OFF" } });
@@ -40,7 +45,11 @@ it("uses the default discount for each unit and preserves values when the unit s
 
 it("keeps the form and identifies a code rejected as duplicate by the server", async () => {
   vi.mocked(createPromotion).mockRejectedValue(new Error("Mã RT42 đã tồn tại trong cơ sở này."));
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
@@ -69,7 +78,11 @@ it("blocks repeated confirmation while saving and allows retry after failure", a
       rejectSave = reject;
     }),
   );
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
@@ -87,7 +100,11 @@ it("blocks repeated confirmation while saving and allows retry after failure", a
 });
 
 it("keeps all inputs when one code is duplicated within the entered list", async () => {
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
@@ -104,7 +121,11 @@ it("keeps all inputs when one code is duplicated within the entered list", async
 });
 
 it("requires adding pending codes before saving", () => {
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   fireEvent.change(screen.getByPlaceholderText("VD: Mùa hè giảm 50.000 ₫"), {
     target: { value: "Ưu đãi" },
@@ -116,7 +137,11 @@ it("requires adding pending codes before saving", () => {
 });
 
 it("validates code and quota before adding and allows removing a code", () => {
-  render(<AdminPromotionsPage />);
+  render(
+    <QueryProvider>
+      <AdminPromotionsPage />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo promotion" }));
   const code = screen.getByLabelText("Mã");
   const quota = screen.getByLabelText("Số lượt");

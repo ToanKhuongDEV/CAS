@@ -1,12 +1,12 @@
 "use client";
 
 import { formatMoney } from "../../lib/format-money";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CustomerOrderVoucherSummary } from "../customer/customer-order-voucher-summary";
 import { CasButton } from "../ui/cas-button";
 import { CasIcon } from "../ui/cas-icon";
 import type { CustomerBill } from "../../lib/api/ordering/ordering.api";
-import { loadBillAdjustments, type BillAdjustment } from "../../lib/api/payment/payment.api";
+import { loadBillAdjustments } from "../../lib/api/payment/payment.api";
 
 export function PaymentRequestForm({
   bill,
@@ -23,26 +23,16 @@ export function PaymentRequestForm({
   operatorSessionId?: string;
   voucherRefreshKey?: number;
 }) {
-  const [savedAdjustments, setSavedAdjustments] = useState<BillAdjustment[]>([]);
-  const [adjustmentLoading, setAdjustmentLoading] = useState(Boolean(operatorSessionId));
-  const [adjustmentError, setAdjustmentError] = useState(false);
-  useEffect(() => {
-    if (!operatorSessionId) return;
-    let active = true;
-    void loadBillAdjustments(operatorSessionId)
-      .then((items) => {
-        if (active) setSavedAdjustments(items);
-      })
-      .catch(() => {
-        if (active) setAdjustmentError(true);
-      })
-      .finally(() => {
-        if (active) setAdjustmentLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [operatorSessionId]);
+  const {
+    data: savedAdjustments = [],
+    isLoading: adjustmentLoading,
+    isError: adjustmentError,
+  } = useQuery({
+    queryKey: ["operator", "bill-adjustments", operatorSessionId],
+    queryFn: () => loadBillAdjustments(operatorSessionId!),
+    enabled: Boolean(operatorSessionId),
+    retry: false,
+  });
   return (
     <>
       <section className="rounded-[1.4rem] bg-cas-surface-container p-5 shadow-[0_10px_28px_var(--cas-shadow-color)] md:p-7">

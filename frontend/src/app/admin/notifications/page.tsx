@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import {
   createAdminNotification,
   deleteAdminNotification,
   loadAdminNotifications,
-  type SystemNotification,
 } from "../../../lib/api/notification/notification.api";
 
+const notificationQueryKey = ["admin", "notifications"] as const;
+
 export default function AdminNotificationsPage() {
-  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const queryClient = useQueryClient();
+  const { data: notifications = [], error: loadError } = useQuery({
+    queryKey: notificationQueryKey,
+    queryFn: loadAdminNotifications,
+  });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -21,30 +27,18 @@ export default function AdminNotificationsPage() {
   const [targetRole, setTargetRole] = useState<"OPERATOR" | "CUSTOMER" | "BOTH">("BOTH");
   const [filterTarget, setFilterTarget] = useState<"ALL" | "OPERATOR" | "CUSTOMER" | "BOTH">("ALL");
 
-  const loadNotifications = async () => {
-    try {
-      setNotifications(await loadAdminNotifications());
-      setError(null);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Không thể tải thông báo.");
-    }
-  };
-  useEffect(() => {
-    void loadNotifications();
-  }, []);
-
   const handleCreateNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
     try {
       setIsSubmitting(true);
-      const created = await createAdminNotification({
+      await createAdminNotification({
         title: title.trim(),
         content: content.trim(),
         type,
         targetRole,
       });
-      setNotifications((current) => [created, ...current]);
+      await queryClient.invalidateQueries({ queryKey: notificationQueryKey });
       setTitle("");
       setContent("");
       setShowAddForm(false);
@@ -59,7 +53,7 @@ export default function AdminNotificationsPage() {
   const deleteNotification = async (id: number) => {
     try {
       await deleteAdminNotification(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      await queryClient.invalidateQueries({ queryKey: notificationQueryKey });
       setError(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Không thể xóa thông báo.");
@@ -82,12 +76,12 @@ export default function AdminNotificationsPage() {
           Phát hành Thông báo mới
         </CasButton>
       </div>
-      {error ? (
+      {error || loadError ? (
         <p
           className="rounded-xl bg-cas-error-container px-3 py-2 text-xs text-cas-error"
           role="alert"
         >
-          {error}
+          {error ?? loadError?.message}
         </p>
       ) : null}
 
