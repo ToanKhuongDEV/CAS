@@ -1,3 +1,4 @@
+import { QueryProvider } from "../components/providers/query-provider";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -37,7 +38,11 @@ describe("AdminSettingsPage", () => {
     vi.mocked(loadLongWaitWarningMinutes).mockResolvedValue(25);
     vi.mocked(loadStoreSettings).mockRejectedValue(new Error("Không thể tải cấu hình cửa hàng."));
 
-    render(<AdminSettingsPage />);
+    render(
+      <QueryProvider>
+        <AdminSettingsPage />
+      </QueryProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Không thể tải cấu hình cửa hàng.")).toBeInTheDocument();
@@ -60,7 +65,11 @@ describe("AdminSettingsPage", () => {
       welcomeSlogan: null,
       status: "ACTIVE",
     });
-    render(<AdminSettingsPage />);
+    render(
+      <QueryProvider>
+        <AdminSettingsPage />
+      </QueryProvider>,
+    );
     expect(await screen.findByText("Chi nhánh A")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Nhập tên cơ sở..."), {
       target: { value: "Chi nhánh B" },

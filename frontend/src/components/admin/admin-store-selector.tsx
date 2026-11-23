@@ -76,7 +76,10 @@ export function AdminStoreSelector() {
           }
           setIsSuperAdmin(true);
           setLoadError("");
-          const availableStores = await loadAdminStores();
+          const availableStores = await queryClient.fetchQuery({
+            queryKey: ["admin", "stores"],
+            queryFn: loadAdminStores,
+          });
           if (!active || currentRevision !== revision) return;
           const rememberedStoreId = getSelectedAdminStoreId();
           const nextStoreId = availableStores.some((store) => store.id === rememberedStoreId)
@@ -98,18 +101,19 @@ export function AdminStoreSelector() {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
     function refreshStores() {
-      void loadAdminStores()
+      void queryClient
+        .fetchQuery({ queryKey: ["admin", "stores"], queryFn: loadAdminStores })
         .then(setStores)
         .catch(() => setLoadError("Không thể tải danh sách cơ sở."));
     }
     window.addEventListener("cas:stores-updated", refreshStores);
     return () => window.removeEventListener("cas:stores-updated", refreshStores);
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, queryClient]);
 
   useEffect(() => {
     function dismiss(event: MouseEvent) {

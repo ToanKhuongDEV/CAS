@@ -12,6 +12,11 @@ import {
 } from "./payment.api";
 
 export const customerPaymentQueryKey = ["customer", "payment"] as const;
+export const customerPaymentSessionQueryKey = () =>
+  [
+    ...customerPaymentQueryKey,
+    typeof window === "undefined" ? null : window.sessionStorage.getItem("cas.catalogSession"),
+  ] as const;
 export const operatorPaymentsQueryKey = ["operator", "payments"] as const;
 export const operatorPaidTodayPaymentsQueryKey = ["operator", "payments", "paid-today"] as const;
 export const adminPaidPaymentsQueryKey = ["admin", "payments"] as const;
@@ -22,9 +27,14 @@ export const eligibleUnpaidSessionsQueryKey = (minimumOpenMinutes: number) =>
 
 export function useCustomerPaymentQuery(pollIntervalMs?: number) {
   return useQuery({
-    queryKey: customerPaymentQueryKey,
+    queryKey: customerPaymentSessionQueryKey(),
     queryFn: loadCustomerPayment,
-    refetchInterval: pollIntervalMs,
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.status === "PAID" ||
+      query.state.error?.message === "Vui lòng quét mã QR của bàn để tiếp tục."
+        ? false
+        : pollIntervalMs,
     refetchIntervalInBackground: false,
   });
 }

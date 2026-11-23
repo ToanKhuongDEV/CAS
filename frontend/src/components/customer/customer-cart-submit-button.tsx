@@ -32,7 +32,16 @@ export function CustomerCartSubmitButton() {
     const tableQrToken = window.sessionStorage.getItem(tableQrTokenKey);
     if (tableQrToken) {
       try {
-        await getCurrentCustomerSalesSession();
+        await queryClient.fetchQuery({
+          queryKey: [
+            "customer",
+            "sales-session",
+            "current",
+            window.sessionStorage.getItem("cas.catalogSession"),
+          ],
+          queryFn: getCurrentCustomerSalesSession,
+          staleTime: 0,
+        });
       } catch {
         isSubmittingRef.current = false;
         setSubmitting(false);

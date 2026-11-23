@@ -168,6 +168,8 @@ describe("OperatorOrderCreationView", () => {
       name: /chọn tùy chọn cho gà rán giòn rụm/i,
     });
     fireEvent.click(addChickenBtn);
+    const chickenDialog = screen.getByRole("dialog", { name: "Gà rán giòn rụm" });
+    fireEvent.click(within(chickenDialog).getByRole("button", { name: /thêm vào giỏ/i }));
 
     // Verify item added to cart
     expect(screen.getAllByText("Gà rán giòn rụm").length).toBeGreaterThan(1);
@@ -188,7 +190,9 @@ describe("OperatorOrderCreationView", () => {
     // Select spice level
     fireEvent.click(screen.getByRole("radio", { name: /Cấp 3/i }));
 
-    const confirmOptionBtn = screen.getByRole("button", {
+    const confirmOptionBtn = within(
+      screen.getByRole("dialog", { name: /Mỳ cay đặc biệt 7 cấp độ/i }),
+    ).getByRole("button", {
       name: /thêm vào giỏ/i,
     });
     fireEvent.click(confirmOptionBtn);
@@ -238,6 +242,11 @@ describe("OperatorOrderCreationView", () => {
     fireEvent.click(
       within(chickenCard as HTMLElement).getByRole("button", {
         name: /chọn tùy chọn cho gà rán giòn rụm/i,
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Gà rán giòn rụm" })).getByRole("button", {
+        name: /thêm vào giỏ/i,
       }),
     );
 

@@ -201,6 +201,9 @@ describe("MenuPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Chọn tùy chọn cho Mỳ cay API" }));
 
+    const dialog = await screen.findByRole("dialog", { name: "Mỳ cay API" });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: /Thêm vào giỏ/ }));
     expect(await screen.findByRole("status")).toHaveTextContent("Đã thêm Mỳ cay API vào giỏ hàng.");
   });
 });

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import AdminNotificationsPage from "../app/admin/notifications/page";
+import { QueryProvider } from "../components/providers/query-provider";
 import { loadAdminNotifications } from "../lib/api/notification/notification.api";
 
 vi.mock("../lib/api/notification/notification.api", () => ({
@@ -31,7 +32,11 @@ it("shows admin-specific content and falls back to the original", async () => {
       updatedAt: "2026-11-11T07:37:37",
     },
   ]);
-  render(<AdminNotificationsPage />);
+  render(
+    <QueryProvider>
+      <AdminNotificationsPage />
+    </QueryProvider>,
+  );
   expect(await screen.findByText("Đã hủy (Bàn 5, Khách: An)")).toBeInTheDocument();
   expect(screen.getByText("Nội dung gốc")).toBeInTheDocument();
 });

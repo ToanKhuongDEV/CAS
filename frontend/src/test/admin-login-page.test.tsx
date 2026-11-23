@@ -1,9 +1,13 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryProvider } from "../components/providers/query-provider";
+import { cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AdminLoginPage from "../app/admin/login/page";
 import { ToastProvider } from "../components/ui/toast-provider";
 import { signInOperationalUser } from "../lib/auth/operational-auth";
+
+const render = (ui: ReactElement) => testingRender(<QueryProvider>{ui}</QueryProvider>);
 
 const push = vi.fn();
 

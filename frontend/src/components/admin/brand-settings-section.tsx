@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { getCurrentOperationalAccount } from "../../lib/auth/operational-auth";
@@ -18,6 +19,7 @@ import { useToast } from "../ui/toast-provider";
 
 export function BrandSettingsSection() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -40,7 +42,15 @@ export function BrandSettingsSection() {
         .then(async (account) => {
           if (account.role !== "SUPER_ADMIN" && account.role !== "ADMIN") return;
           const superAdmin = account.role === "SUPER_ADMIN";
-          const brand = superAdmin ? await loadBrandSettings() : await loadStoreSettings();
+          const brand = superAdmin
+            ? await queryClient.fetchQuery({
+                queryKey: ["admin", "brand-settings"],
+                queryFn: loadBrandSettings,
+              })
+            : await queryClient.fetchQuery({
+                queryKey: ["admin", "store-settings"],
+                queryFn: loadStoreSettings,
+              });
           if (!active || currentRevision !== revision) return;
           setIsSuperAdmin(superAdmin);
           setName(
@@ -68,19 +78,23 @@ export function BrandSettingsSection() {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!isLoaded || !isSuperAdmin) return;
     setIsSaving(true);
     try {
-      await updateBrandSettings({
+      const saved = await updateBrandSettings({
         name,
         logoUrl,
         logoStorageKey,
         welcomeSlogan: welcomeSlogan || null,
       });
+      await queryClient.cancelQueries({ queryKey: ["admin", "brand-settings"] });
+      queryClient.setQueryData(["admin", "brand-settings"], saved);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["public", "stores"] });
       window.dispatchEvent(new Event("cas:brand-updated"));
       showToast({ message: "Đã lưu thương hiệu chung.", type: "success" });
     } catch (error) {

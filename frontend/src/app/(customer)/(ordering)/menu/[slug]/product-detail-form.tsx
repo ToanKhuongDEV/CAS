@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMoney as formatPrice } from "../../../../../lib/format-money";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -27,6 +28,7 @@ export function ProductDetailForm({
   productName,
 }: ProductDetailFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [selected, setSelected] = useState<Record<string, string[]>>(() =>
@@ -76,7 +78,18 @@ export function ProductDetailForm({
       setError(`Vui lòng chọn ${invalidGroup.label}.`);
       return;
     }
-    if (!(await hasOpenCustomerSalesSession())) {
+    if (
+      !(await queryClient.fetchQuery({
+        queryKey: [
+          "customer",
+          "sales-session",
+          "open-check",
+          window.sessionStorage.getItem("cas.catalogSession"),
+        ],
+        queryFn: hasOpenCustomerSalesSession,
+        staleTime: 0,
+      }))
+    ) {
       router.push(`/start?returnTo=${encodeURIComponent(window.location.pathname)}`);
       return;
     }

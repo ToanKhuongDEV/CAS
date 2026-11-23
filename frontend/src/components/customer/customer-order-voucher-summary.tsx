@@ -1,13 +1,11 @@
 "use client";
 
 import { formatMoney } from "../../lib/format-money";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "./customer-order-voucher-summary.module.css";
-import {
-  loadCustomerBillAdjustments,
-  type BillAdjustment,
-} from "../../lib/api/payment/payment.api";
+import { loadCustomerBillAdjustments } from "../../lib/api/payment/payment.api";
 import {
   clearCustomerPromotion,
   loadCustomerEligiblePromotions,
@@ -17,7 +15,6 @@ import {
   loadOperatorPromotions,
   selectOperatorPromotion,
   selectCustomerPromotion,
-  type CustomerPromotion,
   type EligiblePromotion,
 } from "../../lib/api/promotion/promotion.api";
 
@@ -53,17 +50,41 @@ export function CustomerOrderVoucherSummary({
   operatorSessionId,
   originalAmount,
 }: Props) {
+  const queryClient = useQueryClient();
+  const customerSession =
+    typeof window === "undefined" ? null : window.sessionStorage.getItem("cas.catalogSession");
+  const promotionKey = operatorSessionId
+    ? (["operator", "promotions", operatorSessionId, originalAmount] as const)
+    : (["customer", "promotions", customerSession, originalAmount] as const);
+  const {
+    data: publicVouchers = [],
+    isFetching: isRefreshing,
+    isError: promotionError,
+    refetch: refreshPromotions,
+  } = useQuery({
+    queryKey: promotionKey,
+    queryFn: () =>
+      operatorSessionId ? loadOperatorPromotions(operatorSessionId) : loadCustomerPromotions(),
+    retry: false,
+  });
+  const {
+    data: adjustments = [],
+    isError: adjustmentError,
+    isSuccess: adjustmentsLoaded,
+  } = useQuery({
+    queryKey: ["customer", "bill-adjustments", customerSession, originalAmount],
+    queryFn: loadCustomerBillAdjustments,
+    enabled: !operatorSessionId,
+    refetchInterval: 10_000,
+    retry: false,
+  });
+  const adjustmentsUnavailable = !adjustmentsLoaded || adjustmentError;
+  const listError = promotionError ? "Không thể tải danh sách khuyến mãi. Vui lòng thử lại." : null;
   const [codeVouchers, setCodeVouchers] = useState<EligiblePromotion[]>([]);
-  const [publicVouchers, setPublicVouchers] = useState<CustomerPromotion[]>([]);
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState<EligiblePromotion | null>(null);
-  const [refreshRevision, setRefreshRevision] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [listError, setListError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [adjustments, setAdjustments] = useState<BillAdjustment[]>([]);
-  const [adjustmentsUnavailable, setAdjustmentsUnavailable] = useState(true);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const availablePublicVouchers = publicVouchers.filter((voucher) => voucher.eligible);
   const unavailablePublicVouchers = publicVouchers.filter((voucher) => !voucher.eligible);
@@ -73,51 +94,6 @@ export function CustomerOrderVoucherSummary({
   const selectedCode = selected && "code" in selected ? selected.code : null;
   const discountAmount = selected?.discountAmount ?? 0;
   const payableAmount = selected?.payableAmount ?? originalAmount;
-
-  useEffect(() => {
-    if (operatorSessionId) return;
-    let active = true;
-    const refresh = () => {
-      void loadCustomerBillAdjustments()
-        .then((items) => {
-          if (active) {
-            setAdjustments(items);
-            setAdjustmentsUnavailable(false);
-          }
-        })
-        .catch(() => {
-          if (active) setAdjustmentsUnavailable(true);
-        });
-    };
-    refresh();
-    const timer = window.setInterval(refresh, 10_000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [operatorSessionId, originalAmount]);
-
-  useEffect(() => {
-    let active = true;
-    setIsRefreshing(true);
-    setListError(null);
-    const request = operatorSessionId
-      ? loadOperatorPromotions(operatorSessionId)
-      : loadCustomerPromotions();
-    void request
-      .then((items) => {
-        if (active) setPublicVouchers(items);
-      })
-      .catch(() => {
-        if (active) setListError("Không thể tải danh sách khuyến mãi. Vui lòng thử lại.");
-      })
-      .finally(() => {
-        if (active) setIsRefreshing(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [operatorSessionId, originalAmount, refreshRevision]);
 
   useEffect(() => {
     onSummaryChange?.({
@@ -134,6 +110,11 @@ export function CustomerOrderVoucherSummary({
       if (!promotionId) {
         if (operatorSessionId) await clearOperatorPromotion(operatorSessionId);
         else await clearCustomerPromotion();
+        void queryClient.invalidateQueries({
+          queryKey: operatorSessionId
+            ? ["operator", "sales-sessions", operatorSessionId, "bill"]
+            : ["customer", "orders", "bill"],
+        });
         setSelectedVoucherId("");
         setSelectedVoucher(null);
         setIsVoucherModalOpen(false);
@@ -143,6 +124,11 @@ export function CustomerOrderVoucherSummary({
       const applied = operatorSessionId
         ? await selectOperatorPromotion(operatorSessionId, promotionId, selectedCode)
         : await selectCustomerPromotion(promotionId, selectedCode);
+      void queryClient.invalidateQueries({
+        queryKey: operatorSessionId
+          ? ["operator", "sales-sessions", operatorSessionId, "bill"]
+          : ["customer", "orders", "bill"],
+      });
       setCodeVouchers((current) =>
         current.map((item) => (item.promotionId === promotionId ? applied : item)),
       );
@@ -160,9 +146,14 @@ export function CustomerOrderVoucherSummary({
 
     setError(null);
     try {
-      const available = operatorSessionId
-        ? await loadOperatorEligiblePromotions(operatorSessionId, code)
-        : await loadCustomerEligiblePromotions(code);
+      const available = await queryClient.fetchQuery({
+        queryKey: [...promotionKey, "code", code],
+        queryFn: () =>
+          operatorSessionId
+            ? loadOperatorEligiblePromotions(operatorSessionId, code)
+            : loadCustomerEligiblePromotions(code),
+        staleTime: 0,
+      });
       setCodeVouchers(available.filter((voucher) => voucher.code !== null));
       const matched = available.find(
         (voucher) => voucher.code?.toLowerCase() === code.trim().toLowerCase(),
@@ -263,7 +254,7 @@ export function CustomerOrderVoucherSummary({
                       className="rounded-lg px-2 py-1 text-xs font-bold text-cas-primary hover:bg-cas-primary/10 disabled:opacity-50"
                       type="button"
                       disabled={isRefreshing}
-                      onClick={() => setRefreshRevision((current) => current + 1)}
+                      onClick={() => void refreshPromotions()}
                     >
                       {isRefreshing ? "Đang tải..." : "Làm mới"}
                     </button>

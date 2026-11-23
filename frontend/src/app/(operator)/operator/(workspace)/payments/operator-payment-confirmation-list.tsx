@@ -280,7 +280,10 @@ export function OperatorPaymentConfirmationList({
           account.role === "SUPER_ADMIN"
             ? (getSelectedAdminStoreId() ?? account.storeId)
             : account.storeId;
-        const storeSettings = await loadPublicStore(storeId);
+        const storeSettings = await queryClient.fetchQuery({
+          queryKey: ["public", "stores", storeId],
+          queryFn: () => loadPublicStore(storeId),
+        });
         if (!isActive) return;
         setOperatorName(account.displayName);
         setStore(storeSettings);
@@ -290,7 +293,7 @@ export function OperatorPaymentConfirmationList({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [queryClient]);
   const [selectedPayment, setSelectedPayment] = useState<OperatorPayment | null>(null);
   const [viewedPayment, setViewedPayment] = useState<OperatorPayment | null>(null);
   const [draftAdjustments, setDraftAdjustments] = useState<BillAdjustment[]>([]);

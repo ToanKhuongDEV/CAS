@@ -1,9 +1,13 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryProvider } from "../components/providers/query-provider";
+import { cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StartOrderPage from "../app/(customer)/start/page";
 import { loadPublicStore, loadPublicStores } from "../lib/api/store/public-store.api";
 import { openCustomerTakeawaySalesSession } from "../lib/customer/sales-session";
+
+const render = (ui: ReactElement) => testingRender(<QueryProvider>{ui}</QueryProvider>);
 
 const push = vi.fn();
 

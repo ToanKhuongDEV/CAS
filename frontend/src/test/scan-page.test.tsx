@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryProvider } from "../components/providers/query-provider";
+import { fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ScanTableQrPage from "../app/(customer)/scan/page";
@@ -8,6 +10,8 @@ import {
   resolveCustomerSalesSessionByTable,
 } from "../lib/customer/sales-session";
 import { loadPublicStores } from "../lib/api/store/public-store.api";
+
+const render = (ui: ReactElement) => testingRender(<QueryProvider>{ui}</QueryProvider>);
 
 const replace = vi.fn();
 const searchParams = new URLSearchParams();

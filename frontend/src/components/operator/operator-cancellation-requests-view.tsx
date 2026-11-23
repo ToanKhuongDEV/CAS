@@ -1,7 +1,8 @@
 "use client";
 
 import { formatMoney as formatCurrency } from "../../lib/format-money";
-import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { CasIcon } from "../ui/cas-icon";
 import { CasButton } from "../ui/cas-button";
 import { useToast } from "../ui/toast-provider";
@@ -154,8 +155,31 @@ export function OperatorCancellationRequestsView({
 }: {
   pollIntervalMs?: number;
 }) {
-  const [requests, setRequests] = useState<CancellationRequest[]>([]);
-  const requestsRevision = useRef(0);
+  const queryClient = useQueryClient();
+  const requestsKey = ["operator", "cancellation-requests"] as const;
+  const { data: requests = [] } = useQuery({
+    queryKey: requestsKey,
+    queryFn: loadOperatorCancellationRequests,
+    refetchInterval: pollIntervalMs,
+    refetchIntervalInBackground: false,
+    retry: false,
+    select: (items): CancellationRequest[] =>
+      items.map((item) => ({
+        id: item.cancellationRequestId,
+        table: formatOrderDestination(item.tableCode, item.customerName, item.orderId),
+        item: item.itemName,
+        quantity: `${item.requestedQuantity} phần`,
+        requestedQuantity: item.requestedQuantity,
+        requestedAt: new Date(item.requestedAt).toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        unitPrice: 0,
+        options: [],
+        reason: item.reason ?? undefined,
+        status: "PENDING",
+      })),
+  });
   const [activeModal, setActiveModal] = useState<{
     type: "APPROVE" | "REJECT";
     request: CancellationRequest;
@@ -169,47 +193,6 @@ export function OperatorCancellationRequestsView({
   const [activeDetail, setActiveDetail] = useState<CancellationRequestDetail | null>(null);
   const [targetOrderItemId, setTargetOrderItemId] = useState("");
   const [transferQuantity, setTransferQuantity] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    let loading = false;
-    const refresh = () => {
-      if (loading || document.hidden) return;
-      loading = true;
-      const revision = requestsRevision.current;
-      void loadOperatorCancellationRequests()
-        .then((items) => {
-          if (!active || revision !== requestsRevision.current) return;
-          setRequests(
-            items.map((item) => ({
-              id: item.cancellationRequestId,
-              table: formatOrderDestination(item.tableCode, item.customerName, item.orderId),
-              item: item.itemName,
-              quantity: `${item.requestedQuantity} phần`,
-              requestedQuantity: item.requestedQuantity,
-              requestedAt: new Date(item.requestedAt).toLocaleTimeString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              unitPrice: 0,
-              options: [],
-              reason: item.reason ?? undefined,
-              status: "PENDING",
-            })),
-          );
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          loading = false;
-        });
-    };
-    refresh();
-    const timer = window.setInterval(refresh, pollIntervalMs);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [pollIntervalMs]);
 
   // Esc key & overflow hidden for modal
   useEffect(() => {
@@ -235,7 +218,12 @@ export function OperatorCancellationRequestsView({
     setTargetOrderItemId("");
     setTransferQuantity(0);
     setActiveModal({ type: "APPROVE", request });
-    void loadOperatorCancellationRequest(request.id)
+    void queryClient
+      .fetchQuery({
+        queryKey: [...requestsKey, request.id],
+        queryFn: () => loadOperatorCancellationRequest(request.id),
+        staleTime: 0,
+      })
       .then((detail) => {
         setActiveDetail(detail);
         setTransferCandidates(detail.candidates);
@@ -247,7 +235,12 @@ export function OperatorCancellationRequestsView({
     setRejectionReason("");
     setActiveDetail(null);
     setActiveModal({ type: "REJECT", request });
-    void loadOperatorCancellationRequest(request.id)
+    void queryClient
+      .fetchQuery({
+        queryKey: [...requestsKey, request.id],
+        queryFn: () => loadOperatorCancellationRequest(request.id),
+        staleTime: 0,
+      })
       .then(setActiveDetail)
       .catch(() =>
         showToast({ type: "error", message: "Không thể tải chi tiết món yêu cầu hủy." }),
@@ -269,8 +262,10 @@ export function OperatorCancellationRequestsView({
       transferQuantity,
     })
       .then(() => {
-        requestsRevision.current++;
-        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        void queryClient.invalidateQueries({ queryKey: requestsKey });
+        void queryClient.invalidateQueries({
+          queryKey: ["operator", "cancellations", "pending-count"],
+        });
         showToast({
           type: "success",
           message: `Đã đồng ý hủy món "${req.item}" của ${req.table}.`,
@@ -297,8 +292,10 @@ export function OperatorCancellationRequestsView({
 
     void resolveOperatorCancellationRequest(req.id, { decision: "REJECT", rejectionReason: reason })
       .then(() => {
-        requestsRevision.current++;
-        setRequests((prev) => prev.filter((item) => item.id !== req.id));
+        void queryClient.invalidateQueries({ queryKey: requestsKey });
+        void queryClient.invalidateQueries({
+          queryKey: ["operator", "cancellations", "pending-count"],
+        });
         showToast({ type: "success", message: `Đã từ chối yêu cầu hủy món của ${req.table}.` });
         setActiveModal(null);
       })

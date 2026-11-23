@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { CustomerOrderVoucherSummary } from "../components/customer/customer-order-voucher-summary";
+import { QueryProvider } from "../components/providers/query-provider";
 import {
   loadCustomerPromotions,
   loadOperatorPromotions,
@@ -44,7 +45,11 @@ beforeEach(() => {
 it("refreshes customer promotions without losing the selected voucher", async () => {
   vi.mocked(loadCustomerPromotions).mockResolvedValueOnce([voucher]).mockResolvedValue([]);
   vi.mocked(selectCustomerPromotion).mockResolvedValue({ ...voucher, code: null, codeId: null });
-  render(<CustomerOrderVoucherSummary originalAmount={50000} />);
+  render(
+    <QueryProvider>
+      <CustomerOrderVoucherSummary originalAmount={50000} />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: /Voucher \/ khuyến mãi/ }));
   expect(screen.getByRole("dialog").parentElement?.parentElement).toBe(document.body);
   expect(screen.getByRole("dialog")).toHaveClass("w-full", "min-w-0", "max-w-md");
@@ -61,7 +66,11 @@ it("refreshes the operator session list and displays failures without erasing it
   vi.mocked(loadOperatorPromotions)
     .mockResolvedValueOnce([voucher])
     .mockRejectedValueOnce(new Error("offline"));
-  render(<CustomerOrderVoucherSummary originalAmount={50000} operatorSessionId="session-1" />);
+  render(
+    <QueryProvider>
+      <CustomerOrderVoucherSummary originalAmount={50000} operatorSessionId="session-1" />
+    </QueryProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: /Voucher \/ khuyến mãi/ }));
   expect(await screen.findByText("Ưu đãi")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Làm mới" }));
