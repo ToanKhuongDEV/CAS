@@ -1,3 +1,4 @@
+import { QueryProvider } from "../components/providers/query-provider";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { CreateStoreSection } from "../components/admin/create-store-section";
@@ -33,7 +34,11 @@ it("creates a branch and refreshes the store selector for a super admin", async 
   vi.mocked(createStore).mockResolvedValue({ id: 2, status: "ACTIVE" });
   const refreshed = vi.fn();
   window.addEventListener("cas:stores-updated", refreshed);
-  render(<CreateStoreSection />);
+  render(
+    <QueryProvider>
+      <CreateStoreSection />
+    </QueryProvider>,
+  );
   fireEvent.change(await screen.findByLabelText("Tên chi nhánh"), { target: { value: "Branch" } });
   fireEvent.change(screen.getByLabelText("Địa chỉ"), { target: { value: "Address" } });
   fireEvent.change(screen.getByLabelText("Số điện thoại"), { target: { value: "0900" } });
@@ -64,7 +69,11 @@ it("does not offer branch creation to an admin", async () => {
     displayName: "Admin",
     role: "ADMIN",
   });
-  render(<CreateStoreSection />);
+  render(
+    <QueryProvider>
+      <CreateStoreSection />
+    </QueryProvider>,
+  );
   await waitFor(() => expect(getCurrentOperationalAccount).toHaveBeenCalled());
   expect(screen.queryByRole("button", { name: "Tạo chi nhánh" })).not.toBeInTheDocument();
 });
@@ -81,7 +90,11 @@ it("creates the branch with the selected source menu", async () => {
     { id: 2, branchName: "Đích", status: "ACTIVE" },
   ]);
   vi.mocked(createStore).mockResolvedValue({ id: 3, status: "ACTIVE" });
-  render(<CreateStoreSection />);
+  render(
+    <QueryProvider>
+      <CreateStoreSection />
+    </QueryProvider>,
+  );
   await screen.findByRole("option", { name: "Nguồn" });
   fireEvent.change(screen.getByLabelText("Tên chi nhánh"), { target: { value: "Branch" } });
   fireEvent.change(screen.getByLabelText("Địa chỉ"), { target: { value: "Address" } });
@@ -108,7 +121,11 @@ it("retains the form when creation or copying fails", async () => {
   });
   vi.mocked(loadAdminStores).mockResolvedValue([{ id: 1, branchName: "Nguồn", status: "ACTIVE" }]);
   vi.mocked(createStore).mockRejectedValueOnce(new Error("Không thể sao chép"));
-  render(<CreateStoreSection />);
+  render(
+    <QueryProvider>
+      <CreateStoreSection />
+    </QueryProvider>,
+  );
   fireEvent.change(await screen.findByLabelText("Tên chi nhánh"), { target: { value: "Branch" } });
   fireEvent.change(screen.getByLabelText("Địa chỉ"), { target: { value: "Address" } });
   fireEvent.change(screen.getByLabelText("Số điện thoại"), { target: { value: "0900" } });

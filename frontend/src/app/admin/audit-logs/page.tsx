@@ -1,31 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { loadAuditLogs, type AuditLogPage } from "../../../lib/api/operation/admin-lookup.api";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { loadAuditLogs } from "../../../lib/api/operation/admin-lookup.api";
 
 export default function AdminAuditLogsPage() {
   const [query, setQuery] = useState("");
   const [action, setAction] = useState("");
   const [entityType, setEntityType] = useState("");
   const [page, setPage] = useState(0);
-  const [data, setData] = useState<AuditLogPage | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    void loadAuditLogs({ query, action, entityType, page })
-      .then((result) => {
-        if (active) {
-          setData(result);
-          setError(null);
-        }
-      })
-      .catch((cause) => {
-        if (active) setError(cause instanceof Error ? cause.message : "Không thể tải audit log.");
-      });
-    return () => {
-      active = false;
-    };
-  }, [action, entityType, page, query]);
+  const { data, error } = useQuery({
+    queryKey: ["admin", "audit-logs", { query, action, entityType, page }],
+    queryFn: () => loadAuditLogs({ query, action, entityType, page }),
+  });
   return (
     <div className="space-y-6">
       <header>
@@ -61,7 +48,7 @@ export default function AdminAuditLogsPage() {
         />
       </div>
       <div className="space-y-6 rounded-2xl border border-cas-outline-variant/30 bg-cas-surface-container p-5">
-        {error ? <p className="text-cas-error">{error}</p> : null}
+        {error ? <p className="text-cas-error">{error.message}</p> : null}
         <div className="overflow-x-auto rounded-sm border border-cas-outline-variant/30">
           <table className="w-full text-left text-xs">
             <thead>

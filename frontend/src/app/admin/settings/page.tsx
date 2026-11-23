@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { StoreWelcomeConfigSection } from "../../../components/admin/store-welcome-config-section";
 import { BrandSettingsSection } from "../../../components/admin/brand-settings-section";
 import { CreateStoreSection } from "../../../components/admin/create-store-section";
@@ -157,6 +158,7 @@ const TimePicker12H = ({ value, onChange }: { value: string; onChange: (val: str
 
 export default function AdminSettingsPage() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   // State cho Thông tin Cửa hàng
   const [storeName, setStoreName] = useState<string>("Bambu Garden");
   const [phone, setPhone] = useState<string>("0901 234 567");
@@ -187,7 +189,7 @@ export default function AdminSettingsPage() {
     try {
       setSavedStoreMsg("");
       setStoreError("");
-      await updateStoreSettings({
+      const saved = await updateStoreSettings({
         branchName: storeName,
         phone,
         email,
@@ -197,6 +199,9 @@ export default function AdminSettingsPage() {
         closeTime,
         status: storeStatus,
       });
+      await queryClient.cancelQueries({ queryKey: ["admin", "store-settings"] });
+      queryClient.setQueryData(["admin", "store-settings"], saved);
+      void queryClient.invalidateQueries({ queryKey: ["public", "stores"] });
       setSavedStoreMsg("Đã lưu thông tin cửa hàng.");
       showToast({ message: "Đã cập nhật thông tin cửa hàng thành công.", type: "success" });
     } catch (error) {
@@ -214,6 +219,8 @@ export default function AdminSettingsPage() {
     try {
       setSavedOpsMsg("");
       const savedMinutes = await updateLongWaitWarningMinutes(warningMins);
+      await queryClient.cancelQueries({ queryKey: ["admin", "long-wait-warning"] });
+      queryClient.setQueryData(["admin", "long-wait-warning"], savedMinutes);
       setWarningMins(savedMinutes);
       setOpsError("");
       setSavedOpsMsg("Đã lưu tham số vận hành.");
@@ -230,7 +237,8 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     let active = true;
-    void loadLongWaitWarningMinutes()
+    void queryClient
+      .fetchQuery({ queryKey: ["admin", "long-wait-warning"], queryFn: loadLongWaitWarningMinutes })
       .then((minutes) => {
         if (active) {
           setWarningMins(minutes);
@@ -245,11 +253,12 @@ export default function AdminSettingsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     let active = true;
-    void loadStoreSettings()
+    void queryClient
+      .fetchQuery({ queryKey: ["admin", "store-settings"], queryFn: loadStoreSettings })
       .then((s) => {
         if (!active) return;
         setStoreName(s.branchName ?? s.name ?? "");
@@ -273,7 +282,7 @@ export default function AdminSettingsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [queryClient]);
 
   return (
     <div className="space-y-6 pb-12">

@@ -1,6 +1,7 @@
 "use client";
 
 import { onAuthStateChanged } from "firebase/auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
   createStore,
@@ -14,6 +15,7 @@ import { MaterialSymbol } from "../ui/material-symbol";
 import { useToast } from "../ui/toast-provider";
 
 export function CreateStoreSection() {
+  const queryClient = useQueryClient();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -45,7 +47,8 @@ export function CreateStoreSection() {
     if (!isSuperAdmin) return;
     let active = true;
     function refresh() {
-      void loadAdminStores()
+      void queryClient
+        .fetchQuery({ queryKey: ["admin", "stores"], queryFn: loadAdminStores })
         .then((items) => {
           if (active) {
             setStores(items);
@@ -62,7 +65,7 @@ export function CreateStoreSection() {
       active = false;
       window.removeEventListener("cas:stores-updated", refresh);
     };
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, queryClient]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +85,8 @@ export function CreateStoreSection() {
         closeTime: String(data.get("closeTime")),
         sourceStoreId: sourceId ? Number(sourceId) : null,
       });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "stores"] });
+      await queryClient.invalidateQueries({ queryKey: ["public", "stores"] });
       form.reset();
       setSourceId("");
       window.dispatchEvent(new Event("cas:stores-updated"));

@@ -1,3 +1,4 @@
+import { QueryProvider } from "../components/providers/query-provider";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -48,7 +49,11 @@ describe("Admin settings sections", () => {
     });
     vi.mocked(loadBrandSettings).mockRejectedValue(new Error("Không thể tải thương hiệu."));
 
-    render(<BrandSettingsSection />);
+    render(
+      <QueryProvider>
+        <BrandSettingsSection />
+      </QueryProvider>,
+    );
     act(() => auth.listener?.({}));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải thương hiệu.");
@@ -68,7 +73,11 @@ describe("Admin settings sections", () => {
       welcomeSlogan: "Xin chào",
     });
 
-    render(<BrandSettingsSection />);
+    render(
+      <QueryProvider>
+        <BrandSettingsSection />
+      </QueryProvider>,
+    );
     act(() => auth.listener?.({}));
 
     expect(await screen.findByRole("img", { name: "Logo thương hiệu" })).toHaveAttribute(
@@ -112,7 +121,11 @@ describe("Admin settings sections", () => {
       welcomeSlogan: "Xin chào",
       status: "ACTIVE",
     });
-    render(<BrandSettingsSection />);
+    render(
+      <QueryProvider>
+        <BrandSettingsSection />
+      </QueryProvider>,
+    );
     act(() => auth.listener?.(null));
     act(() => auth.listener?.({}));
 
@@ -126,7 +139,11 @@ describe("Admin settings sections", () => {
   it("does not allow saving welcome images after a loading failure", async () => {
     vi.mocked(loadStoreWelcomeConfig).mockRejectedValue(new Error("Không thể tải Welcome."));
 
-    render(<StoreWelcomeConfigSection />);
+    render(
+      <QueryProvider>
+        <StoreWelcomeConfigSection />
+      </QueryProvider>,
+    );
 
     await vi.waitFor(() => expect(showToast).toHaveBeenCalled());
     expect(screen.getByRole("button", { name: "Lưu trang Welcome" })).toBeDisabled();
@@ -135,7 +152,11 @@ describe("Admin settings sections", () => {
   it("allows creating a welcome configuration when none exists", async () => {
     vi.mocked(loadStoreWelcomeConfig).mockResolvedValue(null);
 
-    render(<StoreWelcomeConfigSection />);
+    render(
+      <QueryProvider>
+        <StoreWelcomeConfigSection />
+      </QueryProvider>,
+    );
 
     await vi.waitFor(() =>
       expect(screen.getByRole("button", { name: "Lưu trang Welcome" })).toBeEnabled(),
