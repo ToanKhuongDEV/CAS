@@ -1,5 +1,11 @@
 # CAS — Theo dõi tiến độ dự án
 
+- 2026-11-19: Cập nhật test Customer và Operator theo hộp chọn số lượng trước khi thêm món; sửa ba test thất bại ở luồng giỏ hàng và tạo order.
+- 2026-11-19: Tiếp tục rollout React Query cho promotion, điều chỉnh bill, thông báo Customer, dữ liệu/cài đặt cửa hàng và tra cứu phiên; làm mới cache sau các thao tác liên quan, giữ kiểm tra phiên mới trước khi đặt món. Chưa xác nhận đầy đủ toàn bộ cache bằng kiểm thử tích hợp.
+- 2026-11-19: Tiếp tục chuyển GET sang React Query cho chi tiết món và thanh toán Customer, yêu cầu hủy Operator, bàn/QR, thông báo và audit log Admin; làm mới cache sau thay đổi, giữ polling và tách cache bill/payment theo phiên khách. Các GET khác vẫn cần tiếp tục rollout.
+- 2026-11-19: Rà soát rollout React Query: còn GET gọi trực tiếp ở Customer, Operator và Admin; một số hook Customer đã định nghĩa nhưng chưa được sử dụng. Chưa xác nhận tính đầy đủ của invalidate và cô lập cache bằng kiểm thử runtime.
+- 2026-11-19: Rà soát tiến độ theo tài liệu và mã nguồn: các luồng chính đã có triển khai; còn kiểm thử thủ công và tích hợp MySQL, CI, cấu hình production và rollout React Query. Ghi nhận mô tả cũ về dashboard dùng mock và báo cáo chưa chốt không còn đồng nhất với mã và tài liệu nghiệp vụ hiện tại.
+
 - 2026-11-13: Cập nhật hướng dẫn chọn một hoặc nhiều tùy chọn trong popup thêm món.
 - 2026-11-13: Tăng nhẹ kích thước nút chọn số lượng trong popup thêm món.
 - 2026-11-13: Tăng cỡ số lượng trong popup thêm món bằng cỡ chữ tiêu đề.
