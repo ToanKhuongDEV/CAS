@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { QueryProvider } from "../components/providers/query-provider";
 import { CustomerHeader } from "../components/customer/customer-header";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
 import { getRememberedPublicStoreId } from "../lib/api/store/public-store.api";
@@ -57,7 +58,11 @@ describe("CustomerHeader", () => {
   });
 
   it("does not show a start ordering link when no table is selected", async () => {
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
 
     await vi.waitFor(() => expect(getCurrentCustomerSalesSession).toHaveBeenCalled());
     expect(screen.queryByRole("link", { name: "Bắt đầu gọi món" })).not.toBeInTheDocument();
@@ -72,7 +77,11 @@ describe("CustomerHeader", () => {
       tableCode: 5,
     });
 
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
 
     expect(await screen.findByText("Bàn 05")).toBeInTheDocument();
     expect(
@@ -81,7 +90,11 @@ describe("CustomerHeader", () => {
   });
 
   it("shows the slogan and branch instead of the brand name", async () => {
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
     expect(screen.getByRole("img", { name: "Logo cửa hàng" })).toHaveAttribute(
       "src",
       "/images/bambu-garden-wordmark.svg",
@@ -99,13 +112,21 @@ describe("CustomerHeader", () => {
 
   it("hides the default branch when no store is selected", async () => {
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
     expect(await screen.findByText("Vui trọn từng bàn")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cơ sở hiện tại" })).not.toBeInTheDocument();
   });
 
   it("clears the branch on logout", async () => {
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
     expect(await screen.findByRole("button", { name: "Cơ sở hiện tại" })).toBeInTheDocument();
     vi.mocked(getRememberedPublicStoreId).mockReturnValue(null);
     fireEvent(window, new Event("cas-customer-logout"));
@@ -121,13 +142,21 @@ describe("CustomerHeader", () => {
       tableCode: 5,
     });
 
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
 
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/payment"));
   });
 
   it("marks only the selected unread notification as read", async () => {
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" }));
     fireEvent.click(
@@ -139,7 +168,11 @@ describe("CustomerHeader", () => {
   });
 
   it("clears stale notifications when the customer session expires", async () => {
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
     const bell = screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" });
     fireEvent.click(bell);
     expect(await screen.findByText("Ưu đãi hôm nay")).toBeInTheDocument();
@@ -155,7 +188,11 @@ describe("CustomerHeader", () => {
     vi.mocked(markCustomerNotificationRead).mockRejectedValueOnce(
       Object.assign(new Error("Phiên đã kết thúc"), { status: 401 }),
     );
-    render(<CustomerHeader />);
+    render(
+      <QueryProvider>
+        <CustomerHeader />
+      </QueryProvider>,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Thông báo khuyến mãi và hệ thống" }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Đánh dấu thông báo Ưu đãi hôm nay là đã đọc" }),

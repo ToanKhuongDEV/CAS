@@ -28,6 +28,6 @@ export function useCustomerCatalogItem(id: number | null) {
     queryKey: [...customerCatalogItemQueryKey(id ?? 0), storeId, session],
     queryFn: () => loadCustomerCatalogItem(id!, storeId),
     enabled: id !== null,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 }

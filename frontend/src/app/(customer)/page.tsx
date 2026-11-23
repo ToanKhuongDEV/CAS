@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -73,6 +74,7 @@ function formatOpeningHours(openTime: string, closeTime: string) {
 
 export default function Home() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [store, setStore] = useState<StoreSettings>(fallbackStore);
   const [welcome, setWelcome] = useState<PublicStoreWelcomeConfig | null>(null);
   const [checkingSession, setCheckingSession] = useState(false);
@@ -80,7 +82,16 @@ export default function Home() {
   async function startOrdering() {
     setCheckingSession(true);
     try {
-      const session = await getCurrentCustomerSalesSession();
+      const session = await queryClient.fetchQuery({
+        queryKey: [
+          "customer",
+          "sales-session",
+          "current",
+          window.sessionStorage.getItem("cas.catalogSession"),
+        ],
+        queryFn: getCurrentCustomerSalesSession,
+        staleTime: 0,
+      });
       router.push(
         session.sessionStatus === "OPEN"
           ? "/menu"
@@ -97,13 +108,21 @@ export default function Home() {
 
   useEffect(() => {
     const storeId = getRememberedPublicStoreId() ?? 1;
-    void loadPublicStore(storeId)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", storeId],
+        queryFn: () => loadPublicStore(storeId),
+      })
       .then(setStore)
       .catch(() => undefined);
-    void loadPublicStoreWelcomeConfig(storeId)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", storeId, "welcome"],
+        queryFn: () => loadPublicStoreWelcomeConfig(storeId),
+      })
       .then(setWelcome)
       .catch(() => undefined);
-  }, []);
+  }, [queryClient]);
 
   const menuCategories = fallbackMenuCategories.map((category, index) => ({
     ...category,

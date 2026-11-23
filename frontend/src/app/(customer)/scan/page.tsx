@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import styles from "./scan.module.css";
@@ -39,6 +40,7 @@ function distanceInMeters(origin: GeolocationCoordinates, store: PublicStore) {
 }
 
 export default function ScanTableQrPage() {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const params = useSearchParams();
   const video = useRef<HTMLVideoElement>(null);
@@ -136,7 +138,17 @@ export default function ScanTableQrPage() {
         setTableResolution(resolution);
         return;
       }
-      void loadCustomerNotifications().catch(() => undefined);
+      void queryClient
+        .fetchQuery({
+          queryKey: [
+            "customer",
+            "notifications",
+            window.sessionStorage.getItem("cas.catalogSession"),
+          ],
+          queryFn: loadCustomerNotifications,
+          staleTime: 0,
+        })
+        .catch(() => undefined);
       router.replace(
         resolution.sessionStatus === "PAYMENT_PENDING"
           ? "/payment"
@@ -215,7 +227,8 @@ export default function ScanTableQrPage() {
   }, [storeId]);
 
   useEffect(() => {
-    void loadPublicStores()
+    void queryClient
+      .fetchQuery({ queryKey: ["public", "stores", "list"], queryFn: loadPublicStores })
       .then((result) => {
         setStores(result);
         const requestedStoreId = Number(params.get("storeId"));
@@ -223,7 +236,7 @@ export default function ScanTableQrPage() {
         else if (result.length === 1) setStoreId(result[0].id);
       })
       .catch(() => undefined);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     function closeStoreDropdown(event: MouseEvent) {

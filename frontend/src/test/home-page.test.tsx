@@ -1,10 +1,14 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryProvider } from "../components/providers/query-provider";
+import { fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "../app/(customer)/page";
 import CustomerLayout from "../app/(customer)/layout";
 import { loadPublicStore, loadPublicStoreWelcomeConfig } from "../lib/api/store/public-store.api";
 import { getCurrentCustomerSalesSession } from "../lib/customer/sales-session";
+
+const render = (ui: ReactElement) => testingRender(<QueryProvider>{ui}</QueryProvider>);
 
 const { push, replace } = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 

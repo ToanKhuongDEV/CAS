@@ -22,13 +22,17 @@ export function useCustomerOrdersQuery() {
   return useQuery({ queryKey: customerOrdersQueryKey, queryFn: loadCustomerOrders });
 }
 
-export function useCustomerBillQuery(pollIntervalMs?: number) {
+export function useCustomerBillQuery(pollIntervalMs?: number, enabled = true) {
   return useQuery({
-    queryKey: customerBillQueryKey,
+    queryKey: [
+      ...customerBillQueryKey,
+      typeof window === "undefined" ? null : window.sessionStorage.getItem("cas.catalogSession"),
+    ],
     queryFn: loadCustomerBill,
+    enabled,
     retry: false,
     refetchInterval: (query) =>
-      query.state.data && query.state.error?.message !== "Vui lòng quét mã QR của bàn để tiếp tục."
+      query.state.error?.message !== "Vui lòng quét mã QR của bàn để tiếp tục."
         ? pollIntervalMs
         : false,
     refetchIntervalInBackground: true,

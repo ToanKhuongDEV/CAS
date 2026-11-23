@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getRememberedPublicStoreId, loadPublicStore } from "../../lib/api/store/public-store.api";
 import { STORE_LOGO } from "../../lib/store-logo";
 
 export function StoreBrand({ storeId }: { storeId?: number }) {
-  const [name, setName] = useState("Bambu Garden");
-  useEffect(() => {
-    const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
-    void loadPublicStore(effectiveStoreId)
-      .then((store) => {
-        setName(store.brandName ?? store.branchName ?? store.name ?? "Bambu Garden");
-      })
-      .catch(() => undefined);
-  }, [storeId]);
+  const effectiveStoreId = storeId ?? getRememberedPublicStoreId() ?? 1;
+  const { data: store } = useQuery({
+    queryKey: ["public", "stores", effectiveStoreId],
+    queryFn: () => loadPublicStore(effectiveStoreId),
+    retry: false,
+  });
+  const name = store?.brandName ?? store?.branchName ?? store?.name ?? "Bambu Garden";
   return (
     <>
       <span className="grid size-10 place-items-center overflow-hidden rounded-xl shadow-[0_8px_20px_var(--cas-shadow-color)]">

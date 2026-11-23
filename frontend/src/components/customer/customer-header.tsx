@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
@@ -21,12 +22,29 @@ type CustomerHeaderProps = {
 export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const customerSession =
+    typeof window === "undefined" ? null : window.sessionStorage.getItem("cas.catalogSession");
+  const notificationKey = ["customer", "notifications", customerSession] as const;
+  const { data: notificationData, refetch: loadNotifications } = useQuery({
+    queryKey: notificationKey,
+    queryFn: async () => {
+      try {
+        return await loadCustomerNotifications();
+      } catch (error) {
+        if (error && typeof error === "object" && "status" in error && error.status === 401)
+          return { notifications: [], unreadCount: 0 };
+        throw error;
+      }
+    },
+    retry: false,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
   const [showNotif, setShowNotif] = useState(false);
   const [showBranch, setShowBranch] = useState(false);
-  const [notifications, setNotifications] = useState<
-    Awaited<ReturnType<typeof loadCustomerNotifications>>["notifications"]
-  >([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const notifications = notificationData?.notifications ?? [];
+  const unreadCount = notificationData?.unreadCount ?? 0;
   const [slogan, setSlogan] = useState<string | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
   const [tableCode, setTableCode] = useState<number | null>(null);
@@ -36,15 +54,19 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   const clearExpiredNotifications = (error: unknown) => {
     if (error && typeof error === "object" && "status" in error && error.status === 401) {
-      setNotifications([]);
-      setUnreadCount(0);
+      queryClient.setQueryData(["customer", "notifications", customerSession], {
+        notifications: [],
+        unreadCount: 0,
+      });
     }
   };
 
   useEffect(() => {
     function clearCustomerHeader() {
-      setNotifications([]);
-      setUnreadCount(0);
+      queryClient.setQueryData(["customer", "notifications", customerSession], {
+        notifications: [],
+        unreadCount: 0,
+      });
       setShowNotif(false);
       setTableCode(null);
       setBranchName(null);
@@ -52,17 +74,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     }
     window.addEventListener("cas-customer-logout", clearCustomerHeader);
     return () => window.removeEventListener("cas-customer-logout", clearCustomerHeader);
-  }, []);
-
-  const loadNotifications = async () => {
-    try {
-      const result = await loadCustomerNotifications();
-      setNotifications(result.notifications);
-      setUnreadCount(result.unreadCount);
-    } catch (error) {
-      clearExpiredNotifications(error);
-    }
-  };
+  }, [queryClient, customerSession]);
 
   const markAllRead = async () => {
     try {
@@ -79,10 +91,19 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
     try {
       await markCustomerNotificationRead(notificationId);
-      setNotifications((current) =>
-        current.map((item) => (item.id === notificationId ? { ...item, status: "READ" } : item)),
+      await queryClient.cancelQueries({ queryKey: notificationKey });
+      queryClient.setQueryData<Awaited<ReturnType<typeof loadCustomerNotifications>>>(
+        notificationKey,
+        (current) =>
+          current
+            ? {
+                notifications: current.notifications.map((item) =>
+                  item.id === notificationId ? { ...item, status: "READ" } : item,
+                ),
+                unreadCount: Math.max(0, current.unreadCount - 1),
+              }
+            : current,
       );
-      setUnreadCount((current) => Math.max(0, current - 1));
     } catch (error) {
       clearExpiredNotifications(error);
     }
@@ -102,11 +123,6 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => void loadNotifications().catch(() => undefined), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     const syncCart = () =>
       setLiveCartCount(readCustomerCart().reduce((sum, item) => sum + item.quantity, 0));
     syncCart();
@@ -120,7 +136,17 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
 
   useEffect(() => {
     let active = true;
-    void getCurrentCustomerSalesSession()
+    void queryClient
+      .fetchQuery({
+        queryKey: [
+          "customer",
+          "sales-session",
+          "current",
+          window.sessionStorage.getItem("cas.catalogSession"),
+        ],
+        queryFn: getCurrentCustomerSalesSession,
+        staleTime: 0,
+      })
       .then((session) => {
         if (!active) return;
         setTableCode(session.tableCode);
@@ -134,12 +160,16 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     return () => {
       active = false;
     };
-  }, [pathname, router]);
+  }, [pathname, router, queryClient]);
 
   useEffect(() => {
     let active = true;
     const selectedStoreId = getRememberedPublicStoreId();
-    void loadPublicStore(selectedStoreId ?? 1)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", selectedStoreId ?? 1],
+        queryFn: () => loadPublicStore(selectedStoreId ?? 1),
+      })
       .then((store) => {
         if (!active) return;
         setSlogan(store.welcomeSlogan);
@@ -155,7 +185,7 @@ export function CustomerHeader({ cartCount }: CustomerHeaderProps) {
     return () => {
       active = false;
     };
-  }, [pathname]);
+  }, [pathname, queryClient]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-[calc(4.75rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-cas-primary shadow-[0_2px_12px_var(--cas-shadow-color)]">

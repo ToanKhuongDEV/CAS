@@ -1,16 +1,23 @@
 "use client";
 
 import { formatMoney } from "../../../lib/format-money";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { CasButton } from "../../../components/ui/cas-button";
 import { CasIcon } from "../../../components/ui/cas-icon";
 import { PaymentRequestForm } from "../../../components/payment/payment-request-form";
-import { loadCustomerBill, type CustomerBill } from "../../../lib/api/ordering/ordering.api";
+import {
+  customerBillQueryKey,
+  useCustomerBillQuery,
+} from "../../../lib/api/ordering/ordering.query";
+import {
+  customerPaymentSessionQueryKey,
+  useCustomerPaymentQuery,
+} from "../../../lib/api/payment/payment.query";
 import {
   createCustomerPayment,
-  loadCustomerPayment,
   promotionUnavailableMessage,
   type BillAdjustment,
   type Payment,
@@ -54,74 +61,17 @@ export function PaymentRequestPanel({
   pollIntervalMs?: number;
 }) {
   const router = useRouter();
-  const [bill, setBill] = useState<CustomerBill | null>(null);
-  const [payment, setPayment] = useState<Payment | null>(null);
+  const queryClient = useQueryClient();
+  const { data: payment, error: paymentError } = useCustomerPaymentQuery(pollIntervalMs);
+  const hasActiveSession = paymentError?.message !== customerSalesSessionRequiredMessage;
+  const { data: bill, error: billError } = useCustomerBillQuery(
+    pollIntervalMs,
+    hasActiveSession && payment?.status !== "PAID",
+  );
   const [error, setError] = useState<string | null>(null);
   const [promotionError, setPromotionError] = useState<string | null>(null);
   const [voucherRefreshKey, setVoucherRefreshKey] = useState(0);
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
-  const [hasActiveSession, setHasActiveSession] = useState(true);
-
-  useEffect(() => {
-    if (!hasActiveSession) return;
-
-    let isActive = true;
-    let isPolling = false;
-
-    async function load() {
-      if (isPolling) return;
-
-      isPolling = true;
-      try {
-        const [billResult, paymentResult] = await Promise.allSettled([
-          loadCustomerBill(),
-          loadCustomerPayment(),
-        ]);
-        if (!isActive) return;
-
-        if (paymentResult.status === "fulfilled" && paymentResult.value?.status === "PAID") {
-          setPayment(paymentResult.value);
-          setError(null);
-          window.clearInterval(timer);
-          return;
-        }
-
-        const sessionIsClosed =
-          paymentResult.status === "rejected" &&
-          paymentResult.reason instanceof Error &&
-          paymentResult.reason.message === customerSalesSessionRequiredMessage;
-        if (sessionIsClosed) {
-          setBill(null);
-          setPayment(null);
-          setError(null);
-          setHasActiveSession(false);
-          return;
-        }
-
-        if (billResult.status === "fulfilled") {
-          setBill(billResult.value);
-          setError(null);
-        } else {
-          setError(
-            billResult.reason instanceof Error
-              ? billResult.reason.message
-              : "Không thể tải hóa đơn.",
-          );
-        }
-        if (paymentResult.status === "fulfilled") setPayment(paymentResult.value);
-      } finally {
-        isPolling = false;
-      }
-    }
-
-    void load();
-    const timer = window.setInterval(() => void load(), pollIntervalMs);
-    return () => {
-      isActive = false;
-      window.clearInterval(timer);
-    };
-  }, [hasActiveSession, pollIntervalMs]);
-
   const isPending = payment?.status === "PENDING";
 
   function createNewOrder() {
@@ -136,7 +86,10 @@ export function PaymentRequestPanel({
     setPromotionError(null);
     setIsRequestingPayment(true);
     try {
-      setPayment(await createCustomerPayment());
+      const createdPayment = await createCustomerPayment();
+      await queryClient.cancelQueries({ queryKey: customerPaymentSessionQueryKey() });
+      queryClient.setQueryData(customerPaymentSessionQueryKey(), createdPayment);
+      void queryClient.invalidateQueries({ queryKey: customerBillQueryKey });
     } catch (cause) {
       if (cause instanceof Error && cause.message === promotionUnavailableMessage) {
         setPromotionError(cause.message);
@@ -259,12 +212,17 @@ export function PaymentRequestPanel({
     );
   }
 
-  if (!bill) return <p className="text-cas-on-surface-variant">{error ?? "Đang tải hóa đơn…"}</p>;
+  if (!bill)
+    return (
+      <p className="text-cas-on-surface-variant">
+        {error ?? billError?.message ?? "Đang tải hóa đơn…"}
+      </p>
+    );
 
   return (
     <PaymentRequestForm
       bill={bill}
-      error={promotionError ?? error}
+      error={promotionError ?? error ?? billError?.message ?? null}
       isRequesting={isRequestingPayment || isPending}
       onRequest={() => void requestPayment()}
       voucherRefreshKey={voucherRefreshKey}

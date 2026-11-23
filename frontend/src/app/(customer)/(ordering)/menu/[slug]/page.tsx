@@ -4,38 +4,21 @@ import { formatMoney as formatPrice } from "../../../../../lib/format-money";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-
-import type { MenuOptionGroup } from "../../../../../components/customer/add-to-cart-option-dialog";
 import { CasIcon } from "../../../../../components/ui/cas-icon";
-import { loadCustomerCatalogItem } from "../../../../../lib/api/catalog/published-catalog.api";
+import { useCustomerCatalogItem } from "../../../../../lib/api/catalog/customer-catalog.query";
 import { ProductDetailForm } from "./product-detail-form";
 
 export default function ProductDetailPage() {
   const params = useParams<{ slug: string }>();
-  const [product, setProduct] = useState<{
-    availabilityStatus: "ACTIVE" | "SOLD_OUT" | "INACTIVE";
-    id: number;
-    badges: string[];
-    description: string;
-    imageUrl: string | null;
-    name: string;
-    optionGroups: MenuOptionGroup[];
-    price: number;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = Number(params.slug);
-    if (!Number.isSafeInteger(id) || id <= 0) {
-      setError("Không tìm thấy món ăn.");
-      return;
-    }
-
-    void loadCustomerCatalogItem(id)
-      .then(({ item, optionGroups }) => {
+  const id = Number(params.slug);
+  const validId = Number.isSafeInteger(id) && id > 0;
+  const { data, error: queryError } = useCustomerCatalogItem(validId ? id : null);
+  const error = validId ? queryError?.message : "Không tìm thấy món ăn.";
+  const product = data
+    ? (() => {
+        const { item, optionGroups } = data;
         const groupsById = new Map(optionGroups.map((group) => [group.id, group]));
-        setProduct({
+        return {
           availabilityStatus: item.availabilityStatus,
           id: item.id,
           badges: (item.tags ?? []).map((tag) => tag.name),
@@ -62,12 +45,9 @@ export default function ProductDetailPage() {
             ];
           }),
           price: item.price,
-        });
-      })
-      .catch((cause) =>
-        setError(cause instanceof Error ? cause.message : "Không thể tải thông tin món."),
-      );
-  }, [params.slug]);
+        };
+      })()
+    : null;
 
   if (error) {
     return (

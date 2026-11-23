@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { STORE_LOGO } from "../../../lib/store-logo";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -37,6 +38,7 @@ function distanceInMeters(
 
 export default function StartOrderPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [stores, setStores] = useState<PublicStore[]>([]);
   const [storeId, setStoreId] = useState<number | null>(null);
@@ -54,7 +56,8 @@ export default function StartOrderPage() {
   }
 
   useEffect(() => {
-    void loadPublicStores()
+    void queryClient
+      .fetchQuery({ queryKey: ["public", "stores", "list"], queryFn: loadPublicStores })
       .then((result) => {
         setStores(result);
         if (result.length === 1) setStoreId(result[0].id);
@@ -62,7 +65,7 @@ export default function StartOrderPage() {
       .catch((cause) =>
         setError(cause instanceof Error ? cause.message : "Không thể tải chi nhánh."),
       );
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (storeId || stores.length === 0) return;
@@ -101,7 +104,11 @@ export default function StartOrderPage() {
     if (!effectiveStoreId) return;
 
     let active = true;
-    void loadPublicStore(effectiveStoreId)
+    void queryClient
+      .fetchQuery({
+        queryKey: ["public", "stores", effectiveStoreId],
+        queryFn: () => loadPublicStore(effectiveStoreId),
+      })
       .then((nextStore) => {
         if (active) setLoadedStore({ id: effectiveStoreId, details: nextStore });
       })
@@ -111,7 +118,7 @@ export default function StartOrderPage() {
     return () => {
       active = false;
     };
-  }, [storeId, stores]);
+  }, [storeId, stores, queryClient]);
 
   useEffect(() => {
     function closeStoreDropdown(event: MouseEvent) {
